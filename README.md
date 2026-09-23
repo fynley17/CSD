@@ -5,4 +5,4 @@ group webapp
 - Vue.js
 - PHP
 - SQL
-- MySQL
+- PHP my admin
