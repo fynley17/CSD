@@ -4,9 +4,6 @@
 🟧 = SHOULD
 🟨 = COULD
 
-## How will it be divided?
-
-
 ## What are the core requirements
 
 - login
