@@ -2,6 +2,7 @@
 
 🟩 = MUST
 🟧 = SHOULD
+🟨 = COULD
 
 ## How will it be divided?
 
