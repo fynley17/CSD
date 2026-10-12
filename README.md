@@ -1,184 +1,283 @@
-# CSD
+# CSD — RevisionHub
 
-Group webapp - RevisionHub
+RevisionHub is a group web application developed as part of the CSD project.
 
-## Stack
+## Technology Stack
 
-- Vue.js
-- PHP
-- SQL
-- phpMyAdmin
+- **Frontend:** Vue.js
+- **Backend:** PHP
+- **Database:** SQL / MySQL
+- **Database Management:** phpMyAdmin
+- **Version Control:** Git and GitHub
 
 ## Project Architecture
 
-The RevisionHub application is separated into a Vue.js frontend and a PHP backend.
+RevisionHub separates the frontend user interface from the PHP backend and database.
 
-### Backend
+```text
+CSD/
+├── .gitignore
+├── README.md
+├── Documentation/
+│   └── requirement breakdown.md
+├── backend/
+│   ├── controllers/
+│   ├── helpers/
+│   ├── models/
+│   ├── .env
+│   └── index.php
+├── frontend/
+│   ├── assets/
+│   ├── components/
+│   ├── router/
+│   ├── services/
+│   ├── views/
+│   ├── app.vue
+│   ├── main.js
+│   ├── package.json
+│   └── package-lock.json
+└── tests/
+    ├── test-plan/
+    └── unit/
+        ├── controllers/
+        ├── helpers/
+        └── models/
+```
 
-The backend contains the server-side logic, database communication and application processing.
+### Backend — `backend/`
+
+The backend contains the PHP server-side code responsible for application logic and database communication.
 
 #### `backend/controllers/`
 
-Contains the controllers for the application.
-
-Controllers receive requests from the frontend and determine what action needs to be performed. They communicate with the relevant models and return the appropriate response.
+Contains the application controllers. Controllers handle incoming requests, coordinate the required operations and return appropriate responses.
 
 #### `backend/models/`
 
-Contains the models used to handle application data and database operations.
-
-Models are responsible for retrieving, creating, updating and deleting data where required.
+Contains the models responsible for working with application data and database operations, including retrieving, creating, updating and deleting records where required.
 
 #### `backend/helpers/`
 
-Contains reusable PHP functions that can be used by different parts of the backend.
-
-Examples include database connection functions and other common utilities.
+Contains reusable PHP functions and utilities, such as database connection, validation and authentication helpers.
 
 #### `backend/index.php`
 
-The main entry point for the PHP backend.
-
-This file will be used to initialise and route requests into the backend application.
+The intended entry point for the PHP backend. It will be used to initialise and route requests into the backend application.
 
 #### `backend/.env`
 
-Stores environment-specific configuration such as database connection details.
+Stores environment-specific configuration, including database connection details.
 
-Example:
+Example configuration keys:
 
+```text
 DB_HOST=
 DB_NAME=
 DB_USER=
 DB_PASSWORD=
+```
 
-The `.env` file must not be committed to GitHub because it may contain sensitive information.
+Actual credentials must be supplied through the appropriate environment configuration. Do not commit real passwords or other secrets to GitHub.
 
-#### `backend/.gitignore`
+### Frontend — `frontend/`
 
-Contains rules for files that Git should not track.
-
-The `.env` file is included in the `.gitignore` so that database credentials are not committed to the repository.
-
----
-
-### Frontend
-
-The frontend is built using Vue.js and contains the pages and user interface of RevisionHub.
+The frontend contains the Vue.js user interface and navigation for RevisionHub.
 
 #### `frontend/components/`
 
-Contains reusable Vue components.
-
-Components are smaller parts of the user interface that can be reused across multiple pages.
-
-Examples include:
-
-- Navigation bars
-- Buttons
-- Tables
-- Modals
-- Forms
+Contains reusable Vue components, such as navigation bars, buttons, tables, modals and forms.
 
 #### `frontend/views/`
 
-Contains the main pages of the RevisionHub application.
-
-Examples include:
-
-- Landing Page
-- Lecturer Dashboard
-- Student Dashboard
-- Student Management
-- Test Management
-
-Views can use components from the `components` folder to build the page.
+Contains the main application pages, including the landing page, dashboards, student management, test management and question management.
 
 #### `frontend/assets/`
 
-Contains frontend assets used by the application.
-
-This can include:
-
-- Images
-- Logos
-- Icons
-- CSS
-- Other static resources
+Contains frontend assets, including images, logos, icons and stylesheets.
 
 #### `frontend/router/`
 
-Handles navigation between the different pages of the Vue application.
-
-The router maps URLs to the appropriate Vue views.
-
-For example:
-
-- `/` → Landing Page
-- `/lecturer-dashboard` → Lecturer Dashboard
-- `/students` → Student Management
-- `/tests` → Test Management
+Contain the Vue Router configuration for mapping application routes to the appropriate views.
 
 #### `frontend/services/`
 
-Contains code used to communicate with the PHP backend.
+Contains the JavaScript services responsible for communicating with the PHP backend.
 
-This allows the Vue frontend to send requests to the backend and receive data from it.
+#### `frontend/app.vue`
 
----
+The main Vue application component.
+
+#### `frontend/main.js`
+
+The frontend entry point used to initialise the Vue application.
+
+#### `frontend/package.json`
+
+Defines the frontend npm project, its dependencies and available scripts.
+
+#### `frontend/package-lock.json`
+
+Records the resolved npm dependency versions to support consistent installations.
+
+### Root `.gitignore`
+
+The `.gitignore` file is stored at the repository root so its rules can apply across the project.
+
+It excludes files and directories that should not be committed, including environment files, Node.js dependencies and common IDE or operating-system files.
 
 ## Database
 
-The application uses SQL for data storage and phpMyAdmin to manage the database.
+RevisionHub uses a MySQL-compatible SQL database to store application data. phpMyAdmin is used to manage and inspect the database.
 
-The database connection will be handled by the PHP backend.
+The PHP backend is responsible for communicating with the database. Connection details are configured through environment variables rather than being hard-coded into application files.
 
-Database credentials will be stored in the `.env` file and must not be committed to GitHub.
-
----
+Database setup and import instructions will be documented once the team's development environment and database setup have been finalised.
 
 ## Development Setup
 
-### Backend
+### Prerequisites
 
-To run the PHP backend locally, open a terminal and navigate to the backend folder:
+- Git
+- Node.js and npm
+- PHP
+- A MySQL-compatible database
+- phpMyAdmin or another suitable database management tool
+
+### Frontend Setup
+
+1. Clone the repository and navigate to the project directory.
+2. Open a terminal and navigate to the frontend directory:
+
+   ```bash
+   cd frontend
+   ```
+
+3. Install the frontend dependencies:
+
+   ```bash
+   npm install
+   ```
+
+4. Start the frontend development server:
+
+   ```bash
+   npm run dev
+   ```
+
+The development server will display the local URL to open in a browser.
+
+### API Communication
+
+RevisionHub uses an API to allow the Vue.js frontend to communicate with the PHP backend.
+
+The application follows this request flow:
+
+1. The user interacts with a Vue.js page.
+2. The relevant frontend service sends an API request.
+3. The PHP backend processes the request through the appropriate controller.
+4. The backend uses models and helper functions to perform the required operations and communicate with the database.
+5. The backend returns a response, using JSON for data exchange.
+6. The frontend processes the response and updates the user interface.
+
+API routes, request and response formats, and error handling will be implemented consistently across the application.
+
+### Backend Setup
+
+The PHP backend provides the API used by the Vue.js frontend. During local development, the backend runs using PHP's built-in development server.
+
+To start the backend, run the following command from the root of the repository:
 
 ```bash
-cd backend
+php -S localhost:8000 -t backend
 ```
 
-### Frontend
+The backend will be available on port `8000`. In GitHub Codespaces, use the forwarded address shown in the Ports tab to access it.
 
-To run the Vue.js frontend locally, open a terminal and navigate to the frontend folder:
+The terminal must remain open while the server is running. Press `Ctrl+C` to stop it.
 
-```bash
-cd frontend
-npm install
-npm run dev
-```
+The API endpoints and database connection will be configured as development progresses.
 
-### Git and Branching
+#### Requirements
 
-The project uses GitHub for version control.
+- Apache web server
+- PHP configured to run with Apache
+- MySQL-compatible database
+- PHP database connectivity extension, such as PDO MySQL
 
-Branches should follow the naming convention:
+#### Configuration
 
-`CTS-<ticket-number>-<branch-name>`
+1. Ensure Apache and PHP are installed and configured.
+2. Configure Apache to serve the project's `backend/` directory, or the appropriate backend entry point.
+3. Configure the database connection using the environment variables defined in `backend/.env`.
+4. Ensure the backend can connect to the MySQL database.
+5. Configure the API routes so that frontend requests are directed to the appropriate PHP controllers.
 
-For example:
+#### Running the Backend
 
-`CTS-52-repo-architecture`
+Start or enable Apache using the method supported by the development environment. The backend API will then be accessible through its configured URL.
 
-Development work should be completed on feature branches and merged into `main` through a pull request.
+The API base URL must be configured in the frontend so that the Vue.js services can send requests to the PHP backend.
 
-### Project Documentation
+The exact Apache configuration, API URL and database setup instructions will be added once the development environment has been confirmed.
 
-Additional project documentation is stored in the `Documentation` folder.
+## Git and Branching
 
-This includes project requirements and other supporting documentation.
+GitHub is used for version control and collaboration.
 
-### Testing
+### Branch Naming Convention
 
-Unit tests are stored in the `tests` folder.
+Branches should use the agreed category and Jira ticket reference in the following format:
 
-The test command will be added once the testing framework and test setup have been finalised.
+`<category>/CTS-<ticket-number>-<short-description>`
+
+Examples:
+
+- `chore/CTS-52-repo-architecture`
+- `feature/CTS-53-question-management`
+- `bug/CTS-54-login-validation`
+
+Use the category that matches the work being completed and the relevant Jira ticket number.
+
+### Pull Requests
+
+- Complete development work on the appropriate branch.
+- Use meaningful commit messages that describe the changes.
+- Push the branch to GitHub when the work is ready for review.
+- Open a pull request against `main`.
+- Request review from another team member.
+- Address review comments before the changes are merged.
+- Only merge through the team's agreed pull request approval process.
+
+## Project Documentation
+
+Project documentation is stored in the `Documentation/` directory.
+
+This includes the requirements breakdown and other supporting project documents, such as designs, diagrams and planning materials where applicable.
+
+## Testing
+
+Tests are organised under the root `tests/` directory.
+
+- `tests/unit/` contains unit tests organised by application area.
+- `tests/test-plan/` contains test plans and related testing documentation.
+
+## Security
+
+The application should follow secure development practices, including:
+
+- Hashing passwords securely.
+- Using prepared statements or parameterised database queries.
+- Validating user input.
+- Managing sessions securely.
+- Enforcing appropriate access controls for students, lecturers and administrators.
+- Keeping database credentials and other secrets out of version control.
+
+## Future Setup Documentation
+
+The README will be expanded as the project develops to include:
+
+- Confirmed backend hosting and startup instructions.
+- Database creation and import instructions.
+- Required environment variables.
+- Test execution instructions.
+- Appropriate demonstration login credentials for student, lecturer and administrator roles once these have been configured.
