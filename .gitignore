@@ -4,6 +4,9 @@
 # Node dependencies
 node_modules/
 
+# Backend dependecies
+backend/vendor/
+
 # IDE settings
 .vscode/
 
