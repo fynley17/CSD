@@ -5,12 +5,13 @@
 #   pip install pre-commit
 #   (cd backend && composer install)
 #   (cd frontend && npm install)
-#   pre-commit install        # installs the commit hook
+#   pre-commit install        # installs commit and push hooks
 #
 # Run everything manually:
 #   pre-commit run --all-files
+#   pre-commit run --all-files --hook-stage pre-push
 
-default_install_hook_types: [pre-commit]
+default_install_hook_types: [pre-commit, pre-push]
 
 repos:
   # ---------- Generic checks ----------
@@ -53,3 +54,19 @@ repos:
         entry: npx --prefix frontend prettier --write
         language: system
         files: ^frontend/.*\.(js|ts|vue|css|scss|json)$
+
+      # ---------- Unit tests (on push, when test files are added or changed) ----------
+      - id: phpunit
+        name: PHPUnit
+        entry: backend/vendor/bin/phpunit --configuration backend/phpunit.xml
+        language: system
+        files: ^backend/tests/.*Test\.php$
+        types: [php]
+        stages: [pre-push]
+
+      - id: frontend-unit-tests
+        name: Frontend unit tests
+        entry: frontend/node_modules/.bin/vitest run
+        language: system
+        files: ^frontend/.*\.(test|spec)\.(js|ts|vue)$
+        stages: [pre-push]
