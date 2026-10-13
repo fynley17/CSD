@@ -3,8 +3,8 @@ require __DIR__ . '/../vendor/autoload.php';
 
 use Dotenv\Dotenv;
 
-// Load environment variables from the backend directory.
-$dotenv = Dotenv::createImmutable(dirname(__DIR__));
+// Load environment variables from the config directory.
+$dotenv = Dotenv::createImmutable(__DIR__);
 $dotenv->load();
 
 // Get environment variables
