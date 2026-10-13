@@ -38,12 +38,12 @@
         - list all test 🟩
         - info needed 🟩
             - name of test
-            - course 
+            - course
             - lecturer who set the test
             - time limit
             - completed by date
         - all tests completed listed 🟩
-            - test name 
+            - test name
             - completed date
             - number of questions
             - % correct
@@ -58,12 +58,12 @@
         - if time limit 🟩
             - live countdown
             - submit test when countdown ends any questions left shoul be set to 0
-    - leaderboards 
+    - leaderboards
         - top 5 people from each course 🟩
         - visually appeling 🟧
-            - icons 
-            - progress bars 
-            - SVG 
+            - icons
+            - progress bars
+            - SVG
     - results
         - number of points user has 🟩
         - avg score 🟩
@@ -78,7 +78,7 @@
         - disable student acc 🟩
         - table for all students 🟩
             - last log in
-            - student numbers 
+            - student numbers
             - name
             - course
         - pending students 🟩
@@ -90,7 +90,7 @@
         - randomly selected questions from a pool 🟩
         - each set should be unique 🟩
 
-        - additional 
+        - additional
             - priorities questions the student is frequently getting wrong 🟨
 - admin page
     - subject management

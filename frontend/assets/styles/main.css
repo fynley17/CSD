@@ -1,228 +1,228 @@
-@import url('https://fonts.googleapis.com/css2?family=Merriweather:wght@700&family=Open+Sans:wght@400;600;700&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Merriweather:wght@700&family=Open+Sans:wght@400;600;700&display=swap");
 
 :root {
-    /* Colours */
-    --colorBrand: #1E3A8A;
-    --colorPrimary: #4F46E5;
-    --colorPrimaryHover: #4338CA;
-    --colorPrimaryLight: #EEF2FF;
-    --colorHighlight: #93C5FD;
-    --colorDecorative: #60A5FA;
-    --colorPageBackground: #F3F4F6;
-    --colorSurface: #FFFFFF;
-    --colorSurfaceAlt: #F9FAFB;
-    --colorText: #111827;
-    --colorTextSecondary: #4B5563;
-    --colorBorderInput: #6B7280;
-    --colorDivider: #D1D5DB;
-    --colorDisabled: #E5E7EB;
-    --colorFocus: #1E3A8A;
-    --colorSuccess: #15803D;
-    --colorSuccessLight: #DCFCE7;
-    --colorError: #B91C1C;
-    --colorErrorHover: #991B1B;
-    --colorErrorLight: #FEE2E2;
-    --colorWarning: #B45309;
-    --colorWarningLight: #FEF3C7;
-    --colorInfoLight: #DBEAFE;
+  /* Colours */
+  --colorBrand: #1e3a8a;
+  --colorPrimary: #4f46e5;
+  --colorPrimaryHover: #4338ca;
+  --colorPrimaryLight: #eef2ff;
+  --colorHighlight: #93c5fd;
+  --colorDecorative: #60a5fa;
+  --colorPageBackground: #f3f4f6;
+  --colorSurface: #ffffff;
+  --colorSurfaceAlt: #f9fafb;
+  --colorText: #111827;
+  --colorTextSecondary: #4b5563;
+  --colorBorderInput: #6b7280;
+  --colorDivider: #d1d5db;
+  --colorDisabled: #e5e7eb;
+  --colorFocus: #1e3a8a;
+  --colorSuccess: #15803d;
+  --colorSuccessLight: #dcfce7;
+  --colorError: #b91c1c;
+  --colorErrorHover: #991b1b;
+  --colorErrorLight: #fee2e2;
+  --colorWarning: #b45309;
+  --colorWarningLight: #fef3c7;
+  --colorInfoLight: #dbeafe;
 
-    /* Typography */
-    --fontHeading: 'Merriweather', Georgia, serif;
-    --fontBody: 'Open Sans', Arial, sans-serif;
-    --fontSizeH1: 2rem;
-    --fontSizeH2: 1.5rem;
-    --fontSizeH3: 1.25rem;
-    --fontSizeStat: 1.75rem;
-    --fontSizeBody: 1rem;
-    --fontSizeSmall: 0.875rem;
+  /* Typography */
+  --fontHeading: "Merriweather", Georgia, serif;
+  --fontBody: "Open Sans", Arial, sans-serif;
+  --fontSizeH1: 2rem;
+  --fontSizeH2: 1.5rem;
+  --fontSizeH3: 1.25rem;
+  --fontSizeStat: 1.75rem;
+  --fontSizeBody: 1rem;
+  --fontSizeSmall: 0.875rem;
 
-    /* Spacing */
-    --spaceXs: 0.25rem;
-    --spaceSm: 0.5rem;
-    --spaceMd: 1rem;
-    --spaceLg: 1.5rem;
-    --spaceXl: 2rem;
-    --space2xl: 3rem;
-    --space3xl: 4rem;
+  /* Spacing */
+  --spaceXs: 0.25rem;
+  --spaceSm: 0.5rem;
+  --spaceMd: 1rem;
+  --spaceLg: 1.5rem;
+  --spaceXl: 2rem;
+  --space2xl: 3rem;
+  --space3xl: 4rem;
 
-    /* Shape and layout */
-    --radiusSm: 6px;
-    --radiusMd: 8px;
-    --radiusPill: 999px;
-    --shadowCard: 0 1px 3px rgba(17, 24, 39, 0.12);
-    --shadowModal: 0 12px 32px rgba(17, 24, 39, 0.24);
-    --contentMaxWidth: 1200px;
-    --navHeight: 64px;
+  /* Shape and layout */
+  --radiusSm: 6px;
+  --radiusMd: 8px;
+  --radiusPill: 999px;
+  --shadowCard: 0 1px 3px rgba(17, 24, 39, 0.12);
+  --shadowModal: 0 12px 32px rgba(17, 24, 39, 0.24);
+  --contentMaxWidth: 1200px;
+  --navHeight: 64px;
 }
 
 /* Global styles */
 
 * {
-    box-sizing: border-box;
+  box-sizing: border-box;
 }
 
 html {
-    scroll-padding-top: 80px;
+  scroll-padding-top: 80px;
 }
 
 body {
-    margin: 0;
-    background-color: var(--colorPageBackground);
-    color: var(--colorText);
-    font-family: var(--fontBody);
-    font-size: var(--fontSizeBody);
-    line-height: 1.5;
+  margin: 0;
+  background-color: var(--colorPageBackground);
+  color: var(--colorText);
+  font-family: var(--fontBody);
+  font-size: var(--fontSizeBody);
+  line-height: 1.5;
 }
 
 h1,
 h2 {
-    color: var(--colorBrand);
-    font-family: var(--fontHeading);
-    font-weight: 700;
+  color: var(--colorBrand);
+  font-family: var(--fontHeading);
+  font-weight: 700;
 }
 
 h1 {
-    font-size: var(--fontSizeH1);
-    line-height: 1.25;
+  font-size: var(--fontSizeH1);
+  line-height: 1.25;
 }
 
 h2 {
-    font-size: var(--fontSizeH2);
-    line-height: 1.33;
+  font-size: var(--fontSizeH2);
+  line-height: 1.33;
 }
 
 h3 {
-    font-family: var(--fontBody);
-    font-size: var(--fontSizeH3);
-    font-weight: 600;
-    line-height: 1.4;
+  font-family: var(--fontBody);
+  font-size: var(--fontSizeH3);
+  font-weight: 600;
+  line-height: 1.4;
 }
 
 a {
-    color: var(--colorPrimary);
+  color: var(--colorPrimary);
 }
 
 a:focus-visible,
 button:focus-visible {
-    outline: 3px solid var(--colorFocus);
-    outline-offset: 2px;
+  outline: 3px solid var(--colorFocus);
+  outline-offset: 2px;
 }
 
 main {
-    padding-top: var(--navHeight);
+  padding-top: var(--navHeight);
 }
 
 /* Header */
 
 .siteHeader {
-    position: fixed;
-    top: 0;
-    right: 0;
-    left: 0;
-    z-index: 1030;
-    height: var(--navHeight);
-    padding: 0 var(--spaceLg);
-    background-color: var(--colorSurface);
-    border-bottom: 1px solid var(--colorDivider);
+  position: fixed;
+  top: 0;
+  right: 0;
+  left: 0;
+  z-index: 1030;
+  height: var(--navHeight);
+  padding: 0 var(--spaceLg);
+  background-color: var(--colorSurface);
+  border-bottom: 1px solid var(--colorDivider);
 }
 
 .siteHeader .navbar,
 .siteHeader .container-fluid {
-    height: 100%;
+  height: 100%;
 }
 
 .siteHeader .navbar {
-    padding: 0;
+  padding: 0;
 }
 
 .siteHeader .navbar-brand {
-    display: flex;
-    align-items: center;
-    margin: 0;
-    padding: var(--spaceSm) var(--spaceMd);
+  display: flex;
+  align-items: center;
+  margin: 0;
+  padding: var(--spaceSm) var(--spaceMd);
 }
 
 .siteLogo {
-    display: block;
-    width: 180px;
-    max-height: 48px;
-    object-fit: contain;
+  display: block;
+  width: 180px;
+  max-height: 48px;
+  object-fit: contain;
 }
 
 /* Shared button styling */
 
 .headerButton {
-    display: inline-flex;
-    min-height: 44px;
-    align-items: center;
-    justify-content: center;
-    padding: var(--spaceXs) var(--spaceMd);
-    border: 1px solid var(--colorPrimary);
-    border-radius: var(--radiusSm);
-    font-family: var(--fontBody);
-    font-size: 0.9375rem;
-    font-weight: 600;
-    line-height: 1.5;
-    text-decoration: none;
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spaceXs) var(--spaceMd);
+  border: 1px solid var(--colorPrimary);
+  border-radius: var(--radiusSm);
+  font-family: var(--fontBody);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  line-height: 1.5;
+  text-decoration: none;
 }
 
 /* Sign in button */
 
 .loginButton {
-    background-color: var(--colorPrimary);
-    color: var(--colorSurface);
+  background-color: var(--colorPrimary);
+  color: var(--colorSurface);
 }
 
 .loginButton:hover {
-    background-color: var(--colorPrimaryHover);
-    border-color: var(--colorPrimaryHover);
-    color: var(--colorSurface);
+  background-color: var(--colorPrimaryHover);
+  border-color: var(--colorPrimaryHover);
+  color: var(--colorSurface);
 }
 
 /* Register button */
 
 .registerButton {
-    background-color: var(--colorSurface);
-    color: var(--colorPrimary);
+  background-color: var(--colorSurface);
+  color: var(--colorPrimary);
 }
 
 .registerButton:hover {
-    background-color: var(--colorPrimaryLight);
-    color: var(--colorPrimaryHover);
+  background-color: var(--colorPrimaryLight);
+  color: var(--colorPrimaryHover);
 }
 
 /* Skip link for keyboard users */
 
 .skipLink {
-    position: fixed;
-    top: var(--spaceSm);
-    left: var(--spaceSm);
-    z-index: 2000;
-    padding: var(--spaceSm) var(--spaceMd);
-    transform: translateY(-200%);
-    background-color: var(--colorSurface);
-    border: 2px solid var(--colorFocus);
-    border-radius: var(--radiusSm);
-    color: var(--colorBrand);
-    font-weight: 600;
+  position: fixed;
+  top: var(--spaceSm);
+  left: var(--spaceSm);
+  z-index: 2000;
+  padding: var(--spaceSm) var(--spaceMd);
+  transform: translateY(-200%);
+  background-color: var(--colorSurface);
+  border: 2px solid var(--colorFocus);
+  border-radius: var(--radiusSm);
+  color: var(--colorBrand);
+  font-weight: 600;
 }
 
 .skipLink:focus {
-    transform: translateY(0);
+  transform: translateY(0);
 }
 
 /* Mobile layout */
 
 @media (max-width: 639px) {
-    .siteHeader {
-        padding: 0 var(--spaceMd);
-    }
+  .siteHeader {
+    padding: 0 var(--spaceMd);
+  }
 
-    .siteHeader .navbar-brand {
-        padding: var(--spaceSm) var(--spaceXs);
-    }
+  .siteHeader .navbar-brand {
+    padding: var(--spaceSm) var(--spaceXs);
+  }
 
-    .siteLogo {
-        width: 140px;
-    }
+  .siteLogo {
+    width: 140px;
+  }
 }

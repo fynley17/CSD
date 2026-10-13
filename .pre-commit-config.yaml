@@ -1,0 +1,55 @@
+# Pre-commit config for a PHP backend + Vue frontend
+# Assumes layout: backend/ (Composer) and frontend/ (npm). Adjust paths as needed.
+#
+# Setup (once per clone):
+#   pip install pre-commit
+#   (cd backend && composer install)
+#   (cd frontend && npm install)
+#   pre-commit install        # installs the commit hook
+#
+# Run everything manually:
+#   pre-commit run --all-files
+
+default_install_hook_types: [pre-commit]
+
+repos:
+  # ---------- Generic checks ----------
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-json
+      - id: check-merge-conflict
+      - id: check-added-large-files
+      - id: detect-private-key
+
+  - repo: local
+    hooks:
+      # ---------- PHP (on commit) ----------
+      - id: php-lint
+        name: PHP syntax check
+        entry: php -l
+        language: system
+        files: ^backend/.*\.php$
+
+      - id: php-cs-fixer
+        name: PHP CS Fixer
+        entry: backend/vendor/bin/php-cs-fixer fix --config=backend/.php-cs-fixer.php --allow-unsupported-php-version=yes
+        language: system
+        files: ^backend/.*\.php$
+
+      - id: phpstan
+        name: PHPStan
+        entry: backend/vendor/bin/phpstan analyse backend/controllers backend/helpers backend/models backend/config backend/index.php --memory-limit=1G --no-progress
+        language: system
+        files: ^backend/.*\.php$
+        pass_filenames: false
+
+      # ---------- Vue / JS / TS (on commit) ----------
+      - id: prettier
+        name: Prettier
+        entry: npx --prefix frontend prettier --write
+        language: system
+        files: ^frontend/.*\.(js|ts|vue|css|scss|json)$
