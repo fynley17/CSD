@@ -185,6 +185,11 @@ API routes, request and response formats, and error handling will be implemented
 
 The PHP backend provides the API used by the Vue.js frontend. During local development, the backend runs using PHP's built-in development server.
 
+To ensure you have the packages rewuired for the backend run the following from /backend:
+```bash
+composer install
+```
+
 To start the backend, run the following command from the root of the repository:
 
 ```bash
