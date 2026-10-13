@@ -5,7 +5,7 @@
 VALIDATE_ALL_CODEBASE: false
 
 # Checks being run
-ENABLE_LINERS:
+ENABLE_LINTERS:
   - PHP_BUILTIN          # PHP Syntax errors
   - PHP_PHPCSFIXER       # PHP layout and indentation (PSR-12, 4 spaces)
   - REPOSITORY_GITLEAKS  # passwords or keys accidentally committed
