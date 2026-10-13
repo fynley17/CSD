@@ -1,0 +1,18 @@
+# MegaLinter settings (CTS-124)
+# Uses the same rules as pre-commit, so the 2 never disagree
+
+# Checks files changed in pull request only, not the entire project
+VALIDATE_ALL_CODEBASE: false
+
+# Checks being run
+ENABLE_LINTERS:
+  - PHP_BUILTIN          # PHP Syntax errors
+  - PHP_PHPCSFIXER       # PHP layout and indentation (PSR-12, 4 spaces)
+  - REPOSITORY_GITLEAKS  # passwords or keys accidentally committed
+
+# Using PHP CS Fixer rules from pre-commit
+LINTER_RULES_PATH: .
+PHP_PHPCSFIXER_CONFIG_FILE: backend/.php-cs-fixer.php
+
+SHOW_ELAPSED_TIME: true
+FILEIO_REPORTER: false
