@@ -23,4 +23,3 @@ jobs:
         uses: oxsecurity/megalinter@v8
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      
