@@ -143,6 +143,16 @@ Database setup and import instructions will be documented once the team's develo
 - A MySQL-compatible database
 - phpMyAdmin or another suitable database management tool
 
+# Setup (once per clone):
+   - pip install pre-commit
+   - (cd backend && composer install)
+   - (cd frontend && npm install)
+   - pre-commit install        # installs commit and push hooks
+
+ Run everything manually:
+   - pre-commit run --all-files
+   - pre-commit run --all-files --hook-stage pre-push
+
 ### Frontend Setup
 
 1. Clone the repository and navigate to the project directory.
