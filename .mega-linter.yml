@@ -1,14 +1,16 @@
 # MegaLinter settings (CTS-124)
-# Uses the same rules as pre-commit, so the 2 never disagree
+# Linter keys checked against the MegaLinter v10 documentation
 
 # Checks files changed in pull request only, not the entire project
+# but php-cs-fixer and betterleaks check the whole project
 VALIDATE_ALL_CODEBASE: false
 
 # Checks being run
 ENABLE_LINTERS:
-  - PHP_BUILTIN          # PHP Syntax errors
+  - PHP_PHPLINT          # PHP Syntax errors
   - PHP_PHPCSFIXER       # PHP layout and indentation (PSR-12, 4 spaces)
-  - REPOSITORY_GITLEAKS  # passwords or keys accidentally committed
+  - REPOSITORY_BETTERLEAKS  # passwords or keys accidentally committed
+  - ACTION_ACTIONLINT # errors in github workflow files 
 
 # Using PHP CS Fixer rules from pre-commit
 LINTER_RULES_PATH: .
