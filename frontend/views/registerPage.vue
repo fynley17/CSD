@@ -1,4 +1,5 @@
 <script>
+import api from "../services/api";
 export default {
   data() {
     return {
@@ -9,15 +10,15 @@ export default {
   },
   async mounted() {
     try {
-      // This endpoint should return database rows as [{ id, name }, ...].
-      const response = await fetch("/api/cohorts");
-      if (!response.ok) throw new Error("Request failed");
-
-      const cohorts = await response.json();
-      if (!Array.isArray(cohorts)) throw new Error("Invalid response");
+      const response = await api.get("/cohorts");
+      const cohorts = Array.isArray(response.data) ? response.data : [];
       this.cohorts = cohorts;
-    } catch {
+      if (!Array.isArray(response.data)) {
+        throw new Error("Invalid response");
+      }
+    } catch (error) {
       this.cohortsError = "Unable to load cohorts. Please try again later.";
+      console.error("Cohort load failed:", error);
     } finally {
       this.cohortsLoading = false;
     }
@@ -56,9 +57,13 @@ export default {
           required
           :disabled="cohortsLoading || !!cohortsError"
         >
-          <option value="">Select a cohort</option>
-          <option v-for="cohort in cohorts" :key="cohort.id" :value="cohort.id">
-            {{ cohort.name }}
+          <option value="">Select a Cohort</option>
+          <option
+            v-for="cohort in cohorts"
+            :key="cohort.cohortID"
+            :value="cohort.cohortID"
+          >
+            {{ cohort.cohortName }}
           </option>
         </select>
         <small v-if="cohortsLoading" class="text-muted">Loading cohorts…</small>
@@ -72,7 +77,19 @@ export default {
       </div>
       <div class="mb-3">
         <label for="password" class="form-label">Password</label>
-        <input type="password" class="form-control" id="password" required />
+        <input
+          type="password"
+          class="form-control"
+          id="password"
+          minlength="8"
+          pattern="(?=.*[A-Z])(?=.*[a-z])(?=.*[0-9])(?=.*[^A-Za-z0-9\s]).{8,}"
+          title="Use at least 8 characters, including an uppercase letter, a lowercase letter, a number, and a symbol."
+          required
+        />
+        <small class="form-text text-muted">
+          At least 8 characters, with an uppercase letter, a lowercase letter, a
+          number, and a symbol.
+        </small>
       </div>
       <div class="mb-3">
         <label for="confirmPassword" class="form-label">Confirm Password</label>
@@ -80,6 +97,9 @@ export default {
           type="password"
           class="form-control"
           id="confirmPassword"
+          minlength="8"
+          pattern="(?=.*[A-Z])(?=.*[a-z])(?=.*[0-9])(?=.*[^A-Za-z0-9\s]).{8,}"
+          title="Use at least 8 characters, including an uppercase letter, a lowercase letter, a number, and a symbol."
           required
         />
       </div>

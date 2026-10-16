@@ -1,26 +1,35 @@
 <?php
 
-
 use App\Router;
-use App\Controllers\studentController;
+use App\Controllers\StudentController;
+use App\Controllers\CohortController;
 
-// Allow requests from the frontend origin
-header("Access-Control-Allow-Origin: http://127.0.0.1:5174");
-// Allow specific HTTP methods
-header("Access-Control-Allow-Methods: GET, POST, PATCH, DELETE, OPTIONS");
-// Allow specific headers
-header("Access-Control-Allow-Headers: Content-Type, Authorization");
+$origin = $_SERVER['HTTP_ORIGIN'] ?? '';
+$allowedOrigins = [
+    'http://localhost:5173',
+    'http://127.0.0.1:5173',
+    'http://localhost:5174',
+    'http://127.0.0.1:5174',
+];
 
-// Handle preflight requests (OPTIONS method)
-if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
-    http_response_code(204); // No content
+if ($origin !== '' && (in_array($origin, $allowedOrigins, true) || preg_match('/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/', $origin))) {
+    header('Access-Control-Allow-Origin: ' . $origin);
+} else {
+    header('Access-Control-Allow-Origin: *');
+}
+
+header('Access-Control-Allow-Methods: GET, POST, PATCH, DELETE, OPTIONS');
+header('Access-Control-Allow-Headers: Content-Type, Authorization');
+
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    http_response_code(204);
     exit;
 }
 
 $router = new Router();
 
-// student routes
-$router->addRoute('GET', '/^\\/api\\/students$/', [new studentController(), 'getAllStudents']);
-$router->addRoute('POST', '/^\\/api\\/register$/', [new studentController(), 'registerStudent']);
+$router->addRoute('GET', '/^\\/api\\/students$/', [new StudentController(), 'getAllStudents']);
+$router->addRoute('POST', '/^\\/api\\/register$/', [new StudentController(), 'registerStudent']);
+$router->addRoute('GET', '/^\\/api\\/cohorts$/', [new CohortController(), 'getAllCohorts']);
 
 return $router;

@@ -4,7 +4,7 @@ namespace App\Controllers;
 
 use App\Models\Student;
 
-class studentController extends Controller
+class StudentController extends Controller
 {
     public function getAllStudents()
     {
@@ -15,7 +15,6 @@ class studentController extends Controller
     public function registerStudent()
     {
         try {
-            // Get the JSON input from the request body
             $data = json_decode(file_get_contents('php://input'), true);
             $result = Student::register($data);
 

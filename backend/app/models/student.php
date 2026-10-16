@@ -27,9 +27,16 @@ class Student extends Model
         if (empty($data['studentNumber']) || !self::validUsername($data['studentNumber'])) {
             throw new \InvalidArgumentException('not valid student number');
         }
+        if (empty($data['password']) || !self::validPassword($data['password'])) {
+            throw new \InvalidArgumentException('Password must be at least 8 characters long and include an uppercase letter, a lowercase letter, a number, and a symbol');
+        }
+        if (empty($data['confirmPassword']) || $data['password'] !== $data['confirmPassword']) {
+            throw new \InvalidArgumentException('Passwords do not match');
+        }
 
-        $stmt = self::getDB()->prepare("INSERT INTO Students (firstName, lastName, email) VALUES (?, ?, ?)");
-        $result = $stmt->execute([$data['firstName'], $data['lastName'], $data['email']]);
+
+        $stmt = self::getDB()->prepare("INSERT INTO Students (firstName, lastName, email, studentNumber, password) VALUES (?, ?, ?, ?, ?)");
+        $result = $stmt->execute([$data['firstName'], $data['lastName'], $data['email'], $data['studentNumber'], password_hash($data['password'], PASSWORD_DEFAULT)]);
         return ['success' => $result];
     }
 
@@ -42,6 +49,15 @@ class Student extends Model
     public static function validUsername($studentNumber)
     {
         return preg_match("/^WS[0-9]{6}$/D", $studentNumber);
+    }
+
+    public static function validPassword($password)
+    {
+        return strlen($password) >= 8
+            && preg_match('/[A-Z]/', $password)
+            && preg_match('/[a-z]/', $password)
+            && preg_match('/[0-9]/', $password)
+            && preg_match('/[^a-zA-Z0-9\s]/', $password);
     }
 
     private static function ValidEmail($email)
