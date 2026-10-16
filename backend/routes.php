@@ -22,3 +22,5 @@ $router = new Router();
 // student routes
 $router->addRoute('GET', '/^\\/api\\/students$/', [new studentController(), 'getAllStudents']);
 $router->addRoute('POST', '/^\\/api\\/register$/', [new studentController(), 'registerStudent']);
+
+return $router;

@@ -43,7 +43,7 @@ repos:
 
       - id: phpstan
         name: PHPStan
-        entry: backend/vendor/bin/phpstan analyse backend/app backend/config backend/public backend/router.php backend/tests --memory-limit=1G --no-progress
+        entry: backend/vendor/bin/phpstan analyse backend/app backend/config backend/public backend/routes.php backend/tests --memory-limit=1G --no-progress
         language: system
         files: ^backend/.*\.php$
         pass_filenames: false
