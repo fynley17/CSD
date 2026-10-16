@@ -16,3 +16,5 @@ Thumbs.db
 
 # Generated production build
 dist/
+
+.php-cs-fixer.cache
