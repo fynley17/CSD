@@ -233,44 +233,45 @@ pre-commit run --all-files --hook-stage pre-push
 - **`docker compose` is not found:** Install Docker Desktop on Windows/macOS or
   the Docker Compose plugin on Linux, then open a new terminal.
 
-## Repository contents
+## Project structure and application flow
 
-- `frontend/` — Vue application, Vite configuration, assets, and npm
-  dependencies.
-- `backend/controllers/` — PHP request/controller logic.
-- `backend/models/` — PHP data models.
-- `backend/helpers/` — shared PHP helpers.
-- `backend/config/database.php` — PDO connection configured through the local
-  `backend/config/.env` file.
-- `database/init/` — SQL files used when initializing a new local database.
-- `Documentation/` — [requirements breakdown](Documentation/requirement%20breakdown.md)
-  and other project documents.
+RevisionHub uses a Vue frontend, a PHP backend, and MariaDB. The repository is
+organized as follows:
 
-## Application structure and API flow
+```text
+CSD/
+├── Documentation/          # Requirements and project documents
+├── backend/
+│   ├── config/             # Database connection and local configuration
+│   ├── controllers/        # Request/controller logic
+│   ├── helpers/            # Shared PHP utilities
+│   ├── models/             # Data access and model logic
+│   ├── tests/              # Backend tests
+│   └── index.php           # PHP development-server entry point
+├── database/
+│   └── init/               # SQL used to initialize a new local database
+├── frontend/
+│   ├── assets/             # Images and styles
+│   ├── components/         # Reusable Vue components
+│   ├── router/             # Vue Router configuration
+│   ├── services/           # Frontend service code
+│   ├── views/              # Application pages
+│   ├── app.vue             # Root Vue component
+│   └── main.js             # Frontend entry point
+├── compose.yaml            # Local MariaDB and phpMyAdmin services
+└── README.md
+```
 
-The project separates the Vue user interface from the PHP backend and database:
+The frontend is started from `frontend/` with Vite. Its services are intended
+to send requests to the PHP backend. Backend controllers coordinate request
+handling with models and shared helpers, while
+`backend/config/database.php` creates a PDO connection using the local
+`backend/config/.env` file. The current `backend/index.php` checks the database
+connection; backend API routing and frontend-to-backend integration are still
+under development.
 
-- `frontend/main.js` starts the Vue application, and `frontend/app.vue` is its
-  root component. `frontend/assets/` contains frontend images and styles.
-- `frontend/package.json` and `frontend/package-lock.json` describe and lock
-  the Vue/Vite dependencies.
-- `backend/controllers/` contains request/controller logic;
-  `backend/models/` contains data access and model logic; and
-  `backend/helpers/` contains reusable utilities.
-- `backend/index.php` is the current PHP development-server entry point.
-  `backend/config/database.php` loads the local environment file and creates
-  the PDO connection.
-
-1. A user interacts with the Vue application.
-2. A frontend service sends a request to the PHP backend.
-3. The backend routes the request to the relevant controller.
-4. The controller uses models and shared helpers to process the request and
-   access MariaDB.
-5. The backend returns a response, typically JSON, for the frontend to display.
-
-This describes the intended application flow. Backend API routing and the
-frontend-to-backend integration are still under development; the current
-`backend/index.php` is a database connection check, not a completed API router.
+Project requirements and supporting materials are in `Documentation/`,
+including the [requirements breakdown](Documentation/requirement%20breakdown.md).
 
 ## Testing and code checks
 
