@@ -25,7 +25,8 @@ CSD/
 │   ├── helpers/
 │   ├── models/
 │   ├── .env
-│   └── index.php
+│   └── public/
+│       └── index.php
 ├── frontend/
 │   ├── assets/
 │   ├── components/
@@ -60,7 +61,7 @@ Contains the models responsible for working with application data and database o
 
 Contains reusable PHP functions and utilities, such as database connection, validation and authentication helpers.
 
-#### `backend/index.php`
+#### `backend/public/index.php`
 
 The intended entry point for the PHP backend. It will be used to initialise and route requests into the backend application.
 
@@ -195,7 +196,7 @@ API routes, request and response formats, and error handling will be implemented
 
 The PHP backend provides the API used by the Vue.js frontend. During local development, the backend runs using PHP's built-in development server.
 
-To ensure you have the packages rewuired for the backend run the following from /backend:
+To ensure you have the packages required for the backend run the following from /backend:
 ```bash
 composer install
 ```
@@ -203,7 +204,7 @@ composer install
 To start the backend, run the following command from the root of the repository:
 
 ```bash
-php -S localhost:8000 -t backend
+php -S localhost:8000 -t backend/public backend/public/index.php
 ```
 
 The backend will be available on port `8000`. In GitHub Codespaces, use the forwarded address shown in the Ports tab to access it.
