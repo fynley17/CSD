@@ -24,8 +24,14 @@ CSD/
 │   ├── controllers/
 │   ├── helpers/
 │   ├── models/
-│   ├── .env
-│   └── index.php
+│   ├── index.php
+│   └── config/
+│       ├── .env
+│       └── database.php
+├── database/
+│   └── init/
+│       └── 01-schema.sql
+├── compose.yaml
 ├── frontend/
 │   ├── assets/
 │   ├── components/
@@ -64,9 +70,11 @@ Contains reusable PHP functions and utilities, such as database connection, vali
 
 The intended entry point for the PHP backend. It will be used to initialise and route requests into the backend application.
 
-#### `backend/.env`
+#### `backend/config/.env`
 
 Stores environment-specific configuration, including database connection details.
+Create it by copying `backend/config/.env.example`. It is ignored by Git and
+must not contain production credentials.
 
 Example configuration keys:
 
@@ -131,7 +139,13 @@ RevisionHub uses a MySQL-compatible SQL database to store application data. phpM
 
 The PHP backend is responsible for communicating with the database. Connection details are configured through environment variables rather than being hard-coded into application files.
 
-Database setup and import instructions will be documented once the team's development environment and database setup have been finalised.
+Each developer runs MariaDB and phpMyAdmin locally using Docker Compose. The
+database is not shared over the network; each person has their own local data
+volume. The team's schema should be committed as a structure-only SQL export at
+`database/init/01-schema.sql`, so a new local database is initialized
+consistently. The schema uses MariaDB's native `UUID` type (available in
+MariaDB 10.7 and later); the local Compose setup uses MariaDB 11.4, so use that
+setup rather than a MySQL server to import it.
 
 ## Development Setup
 
@@ -140,8 +154,77 @@ Database setup and import instructions will be documented once the team's develo
 - Git
 - Node.js and npm
 - PHP
-- A MySQL-compatible database
-- phpMyAdmin or another suitable database management tool
+- Docker Desktop (including Docker Compose)
+- PHP with the PDO MySQL extension
+- Composer
+
+### Local Database Setup
+
+Do these steps once on each developer's machine:
+
+1. Install and start Docker Desktop.
+2. From the repository root, copy the local configuration examples:
+
+   ```bash
+   cp .env.example .env
+   cp backend/config/.env.example backend/config/.env
+   ```
+
+   The defaults match each other. Keep these local `.env` files uncommitted;
+   change the password in both files if you change `MARIADB_PASSWORD` in `.env`.
+3. Before the team starts its local databases, one teammate should export the
+   desired schema from phpMyAdmin: select the database, choose **Export**, and
+   export its structure as SQL without production or personal data. Save the
+   resulting file as `database/init/01-schema.sql` and commit it. Other
+   developers should pull this file before starting the database. If the
+   existing database has a different name from `revisionhub`, set
+   `MARIADB_DATABASE` in the root `.env` and `DB_NAME` in
+   `backend/config/.env` to that same name. If the export includes data, remove
+   it unless the team has agreed to share that data.
+4. Start MariaDB and phpMyAdmin:
+
+   ```bash
+   docker compose up -d
+   docker compose ps
+   ```
+
+   Wait for the `db` service to report `healthy`. MariaDB is available to the
+   PHP backend at `127.0.0.1:3306`; phpMyAdmin is at
+   [http://localhost:8081](http://localhost:8081). Sign in to phpMyAdmin as
+   `revisionhub_dev` with the local password in `backend/config/.env`.
+5. Import the schema if it was not loaded automatically:
+   - Open phpMyAdmin and select the `revisionhub` database.
+   - Choose **Import**, select the team's `.sql` schema export, then choose
+     **Import** at the bottom of the page.
+   - For a fresh database created from the repository, MariaDB automatically
+     imports `database/init/01-schema.sql` if that file exists when the
+     container's data volume is first created. In that case, skip the manual
+     import.
+6. Install backend dependencies if needed and start the backend from the
+   repository root:
+
+   ```bash
+   cd backend && composer install
+   cd ..
+   php -S localhost:8000 -t backend
+   ```
+
+7. Start the frontend in another terminal:
+
+   ```bash
+   cd frontend
+   npm install
+   npm run dev
+   ```
+
+To stop the local services without deleting the database, run
+`docker compose down`. The data remains in the local `mariadb_data` volume.
+Do not use `docker compose down -v` unless you intentionally want to delete
+that local database and reinitialize it from the SQL files.
+
+If ports `3306` or `8081` are already in use, change `DB_PORT` or `PMA_PORT`
+in the root `.env`. If you change `DB_PORT`, also set `DB_PORT` in
+`backend/config/.env` to the same value.
 
 # Setup (once per clone):
    - pip install pre-commit
