@@ -17,12 +17,15 @@ const path = require('path');
 function load(name) {
   return require(require.resolve(name, {paths: [path.join(__dirname, 'frontend'), __dirname] }));
 }
+
 // checking for common javascript mistakes
-const js = load('@eslint/js'); // javascript mistakes
-const globals = load('globals'); // list of names a web browser already provides like "window" and "document"
-const pluginVue = load('eslint-plugin-vue'); // checks specially for vue files
-const pluginVueA11y = load('eslint-plugin-vuejs-accessibility'); // checks that pages can be used by everyone, 
-// such as people using screen readers
+const js = load('@eslint/js');
+// list of names a web browser already provides like "window" and "document"
+const globals = load('globals'); 
+// checks specially for vue files
+const pluginVue = load('eslint-plugin-vue'); 
+// Checks that pages can be used by everyone, such as people using screen readers
+const pluginVueA11y = load('eslint-plugin-vuejs-accessibility');
 
 // a list since each item adds more rules, and later items can change earlier ones
 module.exports = [
@@ -40,6 +43,7 @@ module.exports = [
     {
         files: ['frontend/**/*.{js,vue}'],
         languageOptions: {
+            // newest version JavaScript used
             ecmaVersion: 'latest',
             sourceType: 'module',
             globals: { ...globals.browser},
@@ -98,7 +102,8 @@ module.exports = [
       files: ['frontend/vite.config.js'],
       languageOptions: { globals: { ...globals.node} },
   },
-];  
+];
+
   
 
 
