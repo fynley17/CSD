@@ -4,6 +4,8 @@ import { createRouter, createWebHistory } from "vue-router";
 
 // Import the landing page and is displayed when users visit the root URL
 import LandingPage from "../views/landingPage.vue";
+// Import the Privacy Policy page and is displayed when users visit the privacy policy URL
+import PrivacyPolicy from "../views/privacyPolicy.vue";
 
 // Define the application routes
 const routes = [
@@ -11,6 +13,11 @@ const routes = [
     path: "/",
     name: "landingPage",
     component: LandingPage,
+  },
+  {
+    path: "/privacy-policy",
+    name: "privacyPolicy",
+    component: PrivacyPolicy,
   },
 ];
 

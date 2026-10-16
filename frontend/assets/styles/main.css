@@ -186,6 +186,15 @@ main {
   }
 }
 
+.footerPrivacyLink {
+  color: #ffffff;
+  text-decoration: none;
+}
+
+.footerPrivacyLink:hover {
+  text-decoration: underline;
+}
+
 /* Shared button styling */
 
 .headerButton {
