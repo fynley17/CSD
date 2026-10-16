@@ -6,7 +6,7 @@ import Footer from "./components/common/footer.vue";
 <template>
   <div class="app-layout">
     <Navbar />
-     <!-- Main content area displayed beneath the fixed header -->
+    <!-- Main content area displayed beneath the fixed header -->
 
     <main id="main-content" tabindex="-1" class="app-main">
       <router-view />
