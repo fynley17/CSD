@@ -74,6 +74,22 @@ body {
   line-height: 1.5;
 }
 
+#app {
+  min-height: 100%;
+  margin: 0;
+}
+
+.app-layout {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Allow the main content to take up available space */
+.app-main {
+  flex: 1;
+}
+
 h1,
 h2 {
   color: var(--colorBrand);
@@ -147,6 +163,36 @@ main {
   width: 180px;
   max-height: 48px;
   object-fit: contain;
+}
+
+/* Shared footer */
+.siteFooter {
+  width: 100%;
+  margin-top: auto;
+  background-color: var(--colorBrand);
+  border-top: 1px solid var(--colorPrimary);
+  color: #ffffff;
+  font-size: 11px;
+  padding: 20px 30px;
+}
+
+.footerCopyright {
+  color: #ffffff;
+}
+
+@media (max-width: 767.98px) {
+  .siteFooter {
+    padding: 20px;
+  }
+}
+
+.footerPrivacyLink {
+  color: #ffffff;
+  text-decoration: none;
+}
+
+.footerPrivacyLink:hover {
+  text-decoration: underline;
 }
 
 /* Shared button styling */
