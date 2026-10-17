@@ -1,0 +1,20 @@
+# EditorConfig (CTS-155) tells code editors and megalinter how every file should be laid out (section 8)
+# VS Code follows it with the EditorConfig extension so new files start off correctly
+# docs: https://editorconfig.org
+
+# this is the top settings file, so editors stop looking in folders above it
+root = true
+
+# every file: 4 spaces, no spaces at the end of lines, one empty line at the end, max 120 characters
+[*]
+charset = utf-8
+end_of_line = lf
+indent_style = space
+indent_size = 4
+insert_final_newline = true
+trim_trailing_whitespace = true
+max_line_length = 120
+
+# markdown is written text not code, and long links can't be split, so no line limit
+[*.md]
+max_line_length = off
