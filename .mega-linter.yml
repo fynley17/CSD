@@ -20,11 +20,11 @@ PHP_PHPCSFIXER_CONFIG_FILE: backend/.php-cs-fixer.php
 # ESLint's rules for vue and JS files, in the main folder of the project
 JAVASCRIPT_ES_CONFIG_FILE: eslint.config.cjs
 
-# Megalinter doesn't include accessibility checking or browser names list
-# this downloads them before ESLitn runs, exact versions given for predictabiltiy  
+# MegaLinter doesn't include accessibility checking or browser names list
+# this downloads them before ESLint runs, exact versions given for predictability
 JAVASCRIPT_ES_PRE_COMMANDS:
     - command: npm install eslint-plugin-vuejs-accessibility@2.6.2 globals@17.13.0
-      cwd: root 
+      cwd: root
       continue_if_failed: false
 
 SHOW_ELAPSED_TIME: true
