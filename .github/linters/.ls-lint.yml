@@ -22,3 +22,5 @@ ignore:
     - backend/.php-cs-fixer.php
     - backend/phpunit.xml
     - backend/config/.env.example
+    # temporary - needs renaming to logo.png, left for a follow-up ticket as it changes navbar.vue too
+    - frontend/assets/images/Logo.png
