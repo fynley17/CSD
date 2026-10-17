@@ -8,7 +8,7 @@ const path = require('path');
 
 /**
 finds, then loads one of the checking tools these rules need, such as the Vue checker
-looks in the frontend folder first, since that's where the tools are kept on
+looks in the frontend folder first, in case the tools have been installed there with "npm install"
 if a tool is not there, it uses the copy that MegaLinter installs for itself when it runs on GitHub.
 
 @param {string} name - the npm package name, i.e. 'eslint-plugin-vue'
@@ -33,12 +33,12 @@ module.exports = [
         // never checked since they're downloaded tools or built files
         ignores: ['**/node_modules/**', '**/vendor/**', 'frontend/dist/**'],
     },
-    
+
     // uses each tool's recommended checks
     js.configs.recommended,
     ...pluginVue.configs['flat/essential'],
     ...pluginVueA11y.configs['flat/recommended'],
-    
+
     // RevisionHub House style rules, which apply to .js and .vue files inside the frontend folder
     {
         files: ['frontend/**/*.{js,vue}'],
@@ -57,27 +57,27 @@ module.exports = [
             'vue/v-on-event-hyphenation': ['error', 'never', { autofix: false }],
             'vue/prop-name-casing': ['error', 'camelCase'],
             'vue/custom-event-name-casing': ['error', 'camelCase'],
-            
+
             // section 8 - no line can be longer than 120 characters, so code is easy to read
             // without scrolling sideways. A tab is 4 spaces.
             'vue/max-len': ['error', { code: 120, template: 120, comments: 120, tabWidth: 4 }],
-            
+
             // section 8 requires Vue components be at least 2 words (loginForm.vue, not login.vue)
             // to prevent clashing with HTML's one word tags, like <button>
             'vue/multi-word-component-names': 'error',
-            
+
             // section 8 JS Rules
             // store values with "const", or "let" if the value will change. "Var" is not allowed
             'no-var': 'error',
             'prefer-const': 'error',
-            
+
             // compare 2 values with === only, the shorter == can treat different values as equal
             eqeqeq: ['error', 'always'],
-            
+
             // removes anything left over, like unused names or console.log messages
             'no-unused-vars': 'error',
             'no-console': 'error',
-            
+
             // section 8 requires no eval or innerHTML with user input, so text is never run as if it were code
             // raw text is never put straight into the page, this is to prevent harmful code being put into
             // a form box, which the website would run
@@ -92,7 +92,7 @@ module.exports = [
                     message: 'No innerHTML (house style section 8). Use textContent or a Vue template.',
                 },
             ],
-            
+
             // section 6 requires labels on every input, wrapped or linked with for/id
             // allows screen readers to say out loud what the box is for
             'vuejs-accessibility/label-has-for': ['error', { required: { some: ['nesting', 'id'] } }],
@@ -105,12 +105,3 @@ module.exports = [
         languageOptions: { globals: { ...globals.node } },
     },
 ];
-
-
-
-
-
-
-
-
-
