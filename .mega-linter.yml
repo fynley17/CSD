@@ -12,9 +12,18 @@ ENABLE_LINTERS:
     - REPOSITORY_BETTERLEAKS  # passwords or keys accidentally committed
     - ACTION_ACTIONLINT # errors in github workflow files
     - JAVASCRIPT_ES # Vue and JS files - accessibility, camelCase and JS rules from house styles
+    - PHP_PHPSTAN          # PHP mistakes like a class that doesn't exist, same check as pre-commit
+    - PHP_PHPCS            # PHP names, camelCase variables and functions, PascalCase classes
+    - JAVASCRIPT_PRETTIER  # frontend layout, 4 spaces and single quotes, same check as pre-commit
+    - CSS_STYLELINT        # CSS, camelCase names, tokens only, focus outline kept, mobile first
+    - HTML_HTMLHINT        # HTML, page language, title, alt text, labels, camelCase ids
+    - EDITORCONFIG_EDITORCONFIG_CHECKER  # every file, no trailing spaces, newline at the end, 120 characters
+    - YAML_YAMLLINT        # yaml files are written correctly, same as pre-commit's check-yaml
+    - JSON_JSONLINT        # json files are written correctly, same as pre-commit's check-json
+    - REPOSITORY_LS_LINT   # camelCase file and folder names in frontend and backend
 
-# Using PHP CS Fixer rules from pre-commit
-LINTER_RULES_PATH: .
+# rule files only megalinter uses live in .github/linters, ones pre-commit also uses stay in the main folder
+LINTER_RULES_PATH: .github/linters
 PHP_PHPCSFIXER_CONFIG_FILE: backend/.php-cs-fixer.php
 
 # ESLint's rules for vue and JS files, in the main folder of the project
@@ -27,5 +36,51 @@ JAVASCRIPT_ES_PRE_COMMANDS:
       cwd: workspace
       continue_if_failed: false
 
+# prettier only runs when this is set, megalinter uses a different tool by default
+JAVASCRIPT_DEFAULT_STYLE: prettier
+# same prettier file pre-commit uses
+JAVASCRIPT_PRETTIER_CONFIG_FILE: .prettierrc.yaml
+# same files pre-commit's prettier checks (frontend only), plus .html so it gets the 4 space rule too
+JAVASCRIPT_PRETTIER_FILE_EXTENSIONS: ['.js', '.ts', '.vue', '.css', '.scss', '.json', '.html']
+JAVASCRIPT_PRETTIER_FILTER_REGEX_INCLUDE: '^frontend/'
+
+# stylelint's rules, also checks the <style> part of .vue files
+CSS_STYLELINT_CONFIG_FILE: .stylelintrc.yaml
+CSS_STYLELINT_FILE_EXTENSIONS: ['.css', '.scss', '.vue']
+# megalinter doesn't include the .vue reader or the accessibility rules stylelint needs
+# so this downloads them to a spare folder and links them to where stylelint looks for its tools
+# stylelint@17.14.1 matches megalinter's own version, the accessibility rules need it next to them
+CSS_STYLELINT_PRE_COMMANDS:
+    - command: >-
+          npm install --no-save --prefix /tmp/stylelintTools
+          postcss-html@2.0.0 @double-great/stylelint-a11y@3.8.1 stylelint@17.14.1
+          && mkdir -p /node-deps/node_modules/@double-great
+          && ln -sfn /tmp/stylelintTools/node_modules/postcss-html /node-deps/node_modules/postcss-html
+          && ln -sfn /tmp/stylelintTools/node_modules/@double-great/stylelint-a11y
+          /node-deps/node_modules/@double-great/stylelint-a11y
+      cwd: workspace
+      continue_if_failed: false
+
+# phpstan uses phpstan.neon.dist in the main folder, the same file pre-commit uses
+# it needs the backend's packages (like the one that reads .env) so this downloads them first
+# --no-dev skips the developer tools, phpstan doesn't need them
+PHP_PHPSTAN_PRE_COMMANDS:
+    - command: composer install --working-dir=backend --no-dev --no-interaction --no-progress
+      cwd: workspace
+      continue_if_failed: false
+
+# ls-lint only checks files this pull request changed, like the other checks
+REPOSITORY_LS_LINT_CLI_LINT_MODE: list_of_files
+
+# the 4 space rule is already checked by prettier, php-cs-fixer and yamllint
+# yaml lists need 2 extra spaces, so editorconfig-checker would wrongly flag them
+EDITORCONFIG_EDITORCONFIG_CHECKER_ARGUMENTS: ['-disable-indent-size']
+# php-cs-fixer writes this file itself, it isn't our code
+EDITORCONFIG_EDITORCONFIG_CHECKER_FILTER_REGEX_EXCLUDE: '\.php-cs-fixer\.cache$'
+
 SHOW_ELAPSED_TIME: true
 FILEIO_REPORTER: false
+
+# prettier is a formatter and megalinter only warns about those by default
+# this makes prettier problems fail the check like everything else
+FORMATTERS_DISABLE_ERRORS: false
