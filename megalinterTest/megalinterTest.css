@@ -1,0 +1,21 @@
+.quiz-option {
+  color: #FF0000;
+  font-size: 14px;
+  margin: 10px;
+  float: left;
+  transition: color 0.3s;
+}
+
+.quizOption:focus {
+  outline: none;
+}
+
+.quizCard {
+  color: red !important;
+}
+
+@media (max-width: 640px) {
+  .quizCard {
+    padding: 0;
+  }
+}
