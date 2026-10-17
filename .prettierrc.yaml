@@ -1,0 +1,16 @@
+# Prettier settings (CTS-155), which tidy code layout like spaces and quote marks
+# following the same rules as precommit Prettier
+# Every setting based off section 8 of Revisionhub house style
+
+# indent with 4 spaces, never tabs
+tabWidth: 4
+useTabs: false
+
+# Use 'single quotes' around text in JavaScript and CSS
+singleQuote: true
+
+# Wrap any line longer than 120 characters onto the next line
+printWidth: 120
+
+# End lines the same way on Windows, Mac and Linux, so files don't look changed if they haven't
+endOfLine: lf
