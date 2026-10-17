@@ -1,0 +1,24 @@
+.quizOption {
+    color: var(--colorText);
+    font-size: var(--fontSizeBody);
+    margin: var(--spaceMd);
+    transition: color 0.3s;
+}
+
+.quizOption:focus {
+    outline: 3px solid var(--colorFocus);
+}
+
+@media (min-width: 640px) {
+    .quizCard {
+        display: flex;
+        gap: var(--spaceSm);
+        padding: 0 var(--spaceLg);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .quizOption {
+        transition: none;
+    }
+}
