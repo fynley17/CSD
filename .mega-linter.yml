@@ -1,4 +1,4 @@
-# MegaLinter settings (CTS-124)
+# MegaLinter settings (CTS-124, updated in CTS-155)
 # Linter keys checked against the MegaLinter v10 documentation
 
 # Checks files changed in pull request only, not the entire project
@@ -7,14 +7,25 @@ VALIDATE_ALL_CODEBASE: false
 
 # Checks being run
 ENABLE_LINTERS:
-  - PHP_PHPLINT          # PHP Syntax errors
-  - PHP_PHPCSFIXER       # PHP layout and indentation (PSR-12, 4 spaces)
-  - REPOSITORY_BETTERLEAKS  # passwords or keys accidentally committed
-  - ACTION_ACTIONLINT # errors in github workflow files 
+    - PHP_PHPLINT          # PHP Syntax errors
+    - PHP_PHPCSFIXER       # PHP layout and indentation (PSR-12, 4 spaces)
+    - REPOSITORY_BETTERLEAKS  # passwords or keys accidentally committed
+    - ACTION_ACTIONLINT # errors in github workflow files
+    - JAVASCRIPT_ES # Vue and JS files - accessibility, camelCase and JS rules from house styles
 
 # Using PHP CS Fixer rules from pre-commit
 LINTER_RULES_PATH: .
 PHP_PHPCSFIXER_CONFIG_FILE: backend/.php-cs-fixer.php
+
+# ESLint's rules for vue and JS files, in the main folder of the project
+JAVASCRIPT_ES_CONFIG_FILE: eslint.config.cjs
+
+# Megalinter doesn't include accessibility checking or browser names list
+# this downloads them before ESLitn runs, exact versions given for predictabiltiy  
+JAVASCRIPT_ES_PRE_COMMANDS:
+    - command: npm install eslint-plugin-vuejs-accessibility@2.6.2 globals@17.13.0
+      cwd: root 
+      continue_if_failed: false
 
 SHOW_ELAPSED_TIME: true
 FILEIO_REPORTER: false
