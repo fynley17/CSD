@@ -1,4 +1,4 @@
-# Runs megalinter on every pull request into main (CTS-124, updated in CTS-155)
+# Runs MegaLinter on every pull request into main (CTS-124, updated in CTS-155)
 name: MegaLinter
 
 on:
@@ -23,4 +23,4 @@ jobs:
               uses: oxsecurity/megalinter@v10
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
- 
+                  
