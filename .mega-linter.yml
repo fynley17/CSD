@@ -69,9 +69,6 @@ PHP_PHPSTAN_PRE_COMMANDS:
       cwd: workspace
       continue_if_failed: false
 
-# ls-lint only checks files this pull request changed, like the other checks
-REPOSITORY_LS_LINT_CLI_LINT_MODE: list_of_files
-
 # the 4 space rule is already checked by prettier, php-cs-fixer and yamllint
 # yaml lists need 2 extra spaces, so editorconfig-checker would wrongly flag them
 EDITORCONFIG_EDITORCONFIG_CHECKER_ARGUMENTS: ['-disable-indent-size']
