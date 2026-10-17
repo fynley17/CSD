@@ -1,13 +1,12 @@
 <template>
-    <div>
-        <img src="/logo.png" />
-        <input type="text" />
-    </div>
+    <form>
+        <label for="studentNumber">Student number</label>
+        <input id="studentNumber" type="text" />
+        <img src="/logo.png" alt="RevisionHub home" />
+        <p>{{ exampleNumber }}</p>
+    </form>
 </template>
 
 <script setup>
-var user_name = 'test';
-if (user_name == 'test') {
-    console.log(user_name);
-}
+const exampleNumber = 'S123456';
 </script>
