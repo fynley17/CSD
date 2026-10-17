@@ -21,10 +21,10 @@ PHP_PHPCSFIXER_CONFIG_FILE: backend/.php-cs-fixer.php
 JAVASCRIPT_ES_CONFIG_FILE: eslint.config.cjs
 
 # MegaLinter doesn't include accessibility checking or browser names list
-# this downloads them before ESLint runs, exact versions given for predictability
+# this downloads them before ESLint runs, --no-save means no project files are changed
 JAVASCRIPT_ES_PRE_COMMANDS:
-    - command: npm install eslint-plugin-vuejs-accessibility@2.6.2 globals@17.13.0
-      cwd: root
+    - command: npm install --no-save --legacy-peer-deps eslint-plugin-vuejs-accessibility@2.6.2 globals@17.13.0
+      cwd: workspace
       continue_if_failed: false
 
 SHOW_ELAPSED_TIME: true
