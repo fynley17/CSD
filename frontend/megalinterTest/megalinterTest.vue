@@ -1,16 +1,13 @@
 <template>
-  <p class="intro-text">{{ message }}</p>
+    <p class="introText">{{ message }}</p>
 </template>
 
 <script setup>
-var message = "Hello";
-if (message == "Hello") {
-  console.log(message);
-}
+const message = 'Hello';
 </script>
 
 <style>
-.intro-text {
-  color: #ff0000;
+.introText {
+    color: var(--colorText);
 }
 </style>
