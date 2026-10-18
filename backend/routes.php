@@ -12,7 +12,13 @@ $allowedOrigins = [
     'http://127.0.0.1:5174',
 ];
 
-if ($origin !== '' && (in_array($origin, $allowedOrigins, true) || preg_match('/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/', $origin))) {
+if (
+    $origin !== ''
+    && (
+        in_array($origin, $allowedOrigins, true)
+        || preg_match('/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/', $origin)
+    )
+) {
     header('Access-Control-Allow-Origin: ' . $origin);
 } else {
     header('Access-Control-Allow-Origin: *');

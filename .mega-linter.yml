@@ -62,10 +62,9 @@ CSS_STYLELINT_PRE_COMMANDS:
       continue_if_failed: false
 
 # phpstan uses phpstan.neon.dist in the main folder, the same file pre-commit uses
-# it needs the backend's packages (like the one that reads .env) so this downloads them first
-# --no-dev skips the developer tools, phpstan doesn't need them
+# install the dev dependencies too so PHPStan can resolve PHPUnit in the test suite
 PHP_PHPSTAN_PRE_COMMANDS:
-    - command: composer install --working-dir=backend --no-dev --no-interaction --no-progress
+    - command: composer install --working-dir=backend --no-interaction --no-progress
       cwd: workspace
       continue_if_failed: false
 

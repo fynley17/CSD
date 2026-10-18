@@ -21,14 +21,17 @@ class Student extends Model
         if (empty($data['lastName']) || !self::names($data['lastName'])) {
             throw new \InvalidArgumentException('not valid last name');
         }
-        if (empty($data['email']) || !self::ValidEmail($data['email'])) {
+        if (empty($data['email']) || !self::validEmail($data['email'])) {
             throw new \InvalidArgumentException('not valid email');
         }
         if (empty($data['studentNumber']) || !self::validUsername($data['studentNumber'])) {
             throw new \InvalidArgumentException('not valid student number');
         }
         if (empty($data['password']) || !self::validPassword($data['password'])) {
-            throw new \InvalidArgumentException('Password must be at least 8 characters long and include an uppercase letter, a lowercase letter, a number, and a symbol');
+            throw new \InvalidArgumentException(
+                'Password must be at least 8 characters long and include an uppercase letter, '
+                . 'a lowercase letter, a number, and a symbol'
+            );
         }
         if (empty($data['confirmPassword']) || $data['password'] !== $data['confirmPassword']) {
             throw new \InvalidArgumentException('Passwords do not match');
@@ -70,7 +73,9 @@ class Student extends Model
         $stmt->execute([$cohortID]);
         $cohortID = $stmt->fetchColumn();
         if ($cohortID === false) {
-            throw new \InvalidArgumentException('Selected cohort was not found. Please reload the page and select an available cohort.');
+            throw new \InvalidArgumentException(
+                'Selected cohort was not found. Please reload the page and select an available cohort.'
+            );
         }
 
         $userID = $db->query("SELECT UUID()")->fetchColumn();
@@ -80,10 +85,16 @@ class Student extends Model
 
         $db->beginTransaction();
         try {
-            $stmt = $db->prepare("INSERT INTO Users (userID, email, username, password, accountType, approvalStatus) VALUES (?, ?, ?, ?, ?, ?)");
+            $stmt = $db->prepare(
+                "INSERT INTO Users (userID, email, username, password, accountType, approvalStatus) "
+                . "VALUES (?, ?, ?, ?, ?, ?)"
+            );
             $stmt->execute([$userID, $email, $studentNumber, $passwordHash, $accountType, $approvalStatus]);
 
-            $stmt = $db->prepare("INSERT INTO Students (userID, firstName, lastName, cohortID, points) VALUES (?, ?, ?, ?, ?)");
+            $stmt = $db->prepare(
+                "INSERT INTO Students (userID, firstName, lastName, cohortID, points) "
+                . "VALUES (?, ?, ?, ?, ?)"
+            );
             $stmt->execute([$userID, $firstName, $lastName, $cohortID, $points]);
 
             $db->commit();
@@ -118,7 +129,7 @@ class Student extends Model
             && preg_match('/[^a-zA-Z0-9\s]/', $password) === 1;
     }
 
-    private static function ValidEmail($email)
+    private static function validEmail($email)
     {
         return is_string($email) && filter_var($email, FILTER_VALIDATE_EMAIL) !== false;
     }
