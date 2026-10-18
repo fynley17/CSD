@@ -18,3 +18,7 @@ Thumbs.db
 dist/
 
 .php-cs-fixer.cache
+.phpunit.cache/
+backend/.phpunit.cache/
+.phpunit.result.cache
+backend/.phpunit.result.cache

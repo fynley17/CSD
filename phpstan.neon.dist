@@ -6,19 +6,17 @@ parameters:
     # level 0 is the basic checks, same level pre-commit was already using
     level: 0
 
-    # the backend folders to check, same list as .pre-commit-config.yaml
+    # The backend paths checked by the pre-commit PHPStan hook.
     paths:
-        - backend/controllers
-        - backend/helpers
-        - backend/models
+        - backend/app
         - backend/config
-        - backend/index.php
+        - backend/public
+        - backend/routes.php
+        - backend/tests
 
     # lets PHPStan find our classes in other files, even when only one changed file is checked
     scanDirectories:
-        - backend/controllers
-        - backend/helpers
-        - backend/models
+        - backend/app
         - backend/config
 
     # lets PHPStan find the packages from "composer install", like the one that reads .env

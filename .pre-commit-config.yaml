@@ -5,7 +5,7 @@
 #   pip install pre-commit
 #   (cd backend && composer install)
 #   (cd frontend && npm install)
-#   pre-commit install        # installs commit and push hooks
+#   pre-commit install
 #
 # Run everything manually:
 #   pre-commit run --all-files
@@ -14,59 +14,83 @@
 default_install_hook_types: [pre-commit, pre-push]
 
 repos:
-  # ---------- Generic checks ----------
-  - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v5.0.0
-    hooks:
-      - id: trailing-whitespace
-      - id: end-of-file-fixer
-      - id: check-yaml
-      - id: check-json
-      - id: check-merge-conflict
-      - id: check-added-large-files
-      - id: detect-private-key
+    - repo: https://github.com/pre-commit/pre-commit-hooks
+      rev: v5.0.0
+      hooks:
+          - id: trailing-whitespace
+          - id: end-of-file-fixer
+          - id: check-yaml
+          - id: check-json
+          - id: check-merge-conflict
+          - id: check-added-large-files
+          - id: detect-private-key
 
-  - repo: local
-    hooks:
-      # ---------- PHP (on commit) ----------
-      - id: php-lint
-        name: PHP syntax check
-        entry: php -l
-        language: system
-        files: ^backend/.*\.php$
+    - repo: https://github.com/adrienverge/yamllint
+      rev: v1.38.0
+      hooks:
+          - id: yamllint
+            args: [--config-file, .github/linters/.yamllint.yml]
 
-      - id: php-cs-fixer
-        name: PHP CS Fixer
-        entry: backend/vendor/bin/php-cs-fixer fix --config=backend/.php-cs-fixer.php --allow-unsupported-php-version=yes
-        language: system
-        files: ^backend/.*\.php$
+    - repo: https://github.com/editorconfig-checker/editorconfig-checker
+      rev: v3.9.0
+      hooks:
+          - id: editorconfig-checker
+            args: [-disable-indent-size]
 
-      - id: phpstan
-        name: PHPStan
-        entry: backend/vendor/bin/phpstan analyse backend/controllers backend/helpers backend/models backend/config backend/index.php --memory-limit=1G --no-progress
-        language: system
-        files: ^backend/.*\.php$
-        pass_filenames: false
+    - repo: local
+      hooks:
+          - id: php-lint
+            name: PHP syntax check
+            entry: php -l
+            language: system
+            files: ^backend/.*\.php$
 
-      # ---------- Vue / JS / TS (on commit) ----------
-      - id: prettier
-        name: Prettier
-        entry: npx --prefix frontend prettier --write
-        language: system
-        files: ^frontend/.*\.(js|ts|vue|css|scss|json)$
+          - id: php-cs-fixer
+            name: PHP CS Fixer
+            entry: >-
+                backend/vendor/bin/php-cs-fixer fix --config=backend/.php-cs-fixer.php
+                --allow-unsupported-php-version=yes
+            language: system
+            files: ^backend/.*\.php$
 
-      # ---------- Unit tests (on push, when test files are added or changed) ----------
-      - id: phpunit
-        name: PHPUnit
-        entry: backend/vendor/bin/phpunit --configuration backend/phpunit.xml
-        language: system
-        files: ^backend/tests/.*Test\.php$
-        types: [php]
-        stages: [pre-push]
+          - id: phpcs
+            name: PHP_CodeSniffer
+            entry: backend/vendor/bin/phpcs --standard=.github/linters/phpcs.xml
+            language: system
+            files: ^backend/.*\.php$
 
-      - id: frontend-unit-tests
-        name: Frontend unit tests
-        entry: frontend/node_modules/.bin/vitest run
-        language: system
-        files: ^frontend/.*\.(test|spec)\.(js|ts|vue)$
-        stages: [pre-push]
+          - id: phpstan
+            name: PHPStan
+            entry: >-
+                backend/vendor/bin/phpstan analyse backend/app backend/config backend/public
+                backend/routes.php backend/tests --memory-limit=1G --no-progress
+            language: system
+            files: ^backend/.*\.php$
+            pass_filenames: false
+
+          - id: prettier
+            name: Prettier
+            entry: npx --prefix frontend prettier --write
+            language: system
+            files: ^frontend/.*\.(js|ts|vue|css|scss|json)$
+
+          - id: eslint
+            name: ESLint
+            entry: frontend/node_modules/.bin/eslint --no-ignore -c eslint.config.cjs
+            language: system
+            files: ^frontend/.*\.(js|vue)$
+
+          - id: phpunit
+            name: PHPUnit
+            entry: backend/vendor/bin/phpunit --configuration backend/phpunit.xml
+            language: system
+            stages: [pre-push]
+            always_run: true
+            pass_filenames: false
+
+          - id: frontend-unit-tests
+            name: Frontend unit tests
+            entry: frontend/node_modules/.bin/vitest run
+            language: system
+            files: ^frontend/.*\.(test|spec)\.(js|ts|vue)$
+            stages: [pre-push]

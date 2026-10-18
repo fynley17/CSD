@@ -147,7 +147,7 @@ Do these steps once for each working copy of the repository.
 7. **Check the schema.** The team schema belongs in
    `database/init/01-schema.sql`. On the first database start, MariaDB
    automatically imports SQL files in `database/init/`. If the database volume
-   was initialized before the schema file was added, import the file through
+   was initialised before the schema file was added, import the file through
    phpMyAdmin instead: open [http://localhost:8081](http://localhost:8081),
    sign in with the local settings below, select `revisionhub`, choose
    **Import**, and select `database/init/01-schema.sql`.
@@ -164,7 +164,7 @@ The default local settings are:
 | phpMyAdmin login | `revisionhub_dev` / `revisionhub_dev` |
 
 The committed schema uses MariaDB's native `UUID` type, so use the provided
-MariaDB 11.4 Compose service rather than MySQL. SQL initialization files only
+MariaDB 11.4 Compose service rather than MySQL. SQL initialisation files only
 run when the MariaDB data volume is first created. To apply later schema
 changes to an existing database, import the updated SQL through phpMyAdmin or
 apply the appropriate migration; do not delete the volume unless you intend to
@@ -223,7 +223,7 @@ pre-commit run --all-files --hook-stage pre-push
   `backend/config/.env` as well.
 - **The database is not healthy:** Check Docker Desktop/Engine is running, then
   inspect the database logs with `docker compose logs db`.
-- **The schema did not appear:** Initialization SQL only runs on a new empty
+- **The schema did not appear:** Initialisation SQL only runs on a new empty
   database volume. Import `database/init/01-schema.sql` in phpMyAdmin as
   described above.
 - **PHP cannot connect to MariaDB:** Confirm the container is healthy, that
@@ -236,7 +236,7 @@ pre-commit run --all-files --hook-stage pre-push
 ## Project structure and application flow
 
 RevisionHub uses a Vue frontend, a PHP backend, and MariaDB. The repository is
-organized as follows:
+organised as follows:
 
 ```text
 CSD/
@@ -249,7 +249,7 @@ CSD/
 │   ├── tests/              # Backend tests
 │   └── index.php           # PHP development-server entry point
 ├── database/
-│   └── init/               # SQL used to initialize a new local database
+│   └── init/               # SQL used to initialise a new local database
 ├── frontend/
 │   ├── assets/             # Images and styles
 │   ├── components/         # Reusable Vue components

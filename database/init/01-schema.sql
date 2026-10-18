@@ -46,7 +46,7 @@ CREATE TABLE `Questions` (
   `testID` uuid DEFAULT NULL COMMENT 'Optional; NULL = general subject pool question',
   `subjectID` uuid NOT NULL,
   `question` text NOT NULL,
-  `percentageCorrect` int(3) NOT NULL DEFAULT 0 COMMENT 'Percentage correct from students who have answered the question'
+  `percentageCorrect` int(3) NOT NULL DEFAULT 0 COMMENT 'Percentage correct'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE `StudentAnswers` (
@@ -145,31 +145,44 @@ ALTER TABLE `Users`
 
 
 ALTER TABLE `Answers`
-  ADD CONSTRAINT `fk_answers_question` FOREIGN KEY (`questionID`) REFERENCES `Questions` (`questionID`) ON DELETE CASCADE ON UPDATE CASCADE;
+  ADD CONSTRAINT `fk_answers_question` FOREIGN KEY (`questionID`)
+    REFERENCES `Questions` (`questionID`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 ALTER TABLE `CompletedTests`
-  ADD CONSTRAINT `fk_ct_student` FOREIGN KEY (`userID`) REFERENCES `Students` (`userID`) ON DELETE CASCADE ON UPDATE CASCADE,
-  ADD CONSTRAINT `fk_ct_test` FOREIGN KEY (`testID`) REFERENCES `Tests` (`testID`) ON UPDATE CASCADE;
+  ADD CONSTRAINT `fk_ct_student` FOREIGN KEY (`userID`)
+    REFERENCES `Students` (`userID`) ON DELETE CASCADE ON UPDATE CASCADE,
+  ADD CONSTRAINT `fk_ct_test` FOREIGN KEY (`testID`)
+    REFERENCES `Tests` (`testID`) ON UPDATE CASCADE;
 
 ALTER TABLE `Lecturer`
-  ADD CONSTRAINT `fk_lecturer_user` FOREIGN KEY (`userID`) REFERENCES `Users` (`userID`) ON DELETE CASCADE ON UPDATE CASCADE;
+  ADD CONSTRAINT `fk_lecturer_user` FOREIGN KEY (`userID`)
+    REFERENCES `Users` (`userID`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 ALTER TABLE `LecturerSubjects`
-  ADD CONSTRAINT `fk_ls_lecturer` FOREIGN KEY (`lecturerID`) REFERENCES `Lecturer` (`userID`) ON DELETE CASCADE ON UPDATE CASCADE,
-  ADD CONSTRAINT `fk_ls_subject` FOREIGN KEY (`subjectID`) REFERENCES `Subjects` (`subjectID`) ON UPDATE CASCADE;
+  ADD CONSTRAINT `fk_ls_lecturer` FOREIGN KEY (`lecturerID`)
+    REFERENCES `Lecturer` (`userID`) ON DELETE CASCADE ON UPDATE CASCADE,
+  ADD CONSTRAINT `fk_ls_subject` FOREIGN KEY (`subjectID`)
+    REFERENCES `Subjects` (`subjectID`) ON UPDATE CASCADE;
 
 ALTER TABLE `Questions`
-  ADD CONSTRAINT `fk_questions_subject` FOREIGN KEY (`subjectID`) REFERENCES `Subjects` (`subjectID`) ON UPDATE CASCADE,
-  ADD CONSTRAINT `fk_questions_test` FOREIGN KEY (`testID`) REFERENCES `Tests` (`testID`) ON DELETE SET NULL ON UPDATE CASCADE;
+  ADD CONSTRAINT `fk_questions_subject` FOREIGN KEY (`subjectID`)
+    REFERENCES `Subjects` (`subjectID`) ON UPDATE CASCADE,
+  ADD CONSTRAINT `fk_questions_test` FOREIGN KEY (`testID`)
+    REFERENCES `Tests` (`testID`) ON DELETE SET NULL ON UPDATE CASCADE;
 
 ALTER TABLE `StudentAnswers`
-  ADD CONSTRAINT `fk_sa_answer` FOREIGN KEY (`selectedAnswerID`) REFERENCES `Answers` (`answerID`) ON UPDATE CASCADE,
-  ADD CONSTRAINT `fk_sa_completed` FOREIGN KEY (`completedID`) REFERENCES `CompletedTests` (`completedID`) ON DELETE CASCADE ON UPDATE CASCADE,
-  ADD CONSTRAINT `fk_sa_question` FOREIGN KEY (`questionID`) REFERENCES `Questions` (`questionID`) ON UPDATE CASCADE;
+  ADD CONSTRAINT `fk_sa_answer` FOREIGN KEY (`selectedAnswerID`)
+    REFERENCES `Answers` (`answerID`) ON UPDATE CASCADE,
+  ADD CONSTRAINT `fk_sa_completed` FOREIGN KEY (`completedID`)
+    REFERENCES `CompletedTests` (`completedID`) ON DELETE CASCADE ON UPDATE CASCADE,
+  ADD CONSTRAINT `fk_sa_question` FOREIGN KEY (`questionID`)
+    REFERENCES `Questions` (`questionID`) ON UPDATE CASCADE;
 
 ALTER TABLE `Students`
-  ADD CONSTRAINT `fk_students_cohort` FOREIGN KEY (`cohortID`) REFERENCES `Cohorts` (`cohortID`) ON UPDATE CASCADE,
-  ADD CONSTRAINT `fk_students_user` FOREIGN KEY (`userID`) REFERENCES `Users` (`userID`) ON DELETE CASCADE ON UPDATE CASCADE;
+  ADD CONSTRAINT `fk_students_cohort` FOREIGN KEY (`cohortID`)
+    REFERENCES `Cohorts` (`cohortID`) ON UPDATE CASCADE,
+  ADD CONSTRAINT `fk_students_user` FOREIGN KEY (`userID`)
+    REFERENCES `Users` (`userID`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 ALTER TABLE `Subjects`
   ADD CONSTRAINT `fk_subjects_cohort` FOREIGN KEY (`cohortID`) REFERENCES `Cohorts` (`cohortID`) ON UPDATE CASCADE;
