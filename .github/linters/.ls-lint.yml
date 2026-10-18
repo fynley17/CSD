@@ -1,0 +1,26 @@
+# ls-lint settings (CTS-155), checks file and folder names are camelCase (section 8)
+# i.e studentController.php and loginForm.vue
+# docs: https://ls-lint.org/2.3/configuration/the-rules.html
+
+ls:
+    frontend:
+        .dir: camelCase
+        .*: camelCase
+    backend:
+        .dir: camelCase
+        .*: camelCase
+
+# these names are set by the tools that use them, so they can't be camelCase
+ignore:
+    - frontend/node_modules
+    - frontend/package.json
+    - frontend/package-lock.json
+    - frontend/vite.config.js
+    - backend/vendor
+    - backend/composer.json
+    - backend/composer.lock
+    - backend/.php-cs-fixer.php
+    - backend/phpunit.xml
+    - backend/config/.env.example
+    # temporary - needs renaming to logo.png, left for a follow-up ticket as it changes navbar.vue too
+    - frontend/assets/images/Logo.png

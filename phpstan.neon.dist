@@ -1,0 +1,31 @@
+# PHPStan settings (CTS-155), finds PHP mistakes before the code runs, like using a class that doesn't exist
+# pre-commit and megalinter both read this file so they always run the same check
+# docs: https://phpstan.org/config-reference
+
+parameters:
+    # level 0 is the basic checks, same level pre-commit was already using
+    level: 0
+
+    # the backend folders to check, same list as .pre-commit-config.yaml
+    paths:
+        - backend/controllers
+        - backend/helpers
+        - backend/models
+        - backend/config
+        - backend/index.php
+
+    # lets PHPStan find our classes in other files, even when only one changed file is checked
+    scanDirectories:
+        - backend/controllers
+        - backend/helpers
+        - backend/models
+        - backend/config
+
+    # lets PHPStan find the packages from "composer install", like the one that reads .env
+    bootstrapFiles:
+        - backend/vendor/autoload.php
+
+    # not our code, so never checked
+    excludePaths:
+        - backend/.php-cs-fixer.php
+        - backend/vendor

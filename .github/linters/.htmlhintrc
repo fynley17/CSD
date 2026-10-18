@@ -1,0 +1,38 @@
+// HTMLHint settings (CTS-155), checks our .html files follow the house style and WCAG 2.2 AA
+// rule list: https://htmlhint.com/rules/
+{
+    // page must start with <!doctype html> so browsers use modern HTML
+    "doctype-first": true,
+    "doctype-html5": true,
+
+    // screen readers need the page language, a title, alt text on images and labels on inputs (section 6)
+    "html-lang-require": true,
+    "title-require": true,
+    "alt-require": true,
+    "input-requires-label": true,
+    "button-type-require": true,
+    "frame-title-require": true,
+
+    // shows the right characters and fits phone screens
+    "meta-charset-require": true,
+    "meta-viewport-require": true,
+
+    // ids and classes are camelCase ("hump" means camelCase), and each id is only used once (section 8)
+    "id-class-value": "hump",
+    "id-unique": true,
+
+    // no CSS inside HTML files, it goes in the .css files instead (section 8)
+    // that way stylelint can check it, e.g. colours come from our variables like --colorPrimary
+    "inline-style-disabled": true,
+    "style-disabled": true,
+
+    // basic tidy HTML, tags lowercase and closed, attributes in double quotes and not repeated
+    "tag-pair": true,
+    "tagname-lowercase": true,
+    "attr-lowercase": true,
+    "attr-no-duplication": true,
+    "attr-value-double-quotes": true,
+    "src-not-empty": true,
+    "spec-char-escape": true,
+    "tag-no-obsolete": true
+}

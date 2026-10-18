@@ -1,0 +1,84 @@
+# Stylelint settings (CTS-155), checks our CSS follows the house style before it gets merged
+# looks at .css files and the <style> part of .vue files
+# rule list used: https://stylelint.io/user-guide/rules
+
+# adds extra accessibility checks, so the site works for everyone
+plugins:
+    - '@double-great/stylelint-a11y'
+
+# starts with stylelint's normal rules, they catch common CSS mistakes like typos
+extends:
+    - stylelint-config-standard
+
+# .vue files have HTML and CSS mixed together, this pulls the CSS out so it can be checked
+overrides:
+    - files: ['**/*.vue']
+      customSyntax: postcss-html
+
+rules:
+    # names must be camelCase (section 8), stylelint wants dashes by default so we swap that
+    selector-class-pattern:
+        - '^[a-z][a-zA-Z0-9]*$'
+        - message: 'class names must be camelCase (house style 8)'
+    selector-id-pattern:
+        - '^[a-z][a-zA-Z0-9]*$'
+        - message: 'ids must be camelCase (house style 8)'
+    keyframes-name-pattern:
+        - '^[a-z][a-zA-Z0-9]*$'
+        - message: 'animation names must be camelCase (house style 8)'
+    # same for CSS variables, but bootstrap's --bs- ones are allowed as we can't rename them
+    custom-property-pattern:
+        - '^([a-z][a-zA-Z0-9]*|bs-[a-z0-9-]+)$'
+        - message: 'CSS variables must be camelCase (house style 8 and 9)'
+
+    # colours have to come from our tokens so the whole site matches (sections 2 and 9)
+    color-named:
+        - never
+        - message: 'use a colour token, not a colour name (house style 2 and 9)'
+    # blocks typed in colour codes, except on the token lines themselves (the ones starting --)
+    declaration-property-value-disallowed-list:
+        - '/^(?!--)/': ['/#[0-9a-fA-F]{3,8}\b/', '/\b(rgba?|hsla?|hwb|lab|lch|oklab|oklch|color)\(/']
+          # the focus outline shows keyboard users where they are, so it can't be removed (sections 5 and 6)
+          outline: ['/^(none|0)$/']
+          outline-style: ['none']
+          outline-width: ['/^0([a-z]+)?$/']
+        - message: 'use a colour token and keep the focus outline (house style 5, 6 and 9)'
+
+    # our tokens are written like #1e3a8a and rgba(...), these stop stylelint flagging them
+    color-hex-length: long
+    color-function-notation: legacy
+    color-function-alias-notation: with-alpha
+    alpha-value-notation: number
+    # keywords are lowercase, but font names like Georgia need their capital letter
+    value-keyword-case:
+        - lower
+        - ignoreProperties: ['/^--font/']
+          camelCaseSvgKeywords: true
+
+    # text sizes, fonts, spacing, corners and shadows must use tokens so they stay consistent (sections 3, 4, 9)
+    declaration-property-value-allowed-list:
+        - font-size: ['/^var\(--fontSize[A-Za-z0-9]+\)$/', 'inherit']
+          font-family: ['/^var\(--font(Heading|Body)\)$/', 'inherit']
+          '/^(margin|padding)(-(top|right|bottom|left|block|inline)(-(start|end))?)?$/':
+              ['/^((0|auto|var\(--[a-zA-Z0-9]+\))(\s+|$)){1,4}$/']
+          '/^(gap|row-gap|column-gap)$/': ['/^((0|var\(--space[A-Za-z0-9]+\))(\s+|$)){1,2}$/']
+          border-radius: ['0', '/^var\(--radius(Sm|Md|Pill)\)$/']
+          box-shadow: ['none', '/^var\(--shadow(Card|Modal)\)$/']
+        - message: 'use a section 9 token (house style 3, 4 and 9)'
+
+    # no !important, it overrides everything and makes styles hard to fix later (section 8)
+    declaration-no-important:
+        - true
+        - message: 'no !important (house style 8)'
+    # no float, flexbox and grid are the modern way to lay things out (section 8)
+    property-disallowed-list:
+        - ['float']
+        - message: 'use flexbox or grid, not float (house style 8)'
+    # mobile first, build for small screens then add min-width for bigger ones (section 8)
+    media-feature-range-notation: prefix
+    media-feature-name-disallowed-list:
+        - ['max-width']
+        - message: 'mobile first, use min-width (house style 8)'
+
+    # moving things need a prefers-reduced-motion version, as motion can make some people feel ill (WCAG 2.2)
+    a11y/media-prefers-reduced-motion: true

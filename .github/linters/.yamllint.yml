@@ -1,0 +1,23 @@
+# yamllint settings (CTS-155), checks .yml and .yaml files are written correctly
+# same job as pre-commit's check-yaml, plus the house style layout (section 8)
+# rule list: https://yamllint.readthedocs.io/en/stable/rules.html
+
+# starts with yamllint's normal rules
+extends: default
+
+rules:
+    # 4 spaces like every other language, and lists sit indented under their name
+    indentation:
+        spaces: 4
+        indent-sequences: true
+    # max 120 characters a line
+    line-length:
+        max: 120
+    # the --- at the top of a yaml file is optional
+    document-start: disable
+    # github workflows use "on:" as a name, without this yamllint thinks it means yes
+    truthy:
+        check-keys: false
+    # a comment can sit one space after the code on the same line
+    comments:
+        min-spaces-from-content: 1
