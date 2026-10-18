@@ -3,6 +3,11 @@
         "vlucas/phpdotenv": "^5.7"
     },
     "autoload": {
+        "classmap": [
+            "app/router.php",
+            "app/controllers/cohortController.php",
+            "app/models/cohort.php"
+        ],
         "psr-4": {
             "App\\": "app/"
         }
