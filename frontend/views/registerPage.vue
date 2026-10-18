@@ -25,7 +25,7 @@ export default {
         try {
             const response = await api.get('/cohorts');
             if (!Array.isArray(response.data)) {
-                throw new Error('Invalid response');
+                throw new Error('Invalid response.');
             }
             this.cohorts = response.data;
         } catch {
@@ -125,18 +125,39 @@ export default {
             </div>
 
             <div class="mb-3">
-                <label for="firstName" class="form-label">First Name</label>
-                <input v-model="form.firstName" type="text" class="form-control" id="firstName" required />
+                <label for="firstName" class="form-label">First name</label>
+                <input
+                    v-model="form.firstName"
+                    type="text"
+                    class="form-control"
+                    id="firstName"
+                    placeholder="For example: Fyn"
+                    required
+                />
             </div>
 
             <div class="mb-3">
-                <label for="lastName" class="form-label">Last Name</label>
-                <input v-model="form.lastName" type="text" class="form-control" id="lastName" required />
+                <label for="lastName" class="form-label">Last name</label>
+                <input
+                    v-model="form.lastName"
+                    type="text"
+                    class="form-control"
+                    id="lastName"
+                    placeholder="For example: Geary"
+                    required
+                />
             </div>
 
             <div class="mb-3">
-                <label for="studentNumber" class="form-label">Student Number</label>
-                <input v-model="form.studentNumber" type="text" class="form-control" id="studentNumber" required />
+                <label for="studentNumber" class="form-label">Student number</label>
+                <input
+                    v-model="form.studentNumber"
+                    type="text"
+                    class="form-control"
+                    id="studentNumber"
+                    placeholder="For example: ws381211"
+                    required
+                />
             </div>
 
             <div class="mb-3">
@@ -148,7 +169,7 @@ export default {
                     required
                     :disabled="cohortsLoading || !!cohortsError"
                 >
-                    <option value="">Select a Cohort</option>
+                    <option value="">Select a cohort</option>
                     <option v-for="cohort in cohorts" :key="cohort.cohortID" :value="cohort.cohortID">
                         {{ cohort.cohortName }}
                     </option>
@@ -159,7 +180,14 @@ export default {
 
             <div class="mb-3">
                 <label for="email" class="form-label">Email address</label>
-                <input v-model="form.email" type="email" class="form-control" id="email" required />
+                <input
+                    v-model="form.email"
+                    type="email"
+                    class="form-control"
+                    id="email"
+                    placeholder="For example: fyn@example.com"
+                    required
+                />
             </div>
 
             <div class="mb-3">
@@ -169,26 +197,29 @@ export default {
                     type="password"
                     class="form-control"
                     id="password"
+                    placeholder="For example: River!28Lamp"
                     minlength="8"
                     pattern="(?=.*[A-Z])(?=.*[a-z])(?=.*[0-9])(?=.*[^A-Za-z0-9\s]).{8,}"
-                    title="Use 8+ characters with uppercase, lowercase, number, and symbol."
+                    title="Use 8+ characters with uppercase, lowercase, a number, and a symbol."
                     required
                 />
                 <small class="form-text text-muted">
-                    At least 8 characters, with an uppercase letter, a lowercase letter, a number, and a symbol.
+                    Use your own password, not the example. It must have at least 8 characters, including an uppercase
+                    letter, a lowercase letter, a number, and a symbol.
                 </small>
             </div>
 
             <div class="mb-3">
-                <label for="confirmPassword" class="form-label">Confirm Password</label>
+                <label for="confirmPassword" class="form-label">Confirm password</label>
                 <input
                     v-model="form.confirmPassword"
                     type="password"
                     class="form-control"
                     id="confirmPassword"
+                    placeholder="For example: River!28Lamp"
                     minlength="8"
                     pattern="(?=.*[A-Z])(?=.*[a-z])(?=.*[0-9])(?=.*[^A-Za-z0-9\s]).{8,}"
-                    title="Use 8+ characters with uppercase, lowercase, number, and symbol."
+                    title="Re-enter password."
                     required
                 />
             </div>

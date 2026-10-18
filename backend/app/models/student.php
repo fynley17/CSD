@@ -16,31 +16,31 @@ class Student extends Model
 
         // Validate & sanitize input data
         if (empty($data['firstName']) || !self::names($data['firstName'])) {
-            throw new \InvalidArgumentException('not valid first name');
+            throw new \InvalidArgumentException('Please enter a valid first name.');
         }
         if (empty($data['lastName']) || !self::names($data['lastName'])) {
-            throw new \InvalidArgumentException('not valid last name');
+            throw new \InvalidArgumentException('Please enter a valid last name.');
         }
         if (empty($data['email']) || !self::validEmail($data['email'])) {
-            throw new \InvalidArgumentException('not valid email');
+            throw new \InvalidArgumentException('Please enter a valid email address.');
         }
         if (empty($data['studentNumber']) || !self::validUsername($data['studentNumber'])) {
-            throw new \InvalidArgumentException('not valid student number');
+            throw new \InvalidArgumentException('Please enter a valid student number, for example ws123456.');
         }
         if (empty($data['password']) || !self::validPassword($data['password'])) {
             throw new \InvalidArgumentException(
-                'Password must be at least 8 characters long and include an uppercase letter, '
-                . 'a lowercase letter, a number, and a symbol'
+                'Please use at least 8 characters, including an uppercase letter, a lowercase letter, a number, '
+                . 'and a symbol.'
             );
         }
         if (empty($data['confirmPassword']) || $data['password'] !== $data['confirmPassword']) {
-            throw new \InvalidArgumentException('Passwords do not match');
+            throw new \InvalidArgumentException('Passwords do not match.');
         }
         if (empty($data['cohortID'])) {
-            throw new \InvalidArgumentException('Please select a cohort');
+            throw new \InvalidArgumentException('Please select a cohort.');
         }
         if (!is_string($data['cohortID'])) {
-            throw new \InvalidArgumentException('Please select a cohort');
+            throw new \InvalidArgumentException('Please select a cohort.');
         }
 
         // assign variables (after validation)
@@ -60,13 +60,13 @@ class Student extends Model
         $stmt = $db->prepare("SELECT 1 FROM Users WHERE email = ? LIMIT 1");
         $stmt->execute([$email]);
         if ($stmt->fetchColumn() !== false) {
-            throw new \InvalidArgumentException('Email already exists');
+            throw new \InvalidArgumentException('An account with this email address already exists.');
         }
 
         $stmt = $db->prepare("SELECT 1 FROM Users WHERE username = ? LIMIT 1");
         $stmt->execute([$studentNumber]);
         if ($stmt->fetchColumn() !== false) {
-            throw new \InvalidArgumentException('Student number already exists');
+            throw new \InvalidArgumentException('An account with this student number already exists.');
         }
 
         $stmt = $db->prepare("SELECT cohortID FROM Cohorts WHERE cohortID = ? LIMIT 1");
@@ -74,13 +74,13 @@ class Student extends Model
         $cohortID = $stmt->fetchColumn();
         if ($cohortID === false) {
             throw new \InvalidArgumentException(
-                'Selected cohort was not found. Please reload the page and select an available cohort.'
+                'The selected cohort was not found. Please reload the page and select an available cohort.'
             );
         }
 
         $userID = $db->query("SELECT UUID()")->fetchColumn();
         if (!is_string($userID) || $userID === '') {
-            throw new \RuntimeException('Unable to generate user ID');
+            throw new \RuntimeException('Unable to generate user ID.');
         }
 
         $db->beginTransaction();

@@ -17,15 +17,15 @@ class StudentController extends Controller
         try {
             $data = json_decode(file_get_contents('php://input'), true);
             if (!is_array($data)) {
-                throw new \InvalidArgumentException('Invalid registration data');
+                throw new \InvalidArgumentException('Please check your registration details and try again.');
             }
 
             $result = Student::register($data);
 
             if ($result['success']) {
-                $this->jsonResponse(['message' => 'Student registered successfully'], 201);
+                $this->jsonResponse(['message' => 'Student registered successfully.'], 201);
             } else {
-                $this->jsonResponse(['error' => 'Failed to register student'], 400);
+                $this->jsonResponse(['error' => 'Unable to register the student. Please try again.'], 400);
             }
         } catch (\InvalidArgumentException $e) {
             $this->jsonResponse(['error' => $e->getMessage()], 400);

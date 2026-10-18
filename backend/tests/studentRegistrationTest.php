@@ -52,41 +52,59 @@ final class StudentRegistrationTest extends TestCase
         ];
 
         return [
-            'missing first name' => [array_replace($validData, ['firstName' => '']), 'not valid first name'],
-            'invalid first name' => [array_replace($validData, ['firstName' => '<script>']), 'not valid first name'],
-            'non-string first name' => [array_replace($validData, ['firstName' => ['Fyn']]), 'not valid first name'],
-            'invalid last name' => [array_replace($validData, ['lastName' => 'Geary1']), 'not valid last name'],
-            'invalid email' => [array_replace($validData, ['email' => 'not-an-email']), 'not valid email'],
-            'non-string email' => [array_replace($validData, ['email' => ['fyn@example.test']]), 'not valid email'],
+            'missing first name' => [
+                array_replace($validData, ['firstName' => '']),
+                'Please enter a valid first name.',
+            ],
+            'invalid first name' => [
+                array_replace($validData, ['firstName' => '<script>']),
+                'Please enter a valid first name.',
+            ],
+            'non-string first name' => [
+                array_replace($validData, ['firstName' => ['Fyn']]),
+                'Please enter a valid first name.',
+            ],
+            'invalid last name' => [
+                array_replace($validData, ['lastName' => 'Geary1']),
+                'Please enter a valid last name.',
+            ],
+            'invalid email' => [
+                array_replace($validData, ['email' => 'not-an-email']),
+                'Please enter a valid email address.',
+            ],
+            'non-string email' => [
+                array_replace($validData, ['email' => ['fyn@example.test']]),
+                'Please enter a valid email address.',
+            ],
             'invalid student number' => [
                 array_replace($validData, ['studentNumber' => 'ws38121']),
-                'not valid student number',
+                'Please enter a valid student number, for example ws123456.',
             ],
             'non-string student number' => [
                 array_replace($validData, ['studentNumber' => ['ws381211']]),
-                'not valid student number',
+                'Please enter a valid student number, for example ws123456.',
             ],
             'weak password' => [
                 array_replace($validData, ['password' => 'weak']),
-                'Password must be at least 8 characters long and include an uppercase letter, '
-                . 'a lowercase letter, a number, and a symbol',
+                'Please use at least 8 characters, including an uppercase letter, a lowercase letter, a number, '
+                . 'and a symbol.',
             ],
             'non-string password' => [
                 array_replace($validData, ['password' => ['Febmar17!']]),
-                'Password must be at least 8 characters long and include an uppercase letter, '
-                . 'a lowercase letter, a number, and a symbol',
+                'Please use at least 8 characters, including an uppercase letter, a lowercase letter, a number, '
+                . 'and a symbol.',
             ],
             'password mismatch' => [
                 array_replace($validData, ['confirmPassword' => 'Different17!']),
-                'Passwords do not match',
+                'Passwords do not match.',
             ],
             'missing cohort' => [
                 array_replace($validData, ['cohortID' => '']),
-                'Please select a cohort',
+                'Please select a cohort.',
             ],
             'non-string cohort' => [
                 array_replace($validData, ['cohortID' => ['df7c0bc6-ca26-11f1-8d08-06694864b0fb']]),
-                'Please select a cohort',
+                'Please select a cohort.',
             ],
         ];
     }
