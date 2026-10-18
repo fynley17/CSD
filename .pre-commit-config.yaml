@@ -55,14 +55,14 @@ repos:
         language: system
         files: ^frontend/.*\.(js|ts|vue|css|scss|json)$
 
-      # ---------- Unit tests (on push, when test files are added or changed) ----------
+      # ---------- Unit tests (run on every push) ----------
       - id: phpunit
         name: PHPUnit
         entry: backend/vendor/bin/phpunit --configuration backend/phpunit.xml
         language: system
-        files: ^backend/tests/.*Test\.php$
-        types: [php]
         stages: [pre-push]
+        always_run: true
+        pass_filenames: false
 
       - id: frontend-unit-tests
         name: Frontend unit tests

@@ -36,6 +36,9 @@ class Student extends Model
         if (empty($data['cohortID'])) {
             throw new \InvalidArgumentException('Please select a cohort');
         }
+        if (!is_string($data['cohortID'])) {
+            throw new \InvalidArgumentException('Please select a cohort');
+        }
 
         // assign variables (after validation)
         $firstName     = $data['firstName'];
@@ -97,25 +100,26 @@ class Student extends Model
     // Helpers
     public static function names($name)
     {
-        return preg_match("/^[a-zA-Z\s'-]{2,50}$/", $name);
+        return is_string($name) && preg_match("/^[a-zA-Z\s'-]{2,50}$/", $name) === 1;
     }
 
     public static function validUsername($studentNumber)
     {
-        return preg_match("/^ws[0-9]{6}$/D", $studentNumber);
+        return is_string($studentNumber) && preg_match("/^ws[0-9]{6}$/D", $studentNumber) === 1;
     }
 
     public static function validPassword($password)
     {
-        return strlen($password) >= 8
-            && preg_match('/[A-Z]/', $password)
-            && preg_match('/[a-z]/', $password)
-            && preg_match('/[0-9]/', $password)
-            && preg_match('/[^a-zA-Z0-9\s]/', $password);
+        return is_string($password)
+            && strlen($password) >= 8
+            && preg_match('/[A-Z]/', $password) === 1
+            && preg_match('/[a-z]/', $password) === 1
+            && preg_match('/[0-9]/', $password) === 1
+            && preg_match('/[^a-zA-Z0-9\s]/', $password) === 1;
     }
 
     private static function ValidEmail($email)
     {
-        return filter_var($email, FILTER_VALIDATE_EMAIL);
+        return is_string($email) && filter_var($email, FILTER_VALIDATE_EMAIL) !== false;
     }
 }
