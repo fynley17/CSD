@@ -211,6 +211,14 @@ main {
     font-weight: 600;
     line-height: 1.5;
     text-decoration: none;
+    background-color: var(--colorPrimary);
+    color: var(--colorSurface);
+}
+
+.headerButton:hover {
+    background-color: var(--colorPrimaryHover);
+    border-color: var(--colorPrimaryHover);
+    color: var(--colorSurface);
 }
 
 /* Sign in button */
@@ -236,6 +244,14 @@ main {
 .registerButton:hover {
     background-color: var(--colorPrimaryLight);
     color: var(--colorPrimaryHover);
+}
+
+.headerButton:disabled,
+.headerButton:disabled:hover {
+    background-color: var(--colorDisabled);
+    border-color: var(--colorDivider);
+    color: var(--colorTextSecondary);
+    cursor: not-allowed;
 }
 
 .surfaceCard {

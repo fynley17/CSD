@@ -133,9 +133,6 @@ export default {
                 </div>
 
                 <section class="mb-4" aria-labelledby="accountDetailsHeading">
-                    <h2 id="accountDetailsHeading" class="h6 text-uppercase text-secondary mb-3">
-                        <span class="font-monospace small">01 /</span> Account details
-                    </h2>
                     <div class="row g-3">
                         <div class="col-12 col-sm-6">
                             <label for="firstName" class="form-label">First name</label>
@@ -164,9 +161,6 @@ export default {
                 </section>
 
                 <section class="mb-4" aria-labelledby="studentDetailsHeading">
-                    <h2 id="studentDetailsHeading" class="h6 text-uppercase text-secondary mb-3">
-                        <span class="font-monospace small">02 /</span> Student details
-                    </h2>
                     <div class="row g-3">
                         <div class="col-12 col-sm-6">
                             <label for="studentNumber" class="form-label">Student number</label>
@@ -201,10 +195,6 @@ export default {
                 </section>
 
                 <section class="mb-4" aria-labelledby="loginDetailsHeading">
-                    <h2 id="loginDetailsHeading" class="h6 text-uppercase text-secondary mb-3">
-                        <span class="font-monospace small">03 /</span> Login details
-                    </h2>
-
                     <div class="mb-3">
                         <label for="email" class="form-label">Email</label>
                         <input
@@ -255,7 +245,7 @@ export default {
                     </div>
                 </section>
 
-                <div class="form-check mb-4">
+                <div class="form-check mb-3">
                     <input
                         v-model="termsAccepted"
                         type="checkbox"
@@ -268,7 +258,7 @@ export default {
                     </label>
                 </div>
 
-                <button type="submit" class="headerButton loginButton w-100" :disabled="isSubmitting || !termsAccepted">
+                <button type="submit" class="headerButton w-100" :disabled="isSubmitting || !termsAccepted">
                     {{ isSubmitting ? 'Registering...' : 'Create Revision Account' }}
                 </button>
             </form>
