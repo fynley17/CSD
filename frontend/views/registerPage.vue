@@ -61,6 +61,11 @@ export default {
       const selectedCohort = this.cohorts.find(
         (cohort) => String(cohort.cohortID) === String(this.form.cohortID),
       );
+      if (!selectedCohort) {
+        this.formError =
+          "The selected cohort is no longer available. Please reload the page and select it again.";
+        return;
+      }
 
       this.isSubmitting = true;
 
@@ -72,10 +77,7 @@ export default {
           email: this.form.email.trim(),
           password: this.form.password,
           confirmPassword: this.form.confirmPassword,
-          cohortID: this.form.cohortID,
-          cohortName: selectedCohort
-            ? selectedCohort.cohortName
-            : this.form.cohortID,
+          cohortID: selectedCohort.cohortID,
         };
 
         const response = await api.post("/register", payload);

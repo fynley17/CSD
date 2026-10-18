@@ -16,6 +16,10 @@ class StudentController extends Controller
     {
         try {
             $data = json_decode(file_get_contents('php://input'), true);
+            if (!is_array($data)) {
+                throw new \InvalidArgumentException('Invalid registration data');
+            }
+
             $result = Student::register($data);
 
             if ($result['success']) {
@@ -23,6 +27,8 @@ class StudentController extends Controller
             } else {
                 $this->jsonResponse(['error' => 'Failed to register student'], 400);
             }
+        } catch (\InvalidArgumentException $e) {
+            $this->jsonResponse(['error' => $e->getMessage()], 400);
         } catch (\Exception $e) {
             $this->jsonResponse(['error' => 'An error occurred: ' . $e->getMessage()], 500);
         }
