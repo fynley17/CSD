@@ -17,7 +17,8 @@ CREATE TABLE `Answers` (
 
 CREATE TABLE `Cohorts` (
   `cohortID` uuid NOT NULL DEFAULT uuid(),
-  `cohortName` varchar(30) NOT NULL
+  `cohortName` varchar(50) NOT NULL,
+  `isActive` tinyint(1) NOT NULL DEFAULT 1 COMMENT '1 = active, 0 = disabled'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE `CompletedTests` (
