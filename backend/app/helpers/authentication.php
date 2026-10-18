@@ -78,12 +78,12 @@ class Authentication
 
         // 401 = not logged in
         if (!isset($_SESSION['userID'])) {
-            self::stop(401, 'Your session has ended. Go to the login page to continue.');
+            self::stop(401, 'Your session has ended. Go to the login page to continue');
         }
 
         // 403 = logged in, but the wrong account type for this page
         if (!in_array($_SESSION['accountType'] ?? '', $allowedRoles, true)) {
-            self::stop(403, 'You do not have permission to view this page.');
+            self::stop(403, 'You do not have permission to view this page');
         }
     }
 
