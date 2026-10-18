@@ -29,8 +29,13 @@ class StudentController extends Controller
             }
         } catch (\InvalidArgumentException $e) {
             $this->jsonResponse(['error' => $e->getMessage()], 400);
-        } catch (\Exception $e) {
-            $this->jsonResponse(['error' => 'An error occurred: ' . $e->getMessage()], 500);
+        } catch (\Throwable $e) {
+            error_log(sprintf(
+                'Student registration failed (%s): %s',
+                get_class($e),
+                $e->getMessage()
+            ));
+            $this->jsonResponse(['error' => 'An unexpected error occurred. Please try again later.'], 500);
         }
     }
 }
