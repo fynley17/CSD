@@ -262,6 +262,114 @@ main {
     color: var(--colorText);
 }
 
+.registrationIntroTitle,
+.registrationFormTitle {
+    color: var(--colorBrand);
+    font-family: var(--fontHeading);
+    font-weight: 700;
+}
+
+.registrationFormTitle {
+    font-size: var(--fontSizeH3);
+    line-height: 1.4;
+}
+
+.registrationIntroText,
+.registrationFormDescription,
+.registrationFeatureText,
+.registrationHelpText,
+.registrationError,
+.registrationTermsText,
+.registrationSignIn {
+    color: var(--colorTextSecondary);
+}
+
+.registrationError {
+    color: var(--colorError);
+}
+
+.registrationHeroFrame {
+    background-color: var(--colorSurfaceAlt);
+    border: 1px solid var(--colorDivider);
+    border-radius: var(--radiusMd);
+}
+
+.registrationHeroImage {
+    object-fit: cover;
+}
+
+.registrationFeatureTitle {
+    color: var(--colorText);
+    font-family: var(--fontBody);
+    font-size: var(--fontSizeBody);
+    font-weight: 700;
+}
+
+.registrationFeatureNumber {
+    min-width: 2rem;
+    padding: var(--spaceXs);
+    border: 1px solid var(--colorDivider);
+    border-radius: var(--radiusSm);
+    color: var(--colorBrand);
+    text-align: center;
+}
+
+.registrationForm .form-control,
+.registrationForm .form-select {
+    background-color: var(--colorSurface);
+    border-color: var(--colorDivider);
+    border-radius: var(--radiusSm);
+    color: var(--colorText);
+    font-family: var(--fontBody);
+}
+
+.registrationForm .form-control::placeholder {
+    color: var(--colorTextSecondary);
+    opacity: 0.7;
+}
+
+.registrationForm .form-control:disabled,
+.registrationForm .form-select:disabled {
+    background-color: var(--colorDisabled);
+}
+
+.registrationForm .form-control:focus,
+.registrationForm .form-select:focus,
+.registrationForm .form-check-input:focus {
+    border-color: var(--colorHighlight);
+    box-shadow: 0 0 0 0.2rem var(--colorPrimaryLight);
+}
+
+.registrationForm .form-check-input:checked {
+    background-color: var(--colorPrimary);
+    border-color: var(--colorPrimary);
+}
+
+.registrationForm .form-check-input {
+    border-color: var(--colorBorderInput);
+}
+
+.registrationForm .form-label {
+    color: var(--colorText);
+    font-weight: 600;
+}
+
+.registrationForm .alert-danger {
+    background-color: var(--colorErrorLight);
+    border-color: var(--colorError);
+    color: var(--colorError);
+}
+
+.registrationForm .alert-success {
+    background-color: var(--colorSuccessLight);
+    border-color: var(--colorSuccess);
+    color: var(--colorSuccess);
+}
+
+.registrationFormColumn .registrationSignIn a {
+    color: var(--colorPrimary);
+}
+
 /* Skip link for keyboard users */
 
 .skipLink {

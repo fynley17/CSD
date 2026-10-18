@@ -114,11 +114,11 @@ export default {
 </script>
 
 <template>
-    <div class="card surfaceCard">
+    <div class="card surfaceCard registrationForm">
         <div class="card-body p-4 p-md-5">
             <header class="mb-4">
-                <h1 class="h3 text-body mb-2">Revision Account</h1>
-                <p class="text-secondary mb-0">
+                <h1 class="registrationFormTitle mb-2">Revision Account</h1>
+                <p class="registrationFormDescription mb-0">
                     Complete the form below to start accessing practice tests, revision materials, and subject-based
                     test banks.
                 </p>
@@ -132,7 +132,7 @@ export default {
                     {{ successMessage }}
                 </div>
 
-                <section class="mb-4" aria-labelledby="accountDetailsHeading">
+                <section class="mb-4">
                     <div class="row g-3">
                         <div class="col-12 col-sm-6">
                             <label for="firstName" class="form-label">First name</label>
@@ -160,7 +160,7 @@ export default {
                     </div>
                 </section>
 
-                <section class="mb-4" aria-labelledby="studentDetailsHeading">
+                <section class="mb-4">
                     <div class="row g-3">
                         <div class="col-12 col-sm-6">
                             <label for="studentNumber" class="form-label">Student number</label>
@@ -188,13 +188,13 @@ export default {
                                     {{ cohort.cohortName }}
                                 </option>
                             </select>
-                            <small v-if="cohortsLoading" class="text-secondary">Loading cohorts…</small>
-                            <small v-else-if="cohortsError" class="text-danger">{{ cohortsError }}</small>
+                            <small v-if="cohortsLoading" class="registrationHelpText">Loading cohorts…</small>
+                            <small v-else-if="cohortsError" class="registrationError">{{ cohortsError }}</small>
                         </div>
                     </div>
                 </section>
 
-                <section class="mb-4" aria-labelledby="loginDetailsHeading">
+                <section class="mb-4">
                     <div class="mb-3">
                         <label for="email" class="form-label">Email</label>
                         <input
@@ -238,7 +238,7 @@ export default {
                             />
                         </div>
                         <div class="col-12">
-                            <small class="form-text text-secondary">
+                            <small class="registrationHelpText">
                                 Use at least 8 characters, including uppercase, lowercase, a number, and a symbol.
                             </small>
                         </div>
@@ -253,7 +253,7 @@ export default {
                         id="termsAccepted"
                         required
                     />
-                    <label class="form-check-label text-secondary" for="termsAccepted">
+                    <label class="form-check-label registrationTermsText" for="termsAccepted">
                         I agree to the <a href="/terms" target="_blank">Terms &amp; Conditions</a>.
                     </label>
                 </div>
