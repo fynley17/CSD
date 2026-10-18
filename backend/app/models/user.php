@@ -92,6 +92,14 @@ class User extends Model
     }
 
     /**
+     * True if a lecturer hasn't approved the account yet
+     */
+    public function isPending(): bool
+    {
+        return $this->approvalStatus === 'pending';
+    }
+
+    /**
      * Saves the login time and clears failed attempts to 0 after a valid login.
      */
     public function recordLogin(): void
