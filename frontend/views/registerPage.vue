@@ -10,6 +10,7 @@ export default {
             formError: '',
             successMessage: '',
             isSubmitting: false,
+            termsAccepted: false,
             form: {
                 firstName: '',
                 lastName: '',
@@ -38,6 +39,11 @@ export default {
         async submitRegistration() {
             this.formError = '';
             this.successMessage = '';
+
+            if (!this.termsAccepted) {
+                this.formError = 'Please agree to the terms and conditions before registering.';
+                return;
+            }
 
             if (
                 !this.form.firstName ||
@@ -101,6 +107,7 @@ export default {
                 password: '',
                 confirmPassword: '',
             };
+            this.termsAccepted = false;
         },
     },
 };
@@ -224,7 +231,14 @@ export default {
                 />
             </div>
 
-            <button type="submit" class="btn btn-primary" :disabled="isSubmitting">
+            <div class="form-check mb-3">
+                <input v-model="termsAccepted" type="checkbox" class="form-check-input" id="termsAccepted" required />
+                <label class="form-check-label" for="termsAccepted">
+                    I agree to the <a href="/terms" target="_blank">terms and conditions</a>.
+                </label>
+            </div>
+
+            <button type="submit" class="btn btn-primary" :disabled="isSubmitting || !termsAccepted">
                 {{ isSubmitting ? 'Registering...' : 'Register' }}
             </button>
         </form>

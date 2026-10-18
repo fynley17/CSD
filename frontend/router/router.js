@@ -8,6 +8,8 @@ import LandingPage from '../views/landingPage.vue';
 import PrivacyPolicy from '../views/privacyPolicy.vue';
 // Import the Register page and is displayed when users visit the register URL
 import RegisterPage from '../views/registerPage.vue';
+// Import the Terms and conditions page and is displayed when users visit the terms and conditions URL
+import TermsAndConditions from '../views/termsAndConditions.vue';
 
 // Define the application routes
 const routes = [
@@ -26,12 +28,20 @@ const routes = [
         name: 'register',
         component: RegisterPage,
     },
+    {
+        path: '/terms',
+        name: 'termsAndConditions',
+        component: TermsAndConditions,
+    },
 ];
 
 // Creates the router using browser history
 const router = createRouter({
     history: createWebHistory(),
     routes,
+    scrollBehavior() {
+        return { top: 0 };
+    },
 });
 
 // Exports the router so it can be registered in main.js
