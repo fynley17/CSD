@@ -172,7 +172,7 @@ export default {
                                 type="text"
                                 class="form-control"
                                 id="studentNumber"
-                                placeholder="e.g. WS123456"
+                                placeholder="e.g. ws123456"
                                 required
                             />
                         </div>
