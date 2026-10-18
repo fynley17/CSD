@@ -115,7 +115,15 @@ export default {
 
 <template>
     <div class="card surfaceCard">
-        <div class="card-body p-4">
+        <div class="card-body p-4 p-md-5">
+            <header class="mb-4">
+                <h1 class="h3 text-body mb-2">Revision Account</h1>
+                <p class="text-secondary mb-0">
+                    Complete the form below to start accessing practice tests, revision materials, and subject-based
+                    test banks.
+                </p>
+            </header>
+
             <form @submit.prevent="submitRegistration">
                 <div v-if="formError" class="alert alert-danger" role="alert">
                     {{ formError }}
@@ -124,107 +132,130 @@ export default {
                     {{ successMessage }}
                 </div>
 
-                <div class="mb-3">
-                    <label for="firstName" class="form-label">First name</label>
-                    <input
-                        v-model="form.firstName"
-                        type="text"
-                        class="form-control"
-                        id="firstName"
-                        placeholder="For example: Fyn"
-                        required
-                    />
-                </div>
+                <section class="mb-4" aria-labelledby="accountDetailsHeading">
+                    <h2 id="accountDetailsHeading" class="h6 text-uppercase text-secondary mb-3">
+                        <span class="font-monospace small">01 /</span> Account details
+                    </h2>
+                    <div class="row g-3">
+                        <div class="col-12 col-sm-6">
+                            <label for="firstName" class="form-label">First name</label>
+                            <input
+                                v-model="form.firstName"
+                                type="text"
+                                class="form-control"
+                                id="firstName"
+                                placeholder="e.g. John"
+                                required
+                            />
+                        </div>
 
-                <div class="mb-3">
-                    <label for="lastName" class="form-label">Last name</label>
-                    <input
-                        v-model="form.lastName"
-                        type="text"
-                        class="form-control"
-                        id="lastName"
-                        placeholder="For example: Geary"
-                        required
-                    />
-                </div>
+                        <div class="col-12 col-sm-6">
+                            <label for="lastName" class="form-label">Last name</label>
+                            <input
+                                v-model="form.lastName"
+                                type="text"
+                                class="form-control"
+                                id="lastName"
+                                placeholder="e.g. Doe"
+                                required
+                            />
+                        </div>
+                    </div>
+                </section>
 
-                <div class="mb-3">
-                    <label for="studentNumber" class="form-label">Student number</label>
-                    <input
-                        v-model="form.studentNumber"
-                        type="text"
-                        class="form-control"
-                        id="studentNumber"
-                        placeholder="For example: ws381211"
-                        required
-                    />
-                </div>
+                <section class="mb-4" aria-labelledby="studentDetailsHeading">
+                    <h2 id="studentDetailsHeading" class="h6 text-uppercase text-secondary mb-3">
+                        <span class="font-monospace small">02 /</span> Student details
+                    </h2>
+                    <div class="row g-3">
+                        <div class="col-12 col-sm-6">
+                            <label for="studentNumber" class="form-label">Student number</label>
+                            <input
+                                v-model="form.studentNumber"
+                                type="text"
+                                class="form-control"
+                                id="studentNumber"
+                                placeholder="e.g. WS123456"
+                                required
+                            />
+                        </div>
 
-                <div class="mb-3">
-                    <label for="cohort" class="form-label">Cohort</label>
-                    <select
-                        v-model="form.cohortID"
-                        class="form-control"
-                        id="cohort"
-                        required
-                        :disabled="cohortsLoading || !!cohortsError"
-                    >
-                        <option value="">Select a cohort</option>
-                        <option v-for="cohort in cohorts" :key="cohort.cohortID" :value="cohort.cohortID">
-                            {{ cohort.cohortName }}
-                        </option>
-                    </select>
-                    <small v-if="cohortsLoading" class="text-muted">Loading cohorts…</small>
-                    <small v-else-if="cohortsError" class="text-danger">{{ cohortsError }}</small>
-                </div>
+                        <div class="col-12 col-sm-6">
+                            <label for="cohort" class="form-label">Cohort</label>
+                            <select
+                                v-model="form.cohortID"
+                                class="form-select"
+                                id="cohort"
+                                required
+                                :disabled="cohortsLoading || !!cohortsError"
+                            >
+                                <option value="">Select a cohort</option>
+                                <option v-for="cohort in cohorts" :key="cohort.cohortID" :value="cohort.cohortID">
+                                    {{ cohort.cohortName }}
+                                </option>
+                            </select>
+                            <small v-if="cohortsLoading" class="text-secondary">Loading cohorts…</small>
+                            <small v-else-if="cohortsError" class="text-danger">{{ cohortsError }}</small>
+                        </div>
+                    </div>
+                </section>
 
-                <div class="mb-3">
-                    <label for="email" class="form-label">Email address</label>
-                    <input
-                        v-model="form.email"
-                        type="email"
-                        class="form-control"
-                        id="email"
-                        placeholder="For example: fyn@example.com"
-                        required
-                    />
-                </div>
+                <section class="mb-4" aria-labelledby="loginDetailsHeading">
+                    <h2 id="loginDetailsHeading" class="h6 text-uppercase text-secondary mb-3">
+                        <span class="font-monospace small">03 /</span> Login details
+                    </h2>
 
-                <div class="mb-3">
-                    <label for="password" class="form-label">Password</label>
-                    <input
-                        v-model="form.password"
-                        type="password"
-                        class="form-control"
-                        id="password"
-                        placeholder="For example: River!28Lamp"
-                        minlength="8"
-                        pattern="(?=.*[A-Z])(?=.*[a-z])(?=.*[0-9])(?=.*[^A-Za-z0-9\s]).{8,}"
-                        title="Use 8+ characters with uppercase, lowercase, a number, and a symbol."
-                        required
-                    />
-                    <small class="form-text text-muted">
-                        Use your own password, not the example. It must have at least 8 characters, including an
-                        uppercase letter, a lowercase letter, a number, and a symbol.
-                    </small>
-                </div>
+                    <div class="mb-3">
+                        <label for="email" class="form-label">Email</label>
+                        <input
+                            v-model="form.email"
+                            type="email"
+                            class="form-control"
+                            id="email"
+                            placeholder="e.g. ws123456@weston.ac.uk"
+                            required
+                        />
+                    </div>
 
-                <div class="mb-3">
-                    <label for="confirmPassword" class="form-label">Confirm password</label>
-                    <input
-                        v-model="form.confirmPassword"
-                        type="password"
-                        class="form-control"
-                        id="confirmPassword"
-                        placeholder="For example: River!28Lamp"
-                        minlength="8"
-                        pattern="(?=.*[A-Z])(?=.*[a-z])(?=.*[0-9])(?=.*[^A-Za-z0-9\s]).{8,}"
-                        title="Re-enter password."
-                        required
-                    />
-                </div>
+                    <div class="row g-3">
+                        <div class="col-12 col-sm-6">
+                            <label for="password" class="form-label">Password</label>
+                            <input
+                                v-model="form.password"
+                                type="password"
+                                class="form-control"
+                                id="password"
+                                placeholder="Enter a password"
+                                minlength="8"
+                                pattern="(?=.*[A-Z])(?=.*[a-z])(?=.*[0-9])(?=.*[^A-Za-z0-9\s]).{8,}"
+                                title="Use 8+ characters with uppercase, lowercase, a number, and a symbol."
+                                required
+                            />
+                        </div>
 
-                <div class="form-check mb-3">
+                        <div class="col-12 col-sm-6">
+                            <label for="confirmPassword" class="form-label">Confirm password</label>
+                            <input
+                                v-model="form.confirmPassword"
+                                type="password"
+                                class="form-control"
+                                id="confirmPassword"
+                                placeholder="Re-enter your password"
+                                minlength="8"
+                                pattern="(?=.*[A-Z])(?=.*[a-z])(?=.*[0-9])(?=.*[^A-Za-z0-9\s]).{8,}"
+                                title="Re-enter password."
+                                required
+                            />
+                        </div>
+                        <div class="col-12">
+                            <small class="form-text text-secondary">
+                                Use at least 8 characters, including uppercase, lowercase, a number, and a symbol.
+                            </small>
+                        </div>
+                    </div>
+                </section>
+
+                <div class="form-check mb-4">
                     <input
                         v-model="termsAccepted"
                         type="checkbox"
@@ -232,12 +263,12 @@ export default {
                         id="termsAccepted"
                         required
                     />
-                    <label class="form-check-label" for="termsAccepted">
-                        I agree to the <a href="/terms" target="_blank">terms and conditions</a>.
+                    <label class="form-check-label text-secondary" for="termsAccepted">
+                        I agree to the <a href="/terms" target="_blank">Terms &amp; Conditions</a>.
                     </label>
                 </div>
 
-                <button type="submit" class="headerButton registerButton" :disabled="isSubmitting || !termsAccepted">
+                <button type="submit" class="headerButton loginButton w-100" :disabled="isSubmitting || !termsAccepted">
                     {{ isSubmitting ? 'Registering...' : 'Create Revision Account' }}
                 </button>
             </form>
