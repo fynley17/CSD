@@ -5,6 +5,11 @@
 # but php-cs-fixer and betterleaks check the whole project
 VALIDATE_ALL_CODEBASE: false
 
+# Don't scan generated dependencies or the PHP-CS-Fixer cache in secret scanning.
+ADDITIONAL_EXCLUDED_DIRECTORIES:
+    - vendor
+    - node_modules
+
 # Checks being run
 ENABLE_LINTERS:
     - PHP_PHPLINT          # PHP Syntax errors
