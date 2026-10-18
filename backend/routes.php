@@ -3,6 +3,7 @@
 use App\Router;
 use App\Controllers\StudentController;
 use App\Controllers\CohortController;
+use App\Controllers\AuthController;
 
 $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
 $allowedOrigins = [
@@ -37,5 +38,10 @@ $router = new Router();
 $router->addRoute('GET', '/^\\/api\\/students$/', [new StudentController(), 'getAllStudents']);
 $router->addRoute('POST', '/^\\/api\\/register$/', [new StudentController(), 'registerStudent']);
 $router->addRoute('GET', '/^\\/api\\/cohorts$/', [new CohortController(), 'getAllCohorts']);
+
+// login, logout and session check
+$router->addRoute('POST', '/^\\/api\\/login$/', [new AuthController(), 'login']);
+$router->addRoute('POST', '/^\\/api\\/logout$/', [new AuthController(), 'logout']);
+$router->addRoute('GET', '/^\\/api\\/me$/', [new AuthController(), 'me']);
 
 return $router;
