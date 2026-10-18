@@ -75,14 +75,23 @@ class Student extends Model
             throw new \RuntimeException('Unable to generate user ID');
         }
 
-        // Writes inside the transaction
+        $db->beginTransaction();
+        try {
+            $stmt = $db->prepare("INSERT INTO Users (userID, email, username, password, accountType, approvalStatus) VALUES (?, ?, ?, ?, ?, ?)");
+            $stmt->execute([$userID, $email, $studentNumber, $passwordHash, $accountType, $approvalStatus]);
 
-        $stmt = $db->prepare("INSERT INTO Users (userID, email, username, password, accountType, approvalStatus) VALUES (?, ?, ?, ?, ?, ?)");
-        $stmt->execute([$userID, $email, $studentNumber, $passwordHash, $accountType, $approvalStatus]);
-        var_dump($cohortID, $userID);
-        error_log(print_r(['cohortID' => $cohortID, 'userID' => $userID], true));
-        $stmt = $db->prepare("INSERT INTO Students (userID, firstName, lastName, cohortID, points) VALUES (?, ?, ?, ?, ?)");
-        $stmt->execute([$userID, $firstName, $lastName, $cohortID, $points]);
+            $stmt = $db->prepare("INSERT INTO Students (userID, firstName, lastName, cohortID, points) VALUES (?, ?, ?, ?, ?)");
+            $stmt->execute([$userID, $firstName, $lastName, $cohortID, $points]);
+
+            $db->commit();
+        } catch (\Throwable $e) {
+            if ($db->inTransaction()) {
+                $db->rollBack();
+            }
+            throw $e;
+        }
+
+        return ['success' => true];
     }
 
     // Helpers
