@@ -8,7 +8,7 @@
 
 - login
     - secure 🟩
-    - GDPR complient 🟩
+    - GDPR compliant 🟩
     - Single log in for all account types 🟩
     - logo, username, password 🟩
 
@@ -31,7 +31,7 @@
     - <B>must be confirmed by lecturer</b> 🟩
 
     - Additional
-        - appon confirmation of account recieve email 🟧
+        - upon confirmation of account receive email 🟧
 
 - student dashboard
     - test selection page
@@ -57,10 +57,10 @@
         - number of questions 🟩
         - if time limit 🟩
             - live countdown
-            - submit test when countdown ends any questions left shoul be set to 0
+            - submit test when countdown ends any questions left should be set to 0
     - leaderboards
         - top 5 people from each course 🟩
-        - visually appeling 🟧
+        - visually appealing 🟧
             - icons
             - progress bars
             - SVG
