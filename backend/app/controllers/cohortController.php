@@ -8,6 +8,7 @@ class CohortController extends Controller
 {
     public function getAllCohorts()
     {
+        // Supply the cohort options displayed in the registration form.
         $cohorts = Cohort::getAll();
         $this->jsonResponse($cohorts);
     }

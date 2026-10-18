@@ -18,6 +18,7 @@
                     <div class="d-flex align-items-center gap-2">
                         <a href="/login" class="headerButton loginButton"> Sign in </a>
 
+                        <!-- Opens the page where students create an account. -->
                         <a href="/register" class="headerButton registerButton"> Register </a>
                     </div>
                 </div>

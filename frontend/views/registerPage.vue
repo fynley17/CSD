@@ -17,6 +17,7 @@ export default {
 <template>
     <div class="container py-5">
         <div class="row justify-content-center align-items-stretch g-4 g-lg-5">
+            <!-- Keep the introduction and study benefits beside the form on wider screens. -->
             <section class="registrationIntro col-12 col-md-6 col-xl-5 d-flex flex-column">
                 <header>
                     <h1 class="registrationIntroTitle">RevisionHub Account Registration</h1>
@@ -26,6 +27,7 @@ export default {
                     </p>
                 </header>
 
+                <!-- This illustration is hidden on small screens to keep the form in focus. -->
                 <div class="registrationHeroFrame ratio ratio-4x3 d-none d-md-block overflow-hidden">
                     <img
                         :src="registrationHero"
@@ -59,6 +61,7 @@ export default {
 
             <section class="registrationFormColumn col-12 col-md-6 d-flex flex-column justify-content-center">
                 <RegistrationForm />
+                <!-- Keep the sign-in route available to people who already have an account. -->
                 <p class="registrationSignIn small text-center mt-3 mb-0">
                     Already have a RevisionHub account? <a href="/login">Sign in here</a>
                 </p>

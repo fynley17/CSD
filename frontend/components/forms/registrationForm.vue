@@ -24,6 +24,7 @@ export default {
     },
     async mounted() {
         try {
+            // Load the cohorts that can be selected when creating a student account.
             const response = await api.get('/cohorts');
             if (!Array.isArray(response.data)) {
                 throw new Error('Invalid response.');
@@ -75,6 +76,7 @@ export default {
             this.isSubmitting = true;
 
             try {
+                // The server repeats validation and stores a password hash before creating the account.
                 const payload = {
                     firstName: this.form.firstName.trim(),
                     lastName: this.form.lastName.trim(),
@@ -132,6 +134,7 @@ export default {
                     {{ successMessage }}
                 </div>
 
+                <!-- Keep related fields grouped while Bootstrap controls their responsive columns. -->
                 <section class="mb-4">
                     <div class="row g-3">
                         <div class="col-12 col-sm-6">

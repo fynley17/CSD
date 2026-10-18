@@ -26,6 +26,7 @@ const routes = [
     {
         path: '/register',
         name: 'register',
+        // Loads the registration page, which contains the registration form.
         component: RegisterPage,
     },
     {

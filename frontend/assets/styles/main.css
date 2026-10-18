@@ -262,6 +262,7 @@ main {
     color: var(--colorText);
 }
 
+/* Registration-specific appearance uses the shared design tokens above. */
 .registrationIntroTitle,
 .registrationFormTitle {
     color: var(--colorBrand);

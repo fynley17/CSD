@@ -1,5 +1,6 @@
 import axios from 'axios';
 
+// Share the API base URL and request configuration across registration calls.
 const api = axios.create({
     baseURL: 'http://localhost:8000/api', // Adjust as needed
     headers: {
