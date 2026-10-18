@@ -238,6 +238,14 @@ main {
     color: var(--colorPrimaryHover);
 }
 
+.surfaceCard {
+    background-color: var(--colorSurface);
+    border: 1px solid var(--colorDivider);
+    border-radius: var(--radiusMd);
+    box-shadow: var(--shadowCard);
+    color: var(--colorText);
+}
+
 /* Skip link for keyboard users */
 
 .skipLink {
