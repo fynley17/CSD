@@ -1,6 +1,6 @@
 <script>
 import RegistrationForm from '../components/forms/registrationForm.vue';
-import registrationHero from '../assets/images/registration-hero.svg';
+import registrationHero from '../assets/images/registrationHero.svg';
 
 export default {
     components: {

@@ -36,6 +36,8 @@
     --fontSizeStat: 1.75rem;
     --fontSizeBody: 1rem;
     --fontSizeSmall: 0.875rem;
+    --fontSizeButton: 0.9375rem;
+    --fontSizeFooter: 0.6875rem;
 
     /* Spacing */
     --spaceXs: 0.25rem;
@@ -45,6 +47,8 @@
     --spaceXl: 2rem;
     --space2xl: 3rem;
     --space3xl: 4rem;
+    --spaceFooterBlock: 1.25rem;
+    --spaceFooterInline: 1.875rem;
 
     /* Shape and layout */
     --radiusSm: 6px;
@@ -52,6 +56,7 @@
     --radiusPill: 999px;
     --shadowCard: 0 1px 3px rgba(17, 24, 39, 0.12);
     --shadowModal: 0 12px 32px rgba(17, 24, 39, 0.24);
+    --shadowFocus: 0 0 0 0.2rem var(--colorPrimaryLight);
     --contentMaxWidth: 1200px;
     --navHeight: 64px;
 }
@@ -80,14 +85,14 @@ body {
     margin: 0;
 }
 
-.app-layout {
+.appLayout {
     min-height: 100vh;
     display: flex;
     flex-direction: column;
 }
 
 /* Allow the main content to take up available space */
-.app-main {
+.appMain {
     flex: 1;
 }
 
@@ -138,13 +143,13 @@ main {
     left: 0;
     z-index: 1030;
     height: var(--navHeight);
-    padding: 0 var(--spaceLg);
+    padding: 0 var(--spaceMd);
     background-color: var(--colorSurface);
     border-bottom: 1px solid var(--colorDivider);
 }
 
 .siteHeader .navbar,
-.siteHeader .container-fluid {
+.siteHeader [class~='container-fluid'] {
     height: 100%;
 }
 
@@ -152,7 +157,7 @@ main {
     padding: 0;
 }
 
-.siteHeader .navbar-brand {
+.siteHeader [class~='navbar-brand'] {
     display: flex;
     align-items: center;
     margin: 0;
@@ -161,7 +166,7 @@ main {
 
 .siteLogo {
     display: block;
-    width: 180px;
+    width: 140px;
     max-height: 48px;
     object-fit: contain;
 }
@@ -172,23 +177,23 @@ main {
     margin-top: auto;
     background-color: var(--colorBrand);
     border-top: 1px solid var(--colorPrimary);
-    color: #ffffff;
-    font-size: 11px;
-    padding: 20px 30px;
+    color: var(--colorSurface);
+    font-size: var(--fontSizeFooter);
+    padding: var(--spaceFooterBlock);
 }
 
 .footerCopyright {
-    color: #ffffff;
+    color: var(--colorSurface);
 }
 
-@media (max-width: 767.98px) {
+@media (min-width: 768px) {
     .siteFooter {
-        padding: 20px;
+        padding: var(--spaceFooterBlock) var(--spaceFooterInline);
     }
 }
 
 .footerPrivacyLink {
-    color: #ffffff;
+    color: var(--colorSurface);
     text-decoration: none;
 }
 
@@ -207,7 +212,7 @@ main {
     border: 1px solid var(--colorPrimary);
     border-radius: var(--radiusSm);
     font-family: var(--fontBody);
-    font-size: 0.9375rem;
+    font-size: var(--fontSizeButton);
     font-weight: 600;
     line-height: 1.5;
     text-decoration: none;
@@ -315,8 +320,8 @@ main {
     text-align: center;
 }
 
-.registrationForm .form-control,
-.registrationForm .form-select {
+.registrationForm [class~='form-control'],
+.registrationForm [class~='form-select'] {
     background-color: var(--colorSurface);
     border-color: var(--colorDivider);
     border-radius: var(--radiusSm);
@@ -324,44 +329,44 @@ main {
     font-family: var(--fontBody);
 }
 
-.registrationForm .form-control::placeholder {
+.registrationForm [class~='form-control']::placeholder {
     color: var(--colorTextSecondary);
     opacity: 0.7;
 }
 
-.registrationForm .form-control:disabled,
-.registrationForm .form-select:disabled {
+.registrationForm [class~='form-control']:disabled,
+.registrationForm [class~='form-select']:disabled {
     background-color: var(--colorDisabled);
 }
 
-.registrationForm .form-control:focus,
-.registrationForm .form-select:focus,
-.registrationForm .form-check-input:focus {
-    border-color: var(--colorHighlight);
-    box-shadow: 0 0 0 0.2rem var(--colorPrimaryLight);
+.registrationForm [class~='form-check-input'] {
+    border-color: var(--colorBorderInput);
 }
 
-.registrationForm .form-check-input:checked {
+.registrationForm [class~='form-control']:focus,
+.registrationForm [class~='form-select']:focus,
+.registrationForm [class~='form-check-input']:focus {
+    border-color: var(--colorHighlight);
+    box-shadow: var(--shadowFocus);
+}
+
+.registrationForm [class~='form-check-input']:checked {
     background-color: var(--colorPrimary);
     border-color: var(--colorPrimary);
 }
 
-.registrationForm .form-check-input {
-    border-color: var(--colorBorderInput);
-}
-
-.registrationForm .form-label {
+.registrationForm [class~='form-label'] {
     color: var(--colorText);
     font-weight: 600;
 }
 
-.registrationForm .alert-danger {
+.registrationForm [class~='alert-danger'] {
     background-color: var(--colorErrorLight);
     border-color: var(--colorError);
     color: var(--colorError);
 }
 
-.registrationForm .alert-success {
+.registrationForm [class~='alert-success'] {
     background-color: var(--colorSuccessLight);
     border-color: var(--colorSuccess);
     color: var(--colorSuccess);
@@ -393,16 +398,16 @@ main {
 
 /* Mobile layout */
 
-@media (max-width: 639px) {
+@media (min-width: 640px) {
     .siteHeader {
-        padding: 0 var(--spaceMd);
+        padding: 0 var(--spaceLg);
     }
 
-    .siteHeader .navbar-brand {
-        padding: var(--spaceSm) var(--spaceXs);
+    .siteHeader [class~='navbar-brand'] {
+        padding: var(--spaceSm) var(--spaceMd);
     }
 
     .siteLogo {
-        width: 140px;
+        width: 180px;
     }
 }

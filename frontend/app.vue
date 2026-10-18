@@ -4,11 +4,11 @@ import Footer from './components/common/footer.vue';
 </script>
 
 <template>
-    <div class="app-layout">
+    <div class="appLayout">
         <Navbar />
         <!-- Main content area displayed beneath the fixed header -->
 
-        <main id="main-content" tabindex="-1" class="app-main">
+        <main id="main-content" tabindex="-1" class="appMain">
             <router-view />
         </main>
 
