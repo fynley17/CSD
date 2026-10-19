@@ -414,11 +414,11 @@ main {
 /* How RevisionHub Works section */
 .howRevisionWorks {
     padding: 20px 0 35px;
-    background-color: #f0edff;
+    background-color: #f5f7ff;
 }
 
 .howRevisionWorksTitle {
-    margin: 0 0 2px;
+    margin: 0 0 24px;
     color: var(--colorBrand);
     text-align: center;
     font-size: 2rem;
@@ -450,10 +450,12 @@ main {
     color: var(--colorPrimary);
     font-size: 2.5rem;
 }
-c .howRevisionWorksContent h3 {
-    margin: 0 0 2px;
-    font-size: 1.1rem;
-    font-weight: 400;
+
+.howRevisionWorksContent h3 {
+    margin: 0 0 6px;
+    color: var(--colorBrand);
+    font-size: 1.15rem;
+    font-weight: 600;
 }
 
 .howRevisionWorksContent p {
@@ -482,7 +484,7 @@ c .howRevisionWorksContent h3 {
 /* Why use RevisionHub section */
 .whyRevisionHub {
     padding: 28px 0 32px;
-    background-color: #f1f2f5;
+    background-color: #eef3fb;
 }
 
 .whyRevisionHubTitle {
@@ -591,5 +593,88 @@ c .howRevisionWorksContent h3 {
 
     .revisionCallToActionText {
         font-size: 1rem;
+    }
+}
+
+/* Contact RevisionHub section */
+.contactRevisionHub {
+    padding: 32px 0;
+    background-color: #f5f7ff;
+}
+
+.contactRevisionHubTitle {
+    margin: 0 0 32px;
+    color: var(--colorBrand);
+    text-align: center;
+    font-size: 2rem;
+    font-weight: 700;
+}
+
+.contactRevisionHubDetails {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 24px;
+    width: 100%;
+}
+
+.contactRevisionHubItem {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    min-width: 0;
+}
+
+.contactRevisionHubIcon {
+    display: flex;
+    flex: 0 0 56px;
+    width: 56px;
+    height: 56px;
+    align-items: center;
+    justify-content: center;
+    background-color: transparent;
+    color: var(--colorPrimary);
+    font-size: 2rem;
+}
+
+.contactRevisionHubItem > div:last-child {
+    min-width: 0;
+}
+
+.contactRevisionHubItem h3 {
+    margin: 0 0 4px;
+    color: var(--colorBrand);
+    font-size: 1.2rem;
+    font-weight: 600;
+}
+
+.contactRevisionHubItem a,
+.contactRevisionHubItem p {
+    margin: 0;
+    color: var(--colorTextSecondary);
+    font-size: 0.95rem;
+    line-height: 1.5;
+    text-decoration: none;
+    overflow-wrap: anywhere;
+}
+
+.contactRevisionHubItem a:hover {
+    text-decoration: underline;
+}
+
+/* Responsive layout */
+@media (max-width: 767.98px) {
+    .contactRevisionHubDetails {
+        grid-template-columns: 1fr;
+        gap: 24px;
+    }
+
+    .contactRevisionHubItem {
+        justify-content: flex-start;
+    }
+
+    .contactRevisionHubTitle {
+        margin-bottom: 24px;
+        font-size: 1.7rem;
     }
 }

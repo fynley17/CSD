@@ -112,4 +112,45 @@
             <router-link to="/register" class="headerButton loginButton"> Create an account </router-link>
         </div>
     </section>
+    <!-- Contact RevisionHub -->
+    <section class="contactRevisionHub">
+        <div class="container">
+            <h2 class="contactRevisionHubTitle">Contact RevisionHub</h2>
+
+            <div class="contactRevisionHubDetails">
+                <div class="contactRevisionHubItem">
+                    <div class="contactRevisionHubIcon">
+                        <i class="bi bi-envelope"></i>
+                    </div>
+                    <div>
+                        <h3>Email</h3>
+                        <a href="mailto:support@revisionhub.co.uk"> WS382593@weston.ac.uk </a>
+                    </div>
+                </div>
+
+                <div class="contactRevisionHubItem">
+                    <div class="contactRevisionHubIcon">
+                        <i class="bi bi-telephone"></i>
+                    </div>
+                    <div>
+                        <h3>Phone</h3>
+                        <a href="tel:01225123456">01225 123456</a>
+                    </div>
+                </div>
+
+                <div class="contactRevisionHubItem">
+                    <div class="contactRevisionHubIcon">
+                        <i class="bi bi-person-vcard"></i>
+                    </div>
+                    <div>
+                        <h3>Address</h3>
+                        <p>
+                            RevisionHub Systems Inc.<br />
+                            Weston Super Mare, United Kingdom
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
 </template>
