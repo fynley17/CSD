@@ -61,8 +61,14 @@ router.beforeEach(async (to) => {
         return true;
     }
 
-    // if the backend can't be reached, treat it as not logged in
-    const user = await getCurrentUser().catch(() => null);
+    // ask the backend who's logged in
+    let user;
+    try {
+        user = await getCurrentUser();
+    } catch {
+        // backend couldn't be reached (i.e. PHP isn't running), so treat it as not logged in
+        user = null;
+    }
 
     if (user === null) {
         return { name: 'login' };
