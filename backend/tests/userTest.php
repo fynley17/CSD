@@ -30,10 +30,12 @@ final class UserTest extends TestCase
             'isEnabled' => 1,
         ];
 
-        // array_replace swaps in just the values in $changes and keeps everything else
-        // means each test only writes the one thing it's checking, not the whole row every time
-        // if nothing's passed in, $changes is empty and the row stays as it is
-        $row = array_replace($row, $changes);
+        // goes through each change the test passed in and overwrites that column in the row
+        // so each test only writes the one thing it's checking, not the whole row every time
+        // if nothing's passed in the loop doesn't run and it stays a normal student
+        foreach ($changes as $column => $value) {
+            $row[$column] = $value;
+        }
 
         // made the same way findByUsername() makes one, so the tests check the real User code
         return new User($row);
