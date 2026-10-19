@@ -65,14 +65,20 @@ class Authentication
     public static function getLoggedInUserID(): ?string
     {
         self::startSession();
-        return $_SESSION['userID'] ?? null;
+
+        // no user ID in the session means nobody's logged in
+        if (!isset($_SESSION['userID'])) {
+            return null;
+        }
+
+        return $_SESSION['userID'];
     }
 
     /**
      * Stops the request unless someone is logged in with one of these account types.
-     * e.g. requireRole('admin') or requireRole('lecturer', 'admin')
+     * e.g. requireRole(['admin']) or requireRole(['lecturer', 'admin'])
      */
-    public static function requireRole(string ...$allowedRoles): void
+    public static function requireRole(array $allowedRoles): void
     {
         self::startSession();
 
@@ -82,7 +88,8 @@ class Authentication
         }
 
         // 403 = logged in, but the wrong account type for this page
-        if (!in_array($_SESSION['accountType'] ?? '', $allowedRoles, true)) {
+        // true makes in_array check the type as well, so only an exact match gets through
+        if (!in_array($_SESSION['accountType'], $allowedRoles, true)) {
             self::stop(403, 'You do not have permission to view this page');
         }
     }
