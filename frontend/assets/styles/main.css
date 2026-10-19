@@ -1,6 +1,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Merriweather:wght@700&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700&display=swap');
 
+/* Design tokens */
 :root {
     /* Colours */
     --colorBrand: #1e3a8a;
@@ -37,6 +38,10 @@
     --fontSizeBody: 1rem;
     --fontSizeSmall: 0.875rem;
     --fontSizeButton: 0.9375rem;
+    --fontSizeHeroText: 1.1rem;
+    --fontSizeSectionMobile: 1.7rem;
+    --fontSizeHeroTitle: clamp(2.5rem, 4vw, 4.25rem);
+    --fontSizeHeroTitleMobile: clamp(2rem, 7vw, 3rem);
     --fontSizeFooter: 0.6875rem;
 
     /* Spacing */
@@ -47,6 +52,35 @@
     --spaceXl: 2rem;
     --space2xl: 3rem;
     --space3xl: 4rem;
+    --spaceSectionWhyTop: 28px;
+    --spaceSectionWhyBottom: 32px;
+    --spaceWhyCardVertical: 24px;
+    --spaceWhyCardHorizontal: 20px;
+    --spaceSectionCallToAction: 36px;
+    --spaceCallToActionTextBottom: 22px;
+    --spaceSectionContact: 32px;
+    --spaceGridTablet: 18px;
+    --spaceGridMobile: 32px;
+    --spaceContactTitleBottom: 24px;
+    --spaceButtonVertical: 12px;
+    --spaceButtonHorizontal: 24px;
+    --spaceButtonWideHorizontal: 28px;
+    --spaceIconBottom: 10px;
+    --spaceTiny: 3px;
+    --spaceHeadingBottom: 6px;
+    --spaceSectionTop: 20px;
+    --spaceSectionBottom: 35px;
+    --spaceFooterMobile: 20px;
+    --spaceHeroMobile: 40px;
+    --spaceHeroMobileTitle: 20px;
+    --spaceMobileActions: 12px;
+    --spaceMobileSection: 24px;
+    --spaceMobileCallToAction: 28px;
+    --spaceMobileHeading: 20px;
+    --spaceContactHeading: 4px;
+    --spaceContactGap: 15px;
+    --spaceMobileButton: 10px;
+    --spaceMobileButtonHorizontal: 12px;
     --spaceFooterBlock: 1.25rem;
     --spaceFooterInline: 1.875rem;
 
@@ -56,6 +90,22 @@
     --radiusPill: 999px;
     --shadowCard: 0 1px 3px rgba(17, 24, 39, 0.12);
     --shadowModal: 0 12px 32px rgba(17, 24, 39, 0.24);
+    --contentMaxWidth: 1200px;
+    --navHeight: 64px;
+    --colorHeroBackground: #dce9ff;
+    --contentMaxWidthLarge: 1600px;
+    --contentPadding: 5%;
+    --spaceHeroVertical: 55px;
+    --colorHowRevisionWorksBackground: #f5f7ff;
+    --colorWhyRevisionHubBackground: #eef3fb;
+    --colorContactRevisionHubBackground: #f5f7ff;
+    --fontSizeContactText: 0.95rem;
+}
+
+/* Global layout and typography */
+*,
+*::before,
+*::after {
     --shadowFocus: 0 0 0 0.2rem var(--colorPrimaryLight);
     --contentMaxWidth: 1200px;
     --navHeight: 64px;
@@ -86,8 +136,8 @@ body {
 }
 
 .appLayout {
-    min-height: 100vh;
     display: flex;
+    min-height: 100vh;
     flex-direction: column;
 }
 
@@ -134,10 +184,21 @@ main {
     padding-top: var(--navHeight);
 }
 
-/* Header */
-
+/* Shared header */
 .siteHeader {
     position: fixed;
+    z-index: 1030;
+    top: 0;
+    right: 0;
+    left: 0;
+    height: var(--navHeight);
+    padding: 0 var(--spaceLg);
+    border-bottom: 1px solid var(--colorDivider);
+    background-color: var(--colorSurface);
+}
+
+.siteHeader .navbar,
+.siteHeader .containerFluid {
     top: 0;
     right: 0;
     left: 0;
@@ -175,6 +236,19 @@ main {
 .siteFooter {
     width: 100%;
     margin-top: auto;
+    padding: var(--spaceMd) var(--spaceXl);
+    border-top: 1px solid var(--colorPrimary);
+    background-color: var(--colorBrand);
+    color: var(--colorSurface);
+    font-size: var(--fontSizeSmall);
+}
+
+.footerCopyright,
+.footerPrivacyLink {
+    color: var(--colorSurface);
+}
+
+.footerPrivacyLink {
     background-color: var(--colorBrand);
     border-top: 1px solid var(--colorPrimary);
     color: var(--colorSurface);
@@ -192,17 +266,11 @@ main {
     }
 }
 
-.footerPrivacyLink {
-    color: var(--colorSurface);
-    text-decoration: none;
-}
-
 .footerPrivacyLink:hover {
     text-decoration: underline;
 }
 
-/* Shared button styling */
-
+/* Shared buttons */
 .headerButton {
     display: inline-flex;
     min-height: 44px;
@@ -226,20 +294,16 @@ main {
     color: var(--colorSurface);
 }
 
-/* Sign in button */
-
 .loginButton {
     background-color: var(--colorPrimary);
     color: var(--colorSurface);
 }
 
 .loginButton:hover {
-    background-color: var(--colorPrimaryHover);
     border-color: var(--colorPrimaryHover);
+    background-color: var(--colorPrimaryHover);
     color: var(--colorSurface);
 }
-
-/* Register button */
 
 .registerButton {
     background-color: var(--colorSurface);
@@ -376,8 +440,7 @@ main {
     color: var(--colorPrimary);
 }
 
-/* Skip link for keyboard users */
-
+/* Accessible skip link */
 .skipLink {
     position: fixed;
     top: var(--spaceSm);
@@ -396,7 +459,380 @@ main {
     transform: translateY(0);
 }
 
-/* Mobile layout */
+/* Landing page: shared section headings and content width */
+.landingHeroContainer,
+.howRevisionWorks .container,
+.whyRevisionHub .container,
+.revisionCallToAction .container,
+.contactRevisionHub .container {
+    width: 100%;
+    max-width: var(--contentMaxWidthLarge);
+    margin-right: auto;
+    margin-left: auto;
+    padding-right: var(--contentPadding);
+    padding-left: var(--contentPadding);
+}
+
+.howRevisionWorksTitle,
+.whyRevisionHubTitle,
+.revisionCallToActionTitle,
+.contactRevisionHubTitle {
+    margin: 0 0 var(--spaceLg);
+    color: var(--colorBrand);
+    text-align: center;
+    font-size: var(--fontSizeH1);
+    font-weight: 700;
+}
+
+/* Hero */
+.landingHero {
+    display: flex;
+    width: 100%;
+    min-height: 500px;
+    align-items: center;
+    padding: var(--spaceHeroVertical) 0;
+    background-color: var(--colorHeroBackground);
+}
+
+.landingHeroContainer .row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    align-items: center;
+    gap: var(--space2xl);
+    width: 100%;
+    margin: 0;
+}
+
+.landingHeroImage {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    justify-content: center;
+}
+
+.landingHeroContainer .row > .landingHeroContent,
+.landingHeroContainer .row > .landingHeroImage {
+    width: 100%;
+    max-width: none;
+    min-width: 0;
+    padding: 0;
+}
+
+.landingHeroTitle {
+    max-width: 750px;
+    margin: 0 0 var(--spaceLg);
+    color: var(--colorBrand);
+    font-family: var(--fontHeading);
+    font-size: var(--fontSizeHeroTitle);
+    line-height: 1.1;
+    overflow-wrap: normal;
+}
+
+.landingHeroText {
+    max-width: 600px;
+    margin-bottom: var(--spaceHeroTextBottom);
+    color: var(--colorTextSecondary);
+    font-size: var(--fontSizeBody);
+    line-height: 1.5;
+}
+
+.landingHeroActions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spaceMd);
+}
+
+/* stylelint-disable-next-line no-descending-specificity */
+.landingHeroActions .headerButton {
+    min-width: 155px;
+    min-height: 48px;
+    padding: var(--spaceButtonVertical) var(--spaceButtonHorizontal);
+}
+
+.landingHeroIllustration {
+    display: block;
+    width: 100%;
+    max-width: 700px;
+    height: auto;
+    object-fit: contain;
+    mix-blend-mode: multiply;
+}
+
+/* How RevisionHub Works */
+.howRevisionWorks {
+    padding: var(--spaceSectionTop) 0 var(--spaceSectionBottom);
+    background-color: var(--colorHowRevisionWorksBackground);
+}
+
+.howRevisionWorksSteps {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    align-items: center;
+    gap: var(--spaceXl);
+}
+
+.howRevisionWorksStep {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: var(--spaceSm);
+}
+
+.howRevisionWorksIcon {
+    display: flex;
+    flex: 0 0 84px;
+    width: 84px;
+    height: 84px;
+    align-items: center;
+    justify-content: center;
+    background-color: transparent;
+    color: var(--colorPrimary);
+    font-size: var(--fontSizeH1);
+}
+
+.howRevisionWorksContent h3 {
+    margin: 0 0 var(--spaceHeadingBottom);
+    color: var(--colorBrand);
+    font-size: var(--fontSizeH3);
+    font-weight: 600;
+}
+
+.howRevisionWorksContent p {
+    margin: 0;
+    font-size: var(--fontSizeBody);
+    line-height: 1.2;
+}
+
+/* Why use RevisionHub? */
+.whyRevisionHub {
+    padding: var(--spaceSectionWhyTop) 0 var(--spaceSectionWhyBottom);
+    background-color: var(--colorWhyRevisionHubBackground);
+}
+
+.whyRevisionHubCards {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr;
+    gap: var(--spaceLg);
+}
+
+.whyRevisionHubCard {
+    padding: var(--spaceWhyCardVertical) var(--spaceWhyCardHorizontal);
+    border-radius: var(--radiusMd);
+    background-color: var(--colorSurface);
+}
+
+.whyRevisionHubIcon {
+    display: block;
+    margin-bottom: var(--spaceIconBottom);
+    color: var(--colorPrimary);
+    font-size: var(--fontSizeH1);
+}
+
+.whyRevisionHubCard h3 {
+    margin-bottom: var(--spaceTiny);
+    color: var(--colorBrand);
+    font-size: var(--fontSizeH3);
+    font-weight: 600;
+}
+
+.whyRevisionHubCard p {
+    margin: 0;
+    color: var(--colorTextSecondary);
+    font-size: var(--fontSizeBody);
+    line-height: 1.5;
+}
+
+/* Registration call to action */
+.revisionCallToAction {
+    padding: var(--spaceSectionCallToAction) 0;
+    background-color: var(--colorSurface);
+    text-align: center;
+}
+
+.revisionCallToActionText {
+    max-width: 700px;
+    margin: 0 auto var(--spaceCallToActionTextBottom);
+    color: var(--colorTextSecondary);
+    font-size: var(--fontSizeBody);
+    line-height: 1.5;
+}
+
+/* stylelint-disable-next-line no-descending-specificity */
+.revisionCallToAction .headerButton {
+    min-height: 48px;
+    padding: var(--spaceButtonVertical) var(--spaceButtonWideHorizontal);
+}
+
+/* Contact RevisionHub */
+.contactRevisionHub {
+    padding: var(--spaceSectionContact) 0;
+    background-color: var(--colorContactRevisionHubBackground);
+}
+
+.contactRevisionHubDetails {
+    display: grid;
+    width: 100%;
+    grid-template-columns: 1fr 1fr 1fr;
+}
+
+.contactRevisionHubItem {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spaceContactGap);
+}
+
+.contactRevisionHubIcon {
+    display: flex;
+    flex: 0 0 56px;
+    width: 56px;
+    height: 56px;
+    align-items: center;
+    justify-content: center;
+    background-color: transparent;
+    color: var(--colorPrimary);
+    font-size: var(--fontSizeH1);
+}
+
+.contactRevisionHubItem h3 {
+    margin: 0 0 var(--spaceContactHeading);
+    color: var(--colorBrand);
+    font-size: var(--fontSizeH3);
+    font-weight: 600;
+}
+
+/* stylelint-disable-next-line no-descending-specificity */
+.contactRevisionHubItem a,
+.contactRevisionHubItem p {
+    margin: 0;
+    color: var(--colorTextSecondary);
+    font-size: var(--fontSizeContactText);
+    line-height: 1.5;
+    text-decoration: none;
+    overflow-wrap: anywhere;
+}
+
+.contactRevisionHubItem a:hover {
+    text-decoration: underline;
+}
+
+/* Responsive layouts */
+@media (max-width: 991.98px) {
+    .whyRevisionHubCards {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: var(--spaceGridTablet);
+    }
+}
+
+@media (max-width: 767.98px) {
+    .siteFooter {
+        padding: var(--spaceFooterMobile);
+    }
+
+    .landingHero {
+        min-height: auto;
+        padding: var(--spaceHeroMobile) 0;
+    }
+
+    .landingHeroContainer .row {
+        grid-template-columns: minmax(0, 1fr);
+        gap: var(--spaceGridMobile);
+    }
+
+    .landingHeroTitle {
+        margin-bottom: var(--spaceHeroMobileTitle);
+        font-size: var(--fontSizeHeroTitleMobile);
+    }
+
+    .landingHeroText {
+        font-size: var(--fontSizeBody);
+    }
+
+    .landingHeroImage {
+        display: none;
+    }
+
+    .landingHeroActions {
+        gap: var(--spaceMobileActions);
+    }
+
+    .landingHeroActions .headerButton {
+        min-width: 125px;
+    }
+
+    .landingHeroIllustration {
+        max-width: 500px;
+    }
+
+    .howRevisionWorks {
+        padding: var(--spaceMobileSection) 0;
+    }
+
+    .howRevisionWorksTitle,
+    .whyRevisionHubTitle,
+    .revisionCallToActionTitle,
+    .contactRevisionHubTitle {
+        font-size: var(--fontSizeH2);
+    }
+
+    .howRevisionWorksTitle {
+        margin-bottom: var(--spaceHeroMobileTitle);
+    }
+
+    .howRevisionWorksSteps,
+    .contactRevisionHubDetails {
+        grid-template-columns: 1fr;
+        gap: var(--spaceMobileSection);
+    }
+
+    .whyRevisionHub {
+        padding: var(--spaceMobileSection) 0;
+    }
+
+    .revisionCallToAction {
+        padding: var(--spaceMobileCallToAction) 0;
+    }
+
+    .revisionCallToActionText {
+        font-size: var(--fontSizeBody);
+    }
+
+    .contactRevisionHubTitle {
+        margin-bottom: var(--spaceContactTitleBottom);
+    }
+
+    .contactRevisionHubItem {
+        justify-content: flex-start;
+    }
+}
+
+@media (max-width: 639px) {
+    .siteHeader {
+        padding: 0 var(--spaceMd);
+    }
+
+    .siteHeader .navbarBrand {
+        padding: var(--spaceSm) var(--spaceXs);
+    }
+
+    .siteLogo {
+        width: 140px;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .whyRevisionHubCards {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 400px) {
+    .landingHeroActions .headerButton {
+        min-width: 0;
+        flex: 1;
+        padding: var(--spaceMobileButton) var(--spaceMobileButtonHorizontal);
+    }
+}
 
 @media (min-width: 640px) {
     .siteHeader {

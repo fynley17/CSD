@@ -6,7 +6,9 @@
         "classmap": [
             "app/router.php",
             "app/controllers/cohortController.php",
-            "app/models/cohort.php"
+            "app/models/cohort.php",
+            "app/models/model.php",
+            "app/models/student.php"
         ],
         "psr-4": {
             "App\\": "app/"

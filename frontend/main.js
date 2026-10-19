@@ -5,6 +5,7 @@ import { createApp } from 'vue';
 // Load Bootstrap styles and the application's custom design styles
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './assets/styles/main.css';
+import 'bootstrap-icons/font/bootstrap-icons.css';
 
 // Import the root component and router
 import App from './app.vue';
