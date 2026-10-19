@@ -106,7 +106,16 @@ class AuthController extends Controller
         $data = json_decode(file_get_contents('php://input'), true);
 
         // check again here as well as on the page, page checks can be skipped
-        if (!is_array($data) || !is_string($data['username'] ?? null) || !is_string($data['password'] ?? null)) {
+        // the page should always send JSON, if it didn't there's nothing to check
+        if (!is_array($data)) {
+            return null;
+        }
+
+        // both boxes have to be there and be text, not a number or a list
+        if (!isset($data['username']) || !is_string($data['username'])) {
+            return null;
+        }
+        if (!isset($data['password']) || !is_string($data['password'])) {
             return null;
         }
 
