@@ -17,6 +17,7 @@ class Router
 
     public function dispatch(string $uri, string $method): void
     {
+        // Match both the HTTP method and route so registration requests reach their controller.
         foreach ($this->routes as $route) {
             if ($method === $route['method'] && preg_match($route['pattern'], $uri, $matches)) {
                 array_shift($matches); // Remove the full match

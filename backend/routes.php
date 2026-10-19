@@ -35,7 +35,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 $router = new Router();
 
 $router->addRoute('GET', '/^\\/api\\/students$/', [new StudentController(), 'getAllStudents']);
+// Accept student details and the selected cohort from the registration form.
 $router->addRoute('POST', '/^\\/api\\/register$/', [new StudentController(), 'registerStudent']);
+// Provide the cohort options shown by the registration form.
 $router->addRoute('GET', '/^\\/api\\/cohorts$/', [new CohortController(), 'getAllCohorts']);
 
 return $router;

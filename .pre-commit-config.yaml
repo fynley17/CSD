@@ -76,7 +76,7 @@ repos:
 
           - id: eslint
             name: ESLint
-            entry: frontend/node_modules/.bin/eslint --no-ignore -c eslint.config.cjs
+            entry: node frontend/node_modules/eslint/bin/eslint.js --no-ignore -c eslint.config.cjs
             language: system
             files: ^frontend/.*\.(js|vue)$
 
