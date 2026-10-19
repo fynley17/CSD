@@ -61,7 +61,9 @@ abstract class User extends Model
     }
 
     /**
-     * Turns the row into the right kind of user, or null if nothing came back.
+     * Turns the 'Users' row that findByUsername() or findById() fetches, into the right kind of user object.
+     * It only reads an account that's already in the database, nothing new gets added here (registration does that).
+     * Gives back null if no row came back, i.e. nobody has that username or ID.
      */
     private static function makeUser(\PDOStatement $stmt): ?User
     {
