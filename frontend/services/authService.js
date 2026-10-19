@@ -15,7 +15,7 @@ export async function login(username, password) {
 }
 
 /**
- * Tells PHP to end the session, ready for the sign out button (MISC-01)
+ * Tells PHP to end the session, used when someone signs out
  */
 export async function logout() {
     await api.post('/logout');

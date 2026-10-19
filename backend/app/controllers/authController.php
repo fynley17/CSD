@@ -8,7 +8,7 @@ use App\Models\User;
 /**
  * Auth controller, answers the login page's login, logout and "who's logged in" requests
  * goes in the same order as the login flowchart
- * 3 failed attempts will be implemented later
+ * the session itself is handled by the Authentication helper
  */
 class AuthController extends Controller
 {
