@@ -33,7 +33,7 @@
     <!-- How RevisionHub Works -->
     <section class="howRevisionWorks">
         <div class="container">
-            <h2 class="howRevisionWorksTitle">How Revision Works</h2>
+            <h2 class="howRevisionWorksTitle">How RevisionHub Works</h2>
 
             <div class="howRevisionWorksSteps">
                 <div class="howRevisionWorksStep">
@@ -64,6 +64,38 @@
                         <h3>Track your progress</h3>
                         <p>View your results, identify weak areas and monitor your improvement over time.</p>
                     </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    <!-- Why use RevisionHub -->
+    <section class="whyRevisionHub">
+        <div class="container">
+            <h2 class="whyRevisionHubTitle">Why use RevisionHub?</h2>
+
+            <div class="whyRevisionHubCards">
+                <div class="whyRevisionHubCard">
+                    <i class="bi bi-journal-bookmark whyRevisionHubIcon"></i>
+                    <h3>Subject-Based Tests</h3>
+                    <p>Access practice tests and revision materials organised by subject.</p>
+                </div>
+
+                <div class="whyRevisionHubCard">
+                    <i class="bi bi-graph-up-arrow whyRevisionHubIcon"></i>
+                    <h3>Progress Tracking</h3>
+                    <p>Monitor your scores, identify areas for improvement over time.</p>
+                </div>
+
+                <div class="whyRevisionHubCard">
+                    <i class="bi bi-trophy whyRevisionHubIcon"></i>
+                    <h3>Leaderboards</h3>
+                    <p>Compare your performance with other students and see how you rank.</p>
+                </div>
+
+                <div class="whyRevisionHubCard">
+                    <i class="bi bi-bullseye whyRevisionHubIcon"></i>
+                    <h3>Personalised Revision</h3>
+                    <p>Focus on the topics you find most challenging with targeted practice and feedback.</p>
                 </div>
             </div>
         </div>

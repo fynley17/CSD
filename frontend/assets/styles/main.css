@@ -413,8 +413,8 @@ main {
 
 /* How RevisionHub Works section */
 .howRevisionWorks {
-    padding: 12px 0 35px;
-    background-color: #fff;
+    padding: 20px 0 35px;
+    background-color: #f0edff;
 }
 
 .howRevisionWorksTitle {
@@ -447,11 +447,10 @@ main {
     align-items: center;
     justify-content: center;
     background-color: transparent;
-    color: #111;
+    color: var(--colorPrimary);
     font-size: 2.5rem;
 }
-
-.howRevisionWorksContent h3 {
+c .howRevisionWorksContent h3 {
     margin: 0 0 2px;
     font-size: 1.1rem;
     font-weight: 400;
@@ -477,5 +476,75 @@ main {
     .howRevisionWorksSteps {
         grid-template-columns: 1fr;
         gap: 20px;
+    }
+}
+
+/* Why use RevisionHub section */
+.whyRevisionHub {
+    padding: 28px 0 32px;
+    background-color: #f1f2f5;
+}
+
+.whyRevisionHubTitle {
+    margin: 0 0 24px;
+    color: var(--colorBrand);
+    text-align: center;
+    font-size: 2rem;
+    font-weight: 700;
+}
+
+.whyRevisionHubCards {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 24px;
+}
+
+.whyRevisionHubCard {
+    padding: 24px 20px;
+    background-color: #fff;
+    border-radius: 8px;
+}
+
+.whyRevisionHubIcon {
+    display: block;
+    margin-bottom: 12px;
+    color: var(--colorPrimary);
+    font-size: 2rem;
+}
+
+.whyRevisionHubCard h3 {
+    margin: 0 0 6px;
+    color: var(--colorBrand);
+    font-size: 1.15rem;
+    font-weight: 600;
+}
+
+.whyRevisionHubCard p {
+    margin: 0;
+    color: var(--colorTextSecondary);
+    font-size: 0.95rem;
+    line-height: 1.5;
+}
+
+/* Tablet */
+@media (max-width: 991.98px) {
+    .whyRevisionHubCards {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 18px;
+    }
+}
+
+/* Mobile */
+@media (max-width: 575.98px) {
+    .whyRevisionHub {
+        padding: 24px 0;
+    }
+
+    .whyRevisionHubTitle {
+        font-size: 1.7rem;
+    }
+
+    .whyRevisionHubCards {
+        grid-template-columns: 1fr;
     }
 }
