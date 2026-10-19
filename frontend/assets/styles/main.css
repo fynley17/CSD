@@ -1,8 +1,8 @@
 @import url('https://fonts.googleapis.com/css2?family=Merriweather:wght@700&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700&display=swap');
 
+/* Design tokens */
 :root {
-    /* Colours */
     --colorBrand: #1e3a8a;
     --colorPrimary: #4f46e5;
     --colorPrimaryHover: #4338ca;
@@ -27,7 +27,6 @@
     --colorWarningLight: #fef3c7;
     --colorInfoLight: #dbeafe;
 
-    /* Typography */
     --fontHeading: 'Merriweather', Georgia, serif;
     --fontBody: 'Open Sans', Arial, sans-serif;
     --fontSizeH1: 2rem;
@@ -37,7 +36,6 @@
     --fontSizeBody: 1rem;
     --fontSizeSmall: 0.875rem;
 
-    /* Spacing */
     --spaceXs: 0.25rem;
     --spaceSm: 0.5rem;
     --spaceMd: 1rem;
@@ -46,7 +44,6 @@
     --space2xl: 3rem;
     --space3xl: 4rem;
 
-    /* Shape and layout */
     --radiusSm: 6px;
     --radiusMd: 8px;
     --radiusPill: 999px;
@@ -56,9 +53,10 @@
     --navHeight: 64px;
 }
 
-/* Global styles */
-
-* {
+/* Global layout and typography */
+*,
+*::before,
+*::after {
     box-sizing: border-box;
 }
 
@@ -81,12 +79,11 @@ body {
 }
 
 .app-layout {
-    min-height: 100vh;
     display: flex;
+    min-height: 100vh;
     flex-direction: column;
 }
 
-/* Allow the main content to take up available space */
 .app-main {
     flex: 1;
 }
@@ -129,18 +126,17 @@ main {
     padding-top: var(--navHeight);
 }
 
-/* Header */
-
+/* Shared header */
 .siteHeader {
     position: fixed;
+    z-index: 1030;
     top: 0;
     right: 0;
     left: 0;
-    z-index: 1030;
     height: var(--navHeight);
     padding: 0 var(--spaceLg);
-    background-color: var(--colorSurface);
     border-bottom: 1px solid var(--colorDivider);
+    background-color: var(--colorSurface);
 }
 
 .siteHeader .navbar,
@@ -170,25 +166,19 @@ main {
 .siteFooter {
     width: 100%;
     margin-top: auto;
-    background-color: var(--colorBrand);
+    padding: 20px 30px;
     border-top: 1px solid var(--colorPrimary);
+    background-color: var(--colorBrand);
     color: #ffffff;
     font-size: 11px;
-    padding: 20px 30px;
 }
 
-.footerCopyright {
+.footerCopyright,
+.footerPrivacyLink {
     color: #ffffff;
-}
-
-@media (max-width: 767.98px) {
-    .siteFooter {
-        padding: 20px;
-    }
 }
 
 .footerPrivacyLink {
-    color: #ffffff;
     text-decoration: none;
 }
 
@@ -196,8 +186,7 @@ main {
     text-decoration: underline;
 }
 
-/* Shared button styling */
-
+/* Shared buttons */
 .headerButton {
     display: inline-flex;
     min-height: 44px;
@@ -213,20 +202,16 @@ main {
     text-decoration: none;
 }
 
-/* Sign in button */
-
 .loginButton {
     background-color: var(--colorPrimary);
     color: var(--colorSurface);
 }
 
 .loginButton:hover {
-    background-color: var(--colorPrimaryHover);
     border-color: var(--colorPrimaryHover);
+    background-color: var(--colorPrimaryHover);
     color: var(--colorSurface);
 }
-
-/* Register button */
 
 .registerButton {
     background-color: var(--colorSurface);
@@ -238,18 +223,17 @@ main {
     color: var(--colorPrimaryHover);
 }
 
-/* Skip link for keyboard users */
-
+/* Accessible skip link */
 .skipLink {
     position: fixed;
+    z-index: 2000;
     top: var(--spaceSm);
     left: var(--spaceSm);
-    z-index: 2000;
     padding: var(--spaceSm) var(--spaceMd);
     transform: translateY(-200%);
-    background-color: var(--colorSurface);
     border: 2px solid var(--colorFocus);
     border-radius: var(--radiusSm);
+    background-color: var(--colorSurface);
     color: var(--colorBrand);
     font-weight: 600;
 }
@@ -258,43 +242,44 @@ main {
     transform: translateY(0);
 }
 
-/* Mobile layout */
-
-@media (max-width: 639px) {
-    .siteHeader {
-        padding: 0 var(--spaceMd);
-    }
-
-    .siteHeader .navbar-brand {
-        padding: var(--spaceSm) var(--spaceXs);
-    }
-
-    .siteLogo {
-        width: 140px;
-    }
-}
-
-/* Landing page hero */
-.landingHero {
-    width: 100%;
-    min-height: 500px;
-    display: flex;
-    align-items: center;
-    background-color: #dce9ff;
-    padding: 55px 0;
-}
-
-.landingHeroContainer {
+/* Landing page: shared section headings and content width */
+.landingHeroContainer,
+.howRevisionWorks .container,
+.whyRevisionHub .container,
+.revisionCallToAction .container,
+.contactRevisionHub .container {
     width: 100%;
     max-width: 1600px;
-    margin: 0 auto;
-    padding: 0 6%;
+    margin-right: auto;
+    margin-left: auto;
+    padding-right: 5%;
+    padding-left: 5%;
 }
 
-/* Two equal columns across the available width */
+.howRevisionWorksTitle,
+.whyRevisionHubTitle,
+.revisionCallToActionTitle,
+.contactRevisionHubTitle {
+    margin: 0 0 24px;
+    color: var(--colorBrand);
+    text-align: center;
+    font-size: 2rem;
+    font-weight: 700;
+}
+
+/* Hero */
+.landingHero {
+    display: flex;
+    width: 100%;
+    min-height: 500px;
+    align-items: center;
+    padding: 55px 0;
+    background-color: #dce9ff;
+}
+
 .landingHeroContainer .row {
     display: grid !important;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-columns: 1fr 1fr;
     align-items: center;
     gap: 48px;
     width: 100%;
@@ -309,18 +294,13 @@ main {
     padding: 0;
 }
 
-/* Left side: heading and description */
-.landingHeroContent {
-    text-align: left;
-}
-
 .landingHeroTitle {
     max-width: 750px;
     margin: 0 0 24px;
     color: var(--colorBrand);
     font-family: var(--fontHeading);
     font-size: clamp(2.5rem, 4vw, 4.25rem);
-    line-height: 1.15;
+    line-height: 1.1;
     overflow-wrap: normal;
 }
 
@@ -329,7 +309,7 @@ main {
     margin-bottom: 28px;
     color: var(--colorTextSecondary);
     font-size: 1.1rem;
-    line-height: 1.7;
+    line-height: 1.5;
 }
 
 .landingHeroActions {
@@ -344,12 +324,11 @@ main {
     padding: 12px 24px;
 }
 
-/* Right side: large illustration */
 .landingHeroImage {
     display: flex;
+    min-width: 0;
     align-items: center;
     justify-content: center;
-    min-width: 0;
 }
 
 .landingHeroIllustration {
@@ -361,82 +340,24 @@ main {
     mix-blend-mode: multiply;
 }
 
-/* Tablet and mobile */
-@media (max-width: 767.98px) {
-    .landingHero {
-        min-height: auto;
-        padding: 40px 0;
-    }
-
-    .landingHeroContainer {
-        padding: 0 5%;
-    }
-
-    .landingHeroContainer .row {
-        grid-template-columns: minmax(0, 1fr);
-        gap: 32px;
-    }
-
-    .landingHeroTitle {
-        font-size: clamp(2rem, 7vw, 3rem);
-        margin-bottom: 20px;
-    }
-
-    .landingHeroText {
-        font-size: 1rem;
-    }
-
-    .landingHeroActions {
-        gap: 12px;
-    }
-
-    .landingHeroActions .headerButton {
-        min-width: 125px;
-    }
-
-    .landingHeroImage {
-        width: 100%;
-    }
-
-    .landingHeroIllustration {
-        max-width: 500px;
-    }
-}
-
-@media (max-width: 400px) {
-    .landingHeroActions .headerButton {
-        flex: 1;
-        min-width: 0;
-        padding: 10px 12px;
-    }
-}
-
-/* How RevisionHub Works section */
+/* How RevisionHub Works */
 .howRevisionWorks {
     padding: 20px 0 35px;
     background-color: #f5f7ff;
 }
 
-.howRevisionWorksTitle {
-    margin: 0 0 24px;
-    color: var(--colorBrand);
-    text-align: center;
-    font-size: 2rem;
-    font-weight: 700;
-}
-
 .howRevisionWorksSteps {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 32px;
+    grid-template-columns: 1fr 1fr 1fr;
     align-items: center;
+    gap: 32px;
 }
 
 .howRevisionWorksStep {
     display: flex;
+    min-width: 0;
     align-items: center;
     gap: 12px;
-    min-width: 0;
 }
 
 .howRevisionWorksIcon {
@@ -454,175 +375,92 @@ main {
 .howRevisionWorksContent h3 {
     margin: 0 0 6px;
     color: var(--colorBrand);
-    font-size: 1.15rem;
+    font-size: 1.2rem;
     font-weight: 600;
 }
 
 .howRevisionWorksContent p {
     margin: 0;
-    font-size: 0.9rem;
+    font-size: 1rem;
     line-height: 1.2;
 }
 
-/* Responsive layout */
-@media (max-width: 767.98px) {
-    .howRevisionWorks {
-        padding: 24px 0;
-    }
-
-    .howRevisionWorksTitle {
-        margin-bottom: 20px;
-        font-size: 1.7rem;
-    }
-
-    .howRevisionWorksSteps {
-        grid-template-columns: 1fr;
-        gap: 20px;
-    }
-}
-
-/* Why use RevisionHub section */
+/* Why use RevisionHub? */
 .whyRevisionHub {
     padding: 28px 0 32px;
     background-color: #eef3fb;
 }
 
-.whyRevisionHubTitle {
-    margin: 0 0 24px;
-    color: var(--colorBrand);
-    text-align: center;
-    font-size: 2rem;
-    font-weight: 700;
-}
-
 .whyRevisionHubCards {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: 1fr 1fr 1fr 1fr;
     gap: 24px;
 }
 
 .whyRevisionHubCard {
     padding: 24px 20px;
-    background-color: #fff;
-    border-radius: 8px;
+    border-radius: var(--radiusMd);
+    background-color: var(--colorSurface);
 }
 
 .whyRevisionHubIcon {
     display: block;
-    margin-bottom: 12px;
+    margin-bottom: 10px;
     color: var(--colorPrimary);
     font-size: 2rem;
 }
 
 .whyRevisionHubCard h3 {
-    margin: 0 0 6px;
+    margin-bottom: 3px;
     color: var(--colorBrand);
-    font-size: 1.15rem;
+    font-size: 1.2rem;
     font-weight: 600;
 }
 
 .whyRevisionHubCard p {
     margin: 0;
     color: var(--colorTextSecondary);
-    font-size: 0.95rem;
+    font-size: 1rem;
     line-height: 1.5;
 }
 
-/* Tablet */
-@media (max-width: 991.98px) {
-    .whyRevisionHubCards {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 18px;
-    }
-}
-
-/* Mobile */
-@media (max-width: 575.98px) {
-    .whyRevisionHub {
-        padding: 24px 0;
-    }
-
-    .whyRevisionHubTitle {
-        font-size: 1.7rem;
-    }
-
-    .whyRevisionHubCards {
-        grid-template-columns: 1fr;
-    }
-}
-
-/* Revision call to action */
+/* Registration call to action */
 .revisionCallToAction {
     padding: 36px 0;
-    background-color: #ffffff;
+    background-color: var(--colorSurface);
     text-align: center;
 }
 
-.revisionCallToActionTitle {
-    margin: 0 0 12px;
-    color: var(--colorBrand);
-    font-size: 2rem;
-    font-weight: 700;
-}
-
 .revisionCallToActionText {
-    max-width: 750px;
+    max-width: 700px;
     margin: 0 auto 22px;
     color: var(--colorTextSecondary);
-    font-size: 1.05rem;
-    line-height: 1.6;
+    font-size: 1rem;
+    line-height: 1.5;
 }
 
 .revisionCallToAction .headerButton {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
     min-height: 48px;
     padding: 12px 28px;
-    text-decoration: none;
 }
 
-@media (max-width: 575.98px) {
-    .revisionCallToAction {
-        padding: 28px 0;
-    }
-
-    .revisionCallToActionTitle {
-        font-size: 1.7rem;
-    }
-
-    .revisionCallToActionText {
-        font-size: 1rem;
-    }
-}
-
-/* Contact RevisionHub section */
+/* Contact RevisionHub */
 .contactRevisionHub {
     padding: 32px 0;
     background-color: #f5f7ff;
 }
 
-.contactRevisionHubTitle {
-    margin: 0 0 32px;
-    color: var(--colorBrand);
-    text-align: center;
-    font-size: 2rem;
-    font-weight: 700;
-}
-
 .contactRevisionHubDetails {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 24px;
     width: 100%;
+    grid-template-columns: 1fr 1fr 1fr;
 }
 
 .contactRevisionHubItem {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 20px;
-    min-width: 0;
+    gap: 15px;
 }
 
 .contactRevisionHubIcon {
@@ -635,10 +473,6 @@ main {
     background-color: transparent;
     color: var(--colorPrimary);
     font-size: 2rem;
-}
-
-.contactRevisionHubItem > div:last-child {
-    min-width: 0;
 }
 
 .contactRevisionHubItem h3 {
@@ -662,19 +496,120 @@ main {
     text-decoration: underline;
 }
 
-/* Responsive layout */
+/* Responsive layouts */
+@media (max-width: 991.98px) {
+    .whyRevisionHubCards {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 18px;
+    }
+}
+
 @media (max-width: 767.98px) {
+    .siteFooter {
+        padding: 20px;
+    }
+
+    .landingHero {
+        min-height: auto;
+        padding: 40px 0;
+    }
+
+    .landingHeroContainer .row {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 32px;
+    }
+
+    .landingHeroTitle {
+        margin-bottom: 20px;
+        font-size: clamp(2rem, 7vw, 3rem);
+    }
+
+    .landingHeroText {
+        font-size: 1rem;
+    }
+
+    .landingHeroImage {
+        display: none;
+    }
+
+    .landingHeroActions {
+        gap: 12px;
+    }
+
+    .landingHeroActions .headerButton {
+        min-width: 125px;
+    }
+
+    .landingHeroIllustration {
+        max-width: 500px;
+    }
+
+    .howRevisionWorks {
+        padding: 24px 0;
+    }
+
+    .howRevisionWorksTitle,
+    .whyRevisionHubTitle,
+    .revisionCallToActionTitle,
+    .contactRevisionHubTitle {
+        font-size: 1.7rem;
+    }
+
+    .howRevisionWorksTitle {
+        margin-bottom: 20px;
+    }
+
+    .howRevisionWorksSteps,
     .contactRevisionHubDetails {
         grid-template-columns: 1fr;
         gap: 24px;
     }
 
-    .contactRevisionHubItem {
-        justify-content: flex-start;
+    .whyRevisionHub {
+        padding: 24px 0;
+    }
+
+    .revisionCallToAction {
+        padding: 28px 0;
+    }
+
+    .revisionCallToActionText {
+        font-size: 1rem;
     }
 
     .contactRevisionHubTitle {
         margin-bottom: 24px;
-        font-size: 1.7rem;
+    }
+
+    .contactRevisionHubItem {
+        justify-content: flex-start;
+    }
+}
+
+@media (max-width: 639px) {
+    .siteHeader {
+        padding: 0 var(--spaceMd);
+    }
+
+    .siteHeader .navbar-brand {
+        padding: var(--spaceSm) var(--spaceXs);
+    }
+
+    .siteLogo {
+        width: 140px;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .whyRevisionHubCards {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 400px) {
+    .landingHeroActions .headerButton {
+        min-width: 0;
+        flex: 1;
+        padding: 10px 12px;
     }
 }
