@@ -22,12 +22,12 @@ export async function logout() {
 }
 
 /**
- * Asks GET /api/me who's logged in, router.js uses this before showing a private page
+ * Asks GET /api/current-user who's logged in, router.js uses this before showing a private page
  * @returns {Promise<object|null>} username and account type, or null if nobody is logged in
  */
 export async function getCurrentUser() {
     try {
-        const response = await api.get('/me');
+        const response = await api.get('/current-user');
         return response.data;
     } catch (error) {
         // PHP sends 401 when nobody's logged in, that's a normal answer so give back null

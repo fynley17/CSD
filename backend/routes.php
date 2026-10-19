@@ -42,6 +42,6 @@ $router->addRoute('GET', '/^\\/api\\/cohorts$/', [new CohortController(), 'getAl
 // login, logout and session check
 $router->addRoute('POST', '/^\\/api\\/login$/', [new AuthController(), 'login']);
 $router->addRoute('POST', '/^\\/api\\/logout$/', [new AuthController(), 'logout']);
-$router->addRoute('GET', '/^\\/api\\/me$/', [new AuthController(), 'me']);
+$router->addRoute('GET', '/^\\/api\\/current-user$/', [new AuthController(), 'currentUser']);
 
 return $router;

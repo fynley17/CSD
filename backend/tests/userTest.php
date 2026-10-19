@@ -120,7 +120,7 @@ final class UserTest extends TestCase
 
     /**
      * Getters give back the right details (normal)
-     * these are what end up in the session and the /api/me reply
+     * these are what end up in the session and the /api/current-user reply
      */
     public function testGettersReturnAccountDetails(): void
     {

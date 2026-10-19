@@ -67,9 +67,9 @@ class AuthController extends Controller
     }
 
     /**
-     * GET /api/me, tells the page who's logged in so the header can change by account type
+     * GET /api/current-user, tells the page who's logged in so the header can change by account type
      */
-    public function me(): void
+    public function currentUser(): void
     {
         $userID = Authentication::getLoggedInUserID();
 
