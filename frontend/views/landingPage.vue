@@ -29,4 +29,43 @@
             </div>
         </div>
     </section>
+
+    <!-- How RevisionHub Works -->
+    <section class="howRevisionWorks">
+        <div class="container">
+            <h2 class="howRevisionWorksTitle">How Revision Works</h2>
+
+            <div class="howRevisionWorksSteps">
+                <div class="howRevisionWorksStep">
+                    <div class="howRevisionWorksIcon">
+                        <i class="bi bi-file-earmark-text"></i>
+                    </div>
+                    <div class="howRevisionWorksContent">
+                        <h3>Choose a test</h3>
+                        <p>Select a subject and practice test from the available question banks.</p>
+                    </div>
+                </div>
+
+                <div class="howRevisionWorksStep">
+                    <div class="howRevisionWorksIcon">
+                        <i class="bi bi-play-circle"></i>
+                    </div>
+                    <div class="howRevisionWorksContent">
+                        <h3>Take the test</h3>
+                        <p>Answer multiple-choice questions at your own pace or within a time limit.</p>
+                    </div>
+                </div>
+
+                <div class="howRevisionWorksStep">
+                    <div class="howRevisionWorksIcon">
+                        <i class="bi bi-bar-chart"></i>
+                    </div>
+                    <div class="howRevisionWorksContent">
+                        <h3>Track your progress</h3>
+                        <p>View your results, identify weak areas and monitor your improvement over time.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
 </template>

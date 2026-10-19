@@ -410,3 +410,72 @@ main {
         padding: 10px 12px;
     }
 }
+
+/* How RevisionHub Works section */
+.howRevisionWorks {
+    padding: 12px 0 35px;
+    background-color: #fff;
+}
+
+.howRevisionWorksTitle {
+    margin: 0 0 2px;
+    color: var(--colorBrand);
+    text-align: center;
+    font-size: 2rem;
+    font-weight: 700;
+}
+
+.howRevisionWorksSteps {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 32px;
+    align-items: center;
+}
+
+.howRevisionWorksStep {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+}
+
+.howRevisionWorksIcon {
+    display: flex;
+    flex: 0 0 84px;
+    width: 84px;
+    height: 84px;
+    align-items: center;
+    justify-content: center;
+    background-color: transparent;
+    color: #111;
+    font-size: 2.5rem;
+}
+
+.howRevisionWorksContent h3 {
+    margin: 0 0 2px;
+    font-size: 1.1rem;
+    font-weight: 400;
+}
+
+.howRevisionWorksContent p {
+    margin: 0;
+    font-size: 0.9rem;
+    line-height: 1.2;
+}
+
+/* Responsive layout */
+@media (max-width: 767.98px) {
+    .howRevisionWorks {
+        padding: 24px 0;
+    }
+
+    .howRevisionWorksTitle {
+        margin-bottom: 20px;
+        font-size: 1.7rem;
+    }
+
+    .howRevisionWorksSteps {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+}
