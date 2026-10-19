@@ -5,9 +5,10 @@ namespace App\Models;
 /**
  * User model: the code that talks to the Users table for login.
  * It finds an account, checks its password and saves the login time.
- * Students, lecturers and administrators all use this one class to log in.
+ * Abstract because nobody is just a User, every account is a Student, Lecturer or Administrator,
+ * they all get the login code from here.
  */
-class User extends Model
+abstract class User extends Model
 {
     // the Users columns login needs, kept in one place so both searches match
     private const COLUMNS = 'userID, username, password, accountType, approvalStatus, isEnabled';
@@ -21,7 +22,7 @@ class User extends Model
     private bool $isEnabled;
 
     /**
-     * Builds a User object out of a row from the Users table.
+     * Fills in the shared details from a row of the Users table, used by Student, Lecturer and Administrator.
      */
     public function __construct(array $row)
     {
@@ -60,7 +61,7 @@ class User extends Model
     }
 
     /**
-     * Turns the row into a User object, or null if nothing came back.
+     * Turns the row into the right kind of user, or null if nothing came back.
      */
     private static function makeUser(\PDOStatement $stmt): ?User
     {
@@ -71,7 +72,19 @@ class User extends Model
             return null;
         }
 
-        return new User($row);
+        // User can't be made on its own, so the account type picks which one to make
+        if ($row['accountType'] === 'admin') {
+            return new Administrator($row);
+        }
+        if ($row['accountType'] === 'lecturer') {
+            return new Lecturer($row);
+        }
+        if ($row['accountType'] === 'student') {
+            return new Student($row);
+        }
+
+        // the database only allows those three, so anything else means something's gone wrong
+        throw new \UnexpectedValueException('Unknown account type: ' . $row['accountType']);
     }
 
     /**

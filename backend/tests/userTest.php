@@ -1,5 +1,8 @@
 <?php
 
+use App\Models\Administrator;
+use App\Models\Lecturer;
+use App\Models\Student;
 use App\Models\User;
 use PHPUnit\Framework\TestCase;
 
@@ -13,11 +16,11 @@ final class UserTest extends TestCase
     private const TEST_PASSWORD = 'Test1234!';
 
     /**
-     * Makes a pretend user so the tests don't need the database
+     * Makes a pretend Users row so the tests don't need the database
      * keeps them quick, and they won't break if someone changes the data in phpMyAdmin
      * starts as a normal approved student, a test only passes in what it's testing, e.g. ['isEnabled' => 0]
      */
-    private function makeUser(array $changes = []): User
+    private function makeRow(array $changes = []): array
     {
         // same column names as the real Users table, because the User constructor looks for those names
         $row = [
@@ -37,8 +40,16 @@ final class UserTest extends TestCase
             $row[$column] = $value;
         }
 
-        // made the same way findByUsername() makes one, so the tests check the real User code
-        return new User($row);
+        return $row;
+    }
+
+    /**
+     * Makes a pretend student from that row
+     * a Student because User is abstract, the login code it runs is still all from User
+     */
+    private function makeUser(array $changes = []): User
+    {
+        return new Student($this->makeRow($changes));
     }
 
     /**
@@ -113,10 +124,25 @@ final class UserTest extends TestCase
      */
     public function testGettersReturnAccountDetails(): void
     {
-        $user = $this->makeUser(['accountType' => 'admin']);
+        $user = $this->makeUser();
 
         self::assertSame('test-user-id', $user->getUserID());
         self::assertSame('ws000001', $user->getUsername());
-        self::assertSame('admin', $user->getAccountType());
+        self::assertSame('student', $user->getAccountType());
+    }
+
+    /**
+     * Each account type is a kind of User, and an Administrator is a Lecturer too (normal)
+     * this is the inheritance on the class diagram, it's why an admin can do lecturer jobs
+     */
+    public function testAccountTypesInheritFromUser(): void
+    {
+        $student = $this->makeUser();
+        $lecturer = new Lecturer($this->makeRow(['accountType' => 'lecturer']));
+        $admin = new Administrator($this->makeRow(['accountType' => 'admin']));
+
+        self::assertInstanceOf(User::class, $student);
+        self::assertInstanceOf(User::class, $lecturer);
+        self::assertInstanceOf(Lecturer::class, $admin);
     }
 }
