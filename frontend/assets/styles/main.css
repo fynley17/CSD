@@ -26,7 +26,6 @@
     --colorWarning: #b45309;
     --colorWarningLight: #fef3c7;
     --colorInfoLight: #dbeafe;
-
     --fontHeading: 'Merriweather', Georgia, serif;
     --fontBody: 'Open Sans', Arial, sans-serif;
     --fontSizeH1: 2rem;
@@ -35,7 +34,11 @@
     --fontSizeStat: 1.75rem;
     --fontSizeBody: 1rem;
     --fontSizeSmall: 0.875rem;
-
+    --fontSizeButton: 0.9375rem;
+    --fontSizeHeroText: 1.1rem;
+    --fontSizeSectionMobile: 1.7rem;
+    --fontSizeHeroTitle: clamp(2.5rem, 4vw, 4.25rem);
+    --fontSizeHeroTitleMobile: clamp(2rem, 7vw, 3rem);
     --spaceXs: 0.25rem;
     --spaceSm: 0.5rem;
     --spaceMd: 1rem;
@@ -43,7 +46,35 @@
     --spaceXl: 2rem;
     --space2xl: 3rem;
     --space3xl: 4rem;
-
+    --spaceSectionWhyTop: 28px;
+    --spaceSectionWhyBottom: 32px;
+    --spaceWhyCardVertical: 24px;
+    --spaceWhyCardHorizontal: 20px;
+    --spaceSectionCallToAction: 36px;
+    --spaceCallToActionTextBottom: 22px;
+    --spaceSectionContact: 32px;
+    --spaceGridTablet: 18px;
+    --spaceGridMobile: 32px;
+    --spaceContactTitleBottom: 24px;
+    --spaceButtonVertical: 12px;
+    --spaceButtonHorizontal: 24px;
+    --spaceButtonWideHorizontal: 28px;
+    --spaceIconBottom: 10px;
+    --spaceTiny: 3px;
+    --spaceHeadingBottom: 6px;
+    --spaceSectionTop: 20px;
+    --spaceSectionBottom: 35px;
+    --spaceFooterMobile: 20px;
+    --spaceHeroMobile: 40px;
+    --spaceHeroMobileTitle: 20px;
+    --spaceMobileActions: 12px;
+    --spaceMobileSection: 24px;
+    --spaceMobileCallToAction: 28px;
+    --spaceMobileHeading: 20px;
+    --spaceContactHeading: 4px;
+    --spaceContactGap: 15px;
+    --spaceMobileButton: 10px;
+    --spaceMobileButtonHorizontal: 12px;
     --radiusSm: 6px;
     --radiusMd: 8px;
     --radiusPill: 999px;
@@ -51,6 +82,14 @@
     --shadowModal: 0 12px 32px rgba(17, 24, 39, 0.24);
     --contentMaxWidth: 1200px;
     --navHeight: 64px;
+    --colorHeroBackground: #dce9ff;
+    --contentMaxWidthLarge: 1600px;
+    --contentPadding: 5%;
+    --spaceHeroVertical: 55px;
+    --colorHowRevisionWorksBackground: #f5f7ff;
+    --colorWhyRevisionHubBackground: #eef3fb;
+    --colorContactRevisionHubBackground: #f5f7ff;
+    --fontSizeContactText: 0.95rem;
 }
 
 /* Global layout and typography */
@@ -78,13 +117,13 @@ body {
     margin: 0;
 }
 
-.app-layout {
+.appLayout {
     display: flex;
     min-height: 100vh;
     flex-direction: column;
 }
 
-.app-main {
+.appMain {
     flex: 1;
 }
 
@@ -140,7 +179,7 @@ main {
 }
 
 .siteHeader .navbar,
-.siteHeader .container-fluid {
+.siteHeader .containerFluid {
     height: 100%;
 }
 
@@ -148,7 +187,7 @@ main {
     padding: 0;
 }
 
-.siteHeader .navbar-brand {
+.siteHeader .navbarBrand {
     display: flex;
     align-items: center;
     margin: 0;
@@ -166,16 +205,16 @@ main {
 .siteFooter {
     width: 100%;
     margin-top: auto;
-    padding: 20px 30px;
+    padding: var(--spaceMd) var(--spaceXl);
     border-top: 1px solid var(--colorPrimary);
     background-color: var(--colorBrand);
-    color: #ffffff;
-    font-size: 11px;
+    color: var(--colorSurface);
+    font-size: var(--fontSizeSmall);
 }
 
 .footerCopyright,
 .footerPrivacyLink {
-    color: #ffffff;
+    color: var(--colorSurface);
 }
 
 .footerPrivacyLink {
@@ -196,7 +235,7 @@ main {
     border: 1px solid var(--colorPrimary);
     border-radius: var(--radiusSm);
     font-family: var(--fontBody);
-    font-size: 0.9375rem;
+    font-size: var(--fontSizeButton);
     font-weight: 600;
     line-height: 1.5;
     text-decoration: none;
@@ -249,21 +288,21 @@ main {
 .revisionCallToAction .container,
 .contactRevisionHub .container {
     width: 100%;
-    max-width: 1600px;
+    max-width: var(--contentMaxWidthLarge);
     margin-right: auto;
     margin-left: auto;
-    padding-right: 5%;
-    padding-left: 5%;
+    padding-right: var(--contentPadding);
+    padding-left: var(--contentPadding);
 }
 
 .howRevisionWorksTitle,
 .whyRevisionHubTitle,
 .revisionCallToActionTitle,
 .contactRevisionHubTitle {
-    margin: 0 0 24px;
+    margin: 0 0 var(--spaceLg);
     color: var(--colorBrand);
     text-align: center;
-    font-size: 2rem;
+    font-size: var(--fontSizeH1);
     font-weight: 700;
 }
 
@@ -273,17 +312,24 @@ main {
     width: 100%;
     min-height: 500px;
     align-items: center;
-    padding: 55px 0;
-    background-color: #dce9ff;
+    padding: var(--spaceHeroVertical) 0;
+    background-color: var(--colorHeroBackground);
 }
 
 .landingHeroContainer .row {
-    display: grid !important;
+    display: grid;
     grid-template-columns: 1fr 1fr;
     align-items: center;
-    gap: 48px;
+    gap: var(--space2xl);
     width: 100%;
     margin: 0;
+}
+
+.landingHeroImage {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    justify-content: center;
 }
 
 .landingHeroContainer .row > .landingHeroContent,
@@ -296,39 +342,32 @@ main {
 
 .landingHeroTitle {
     max-width: 750px;
-    margin: 0 0 24px;
+    margin: 0 0 var(--spaceLg);
     color: var(--colorBrand);
     font-family: var(--fontHeading);
-    font-size: clamp(2.5rem, 4vw, 4.25rem);
+    font-size: var(--fontSizeHeroTitle);
     line-height: 1.1;
     overflow-wrap: normal;
 }
 
 .landingHeroText {
     max-width: 600px;
-    margin-bottom: 28px;
+    margin-bottom: var(--spaceHeroTextBottom);
     color: var(--colorTextSecondary);
-    font-size: 1.1rem;
+    font-size: var(--fontSizeBody);
     line-height: 1.5;
 }
 
 .landingHeroActions {
     display: flex;
     flex-wrap: wrap;
-    gap: 16px;
+    gap: var(--spaceMd);
 }
 
 .landingHeroActions .headerButton {
     min-width: 155px;
     min-height: 48px;
-    padding: 12px 24px;
-}
-
-.landingHeroImage {
-    display: flex;
-    min-width: 0;
-    align-items: center;
-    justify-content: center;
+    padding: var(--spaceButtonVertical) var(--spaceButtonHorizontal);
 }
 
 .landingHeroIllustration {
@@ -342,22 +381,22 @@ main {
 
 /* How RevisionHub Works */
 .howRevisionWorks {
-    padding: 20px 0 35px;
-    background-color: #f5f7ff;
+    padding: var(--spaceSectionTop) 0 var(--spaceSectionBottom);
+    background-color: var(--colorHowRevisionWorksBackground);
 }
 
 .howRevisionWorksSteps {
     display: grid;
     grid-template-columns: 1fr 1fr 1fr;
     align-items: center;
-    gap: 32px;
+    gap: var(--spaceXl);
 }
 
 .howRevisionWorksStep {
     display: flex;
     min-width: 0;
     align-items: center;
-    gap: 12px;
+    gap: var(--spaceSm);
 }
 
 .howRevisionWorksIcon {
@@ -369,85 +408,85 @@ main {
     justify-content: center;
     background-color: transparent;
     color: var(--colorPrimary);
-    font-size: 2.5rem;
+    font-size: var(--fontSizeH1);
 }
 
 .howRevisionWorksContent h3 {
-    margin: 0 0 6px;
+    margin: 0 0 var(--spaceHeadingBottom);
     color: var(--colorBrand);
-    font-size: 1.2rem;
+    font-size: var(--fontSizeH3);
     font-weight: 600;
 }
 
 .howRevisionWorksContent p {
     margin: 0;
-    font-size: 1rem;
+    font-size: var(--fontSizeBody);
     line-height: 1.2;
 }
 
 /* Why use RevisionHub? */
 .whyRevisionHub {
-    padding: 28px 0 32px;
-    background-color: #eef3fb;
+    padding: var(--spaceSectionWhyTop) 0 var(--spaceSectionWhyBottom);
+    background-color: var(--colorWhyRevisionHubBackground);
 }
 
 .whyRevisionHubCards {
     display: grid;
     grid-template-columns: 1fr 1fr 1fr 1fr;
-    gap: 24px;
+    gap: var(--spaceLg);
 }
 
 .whyRevisionHubCard {
-    padding: 24px 20px;
+    padding: var(--spaceWhyCardVertical) var(--spaceWhyCardHorizontal);
     border-radius: var(--radiusMd);
     background-color: var(--colorSurface);
 }
 
 .whyRevisionHubIcon {
     display: block;
-    margin-bottom: 10px;
+    margin-bottom: var(--spaceIconBottom);
     color: var(--colorPrimary);
-    font-size: 2rem;
+    font-size: var(--fontSizeH1);
 }
 
 .whyRevisionHubCard h3 {
-    margin-bottom: 3px;
+    margin-bottom: var(--spaceTiny);
     color: var(--colorBrand);
-    font-size: 1.2rem;
+    font-size: var(--fontSizeH3);
     font-weight: 600;
 }
 
 .whyRevisionHubCard p {
     margin: 0;
     color: var(--colorTextSecondary);
-    font-size: 1rem;
+    font-size: var(--fontSizeBody);
     line-height: 1.5;
 }
 
 /* Registration call to action */
 .revisionCallToAction {
-    padding: 36px 0;
+    padding: var(--spaceSectionCallToAction) 0;
     background-color: var(--colorSurface);
     text-align: center;
 }
 
 .revisionCallToActionText {
     max-width: 700px;
-    margin: 0 auto 22px;
+    margin: 0 auto var(--spaceCallToActionTextBottom);
     color: var(--colorTextSecondary);
-    font-size: 1rem;
+    font-size: var(--fontSizeBody);
     line-height: 1.5;
 }
 
 .revisionCallToAction .headerButton {
     min-height: 48px;
-    padding: 12px 28px;
+    padding: var(--spaceButtonVertical) var(--spaceButtonWideHorizontal);
 }
 
 /* Contact RevisionHub */
 .contactRevisionHub {
-    padding: 32px 0;
-    background-color: #f5f7ff;
+    padding: var(--spaceSectionContact) 0;
+    background-color: var(--colorContactRevisionHubBackground);
 }
 
 .contactRevisionHubDetails {
@@ -460,7 +499,7 @@ main {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 15px;
+    gap: var(--spaceContactGap);
 }
 
 .contactRevisionHubIcon {
@@ -472,13 +511,13 @@ main {
     justify-content: center;
     background-color: transparent;
     color: var(--colorPrimary);
-    font-size: 2rem;
+    font-size: var(--fontSizeH1);
 }
 
 .contactRevisionHubItem h3 {
-    margin: 0 0 4px;
+    margin: 0 0 var(--spaceContactHeading);
     color: var(--colorBrand);
-    font-size: 1.2rem;
+    font-size: var(--fontSizeH3);
     font-weight: 600;
 }
 
@@ -486,7 +525,7 @@ main {
 .contactRevisionHubItem p {
     margin: 0;
     color: var(--colorTextSecondary);
-    font-size: 0.95rem;
+    font-size: var(--fontSizeContactText);
     line-height: 1.5;
     text-decoration: none;
     overflow-wrap: anywhere;
@@ -500,32 +539,32 @@ main {
 @media (max-width: 991.98px) {
     .whyRevisionHubCards {
         grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 18px;
+        gap: var(--spaceGridTablet);
     }
 }
 
 @media (max-width: 767.98px) {
     .siteFooter {
-        padding: 20px;
+        padding: var(--spaceFooterMobile);
     }
 
     .landingHero {
         min-height: auto;
-        padding: 40px 0;
+        padding: var(--spaceHeroMobile) 0;
     }
 
     .landingHeroContainer .row {
         grid-template-columns: minmax(0, 1fr);
-        gap: 32px;
+        gap: var(--spaceGridMobile);
     }
 
     .landingHeroTitle {
-        margin-bottom: 20px;
-        font-size: clamp(2rem, 7vw, 3rem);
+        margin-bottom: var(--spaceHeroMobileTitle);
+        font-size: var(--fontSizeHeroTitleMobile);
     }
 
     .landingHeroText {
-        font-size: 1rem;
+        font-size: var(--fontSizeBody);
     }
 
     .landingHeroImage {
@@ -533,7 +572,7 @@ main {
     }
 
     .landingHeroActions {
-        gap: 12px;
+        gap: var(--spaceMobileActions);
     }
 
     .landingHeroActions .headerButton {
@@ -545,40 +584,40 @@ main {
     }
 
     .howRevisionWorks {
-        padding: 24px 0;
+        padding: var(--spaceMobileSection) 0;
     }
 
     .howRevisionWorksTitle,
     .whyRevisionHubTitle,
     .revisionCallToActionTitle,
     .contactRevisionHubTitle {
-        font-size: 1.7rem;
+        font-size: var(--fontSizeH2);
     }
 
     .howRevisionWorksTitle {
-        margin-bottom: 20px;
+        margin-bottom: var(--spaceHeroMobileTitle);
     }
 
     .howRevisionWorksSteps,
     .contactRevisionHubDetails {
         grid-template-columns: 1fr;
-        gap: 24px;
+        gap: var(--spaceMobileSection);
     }
 
     .whyRevisionHub {
-        padding: 24px 0;
+        padding: var(--spaceMobileSection) 0;
     }
 
     .revisionCallToAction {
-        padding: 28px 0;
+        padding: var(--spaceMobileCallToAction) 0;
     }
 
     .revisionCallToActionText {
-        font-size: 1rem;
+        font-size: var(--fontSizeBody);
     }
 
     .contactRevisionHubTitle {
-        margin-bottom: 24px;
+        margin-bottom: var(--spaceContactTitleBottom);
     }
 
     .contactRevisionHubItem {
@@ -591,7 +630,7 @@ main {
         padding: 0 var(--spaceMd);
     }
 
-    .siteHeader .navbar-brand {
+    .siteHeader .navbarBrand {
         padding: var(--spaceSm) var(--spaceXs);
     }
 
@@ -610,6 +649,6 @@ main {
     .landingHeroActions .headerButton {
         min-width: 0;
         flex: 1;
-        padding: 10px 12px;
+        padding: var(--spaceMobileButton) var(--spaceMobileButtonHorizontal);
     }
 }

@@ -15,6 +15,7 @@ class StudentController extends Controller
     public function registerStudent()
     {
         try {
+            // Decode the JSON payload sent by the registration form before passing it to the model.
             $data = json_decode(file_get_contents('php://input'), true);
             if (!is_array($data)) {
                 throw new \InvalidArgumentException('Please check your registration details and try again.');
@@ -23,6 +24,7 @@ class StudentController extends Controller
             $result = Student::register($data);
 
             if ($result['success']) {
+                // Keep the response shape consistent with the message shown by the form.
                 $this->jsonResponse(['message' => 'Student registered successfully.'], 201);
             } else {
                 $this->jsonResponse(['error' => 'Unable to register the student. Please try again.'], 400);

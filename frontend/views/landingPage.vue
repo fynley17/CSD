@@ -21,7 +21,7 @@
                 <!-- Right side: revision illustration -->
                 <div class="col-12 col-lg-5 landingHeroImage">
                     <img
-                        src="../assets/images/Hero-Image.jpg"
+                        src="../assets/images/heroImage.jpg"
                         alt="Student using RevisionHub to practise"
                         class="landingHeroIllustration"
                     />

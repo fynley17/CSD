@@ -1,0 +1,32 @@
+<!-- Decorative registration illustration; its accessible description is supplied by the containing image element. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 480" fill="none">
+    <path d="M0 0h720v480H0z" fill="#EEF2FF"/>
+    <circle cx="572" cy="112" r="58" fill="#DBEAFE"/>
+    <circle cx="572" cy="112" r="35" fill="#fff"/>
+    <path d="M0 384c90-47 169-47 256-7s165 40 244 2c81-39 155-41 220-6v107H0V384Z" fill="#DBEAFE"/>
+    <path d="M74 107h213v157H74z" rx="12" fill="#fff"/>
+    <path d="M88 121h185v128H88z" rx="7" fill="#EEF2FF"/>
+    <path d="M180 121v128M88 184h185" stroke="#C7D2FE" stroke-width="6"/>
+    <path d="M162 264h37l9 14h-55l9-14Z" fill="#C7D2FE"/>
+    <path d="M98 249h163" stroke="#C7D2FE" stroke-width="6" stroke-linecap="round"/>
+    <path d="M116 323c0-14 11-25 25-25h438c14 0 25 11 25 25v13H116v-13Z" fill="#1E3A8A"/>
+    <path d="M143 336h434l-24 67H167l-24-67Z" fill="#4F46E5"/>
+    <path d="M174 351h372l-14 39H188l-14-39Z" fill="#EEF2FF"/>
+    <path d="M260 336h200l-14 14H274l-14-14Z" fill="#C7D2FE"/>
+    <path d="M332 404h48" stroke="#1E3A8A" stroke-width="7" stroke-linecap="round"/>
+    <path d="M220 300c-5-38 4-73 27-101 20-23 49-35 78-34 44 2 77 33 83 77l11 77H227l-7-19Z" fill="#1E3A8A"/>
+    <path d="M265 263c-8-10-13-23-13-38 0-32 23-57 53-57s53 25 53 57-23 57-53 57c-9 0-18-2-25-7l-31 13 16-25Z" fill="#F2C6A8"/>
+    <path d="M252 220c3-31 25-53 53-53 22 0 40 12 49 32-17 6-34 4-48-4-13 13-32 22-54 25Z" fill="#111827"/>
+    <path d="M278 222h1M315 222h1" stroke="#1E3A8A" stroke-width="5" stroke-linecap="round"/>
+    <path d="M287 241c7 6 16 6 23 0" stroke="#B45309" stroke-width="4" stroke-linecap="round"/>
+    <path d="m258 277 36 23 36-23 40 30-28 29h-91l-29-29 36-30Z" fill="#60A5FA"/>
+    <path d="m294 300-20 36h39l-19-36Z" fill="#fff"/>
+    <path d="m267 276 27 24-20 25-28-30 21-19ZM321 276l-27 24 20 25 28-30-21-19Z" fill="#93C5FD"/>
+    <path d="M122 304c10-24 17-40 33-40 13 0 20 10 24 26" stroke="#15803D" stroke-width="7" stroke-linecap="round"/>
+    <path d="M155 279c-20-1-27-12-25-24 16-1 28 7 29 20M164 270c0-18 10-27 24-28 4 15-3 27-19 32" fill="#86EFAC"/>
+    <path d="M594 304c-10-24-17-40-33-40-13 0-20 10-24 26" stroke="#15803D" stroke-width="7" stroke-linecap="round"/>
+    <path d="M561 279c20-1 27-12 25-24-16-1-28 7-29 20M552 270c0-18-10-27-24-28-4 15 3 27 19 32" fill="#86EFAC"/>
+    <path d="M102 304h72M546 304h72" stroke="#1E3A8A" stroke-width="7" stroke-linecap="round"/>
+    <path d="m477 97 6 14 14 6-14 5-6 14-5-14-14-5 14-6 5-14Z" fill="#60A5FA"/>
+    <path d="m387 68 4 9 10 4-10 4-4 10-4-10-10-4 10-4 4-9Z" fill="#4F46E5"/>
+</svg>

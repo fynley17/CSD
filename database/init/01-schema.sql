@@ -16,6 +16,7 @@ CREATE TABLE `Answers` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE `Cohorts` (
+  -- Cohort IDs are selected by the registration form and stored against each student.
   `cohortID` uuid NOT NULL DEFAULT uuid(),
   `cohortName` varchar(50) NOT NULL,
   `isActive` tinyint(1) NOT NULL DEFAULT 1 COMMENT '1 = active, 0 = disabled'
@@ -58,6 +59,7 @@ CREATE TABLE `StudentAnswers` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE `Students` (
+  -- A student profile is linked to its login account and selected cohort.
   `userID` uuid NOT NULL,
   `firstName` text NOT NULL,
   `lastName` text NOT NULL,
@@ -82,6 +84,7 @@ CREATE TABLE `Tests` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE `Users` (
+  -- Registration stores account details here; passwords are always stored as hashes.
   `userID` uuid NOT NULL DEFAULT uuid(),
   `username` varchar(8) NOT NULL,
   `email` varchar(255) NOT NULL,

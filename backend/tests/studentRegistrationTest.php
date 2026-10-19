@@ -6,6 +6,7 @@ use PHPUnit\Framework\TestCase;
 
 final class StudentRegistrationTest extends TestCase
 {
+    // Keep server-side registration validation covered independently of browser validation.
     public function testNameValidation(): void
     {
         self::assertTrue(Student::names('Fyn Geary'));
