@@ -266,11 +266,6 @@ main {
     }
 }
 
-.footerPrivacyLink {
-    color: var(--colorSurface);
-    text-decoration: none;
-}
-
 .footerPrivacyLink:hover {
     text-decoration: underline;
 }
@@ -307,7 +302,6 @@ main {
 .loginButton:hover {
     border-color: var(--colorPrimaryHover);
     background-color: var(--colorPrimaryHover);
-    border-color: var(--colorPrimaryHover);
     color: var(--colorSurface);
 }
 
@@ -449,7 +443,6 @@ main {
 /* Accessible skip link */
 .skipLink {
     position: fixed;
-    z-index: 2000;
     top: var(--spaceSm);
     left: var(--spaceSm);
     z-index: 2000;
@@ -549,6 +542,7 @@ main {
     gap: var(--spaceMd);
 }
 
+/* stylelint-disable-next-line no-descending-specificity */
 .landingHeroActions .headerButton {
     min-width: 155px;
     min-height: 48px;
@@ -663,6 +657,7 @@ main {
     line-height: 1.5;
 }
 
+/* stylelint-disable-next-line no-descending-specificity */
 .revisionCallToAction .headerButton {
     min-height: 48px;
     padding: var(--spaceButtonVertical) var(--spaceButtonWideHorizontal);
@@ -706,6 +701,7 @@ main {
     font-weight: 600;
 }
 
+/* stylelint-disable-next-line no-descending-specificity */
 .contactRevisionHubItem a,
 .contactRevisionHubItem p {
     margin: 0;
