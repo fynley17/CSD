@@ -3,6 +3,7 @@
 
 /* Design tokens */
 :root {
+    /* Colours */
     --colorBrand: #1e3a8a;
     --colorPrimary: #4f46e5;
     --colorPrimaryHover: #4338ca;
@@ -26,6 +27,8 @@
     --colorWarning: #b45309;
     --colorWarningLight: #fef3c7;
     --colorInfoLight: #dbeafe;
+
+    /* Typography */
     --fontHeading: 'Merriweather', Georgia, serif;
     --fontBody: 'Open Sans', Arial, sans-serif;
     --fontSizeH1: 2rem;
@@ -39,6 +42,9 @@
     --fontSizeSectionMobile: 1.7rem;
     --fontSizeHeroTitle: clamp(2.5rem, 4vw, 4.25rem);
     --fontSizeHeroTitleMobile: clamp(2rem, 7vw, 3rem);
+    --fontSizeFooter: 0.6875rem;
+
+    /* Spacing */
     --spaceXs: 0.25rem;
     --spaceSm: 0.5rem;
     --spaceMd: 1rem;
@@ -75,6 +81,10 @@
     --spaceContactGap: 15px;
     --spaceMobileButton: 10px;
     --spaceMobileButtonHorizontal: 12px;
+    --spaceFooterBlock: 1.25rem;
+    --spaceFooterInline: 1.875rem;
+
+    /* Shape and layout */
     --radiusSm: 6px;
     --radiusMd: 8px;
     --radiusPill: 999px;
@@ -96,6 +106,14 @@
 *,
 *::before,
 *::after {
+    --shadowFocus: 0 0 0 0.2rem var(--colorPrimaryLight);
+    --contentMaxWidth: 1200px;
+    --navHeight: 64px;
+}
+
+/* Global styles */
+
+* {
     box-sizing: border-box;
 }
 
@@ -123,6 +141,7 @@ body {
     flex-direction: column;
 }
 
+/* Allow the main content to take up available space */
 .appMain {
     flex: 1;
 }
@@ -180,6 +199,18 @@ main {
 
 .siteHeader .navbar,
 .siteHeader .containerFluid {
+    top: 0;
+    right: 0;
+    left: 0;
+    z-index: 1030;
+    height: var(--navHeight);
+    padding: 0 var(--spaceMd);
+    background-color: var(--colorSurface);
+    border-bottom: 1px solid var(--colorDivider);
+}
+
+.siteHeader .navbar,
+.siteHeader [class~='container-fluid'] {
     height: 100%;
 }
 
@@ -187,7 +218,7 @@ main {
     padding: 0;
 }
 
-.siteHeader .navbarBrand {
+.siteHeader [class~='navbar-brand'] {
     display: flex;
     align-items: center;
     margin: 0;
@@ -196,7 +227,7 @@ main {
 
 .siteLogo {
     display: block;
-    width: 180px;
+    width: 140px;
     max-height: 48px;
     object-fit: contain;
 }
@@ -218,6 +249,25 @@ main {
 }
 
 .footerPrivacyLink {
+    background-color: var(--colorBrand);
+    border-top: 1px solid var(--colorPrimary);
+    color: var(--colorSurface);
+    font-size: var(--fontSizeFooter);
+    padding: var(--spaceFooterBlock);
+}
+
+.footerCopyright {
+    color: var(--colorSurface);
+}
+
+@media (min-width: 768px) {
+    .siteFooter {
+        padding: var(--spaceFooterBlock) var(--spaceFooterInline);
+    }
+}
+
+.footerPrivacyLink {
+    color: var(--colorSurface);
     text-decoration: none;
 }
 
@@ -239,6 +289,14 @@ main {
     font-weight: 600;
     line-height: 1.5;
     text-decoration: none;
+    background-color: var(--colorPrimary);
+    color: var(--colorSurface);
+}
+
+.headerButton:hover {
+    background-color: var(--colorPrimaryHover);
+    border-color: var(--colorPrimaryHover);
+    color: var(--colorSurface);
 }
 
 .loginButton {
@@ -249,6 +307,7 @@ main {
 .loginButton:hover {
     border-color: var(--colorPrimaryHover);
     background-color: var(--colorPrimaryHover);
+    border-color: var(--colorPrimaryHover);
     color: var(--colorSurface);
 }
 
@@ -262,17 +321,143 @@ main {
     color: var(--colorPrimaryHover);
 }
 
+.headerButton:disabled,
+.headerButton:disabled:hover {
+    background-color: var(--colorDisabled);
+    border-color: var(--colorDivider);
+    color: var(--colorTextSecondary);
+    cursor: not-allowed;
+}
+
+.surfaceCard {
+    background-color: var(--colorSurface);
+    border: 1px solid var(--colorDivider);
+    border-radius: var(--radiusMd);
+    box-shadow: var(--shadowCard);
+    color: var(--colorText);
+}
+
+/* Registration-specific appearance uses the shared design tokens above. */
+.registrationIntroTitle,
+.registrationFormTitle {
+    color: var(--colorBrand);
+    font-family: var(--fontHeading);
+    font-weight: 700;
+}
+
+.registrationFormTitle {
+    font-size: var(--fontSizeH3);
+    line-height: 1.4;
+}
+
+.registrationIntroText,
+.registrationFormDescription,
+.registrationFeatureText,
+.registrationHelpText,
+.registrationError,
+.registrationTermsText,
+.registrationSignIn {
+    color: var(--colorTextSecondary);
+}
+
+.registrationError {
+    color: var(--colorError);
+}
+
+.registrationHeroFrame {
+    background-color: var(--colorSurfaceAlt);
+    border: 1px solid var(--colorDivider);
+    border-radius: var(--radiusMd);
+}
+
+.registrationHeroImage {
+    object-fit: cover;
+}
+
+.registrationFeatureTitle {
+    color: var(--colorText);
+    font-family: var(--fontBody);
+    font-size: var(--fontSizeBody);
+    font-weight: 700;
+}
+
+.registrationFeatureNumber {
+    min-width: 2rem;
+    padding: var(--spaceXs);
+    border: 1px solid var(--colorDivider);
+    border-radius: var(--radiusSm);
+    color: var(--colorBrand);
+    text-align: center;
+}
+
+.registrationForm [class~='form-control'],
+.registrationForm [class~='form-select'] {
+    background-color: var(--colorSurface);
+    border-color: var(--colorDivider);
+    border-radius: var(--radiusSm);
+    color: var(--colorText);
+    font-family: var(--fontBody);
+}
+
+.registrationForm [class~='form-control']::placeholder {
+    color: var(--colorTextSecondary);
+    opacity: 0.7;
+}
+
+.registrationForm [class~='form-control']:disabled,
+.registrationForm [class~='form-select']:disabled {
+    background-color: var(--colorDisabled);
+}
+
+.registrationForm [class~='form-check-input'] {
+    border-color: var(--colorBorderInput);
+}
+
+.registrationForm [class~='form-control']:focus,
+.registrationForm [class~='form-select']:focus,
+.registrationForm [class~='form-check-input']:focus {
+    border-color: var(--colorHighlight);
+    box-shadow: var(--shadowFocus);
+}
+
+.registrationForm [class~='form-check-input']:checked {
+    background-color: var(--colorPrimary);
+    border-color: var(--colorPrimary);
+}
+
+.registrationForm [class~='form-label'] {
+    color: var(--colorText);
+    font-weight: 600;
+}
+
+.registrationForm [class~='alert-danger'] {
+    background-color: var(--colorErrorLight);
+    border-color: var(--colorError);
+    color: var(--colorError);
+}
+
+.registrationForm [class~='alert-success'] {
+    background-color: var(--colorSuccessLight);
+    border-color: var(--colorSuccess);
+    color: var(--colorSuccess);
+}
+
+.registrationFormColumn .registrationSignIn a {
+    color: var(--colorPrimary);
+}
+
 /* Accessible skip link */
 .skipLink {
     position: fixed;
     z-index: 2000;
     top: var(--spaceSm);
     left: var(--spaceSm);
+    z-index: 2000;
     padding: var(--spaceSm) var(--spaceMd);
     transform: translateY(-200%);
+    background-color: var(--colorSurface);
     border: 2px solid var(--colorFocus);
     border-radius: var(--radiusSm);
-    background-color: var(--colorSurface);
     color: var(--colorBrand);
     font-weight: 600;
 }
@@ -650,5 +835,19 @@ main {
         min-width: 0;
         flex: 1;
         padding: var(--spaceMobileButton) var(--spaceMobileButtonHorizontal);
+    }
+}
+
+@media (min-width: 640px) {
+    .siteHeader {
+        padding: 0 var(--spaceLg);
+    }
+
+    .siteHeader [class~='navbar-brand'] {
+        padding: var(--spaceSm) var(--spaceMd);
+    }
+
+    .siteLogo {
+        width: 180px;
     }
 }
