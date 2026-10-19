@@ -58,7 +58,9 @@ class Authentication
     }
 
     /**
-     * Returns the logged in user's ID.
+     * Returns the ID of whoever is logged in, read from the session on the server.
+     * Nothing comes in from the page, the browser only sends its session cookie, so controllers
+     * should use this to find the current user rather than trusting a userID sent in a request.
      *
      * @return string|null null if nobody is logged in
      */
