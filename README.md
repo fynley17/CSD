@@ -185,7 +185,7 @@ erase that machine's local database.
 3. In a terminal at the repository root, start the PHP backend:
 
    ```bash
-   php -S 127.0.0.1:8000 -t backend
+   php -S 127.0.0.1:8000 -t backend/public backend/public/index.php
    ```
 
    Keep this terminal open. The local backend is at

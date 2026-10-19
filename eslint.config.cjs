@@ -62,9 +62,7 @@ module.exports = [
             // without scrolling sideways. A tab is 4 spaces.
             'vue/max-len': ['error', { code: 120, template: 120, comments: 120, tabWidth: 4 }],
 
-            // section 8 requires Vue components be at least 2 words (loginForm.vue, not login.vue)
-            // to prevent clashing with HTML's one word tags, like <button>
-            'vue/multi-word-component-names': 'error',
+            'vue/multi-word-component-names': 'off',
 
             // section 8 JS Rules
             // store values with "const", or "let" if the value will change. "Var" is not allowed

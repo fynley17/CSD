@@ -10,6 +10,8 @@ import LandingPage from '../views/landingPage.vue';
 import PrivacyPolicy from '../views/privacyPolicy.vue';
 // Import the Register page and is displayed when users visit the register URL
 import RegisterPage from '../views/registerPage.vue';
+// Import the Terms and conditions page and is displayed when users visit the terms and conditions URL
+import TermsAndConditions from '../views/termsAndConditions.vue';
 // one login page for every account type
 import LoginPage from '../views/loginPage.vue';
 // admin home page, only admins can open it
@@ -30,7 +32,13 @@ const routes = [
     {
         path: '/register',
         name: 'register',
+        // Loads the registration page, which contains the registration form.
         component: RegisterPage,
+    },
+    {
+        path: '/terms',
+        name: 'termsAndConditions',
+        component: TermsAndConditions,
     },
     {
         path: '/login',
@@ -51,6 +59,9 @@ const routes = [
 const router = createRouter({
     history: createWebHistory(),
     routes,
+    scrollBehavior() {
+        return { top: 0 };
+    },
 });
 
 // runs before every page change, private pages ask the backend who's logged in first

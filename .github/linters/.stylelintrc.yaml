@@ -63,7 +63,7 @@ rules:
               ['/^((0|auto|var\(--[a-zA-Z0-9]+\))(\s+|$)){1,4}$/']
           '/^(gap|row-gap|column-gap)$/': ['/^((0|var\(--space[A-Za-z0-9]+\))(\s+|$)){1,2}$/']
           border-radius: ['0', '/^var\(--radius(Sm|Md|Pill)\)$/']
-          box-shadow: ['none', '/^var\(--shadow(Card|Modal)\)$/']
+          box-shadow: ['none', '/^var\(--shadow(Card|Modal|Focus)\)$/']
         - message: 'use a section 9 token (house style 3, 4 and 9)'
 
     # no !important, it overrides everything and makes styles hard to fix later (section 8)

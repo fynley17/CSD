@@ -13,8 +13,8 @@ class Student extends User
 
     public static function register($data)
     {
-
-        // Validate & sanitize input data
+        // Validate every submitted value on the server; browser-side checks are only a convenience.
+        // Validate and sanitise input data.
         if (empty($data['firstName']) || !self::names($data['firstName'])) {
             throw new \InvalidArgumentException('Please enter a valid first name.');
         }
@@ -56,7 +56,7 @@ class Student extends User
 
         $db = self::getDB();
 
-        // Read-only checks first, no transaction needed
+        // Check account uniqueness and confirm the selected cohort before writing.
         $stmt = $db->prepare("SELECT 1 FROM Users WHERE email = ? LIMIT 1");
         $stmt->execute([$email]);
         if ($stmt->fetchColumn() !== false) {
@@ -83,6 +83,7 @@ class Student extends User
             throw new \RuntimeException('Unable to generate user ID.');
         }
 
+        // Keep the user and student records atomic so neither can be created on its own.
         $db->beginTransaction();
         try {
             $stmt = $db->prepare(
