@@ -100,4 +100,16 @@
             </div>
         </div>
     </section>
+    <!-- Ready to start revising -->
+    <section class="revisionCallToAction">
+        <div class="container">
+            <h2 class="revisionCallToActionTitle">Ready to start revising?</h2>
+
+            <p class="revisionCallToActionText">
+                Create your RevisionHub account and gain access to practice tests, revision materials and more.
+            </p>
+
+            <router-link to="/register" class="headerButton loginButton"> Create an account </router-link>
+        </div>
+    </section>
 </template>
