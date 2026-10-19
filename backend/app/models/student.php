@@ -2,7 +2,7 @@
 
 namespace App\Models;
 
-class Student extends Model
+class Student extends User
 {
     public static function getAll()
     {
