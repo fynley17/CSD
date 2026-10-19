@@ -98,20 +98,40 @@ class AuthController extends Controller
 
     /**
      * Reads the username and password the page sent
+     * the login form sends them as JSON in the body of the request, not in the URL,
+     * so they don't end up in the browser history or the server logs
      *
      * @return array|null null if either one is missing or blank
      */
     private function readLoginDetails(): ?array
     {
+        // php://input is the raw body of the request, true turns the JSON into a normal PHP array
+        // if the body isn't valid JSON this gives back null, which checkLoginDetails() turns away
         $data = json_decode(file_get_contents('php://input'), true);
 
+        // the checking happens in its own function so it can be tested without a real request
+        return self::checkLoginDetails($data);
+    }
+
+    /**
+     * Checks the login details are both there and are text, and tidies up the username
+     * this runs before the database is touched, so bad input never reaches a query
+     * it's public and static so a unit test can hand it made up input and check what comes back
+     *
+     * @param mixed $data whatever the page sent, after it's been turned from JSON into PHP
+     * @return array|null the cleaned username and password, or null if either one is missing or blank
+     */
+    public static function checkLoginDetails(mixed $data): ?array
+    {
         // check again here as well as on the page, page checks can be skipped
+        // e.g. someone sending a request straight to /api/login without using the form
         // the page should always send JSON, if it didn't there's nothing to check
         if (!is_array($data)) {
             return null;
         }
 
         // both boxes have to be there and be text, not a number or a list
+        // isset() catches a missing box, is_string() catches someone sending ['stu01'] or 1234 instead
         if (!isset($data['username']) || !is_string($data['username'])) {
             return null;
         }
@@ -120,8 +140,10 @@ class AuthController extends Controller
         }
 
         // trim spaces off the username but not the password, a password can have spaces in it
+        // i.e. ' stu01 ' copied in by accident still logs in as stu01
         $username = trim($data['username']);
 
+        // a username that was only spaces is blank once it's trimmed, so it's turned away here too
         if ($username === '' || $data['password'] === '') {
             return null;
         }
