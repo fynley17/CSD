@@ -8,6 +8,9 @@
             "app/controllers/cohortController.php",
             "app/models/cohort.php",
             "app/models/user.php",
+            "app/models/student.php",
+            "app/models/lecturer.php",
+            "app/models/administrator.php",
             "app/helpers/authentication.php",
             "app/controllers/authController.php"
         ],
