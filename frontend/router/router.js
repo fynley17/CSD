@@ -87,6 +87,7 @@ const routes = [
         component: StudentResults,
         meta: { title: 'Results | RevisionHub', requiredRoles: ['student'], studentOnly: true },
     },
+    // Send mistyped or retired URLs back to the public landing page.
     {
         path: '/:pathMatch(.*)*',
         redirect: { name: 'landingPage' },
@@ -119,6 +120,7 @@ router.beforeEach(async (to) => {
         user = null;
     }
 
+    // Student pages require a student session, not simply any signed-in account.
     if (to.meta.studentOnly && user?.accountType !== 'student') {
         return { name: 'login', query: { redirect: to.fullPath } };
     }

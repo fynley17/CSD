@@ -240,6 +240,7 @@ main {
     margin-left: auto;
 }
 
+/* Centre student links on desktop and highlight the active page on every screen size. */
 .desktopStudentNavigation {
     position: absolute;
     left: 50%;

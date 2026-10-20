@@ -98,8 +98,10 @@ const isSigningOut = ref(false);
 const route = useRoute();
 const router = useRouter();
 const isStudent = computed(() => currentUser.value?.accountType === 'student');
+// Prevent a slower session response from overwriting the result for a newer route.
 let authRequest = 0;
 
+// Refresh the session after client-side navigation so the correct account links stay visible.
 watch(
     () => route.fullPath,
     async () => {
