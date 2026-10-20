@@ -31,6 +31,8 @@ final class UserTest extends TestCase
             'accountType' => 'student',
             'approvalStatus' => 'approved',
             'isEnabled' => 1,
+            'failedAttempts' => 0,
+            'lockedUntil' => null,
         ];
 
         // goes through each change the test passed in and overwrites that column in the row
@@ -144,5 +146,73 @@ final class UserTest extends TestCase
         self::assertInstanceOf(User::class, $student);
         self::assertInstanceOf(User::class, $lecturer);
         self::assertInstanceOf(Lecturer::class, $admin);
+    }
+
+    /**
+     * Account that's never had a wrong password isn't locked (normal)
+     */
+    public function testNewAccountIsNotLocked(): void
+    {
+        self::assertFalse($this->makeUser()->isLocked());
+    }
+
+    /**
+     * 2 wrong passwords isn't enough to lock it (boundary, one below the limit)
+     */
+    public function testTwoFailedAttemptsDoNotLockAccount(): void
+    {
+        $user = $this->makeUser();
+        $user->addFailedAttempt();
+        $user->addFailedAttempt();
+
+        self::assertFalse($user->isLocked());
+        self::assertSame(2, $user->getFailedAttempts());
+    }
+
+    /**
+     * The 3rd wrong password in a row locks it, and the count goes back to 0 ready for after the lock (boundary)
+     */
+    public function testLocksAccountOnThirdFailedAttempt(): void
+    {
+        $user = $this->makeUser();
+        for ($attempt = 1; $attempt <= User::MAX_FAILED_ATTEMPTS; $attempt++) {
+            $user->addFailedAttempt();
+        }
+
+        self::assertTrue($user->isLocked());
+        self::assertSame(0, $user->getFailedAttempts());
+    }
+
+    /**
+     * Unlock time still to come means it's locked (error)
+     */
+    public function testAccountIsLockedUntilUnlockTime(): void
+    {
+        $lockedUntil = date('Y-m-d H:i:s', time() + 60);
+
+        self::assertTrue($this->makeUser(['lockedUntil' => $lockedUntil])->isLocked());
+    }
+
+    /**
+     * Unlock time already gone means it's unlocked again, no administrator needed (boundary)
+     */
+    public function testLockRunsOutByItself(): void
+    {
+        $lockedUntil = date('Y-m-d H:i:s', time() - 1);
+
+        self::assertFalse($this->makeUser(['lockedUntil' => $lockedUntil])->isLocked());
+    }
+
+    /**
+     * A right password wipes earlier wrong ones, so they don't count towards a lock later (normal)
+     */
+    public function testClearFailedAttemptsStartsCountAgain(): void
+    {
+        $user = $this->makeUser(['failedAttempts' => 2]);
+        $user->clearFailedAttempts();
+        $user->addFailedAttempt();
+
+        self::assertFalse($user->isLocked());
+        self::assertSame(1, $user->getFailedAttempts());
     }
 }
