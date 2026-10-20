@@ -16,6 +16,11 @@ import TermsAndConditions from '../views/termsAndConditions.vue';
 import LoginPage from '../views/loginPage.vue';
 // admin home page, only admins can open it
 import AdministratorDashboard from '../views/administratorDashboard.vue';
+import LecturerDashboard from '../views/lecturerDashboard.vue';
+// student pages are protected by the requiredRoles check in the route guard
+import TestingSelectionPage from '../views/testingPage.vue';
+import Leaderboard from '../views/leaderboard.vue';
+import StudentResults from '../views/studentResults.vue';
 
 // Define the application routes
 const routes = [
@@ -53,12 +58,47 @@ const routes = [
         // requiredRoles is read by the guard below, anyone else gets turned away
         meta: { title: 'Administrator dashboard | RevisionHub', requiredRoles: ['admin'] },
     },
+    {
+        path: '/lecturer-dashboard',
+        name: 'lecturerDashboard',
+        component: LecturerDashboard,
+        meta: { title: 'Lecturer dashboard | RevisionHub', requiredRoles: ['lecturer'] },
+    },
+    {
+        path: '/student-dashboard',
+        name: 'studentDashboard',
+        redirect: { name: 'testingSelection' },
+    },
+    {
+        path: '/testing-selection',
+        name: 'testingSelection',
+        component: TestingSelectionPage,
+        meta: { title: 'Test Selection | RevisionHub', requiredRoles: ['student'], studentOnly: true },
+    },
+    {
+        path: '/leaderboard',
+        name: 'leaderboard',
+        component: Leaderboard,
+        meta: { title: 'Leaderboard | RevisionHub', requiredRoles: ['student'], studentOnly: true },
+    },
+    {
+        path: '/student-results',
+        name: 'studentResults',
+        component: StudentResults,
+        meta: { title: 'Results | RevisionHub', requiredRoles: ['student'], studentOnly: true },
+    },
+    // Send mistyped or retired URLs back to the public landing page.
+    {
+        path: '/:pathMatch(.*)*',
+        redirect: { name: 'landingPage' },
+    },
 ];
 
 // Creates the router using browser history
 const router = createRouter({
     history: createWebHistory(),
     routes,
+    linkExactActiveClass: 'routerLinkExactActive',
     scrollBehavior() {
         return { top: 0 };
     },
@@ -67,8 +107,8 @@ const router = createRouter({
 // runs before every page change, private pages ask the backend who's logged in first
 // this is what stops the back button showing a private page after logging out
 router.beforeEach(async (to) => {
-    // pages with no requiredRoles are public
-    if (!to.meta.requiredRoles) {
+    // pages without role restrictions are public
+    if (!to.meta.requiredRoles && !to.meta.studentOnly) {
         return true;
     }
 
@@ -81,12 +121,17 @@ router.beforeEach(async (to) => {
         user = null;
     }
 
-    if (user === null) {
-        return { name: 'login' };
+    // Student pages require a student session, not simply any signed-in account.
+    if (to.meta.studentOnly && user?.accountType !== 'student') {
+        return { name: 'login', query: { redirect: to.fullPath } };
     }
 
-    // logged in but the wrong account type for this page
-    if (!to.meta.requiredRoles.includes(user.accountType)) {
+    if (user === null) {
+        return { name: 'login', query: { redirect: to.fullPath } };
+    }
+
+    // logged in but the wrong account type for a non-student protected page
+    if (to.meta.requiredRoles && !to.meta.requiredRoles.includes(user.accountType)) {
         return { name: 'landingPage' };
     }
 

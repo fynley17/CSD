@@ -240,6 +240,49 @@ main {
     margin-left: auto;
 }
 
+/* Centre student links on desktop and highlight the active page on every screen size. */
+.desktopStudentNavigation {
+    position: absolute;
+    left: 50%;
+    display: flex;
+    align-items: center;
+    gap: var(--spaceXl);
+    transform: translateX(-50%);
+}
+
+.studentNavigation a {
+    display: inline-flex;
+    min-height: 40px;
+    align-items: center;
+    padding: var(--spaceXs) var(--spaceSm);
+    border-radius: var(--radiusSm);
+    color: var(--colorBrand);
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.studentNavigation a.routerLinkExactActive {
+    background-color: var(--colorBrand);
+    color: var(--colorSurface);
+}
+
+.studentNavigation a:hover {
+    color: var(--colorPrimary);
+    text-decoration: underline;
+    text-underline-offset: 4px;
+}
+
+.studentNavigation a.routerLinkExactActive:hover {
+    background-color: var(--colorBrand);
+    color: var(--colorSurface);
+}
+
+.navbarError {
+    margin: 0;
+    color: var(--colorError);
+    font-size: var(--fontSizeSmall);
+}
+
 .mobileMenuToggle,
 .mobileNavigation {
     display: none;
@@ -265,6 +308,10 @@ main {
     }
 
     .desktopActions {
+        display: none;
+    }
+
+    .desktopStudentNavigation {
         display: none;
     }
 
@@ -308,6 +355,25 @@ main {
         display: flex;
         justify-content: center;
         white-space: nowrap;
+    }
+
+    .mobileStudentNavigation {
+        display: flex;
+        flex-direction: column;
+        gap: var(--spaceSm);
+        padding: 0 var(--spaceSm) var(--spaceSm);
+    }
+
+    .mobileStudentNavigation a {
+        width: 100%;
+    }
+
+    .mobileStudentNavigation a.routerLinkExactActive {
+        padding-left: var(--spaceSm);
+    }
+
+    .mobileNavigation .navbarError {
+        padding: 0 var(--spaceSm);
     }
 }
 
