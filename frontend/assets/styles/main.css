@@ -250,15 +250,30 @@ main {
 }
 
 .studentNavigation a {
+    display: inline-flex;
+    min-height: 40px;
+    align-items: center;
+    padding: var(--spaceXs) var(--spaceSm);
+    border-radius: var(--radiusSm);
     color: var(--colorBrand);
     font-weight: 600;
     text-decoration: none;
+}
+
+.studentNavigation a.router-link-exact-active {
+    background-color: var(--colorBrand);
+    color: var(--colorSurface);
 }
 
 .studentNavigation a:hover {
     color: var(--colorPrimary);
     text-decoration: underline;
     text-underline-offset: 4px;
+}
+
+.studentNavigation a.router-link-exact-active:hover {
+    background-color: var(--colorBrand);
+    color: var(--colorSurface);
 }
 
 .navbarError {
@@ -349,7 +364,11 @@ main {
     }
 
     .mobileStudentNavigation a {
-        padding: var(--spaceXs) 0;
+        width: 100%;
+    }
+
+    .mobileStudentNavigation a.router-link-exact-active {
+        padding-left: var(--spaceSm);
     }
 
     .mobileNavigation .navbarError {

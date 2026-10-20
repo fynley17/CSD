@@ -4,18 +4,18 @@
     <header class="siteHeader">
         <nav class="navbar navbar-expand" aria-label="Main navigation">
             <div class="container-fluid">
-                <a class="navbar-brand" href="/" aria-label="RevisionHub home">
+                <RouterLink class="navbar-brand" to="/" aria-label="RevisionHub home">
                     <img src="../../assets/images/Logo.png" alt="RevisionHub home" class="siteLogo" />
-                </a>
+                </RouterLink>
 
                 <nav
                     v-if="isStudent"
                     class="studentNavigation desktopStudentNavigation"
                     aria-label="Student navigation"
                 >
-                    <a href="/testing-selection">Tests</a>
-                    <a href="/leaderboard">Leaderboard</a>
-                    <a href="/student-results">Results</a>
+                    <RouterLink to="/testing-selection">Tests</RouterLink>
+                    <RouterLink to="/leaderboard">Leaderboard</RouterLink>
+                    <RouterLink to="/student-results">Results</RouterLink>
                 </nav>
 
                 <!-- Desktop navigation -->
@@ -31,8 +31,8 @@
                         {{ isSigningOut ? 'Signing out...' : 'Sign out' }}
                     </button>
                     <template v-else-if="authChecked">
-                        <a href="/login" class="headerButton loginButton">Sign in</a>
-                        <a href="/register" class="headerButton registerButton">Register</a>
+                        <RouterLink to="/login" class="headerButton loginButton">Sign in</RouterLink>
+                        <RouterLink to="/register" class="headerButton registerButton">Register</RouterLink>
                     </template>
                 </div>
 
@@ -57,9 +57,9 @@
                         class="studentNavigation mobileStudentNavigation"
                         aria-label="Student navigation"
                     >
-                        <a href="/testing-selection" @click="menuOpen = false">Tests</a>
-                        <a href="/leaderboard" @click="menuOpen = false">Leaderboard</a>
-                        <a href="/student-results" @click="menuOpen = false">Results</a>
+                        <RouterLink to="/testing-selection" @click="menuOpen = false">Tests</RouterLink>
+                        <RouterLink to="/leaderboard" @click="menuOpen = false">Leaderboard</RouterLink>
+                        <RouterLink to="/student-results" @click="menuOpen = false">Results</RouterLink>
                     </nav>
                     <p v-if="authError" class="navbarError" role="alert">{{ authError }}</p>
                     <button
@@ -72,8 +72,12 @@
                         {{ isSigningOut ? 'Signing out...' : 'Sign out' }}
                     </button>
                     <template v-else-if="authChecked">
-                        <a href="/login" class="headerButton loginButton" @click="menuOpen = false">Sign in</a>
-                        <a href="/register" class="headerButton registerButton" @click="menuOpen = false">Register</a>
+                        <RouterLink to="/login" class="headerButton loginButton" @click="menuOpen = false">
+                            Sign in
+                        </RouterLink>
+                        <RouterLink to="/register" class="headerButton registerButton" @click="menuOpen = false">
+                            Register
+                        </RouterLink>
                     </template>
                 </div>
             </div>
@@ -83,7 +87,7 @@
 
 <script setup>
 import { computed, ref, watch } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
+import { RouterLink, useRoute, useRouter } from 'vue-router';
 import { getCurrentUser, logout } from '../../services/authService';
 
 const menuOpen = ref(false);

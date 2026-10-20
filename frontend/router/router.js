@@ -16,6 +16,7 @@ import TermsAndConditions from '../views/termsAndConditions.vue';
 import LoginPage from '../views/loginPage.vue';
 // admin home page, only admins can open it
 import AdministratorDashboard from '../views/administratorDashboard.vue';
+import LecturerDashboard from '../views/lecturerDashboard.vue';
 // student pages are protected by the requiredRoles check in the route guard
 import TestingSelectionPage from '../views/testingPage.vue';
 import Leaderboard from '../views/leaderboard.vue';
@@ -56,6 +57,17 @@ const routes = [
         component: AdministratorDashboard,
         // requiredRoles is read by the guard below, anyone else gets turned away
         meta: { title: 'Administrator dashboard | RevisionHub', requiredRoles: ['admin'] },
+    },
+    {
+        path: '/lecturer-dashboard',
+        name: 'lecturerDashboard',
+        component: LecturerDashboard,
+        meta: { title: 'Lecturer dashboard | RevisionHub', requiredRoles: ['lecturer'] },
+    },
+    {
+        path: '/student-dashboard',
+        name: 'studentDashboard',
+        redirect: { name: 'testingSelection' },
     },
     {
         path: '/testing-selection',
