@@ -240,6 +240,33 @@ main {
     margin-left: auto;
 }
 
+.desktopStudentNavigation {
+    position: absolute;
+    left: 50%;
+    display: flex;
+    align-items: center;
+    gap: var(--spaceXl);
+    transform: translateX(-50%);
+}
+
+.studentNavigation a {
+    color: var(--colorBrand);
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.studentNavigation a:hover {
+    color: var(--colorPrimary);
+    text-decoration: underline;
+    text-underline-offset: 4px;
+}
+
+.navbarError {
+    margin: 0;
+    color: var(--colorError);
+    font-size: var(--fontSizeSmall);
+}
+
 .mobileMenuToggle,
 .mobileNavigation {
     display: none;
@@ -265,6 +292,10 @@ main {
     }
 
     .desktopActions {
+        display: none;
+    }
+
+    .desktopStudentNavigation {
         display: none;
     }
 
@@ -308,6 +339,21 @@ main {
         display: flex;
         justify-content: center;
         white-space: nowrap;
+    }
+
+    .mobileStudentNavigation {
+        display: flex;
+        flex-direction: column;
+        gap: var(--spaceSm);
+        padding: 0 var(--spaceSm) var(--spaceSm);
+    }
+
+    .mobileStudentNavigation a {
+        padding: var(--spaceXs) 0;
+    }
+
+    .mobileNavigation .navbarError {
+        padding: 0 var(--spaceSm);
     }
 }
 
