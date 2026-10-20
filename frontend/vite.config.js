@@ -10,7 +10,7 @@ export default defineConfig({
         // and won't send the login cookie between them
         // so vite catches anything starting /api and passes it on to PHP for us, the browser only sees 5173
         proxy: {
-            '/api': 'http://127.0.0.1:8000',
+            '/api': process.env.VITE_API_PROXY_TARGET || 'http://127.0.0.1:8000',
         },
     },
 });
