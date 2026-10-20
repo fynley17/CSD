@@ -10,6 +10,8 @@ import PrivacyPolicy from '../views/privacyPolicy.vue';
 import RegisterPage from '../views/registerPage.vue';
 // Import the Terms and conditions page and is displayed when users visit the terms and conditions URL
 import TermsAndConditions from '../views/termsAndConditions.vue';
+// Import the lecturer dashboard page and is displayed when users visit the lecturer dashboard URL
+import lecturerDashboard from '../views/lecturerDashboard.vue';
 
 // Define the application routes
 const routes = [
@@ -33,6 +35,11 @@ const routes = [
         path: '/terms',
         name: 'termsAndConditions',
         component: TermsAndConditions,
+    },
+    {
+        path: '/Lecturer',
+        name: 'lecturerDashboard',
+        component: lecturerDashboard,
     },
 ];
 
