@@ -12,6 +12,11 @@ export default {
 
 <template>
     <div class="container py-5">
-        <LoginForm />
+        <!-- keeps the form narrow and in the middle, full width on phones -->
+        <div class="row justify-content-center">
+            <div class="col-12 col-md-8 col-lg-5">
+                <LoginForm />
+            </div>
+        </div>
     </div>
 </template>

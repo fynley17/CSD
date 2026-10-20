@@ -376,6 +376,105 @@ main {
     color: var(--colorPrimary);
 }
 
+/* Login form, Bootstrap's form classes themed with the tokens above
+   everything starts with .loginForm so it only styles the login card and the registration form keeps its own look
+   Bootstrap's class names have dashes, so they're matched with [class~='...'] to keep the camelCase rule happy */
+
+/* labels in bold so they stand out from the hint text under them */
+.loginForm [class~='form-label'] {
+    margin-bottom: var(--spaceXs);
+    color: var(--colorText);
+    font-weight: 600;
+}
+
+/* hints, i.e. "Your student number or staff ID", sit between the label and the box */
+.loginForm [class~='form-text'] {
+    margin: 0 0 var(--spaceXs);
+    color: var(--colorTextSecondary);
+}
+
+/* grey text for the less important lines, darker than Bootstrap's grey so it passes contrast */
+.loginForm .secondaryText {
+    color: var(--colorTextSecondary);
+}
+
+/* 44px tall white boxes with a mid grey border, big enough to tap on a phone
+   Bootstrap's own light grey border is too faint on white to pass WCAG contrast */
+.loginForm input[class~='form-control'] {
+    min-height: 44px;
+    background-color: var(--colorSurface);
+    border: 1px solid var(--colorBorderInput);
+    border-radius: var(--radiusSm);
+    color: var(--colorText);
+    font-family: var(--fontBody);
+}
+
+.loginForm input[class~='form-control']::placeholder {
+    color: var(--colorBorderInput);
+    opacity: 1;
+}
+
+/* keyboard users need to see which box they're in
+   Bootstrap's pale blue glow is swapped for the same 3px outline the links and buttons use */
+.loginForm input[class~='form-control']:focus {
+    border-color: var(--colorBorderInput);
+    box-shadow: none;
+    outline: 3px solid var(--colorFocus);
+    outline-offset: 2px;
+}
+
+/* a box that's been left empty gets a thicker red border, and stays red while it's being typed in */
+.loginForm input.inputError,
+.loginForm input.inputError:focus {
+    border: 2px solid var(--colorError);
+}
+
+/* the "Error: ..." line above a box, red and bold, the word Error means it's not shown by colour alone */
+.loginForm .fieldError {
+    margin: 0 0 var(--spaceXs);
+    color: var(--colorError);
+    font-weight: 600;
+}
+
+/* house style message box for problems, light red background, thick red left edge, dark text */
+.loginForm [class~='alert-danger'] {
+    background-color: var(--colorErrorLight);
+    border: 0;
+    border-left: 6px solid var(--colorError);
+    border-radius: 0;
+    color: var(--colorText);
+}
+
+/* the message box takes focus when it appears so screen readers read it out, so it gets the outline too */
+.loginForm [class~='alert-danger']:focus-visible {
+    outline: 3px solid var(--colorFocus);
+    outline-offset: 2px;
+}
+
+/* red warning icon in the message box, flex-shrink 0 stops a long message squashing it */
+.loginForm .messageIcon {
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+    fill: none;
+    stroke: var(--colorError);
+    stroke-width: 2;
+    stroke-linecap: round;
+}
+
+.loginForm .messageTitle {
+    margin-bottom: var(--spaceXs);
+    color: var(--colorText);
+    font-family: var(--fontBody);
+    font-size: var(--fontSizeBody);
+    font-weight: 700;
+}
+
+/* the links in the message box jump to the box that needs fixing */
+.loginForm .messageList a {
+    color: var(--colorError);
+}
+
 /* Skip link for keyboard users */
 
 .skipLink {

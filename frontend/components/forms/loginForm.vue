@@ -72,241 +72,97 @@ export default {
 </script>
 
 <template>
-    <div class="loginCard">
-        <h1 class="loginTitle">Welcome back</h1>
-        <p class="loginIntro">Enter your details to login</p>
+    <div class="card surfaceCard loginForm">
+        <div class="card-body p-4 p-md-5">
+            <h1 class="mb-1">Welcome back</h1>
+            <p class="secondaryText mb-4">Enter your details to login</p>
 
-        <!-- one message box for both kinds of problem, empty boxes or PHP turning the login down
-             it stays put until Login is pressed again, house style messages never hide themselves -->
-        <div v-if="hasFieldErrors || serverError" ref="messageBox" class="messageBox" role="alert" tabindex="-1">
-            <svg class="messageIcon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                <circle cx="12" cy="12" r="10" />
-                <line x1="12" y1="8" x2="12" y2="12" />
-                <line x1="12" y1="16" x2="12.01" y2="16" />
-            </svg>
-            <div v-if="hasFieldErrors">
-                <h2 class="messageTitle">There is a problem</h2>
-                <!-- each link jumps straight to the box that needs filling in -->
-                <ul class="messageList">
-                    <li v-if="fieldErrors.username">
-                        <a href="#username">{{ fieldErrors.username }}</a>
-                    </li>
-                    <li v-if="fieldErrors.password">
-                        <a href="#password">{{ fieldErrors.password }}</a>
-                    </li>
-                </ul>
-            </div>
-            <p v-else class="messageText"><strong>There is a problem:</strong> {{ serverError }}</p>
-        </div>
-
-        <!-- novalidate turns off the browser's own pop-ups so only the house style errors show -->
-        <form novalidate @submit.prevent="submitLogin">
-            <div class="loginField">
-                <label for="username" class="loginLabel">Username</label>
-                <p id="usernameHint" class="loginHint">Your student number or staff ID</p>
-                <p v-if="fieldErrors.username" id="usernameError" class="fieldError">
-                    Error: {{ fieldErrors.username }}
-                </p>
-                <input
-                    id="username"
-                    v-model="username"
-                    type="text"
-                    class="loginInput"
-                    :class="{ inputError: fieldErrors.username }"
-                    autocomplete="username"
-                    placeholder="e.g. ws123456"
-                    :aria-invalid="fieldErrors.username ? 'true' : 'false'"
-                    :aria-describedby="fieldErrors.username ? 'usernameHint usernameError' : 'usernameHint'"
-                />
-            </div>
-
-            <div class="loginField">
-                <label for="password" class="loginLabel">Password</label>
-                <p v-if="fieldErrors.password" id="passwordError" class="fieldError">
-                    Error: {{ fieldErrors.password }}
-                </p>
-                <div class="passwordRow">
-                    <!-- paste and password managers allowed on purpose, WCAG 3.3.8 says login can't rely on memory -->
-                    <input
-                        id="password"
-                        v-model="password"
-                        :type="isPasswordShown ? 'text' : 'password'"
-                        class="loginInput"
-                        :class="{ inputError: fieldErrors.password }"
-                        autocomplete="current-password"
-                        :aria-invalid="fieldErrors.password ? 'true' : 'false'"
-                        :aria-describedby="fieldErrors.password ? 'passwordError' : undefined"
-                    />
-                    <button
-                        type="button"
-                        class="showButton"
-                        aria-controls="password"
-                        :aria-pressed="isPasswordShown ? 'true' : 'false'"
-                        @click="togglePassword"
-                    >
-                        {{ isPasswordShown ? 'Hide' : 'Show' }}
-                    </button>
+            <!-- one message box for both kinds of problem, empty boxes or PHP turning the login down
+                 it stays put until Login is pressed again, house style messages never hide themselves -->
+            <div
+                v-if="hasFieldErrors || serverError"
+                ref="messageBox"
+                class="alert alert-danger d-flex gap-2"
+                role="alert"
+                tabindex="-1"
+            >
+                <svg class="messageIcon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="12" y1="8" x2="12" y2="12" />
+                    <line x1="12" y1="16" x2="12.01" y2="16" />
+                </svg>
+                <div v-if="hasFieldErrors">
+                    <h2 class="messageTitle">There is a problem</h2>
+                    <!-- each link jumps straight to the box that needs filling in -->
+                    <ul class="messageList mb-0">
+                        <li v-if="fieldErrors.username">
+                            <a href="#username">{{ fieldErrors.username }}</a>
+                        </li>
+                        <li v-if="fieldErrors.password">
+                            <a href="#password">{{ fieldErrors.password }}</a>
+                        </li>
+                    </ul>
                 </div>
+                <p v-else class="mb-0"><strong>There is a problem:</strong> {{ serverError }}</p>
             </div>
 
-            <button type="submit" class="headerButton loginButton loginSubmit" :disabled="isSubmitting">Login</button>
-        </form>
+            <!-- novalidate turns off the browser's own pop-ups so only the house style errors show -->
+            <form novalidate @submit.prevent="submitLogin">
+                <div class="mb-4">
+                    <label for="username" class="form-label">Username</label>
+                    <p id="usernameHint" class="form-text">Your student number or staff ID</p>
+                    <p v-if="fieldErrors.username" id="usernameError" class="fieldError">
+                        Error: {{ fieldErrors.username }}
+                    </p>
+                    <input
+                        id="username"
+                        v-model="username"
+                        type="text"
+                        class="form-control"
+                        :class="{ inputError: fieldErrors.username }"
+                        autocomplete="username"
+                        placeholder="e.g. ws123456"
+                        :aria-invalid="fieldErrors.username ? 'true' : 'false'"
+                        :aria-describedby="fieldErrors.username ? 'usernameHint usernameError' : 'usernameHint'"
+                    />
+                </div>
 
-        <p class="loginRegister">New here? <router-link to="/register">Register</router-link></p>
+                <div class="mb-4">
+                    <label for="password" class="form-label">Password</label>
+                    <p v-if="fieldErrors.password" id="passwordError" class="fieldError">
+                        Error: {{ fieldErrors.password }}
+                    </p>
+                    <div class="d-flex gap-2">
+                        <!-- paste and password managers allowed, WCAG 3.3.8 says login can't rely on memory -->
+                        <input
+                            id="password"
+                            v-model="password"
+                            :type="isPasswordShown ? 'text' : 'password'"
+                            class="form-control"
+                            :class="{ inputError: fieldErrors.password }"
+                            autocomplete="current-password"
+                            :aria-invalid="fieldErrors.password ? 'true' : 'false'"
+                            :aria-describedby="fieldErrors.password ? 'passwordError' : undefined"
+                        />
+                        <!-- same white and blue look as the Register button in the header -->
+                        <button
+                            type="button"
+                            class="headerButton registerButton"
+                            aria-controls="password"
+                            :aria-pressed="isPasswordShown ? 'true' : 'false'"
+                            @click="togglePassword"
+                        >
+                            {{ isPasswordShown ? 'Hide' : 'Show' }}
+                        </button>
+                    </div>
+                </div>
+
+                <button type="submit" class="headerButton loginButton w-100" :disabled="isSubmitting">Login</button>
+            </form>
+
+            <p class="secondaryText text-center mt-4 mb-0">
+                New here? <router-link to="/register">Register</router-link>
+            </p>
+        </div>
     </div>
 </template>
-
-<style scoped>
-/* the white card, same border, corners and shadow as the other cards on the site
-   max width keeps the form narrow so it's easy to read */
-.loginCard {
-    max-width: 30rem;
-    margin: 0 auto;
-    padding: var(--spaceXl) var(--spaceLg);
-    background-color: var(--colorSurface);
-    border: 1px solid var(--colorDivider);
-    border-radius: var(--radiusMd);
-    box-shadow: var(--shadowCard);
-}
-
-.loginTitle {
-    margin: 0 0 var(--spaceXs);
-}
-
-.loginIntro,
-.loginHint,
-.loginRegister {
-    color: var(--colorTextSecondary);
-}
-
-.loginIntro {
-    margin: 0 0 var(--spaceLg);
-}
-
-.loginField {
-    margin: 0 0 var(--spaceLg);
-}
-
-.loginLabel {
-    display: block;
-    margin: 0 0 var(--spaceXs);
-    font-weight: 600;
-}
-
-.loginHint {
-    margin: 0 0 var(--spaceXs);
-    font-size: var(--fontSizeSmall);
-}
-
-/* 44px tall boxes with a mid grey border (house style 5)
-   mid grey because the lighter divider grey fails contrast on white */
-.loginInput {
-    width: 100%;
-    min-height: 44px;
-    padding: var(--spaceSm) var(--spaceMd);
-    background-color: var(--colorSurface);
-    border: 1px solid var(--colorBorderInput);
-    border-radius: var(--radiusSm);
-    color: var(--colorText);
-    font-family: var(--fontBody);
-    font-size: var(--fontSizeBody);
-}
-
-.loginInput::placeholder {
-    color: var(--colorBorderInput);
-}
-
-/* keyboard users need to see which box they're in, 3px blue outline, never removed */
-.loginInput:focus-visible {
-    outline: 3px solid var(--colorFocus);
-    outline-offset: 2px;
-}
-
-/* red 2px border on a box that was left empty, the Error: text above it means it's not colour alone */
-.inputError {
-    border: 2px solid var(--colorError);
-}
-
-.fieldError {
-    margin: 0 0 var(--spaceXs);
-    color: var(--colorError);
-    font-weight: 600;
-}
-
-.passwordRow {
-    display: flex;
-    gap: var(--spaceSm);
-}
-
-/* Show button, styled as a secondary button i.e. blue text and border on white */
-.showButton {
-    min-height: 44px;
-    padding: 0 var(--spaceMd);
-    background-color: var(--colorSurface);
-    border: 1px solid var(--colorPrimary);
-    border-radius: var(--radiusSm);
-    color: var(--colorPrimary);
-    font-weight: 600;
-}
-
-.showButton:hover {
-    background-color: var(--colorPrimaryLight);
-}
-
-.loginSubmit {
-    width: 100%;
-}
-
-.loginRegister {
-    margin: var(--spaceLg) 0 0;
-    text-align: center;
-}
-
-/* house style message box, light red background, thick red left edge, icon, dark text */
-.messageBox {
-    display: flex;
-    gap: var(--spaceSm);
-    margin: 0 0 var(--spaceLg);
-    padding: var(--spaceMd);
-    background-color: var(--colorErrorLight);
-    border-left: 6px solid var(--colorError);
-    color: var(--colorText);
-}
-
-/* the summary gets focus when it pops up, so it needs the outline as well */
-.messageBox:focus-visible {
-    outline: 3px solid var(--colorFocus);
-    outline-offset: 2px;
-}
-
-/* stops the icon getting squashed when the message is long */
-.messageIcon {
-    flex-shrink: 0;
-    width: 20px;
-    height: 20px;
-    fill: none;
-    stroke: var(--colorError);
-    stroke-width: 2;
-    stroke-linecap: round;
-}
-
-.messageTitle {
-    margin: 0 0 var(--spaceXs);
-    color: var(--colorText);
-    font-family: var(--fontBody);
-    font-size: var(--fontSizeBody);
-}
-
-.messageText {
-    margin: 0;
-}
-
-.messageList {
-    margin: 0;
-    padding: 0 0 0 var(--spaceLg);
-}
-
-.messageList a {
-    color: var(--colorError);
-}
-</style>
