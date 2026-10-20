@@ -261,7 +261,7 @@ main {
     text-decoration: none;
 }
 
-.studentNavigation a.router-link-exact-active {
+.studentNavigation a.routerLinkExactActive {
     background-color: var(--colorBrand);
     color: var(--colorSurface);
 }
@@ -272,7 +272,7 @@ main {
     text-underline-offset: 4px;
 }
 
-.studentNavigation a.router-link-exact-active:hover {
+.studentNavigation a.routerLinkExactActive:hover {
     background-color: var(--colorBrand);
     color: var(--colorSurface);
 }
@@ -368,7 +368,7 @@ main {
         width: 100%;
     }
 
-    .mobileStudentNavigation a.router-link-exact-active {
+    .mobileStudentNavigation a.routerLinkExactActive {
         padding-left: var(--spaceSm);
     }
 
