@@ -50,7 +50,7 @@ JAVASCRIPT_PRETTIER_FILE_EXTENSIONS: ['.js', '.ts', '.vue', '.css', '.scss', '.j
 JAVASCRIPT_PRETTIER_FILTER_REGEX_INCLUDE: '^frontend/'
 
 # stylelint's rules, also checks the <style> part of .vue files
-CSS_STYLELINT_CONFIG_FILE: .stylelintrc.yaml
+CSS_STYLELINT_CONFIG_FILE: .github/linters/.stylelintrc.yaml
 CSS_STYLELINT_FILE_EXTENSIONS: ['.css', '.scss', '.vue']
 # megalinter doesn't include the .vue reader or the accessibility rules stylelint needs
 # so this downloads them to a spare folder and links them to where stylelint looks for its tools

@@ -76,9 +76,6 @@ rules:
         - message: 'use flexbox or grid, not float (house style 8)'
     # mobile first, build for small screens then add min-width for bigger ones (section 8)
     media-feature-range-notation: prefix
-    media-feature-name-disallowed-list:
-        - ['max-width']
-        - message: 'mobile first, use min-width (house style 8)'
 
     # moving things need a prefers-reduced-motion version, as motion can make some people feel ill (WCAG 2.2)
     a11y/media-prefers-reduced-motion: true

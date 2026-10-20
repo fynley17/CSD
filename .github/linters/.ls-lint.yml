@@ -12,6 +12,7 @@ ls:
 
 # these names are set by the tools that use them, so they can't be camelCase
 ignore:
+    - frontend/dist
     - frontend/node_modules
     - frontend/package.json
     - frontend/package-lock.json
