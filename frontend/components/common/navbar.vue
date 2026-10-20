@@ -4,14 +4,36 @@
     <header class="siteHeader">
         <nav class="navbar navbar-expand" aria-label="Main navigation">
             <div class="container-fluid">
-                <a class="navbar-brand" href="/" aria-label="RevisionHub home">
+                <RouterLink class="navbar-brand" to="/" aria-label="RevisionHub home">
                     <img src="../../assets/images/Logo.png" alt="RevisionHub home" class="siteLogo" />
-                </a>
+                </RouterLink>
+
+                <nav
+                    v-if="isStudent"
+                    class="studentNavigation desktopStudentNavigation"
+                    aria-label="Student navigation"
+                >
+                    <RouterLink to="/testing-selection">Tests</RouterLink>
+                    <RouterLink to="/leaderboard">Leaderboard</RouterLink>
+                    <RouterLink to="/student-results">Results</RouterLink>
+                </nav>
 
                 <!-- Desktop navigation -->
                 <div class="headerActions desktopActions">
-                    <a href="/login" class="headerButton loginButton">Sign in</a>
-                    <a href="/register" class="headerButton registerButton"> Register </a>
+                    <p v-if="authError" class="navbarError" role="alert">{{ authError }}</p>
+                    <button
+                        v-if="currentUser"
+                        type="button"
+                        class="headerButton loginButton"
+                        :disabled="isSigningOut"
+                        @click="signOut"
+                    >
+                        {{ isSigningOut ? 'Signing out...' : 'Sign out' }}
+                    </button>
+                    <template v-else-if="authChecked">
+                        <RouterLink to="/login" class="headerButton loginButton">Sign in</RouterLink>
+                        <RouterLink to="/register" class="headerButton registerButton">Register</RouterLink>
+                    </template>
                 </div>
 
                 <!-- Mobile hamburger button -->
@@ -30,8 +52,33 @@
 
                 <!-- Mobile dropdown -->
                 <div id="mobileNavigation" class="mobileNavigation" :class="{ isOpen: menuOpen }" :hidden="!menuOpen">
-                    <a href="/login" class="headerButton loginButton" @click="menuOpen = false"> Sign in </a>
-                    <a href="/register" class="headerButton registerButton" @click="menuOpen = false"> Register </a>
+                    <nav
+                        v-if="isStudent"
+                        class="studentNavigation mobileStudentNavigation"
+                        aria-label="Student navigation"
+                    >
+                        <RouterLink to="/testing-selection" @click="menuOpen = false">Tests</RouterLink>
+                        <RouterLink to="/leaderboard" @click="menuOpen = false">Leaderboard</RouterLink>
+                        <RouterLink to="/student-results" @click="menuOpen = false">Results</RouterLink>
+                    </nav>
+                    <p v-if="authError" class="navbarError" role="alert">{{ authError }}</p>
+                    <button
+                        v-if="currentUser"
+                        type="button"
+                        class="headerButton loginButton"
+                        :disabled="isSigningOut"
+                        @click="signOut"
+                    >
+                        {{ isSigningOut ? 'Signing out...' : 'Sign out' }}
+                    </button>
+                    <template v-else-if="authChecked">
+                        <RouterLink to="/login" class="headerButton loginButton" @click="menuOpen = false">
+                            Sign in
+                        </RouterLink>
+                        <RouterLink to="/register" class="headerButton registerButton" @click="menuOpen = false">
+                            Register
+                        </RouterLink>
+                    </template>
                 </div>
             </div>
         </nav>
@@ -39,7 +86,63 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { computed, ref, watch } from 'vue';
+import { RouterLink, useRoute, useRouter } from 'vue-router';
+import { getCurrentUser, logout } from '../../services/authService';
 
 const menuOpen = ref(false);
+const currentUser = ref(null);
+const authChecked = ref(false);
+const authError = ref('');
+const isSigningOut = ref(false);
+const route = useRoute();
+const router = useRouter();
+const isStudent = computed(() => currentUser.value?.accountType === 'student');
+// Prevent a slower session response from overwriting the result for a newer route.
+let authRequest = 0;
+
+// Refresh the session after client-side navigation so the correct account links stay visible.
+watch(
+    () => route.fullPath,
+    async () => {
+        const request = ++authRequest;
+        menuOpen.value = false;
+        authError.value = '';
+
+        try {
+            const user = await getCurrentUser();
+            if (request === authRequest) {
+                currentUser.value = user;
+                authChecked.value = true;
+            }
+        } catch {
+            if (request === authRequest) {
+                currentUser.value = null;
+                authChecked.value = true;
+                authError.value = 'Unable to check your sign-in status.';
+            }
+        }
+    },
+    { immediate: true },
+);
+
+async function signOut() {
+    if (isSigningOut.value) {
+        return;
+    }
+
+    isSigningOut.value = true;
+    authError.value = '';
+
+    try {
+        await logout();
+        currentUser.value = null;
+        menuOpen.value = false;
+        await router.push('/');
+    } catch {
+        authError.value = 'Unable to sign out. Please try again.';
+    } finally {
+        isSigningOut.value = false;
+    }
+}
 </script>
