@@ -1,19 +1,15 @@
 import axios from 'axios';
 
-// Share the API base URL and request configuration across registration calls.
+// axios sends requests to the backend in the background, so pages can update without reloading
+// every service file uses this one setup so they all talk to the backend the same way
 const api = axios.create({
-    baseURL: 'http://localhost:8000/api', // Adjust as needed
+    // just '/api' instead of the full backend address, vite.config.js passes it on to PHP
+    // keeps the page and PHP on one address, which the login cookie needs
+    baseURL: '/api',
     headers: {
+        // tells PHP the data we send is JSON
         'Content-Type': 'application/json',
     },
-});
-
-api.interceptors.request.use((config) => {
-    const token = localStorage.getItem('token');
-    if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
 });
 
 export default api;
