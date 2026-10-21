@@ -29,6 +29,21 @@ class Authentication
         // it also prevents links from another site from logging the user in to this site
         ini_set('session.use_strict_mode', '1');
 
+        $isHttps = !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off';
+
+        // the login cookie gets our own name, PHP's default name PHPSESSID tells anyone looking that the site
+        // is built with PHP, which helps them pick which attacks to try
+        // on the live site (secure connection, the padlock in the address bar) the name also starts with __Host-
+        // browsers have a rule for that start, they only keep the cookie if it came from this exact website
+        // over a secure connection, so another website sharing our address (i.e. another site on the uni server)
+        // can't slip its own fake login cookie into the browser in place of ours
+        // browsers refuse __Host- cookies on a normal connection, so on localhost it's just RevisionHub
+        if ($isHttps) {
+            session_name('__Host-RevisionHub');
+        } else {
+            session_name('RevisionHub');
+        }
+
         session_set_cookie_params([
             'path' => '/',
             // javascript can't read the cookie, so a script injected into the page can't steal it (stops XSS theft)
@@ -38,7 +53,7 @@ class Authentication
             // Lax is only sent when someone clicks a normal link to us, never with another site's forms (stops CSRF)
             'samesite' => 'Lax',
             // on https (Plesk) the cookie only travels over a secure connection
-            'secure' => !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off',
+            'secure' => $isHttps,
         ]);
 
         session_start();
