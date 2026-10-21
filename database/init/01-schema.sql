@@ -45,10 +45,18 @@ CREATE TABLE `LecturerSubjects` (
 
 CREATE TABLE `Questions` (
   `questionID` uuid NOT NULL DEFAULT uuid(),
-  `testID` uuid DEFAULT NULL COMMENT 'Optional; NULL = general subject pool question',
   `subjectID` uuid NOT NULL,
   `question` text NOT NULL,
   `percentageCorrect` int(3) NOT NULL DEFAULT 0 COMMENT 'Percentage correct'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE `TestQuestions` (
+  `testID` uuid NOT NULL,
+  `questionID` uuid NOT NULL,
+  `questionOrder` int unsigned NOT NULL,
+  PRIMARY KEY (`testID`,`questionID`),
+  UNIQUE KEY `uq_test_questions_order` (`testID`,`questionOrder`),
+  KEY `idx_test_questions_question` (`questionID`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE `StudentAnswers` (
@@ -121,8 +129,13 @@ ALTER TABLE `LecturerSubjects`
 
 ALTER TABLE `Questions`
   ADD PRIMARY KEY (`questionID`),
-  ADD KEY `idx_questions_test` (`testID`),
   ADD KEY `idx_questions_subject` (`subjectID`);
+
+ALTER TABLE `TestQuestions`
+  ADD CONSTRAINT `fk_test_questions_test` FOREIGN KEY (`testID`)
+    REFERENCES `Tests` (`testID`) ON DELETE CASCADE ON UPDATE CASCADE,
+  ADD CONSTRAINT `fk_test_questions_question` FOREIGN KEY (`questionID`)
+    REFERENCES `Questions` (`questionID`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 ALTER TABLE `StudentAnswers`
   ADD PRIMARY KEY (`completedID`,`questionID`),
@@ -170,9 +183,7 @@ ALTER TABLE `LecturerSubjects`
 
 ALTER TABLE `Questions`
   ADD CONSTRAINT `fk_questions_subject` FOREIGN KEY (`subjectID`)
-    REFERENCES `Subjects` (`subjectID`) ON UPDATE CASCADE,
-  ADD CONSTRAINT `fk_questions_test` FOREIGN KEY (`testID`)
-    REFERENCES `Tests` (`testID`) ON DELETE SET NULL ON UPDATE CASCADE;
+    REFERENCES `Subjects` (`subjectID`) ON UPDATE CASCADE;
 
 ALTER TABLE `StudentAnswers`
   ADD CONSTRAINT `fk_sa_answer` FOREIGN KEY (`selectedAnswerID`)
