@@ -685,6 +685,154 @@ main {
     color: var(--colorError);
 }
 
+/* Pop-up (house style section 5), the popupDialog component, max 480px wide over a dark overlay */
+.popupDialog {
+    width: calc(100% - var(--spaceXl));
+    max-width: 30rem;
+    padding: 0;
+    background-color: var(--colorSurface);
+    border: 0;
+    border-radius: var(--radiusMd);
+    box-shadow: var(--shadowModal);
+    color: var(--colorText);
+}
+
+/* dims the page behind, the browser draws this layer itself when showModal() runs */
+.popupDialog::backdrop {
+    background-color: var(--colorText);
+    opacity: 0.6;
+}
+
+/* title on the left, X on the right, with a line underneath */
+.popupHeader {
+    padding: var(--spaceMd) var(--spaceLg);
+    border-bottom: 1px solid var(--colorDivider);
+}
+
+.popupTitle {
+    color: var(--colorText);
+    font-family: var(--fontBody);
+    font-size: var(--fontSizeH3);
+    font-weight: 700;
+}
+
+/* 44px so it's easy to hit on a phone, the focus outline comes from the global button rule */
+.popupCloseButton {
+    display: flex;
+    min-width: 44px;
+    min-height: 44px;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    background-color: var(--colorSurface);
+    border: 0;
+    border-radius: var(--radiusSm);
+    color: var(--colorText);
+}
+
+.popupCloseButton svg {
+    width: 24px;
+    height: 24px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+}
+
+.popupBody {
+    padding: var(--spaceLg);
+}
+
+.popupFooter {
+    padding: 0 var(--spaceLg) var(--spaceLg);
+}
+
+/* warning icon in the middle of a pop-up, i.e. the account locked one */
+.popupIcon {
+    width: 40px;
+    height: 40px;
+    fill: none;
+    stroke: var(--colorError);
+    stroke-width: 2;
+    stroke-linecap: round;
+}
+
+.loginForm .messageList a {
+    color: var(--colorError);
+}
+
+/* Pop-up for popupDialog.vue, house style section 5 says max 480px wide on a dark overlay */
+.popupDialog {
+    width: calc(100% - var(--spaceXl));
+    max-width: 30rem;
+    padding: 0;
+    background-color: var(--colorSurface);
+    border: 0;
+    border-radius: var(--radiusMd);
+    box-shadow: var(--shadowModal);
+    color: var(--colorText);
+}
+
+/* the dark layer behind it, the browser adds this itself when showModal() runs */
+.popupDialog::backdrop {
+    background-color: var(--colorText);
+    opacity: 0.6;
+}
+
+/* title on the left, X on the right, with a line underneath */
+.popupHeader {
+    padding: var(--spaceMd) var(--spaceLg);
+    border-bottom: 1px solid var(--colorDivider);
+}
+
+.popupTitle {
+    color: var(--colorText);
+    font-family: var(--fontBody);
+    font-size: var(--fontSizeH3);
+    font-weight: 700;
+}
+
+/* 44px so it's easy to tap on a phone, the focus outline already comes from the global button rule */
+.popupCloseButton {
+    display: flex;
+    min-width: 44px;
+    min-height: 44px;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    background-color: var(--colorSurface);
+    border: 0;
+    border-radius: var(--radiusSm);
+    color: var(--colorText);
+}
+
+.popupCloseButton svg {
+    width: 24px;
+    height: 24px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+}
+
+.popupBody {
+    padding: var(--spaceLg);
+}
+
+.popupFooter {
+    padding: 0 var(--spaceLg) var(--spaceLg);
+}
+
+/* warning icon in the middle of a pop-up, i.e. the account locked one */
+.popupIcon {
+    width: 40px;
+    height: 40px;
+    fill: none;
+    stroke: var(--colorError);
+    stroke-width: 2;
+    stroke-linecap: round;
+}
+
 /* Accessible skip link, helping keyboard users for example */
 .skipLink {
     position: fixed;

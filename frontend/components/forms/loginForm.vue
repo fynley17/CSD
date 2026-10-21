@@ -1,5 +1,6 @@
 <script>
 import { login } from '../../services/authService';
+import PopupDialog from '../common/popupDialog.vue';
 
 // each account type has its own home after logging in, students, lecturers and admins never share a dashboard
 const DASHBOARD_PATHS = {
@@ -12,6 +13,9 @@ const DASHBOARD_PATHS = {
 // sends the details off in the background so the page never reloads (AJAX)
 // and shows any problems in a house style message box above the boxes
 export default {
+    components: {
+        PopupDialog,
+    },
     data() {
         return {
             username: '',
@@ -22,6 +26,8 @@ export default {
             fieldErrors: { username: '', password: '' },
             // PHP's reply when it turns the login down, i.e. wrong details or a pending account
             serverError: '',
+            // PHP's locked message, goes in the pop-up instead of the red box
+            lockedMessage: '',
         };
     },
     computed: {
@@ -49,8 +55,14 @@ export default {
                 // all good, so off to the dashboard for their account type
                 this.$router.push(DASHBOARD_PATHS[user.accountType] || '/');
             } catch (error) {
-                // PHP's messages already use the house style wording, so they're shown as they come
-                this.serverError = error.response?.data?.error || 'Something went wrong. Try again later';
+                // 429 means PHP has locked the account after too many wrong passwords
+                if (error.response?.status === 429) {
+                    this.lockedMessage = error.response.data.error;
+                    this.$refs.lockedPopup.open();
+                } else {
+                    // PHP's messages already use the house style wording, so they're shown as they come
+                    this.serverError = error.response?.data?.error || 'Something went wrong. Try again later';
+                }
             } finally {
                 this.isSubmitting = false;
             }
@@ -61,6 +73,12 @@ export default {
             this.fieldErrors.username = this.username.trim() === '' ? 'Enter your username' : '';
             this.fieldErrors.password = this.password === '' ? 'Enter your password' : '';
             return !this.hasFieldErrors;
+        },
+
+        // Login is greyed out while PHP answers, so the browser loses track of it when the pop-up shuts
+        // this puts focus back on it, otherwise keyboard users get dumped back at the top of the page
+        returnFocusToLogin() {
+            this.$refs.loginButton.focus();
         },
 
         // the Show/Hide button, lets people check what they've typed before logging in
@@ -157,12 +175,32 @@ export default {
                     </div>
                 </div>
 
-                <button type="submit" class="headerButton loginButton w-100" :disabled="isSubmitting">Login</button>
+                <button ref="loginButton" type="submit" class="headerButton loginButton w-100" :disabled="isSubmitting">
+                    Login
+                </button>
             </form>
 
             <p class="secondaryText text-center mt-4 mb-0">
                 New here? <router-link to="/register">Register</router-link>
             </p>
+
+            <!-- pops up on the 3rd wrong password, and on every try after that while it's still locked -->
+            <PopupDialog ref="lockedPopup" title="Account locked" @close="returnFocusToLogin">
+                <div class="text-center">
+                    <svg class="popupIcon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="12" y1="8" x2="12" y2="12" />
+                        <line x1="12" y1="16" x2="12.01" y2="16" />
+                    </svg>
+                    <p class="fw-bold mt-2 mb-1">Too many failed attempts</p>
+                    <p class="mb-0">{{ lockedMessage }}</p>
+                </div>
+                <template #buttons>
+                    <button type="button" class="headerButton registerButton w-100" @click="$refs.lockedPopup.close()">
+                        Close
+                    </button>
+                </template>
+            </PopupDialog>
         </div>
     </div>
 </template>
