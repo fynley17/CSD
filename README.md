@@ -14,9 +14,9 @@ operating system.
 | --- | --- | --- |
 | Git | Clone the repository and get team changes | [Windows](https://git-scm.com/download/win) · [macOS](https://git-scm.com/download/mac) · [Linux](https://git-scm.com/download/linux) |
 | Node.js LTS (includes npm) | Install and run the Vue frontend. Use Node.js 20.19+ or 22.12+. | [nodejs.org](https://nodejs.org/en/download) |
-| PHP CLI, with PDO MySQL enabled | Run the PHP backend and connect it to MariaDB | [Windows downloads](https://windows.php.net/download/) · [macOS Homebrew](https://formulae.brew.sh/formula/php) · [Linux installation guide](https://www.php.net/manual/en/install.unix.php) |
+| PHP 8.4 CLI, with PDO MySQL enabled | Run the PHP backend and connect it to MariaDB | [Windows downloads](https://windows.php.net/download/) · [macOS Homebrew](https://formulae.brew.sh/formula/php) · [Linux installation guide](https://www.php.net/manual/en/install.unix.php) |
 | Composer | Install PHP dependencies | [getcomposer.org/download](https://getcomposer.org/download/) |
-| Docker Compose | Run local MariaDB and phpMyAdmin containers | [Docker Desktop for Mac/Windows](https://www.docker.com/products/docker-desktop/) · [Docker Engine and Compose plugin for Linux](https://docs.docker.com/engine/install/) |
+| Docker Compose | Run the frontend, backend, MariaDB, and phpMyAdmin containers | [Docker Desktop for Mac/Windows](https://www.docker.com/products/docker-desktop/) · [Docker Engine and Compose plugin for Linux](https://docs.docker.com/engine/install/) |
 | Python 3 and pre-commit | Install and run the repository's Git commit/push checks | [Python downloads](https://www.python.org/downloads/) · [pre-commit installation](https://pre-commit.com/#installation) |
 
 ### Platform notes
@@ -134,16 +134,17 @@ Do these steps once for each working copy of the repository.
    The repository config installs checks for both commits and pushes. Repeat
    `pre-commit install` for each clone; you do not need to reinstall the
    pre-commit program on the same computer.
-6. **Start the local database** from the repository root:
+6. **Start the application and database** from the repository root:
 
    ```bash
-   docker compose up -d
+   docker compose up -d --build
    docker compose ps
    ```
 
-   Wait for the `db` service to report `healthy`. The first start downloads the
-   MariaDB and phpMyAdmin images. MariaDB stores its data in a Docker volume,
-   separately on each developer's machine.
+   Compose starts the frontend, PHP backend, MariaDB, and phpMyAdmin. The
+   backend waits for MariaDB to report `healthy`. The first start downloads
+   the required images. MariaDB stores its data in a Docker volume, separately
+   on each developer's machine.
 7. **Check the schema.** The team schema belongs in
    `database/init/01-schema.sql`. On the first database start, MariaDB
    automatically imports SQL files in `database/init/`. If the database volume
@@ -160,6 +161,8 @@ The default local settings are:
 | Database user | `revisionhub_dev` |
 | Database password | `revisionhub_dev` |
 | Database address for PHP | `127.0.0.1:3306` |
+| Frontend | [http://localhost:5173](http://localhost:5173) |
+| Backend | [http://localhost:8000](http://localhost:8000) |
 | phpMyAdmin | [http://localhost:8081](http://localhost:8081) |
 | phpMyAdmin login | `revisionhub_dev` / `revisionhub_dev` |
 
@@ -174,32 +177,16 @@ erase that machine's local database.
 
 1. Start Docker Desktop first on macOS/Windows. On Linux, ensure Docker Engine
    is running.
-2. Open a terminal in your clone and start the database services:
+2. Open a terminal in your clone and start the application:
 
    ```bash
-   docker compose up -d
+   docker compose up -d --build
    docker compose ps
    ```
 
-   Wait for MariaDB to be healthy before starting the backend.
-3. In a terminal at the repository root, start the PHP backend:
-
-   ```bash
-   php -S 127.0.0.1:8000 -t backend/public backend/public/index.php
-   ```
-
-   Keep this terminal open. The local backend is at
-   [http://127.0.0.1:8000](http://127.0.0.1:8000).
-4. In a second terminal, start the Vue development server:
-
-   ```bash
-   cd frontend
-   npm run dev
-   ```
-
-   Open the local URL printed by Vite in that terminal.
-5. When you finish, stop the PHP and frontend servers with `Ctrl+C` in their
-   terminals. Stop the containers if desired:
+   Open the frontend at [http://localhost:5173](http://localhost:5173). The
+   frontend proxies API requests to the backend container.
+3. When you finish, stop the containers:
 
    ```bash
    docker compose down
