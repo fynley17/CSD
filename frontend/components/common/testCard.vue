@@ -134,7 +134,7 @@ const dueDate = computed(() => {
 
 .testCardDetailsButton,
 .testCardStartButton {
-    min-height: 44px;
+    min-height: var(--minTouchTarget);
 }
 
 .testCardDetailsButton {

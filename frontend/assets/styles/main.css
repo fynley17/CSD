@@ -83,6 +83,7 @@
     --spaceMobileButtonHorizontal: 12px;
     --spaceFooterBlock: 1.25rem;
     --spaceFooterInline: 1.875rem;
+    --minTouchTarget: 44px;
 
     /* Shape and layout */
     --radiusSm: 6px;
