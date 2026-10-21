@@ -100,7 +100,7 @@ const dueDate = computed(() => {
 
 .testCardTitle {
     color: var(--colorText);
-    font-size: 1.25rem;
+    font-size: var(--fontSizeTestCardTitle);
     font-weight: 700;
 }
 
