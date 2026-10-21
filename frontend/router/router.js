@@ -18,7 +18,7 @@ import LoginPage from '../views/loginPage.vue';
 import AdministratorDashboard from '../views/administratorDashboard.vue';
 import LecturerDashboard from '../views/lecturerDashboard.vue';
 // student pages are protected by the requiredRoles check in the route guard
-import TestingSelectionPage from '../views/testingPage.vue';
+import TestSelectionPage from '../views/testSelectionPage.vue';
 import Leaderboard from '../views/leaderboard.vue';
 import StudentResults from '../views/studentResults.vue';
 
@@ -67,12 +67,13 @@ const routes = [
     {
         path: '/student-dashboard',
         name: 'studentDashboard',
-        redirect: { name: 'testingSelection' },
+        redirect: { name: 'testSelection' },
     },
     {
-        path: '/testing-selection',
-        name: 'testingSelection',
-        component: TestingSelectionPage,
+        path: '/test-selection',
+        alias: '/testing-selection',
+        name: 'testSelection',
+        component: TestSelectionPage,
         meta: { title: 'Test Selection | RevisionHub', requiredRoles: ['student'], studentOnly: true },
     },
     {

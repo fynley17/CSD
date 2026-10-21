@@ -88,6 +88,7 @@ CREATE TABLE `Tests` (
   `subjectID` uuid NOT NULL,
   `testDescription` varchar(100) DEFAULT NULL,
   `timeLimit` int(3) DEFAULT NULL COMMENT 'Minutes; NULL = untimed',
+  `dueDate` date DEFAULT NULL,
   `createdBy` uuid NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 

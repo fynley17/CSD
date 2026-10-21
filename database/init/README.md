@@ -10,5 +10,7 @@ dump requires importing it through phpMyAdmin or recreating the local volume.
 
 For existing databases, apply SQL files from `database/migrations` manually
 in order. The test-question migration preserves existing question-to-test
-assignments in `TestQuestions` before removing `Questions.testID`. Do not run
-migrations through the init directory; init scripts run only for a new volume.
+assignments in `TestQuestions` before removing `Questions.testID`. The test due
+date migration adds the optional `Tests.dueDate` column used by student test
+cards. Do not run migrations through the init directory; init scripts run only
+for a new volume.
