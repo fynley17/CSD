@@ -31,13 +31,14 @@ class Authentication
 
         $isHttps = !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off';
 
-        // the login cookie gets our own name, PHP's default name PHPSESSID tells anyone looking that the site
-        // is built with PHP, which helps them pick which attacks to try
-        // on the live site (secure connection, the padlock in the address bar) the name also starts with __Host-
-        // browsers have a rule for that start, they only keep the cookie if it came from this exact website
+        // the login cookie gets our own name, PHP's default name PHPSESSID tells anyone that the site
+        // is built with PHP, which helps inform which attacks to try on the live site
+
+        // the name also starts with __Host-
+        // browsers have a rule for that start - they only keep the cookie if it came from this exact website
         // over a secure connection, so another website sharing our address (i.e. another site on the uni server)
         // can't slip its own fake login cookie into the browser in place of ours
-        // browsers refuse __Host- cookies on a normal connection, so on localhost it's just RevisionHub
+        // browsers refuse __Host- cookies on a normal connection, so on localhost its 'RevisionHub'
         if ($isHttps) {
             session_name('__Host-RevisionHub');
         } else {
