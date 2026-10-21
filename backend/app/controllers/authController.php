@@ -19,9 +19,6 @@ class AuthController extends Controller
         . 'You will get an email when it is ready';
     private const ACCOUNT_DISABLED = 'Your account has been disabled. Contact your lecturer or an administrator';
     private const NOT_LOGGED_IN = 'You are not logged in';
-    // built from User's numbers so the message can't say something different to what the code does
-    private const ACCOUNT_LOCKED = 'This account has been locked for ' . User::LOCK_MINUTES . ' minutes after '
-        . User::MAX_FAILED_ATTEMPTS . ' failed login attempts. Try again later';
 
     /**
      * POST /api/login, checks the username and password then logs them in
@@ -48,7 +45,7 @@ class AuthController extends Controller
             // and the reply is the same whether they typed the right password or not
             // 429 means too many tries - the login page opens the locked pop up when it sees it
             if ($user->isLocked()) {
-                $this->jsonResponse(['error' => self::ACCOUNT_LOCKED], 429);
+                $this->jsonResponse(['error' => $this->lockedMessage($user)], 429);
             }
 
             // same message for a wrong password as for a wrong username, stops people fishing for real usernames
@@ -61,7 +58,7 @@ class AuthController extends Controller
                 // so someone locking a student out on purpose can only cost them 15 minutes
                 // it would also deny learning for too long a period if admins were away
                 if ($user->isLocked()) {
-                    $this->jsonResponse(['error' => self::ACCOUNT_LOCKED], 429);
+                    $this->jsonResponse(['error' => $this->lockedMessage($user)], 429);
                 }
                 $this->jsonResponse(['error' => self::WRONG_DETAILS], 401);
             }
@@ -180,6 +177,25 @@ class AuthController extends Controller
         }
 
         return ['username' => $username, 'password' => $data['password']];
+    }
+
+    /**
+     * The locked message, with the real time left so it's still right if they come back after 10 minutes
+     * built from User's numbers so it can't say something different to what the code does
+     */
+    private function lockedMessage(User $user): string
+    {
+        $minutes = $user->getMinutesUntilUnlock();
+
+        // "1 minute", not "1 minutes"
+        if ($minutes === 1) {
+            $timeLeft = '1 minute';
+        } else {
+            $timeLeft = $minutes . ' minutes';
+        }
+
+        return 'This account is locked after ' . User::MAX_FAILED_ATTEMPTS . ' failed login attempts. '
+            . 'Try again in ' . $timeLeft;
     }
 
     /**

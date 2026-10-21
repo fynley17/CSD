@@ -215,4 +215,35 @@ final class UserTest extends TestCase
         self::assertFalse($user->isLocked());
         self::assertSame(1, $user->getFailedAttempts());
     }
+
+    /**
+     * Straight after the 3rd wrong password the full 15 minutes are left (normal)
+     */
+    public function testFullLockTimeLeftStraightAfterLocking(): void
+    {
+        $user = $this->makeUser();
+        for ($attempt = 1; $attempt <= User::MAX_FAILED_ATTEMPTS; $attempt++) {
+            $user->addFailedAttempt();
+        }
+
+        self::assertSame(User::LOCK_MINUTES, $user->getMinutesUntilUnlock());
+    }
+
+    /**
+     * 30 seconds left still shows as 1 minute, never 0 while locked (boundary)
+     */
+    public function testUnderAMinuteLeftRoundsUpToOne(): void
+    {
+        $lockedUntil = date('Y-m-d H:i:s', time() + 30);
+
+        self::assertSame(1, $this->makeUser(['lockedUntil' => $lockedUntil])->getMinutesUntilUnlock());
+    }
+
+    /**
+     * An account that isn't locked has no time left (error)
+     */
+    public function testNoTimeLeftWhenNotLocked(): void
+    {
+        self::assertSame(0, $this->makeUser()->getMinutesUntilUnlock());
+    }
 }

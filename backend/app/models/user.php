@@ -139,6 +139,20 @@ abstract class User extends Model
     }
 
     /**
+     * How many minutes are left on the lock, 0 if it isn't locked.
+     * Rounded up so it never says 0 minutes while the account is still locked.
+     */
+    public function getMinutesUntilUnlock(): int
+    {
+        if (!$this->isLocked()) {
+            return 0;
+        }
+
+        $secondsLeft = strtotime($this->lockedUntil) - time();
+        return (int) ceil($secondsLeft / 60);
+    }
+
+    /**
      * Counts one wrong password, and locks the account when it reaches MAX_FAILED_ATTEMPTS.
      * Only changes this object, saveLoginAttempts() is what writes it to the database.
      */
