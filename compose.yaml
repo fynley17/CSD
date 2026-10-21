@@ -18,6 +18,43 @@ services:
             retries: 10
             start_period: 10s
 
+    backend:
+        image: php:8.4-cli
+        build:
+            context: .
+            dockerfile: backend/Dockerfile
+        working_dir: /var/www/html
+        command: >-
+            sh -c "composer install --no-interaction --prefer-dist &&
+            php -S 0.0.0.0:8000 -t public public/index.php"
+        depends_on:
+            db:
+                condition: service_healthy
+        environment:
+            DB_HOST: db
+            DB_PORT: 3306
+            DB_NAME: ${MARIADB_DATABASE:-revisionhub}
+            DB_USER: ${MARIADB_USER:-revisionhub_dev}
+            DB_PASSWORD: ${MARIADB_PASSWORD:-revisionhub_dev}
+        ports:
+            - "127.0.0.1:${BACKEND_PORT:-8000}:8000"
+        volumes:
+            - ./backend:/var/www/html
+
+    frontend:
+        image: node:22-alpine
+        working_dir: /app
+        command: sh -c "npm ci && npm run dev -- --host 0.0.0.0"
+        depends_on:
+            - backend
+        environment:
+            VITE_API_PROXY_TARGET: http://backend:8000
+        ports:
+            - "127.0.0.1:${FRONTEND_PORT:-5173}:5173"
+        volumes:
+            - ./frontend:/app
+            - /app/node_modules
+
     phpmyadmin:
         image: phpmyadmin:5.2-apache
         depends_on:
