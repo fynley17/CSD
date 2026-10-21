@@ -16,12 +16,16 @@ class TestController extends Controller
             $userID = Authentication::getLoggedInUserID();
             $user = $userID === null ? null : User::findById($userID);
 
-            if ($user === null || !$user->isActive()) {
+            if (
+                $user === null
+                || !$user->isActive()
+                || $user->getAccountType() !== 'student'
+            ) {
                 Authentication::endSession();
                 $this->jsonResponse(['error' => 'Your session has ended. Go to the login page to continue'], 401);
             }
 
-            $this->jsonResponse(Test::getAvailableForStudents());
+            $this->jsonResponse(Test::getAvailableForStudents($userID));
         } catch (\Throwable $e) {
             error_log(sprintf(
                 'Loading available tests failed (%s): %s',

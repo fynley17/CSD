@@ -4,7 +4,7 @@ namespace App\Models;
 
 class Test extends Model
 {
-    public static function getAvailableForStudents(): array
+    public static function getAvailableForStudents(string $userID): array
     {
         $stmt = self::getDB()->prepare(
             "SELECT
@@ -28,12 +28,18 @@ class Test extends Model
             INNER JOIN Lecturer AS l ON l.userID = t.createdBy
             WHERE EXISTS (
                 SELECT 1
+                FROM Students AS student
+                WHERE student.userID = ?
+                    AND student.cohortID = s.cohortID
+            )
+            AND EXISTS (
+                SELECT 1
                 FROM TestQuestions AS tq
                 WHERE tq.testID = t.testID
             )
             ORDER BY t.dueDate IS NULL, t.dueDate, t.testName"
         );
-        $stmt->execute();
+        $stmt->execute([$userID]);
 
         $tests = $stmt->fetchAll(\PDO::FETCH_ASSOC);
         foreach ($tests as &$test) {
