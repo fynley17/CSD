@@ -32,13 +32,13 @@ class Authentication
         $isHttps = !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off';
 
         // the login cookie gets our own name, PHP's default name PHPSESSID tells anyone that the site
-        // is built with PHP, which helps inform which attacks to try on the live site
+        // is built with PHP, which helps them work out which attacks to try
 
-        // the name also starts with __Host-
+        // on the live site (secure connection enabled) the name also starts with __Host-
         // browsers have a rule for that start - they only keep the cookie if it came from this exact website
         // over a secure connection, so another website sharing our address (i.e. another site on the uni server)
         // can't slip its own fake login cookie into the browser in place of ours
-        // browsers refuse __Host- cookies on a normal connection, so on localhost its 'RevisionHub'
+        // browsers refuse __Host- cookies on a normal connection, so on localhost it's just 'RevisionHub'
         if ($isHttps) {
             session_name('__Host-RevisionHub');
         } else {
@@ -71,6 +71,8 @@ class Authentication
         // only the ID and account type go in the session, never the password for security
         $_SESSION['userID'] = $user->getUserID();
         $_SESSION['accountType'] = $user->getAccountType();
+        // a fresh anti-CSRF code for the logged in session, the page picks it up before its next request
+        unset($_SESSION['csrfToken']);
     }
 
     /**
@@ -110,6 +112,57 @@ class Authentication
         if (!in_array($_SESSION['accountType'], $allowedRoles, true)) {
             self::stop(403, 'You do not have permission to view this page');
         }
+    }
+
+    /**
+     * Gives back this session's anti-CSRF code, making one the first time it's asked for.
+     * The page asks for it (GET /api/csrf-token) and sends it back with anything that changes data.
+     */
+    public static function getCsrfToken(): string
+    {
+        self::startSession();
+
+        if (!isset($_SESSION['csrfToken'])) {
+            // 32 random bytes from PHP's secure random maker, turned into 64 letters and numbers to send as text
+            $_SESSION['csrfToken'] = bin2hex(random_bytes(32));
+        }
+
+        return $_SESSION['csrfToken'];
+    }
+
+    /**
+     * Turns the request away unless it brings this session's anti-CSRF code in an X-CSRF-Token header.
+     * The attack it stops: another website quietly makes your browser send a request to us (i.e. "log out"),
+     * and the browser adds our login cookie by itself, so it looks like you did it.
+     * That website can't read our pages, so it never knows the code, and its request gets turned away.
+     */
+    public static function requireCsrfToken(): void
+    {
+        self::startSession();
+
+        // PHP files a header called X-CSRF-Token under HTTP_X_CSRF_TOKEN, ?? gives '' if it's missing
+        $sentToken = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
+        $sessionToken = $_SESSION['csrfToken'] ?? '';
+
+        if (!self::isValidCsrfToken($sessionToken, $sentToken)) {
+            self::stop(403, 'Your session has ended. Refresh the page and try again');
+        }
+    }
+
+    /**
+     * True if the code the page sent matches the one saved in the session.
+     * Kept apart from requireCsrfToken() so it can be tested without a real request.
+     */
+    public static function isValidCsrfToken(string $sessionToken, string $sentToken): bool
+    {
+        // no code made yet, so nothing can match it (otherwise two empty strings would count as a match)
+        if ($sessionToken === '') {
+            return false;
+        }
+
+        // hash_equals takes the same time however many letters match,
+        // so nobody can work the code out a letter at a time by timing how fast we reply
+        return hash_equals($sessionToken, $sentToken);
     }
 
     /**

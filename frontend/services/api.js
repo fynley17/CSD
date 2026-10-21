@@ -12,4 +12,22 @@ const api = axios.create({
     },
 });
 
+// runs just before every request leaves the page, so no service file has to remember to do it
+// anything that changes data - like login or register, gets the secret code from PHP added first
+// PHP turns those requests away without the code, which stops other websites faking requests as you
+api.interceptors.request.use(async (config) => {
+    // GET requests go straight through, reading data isn't a security risk, so they don't need the secret code
+    // asking for the code is a GET as well, so it doesn't loop round asking for itself
+    if (config.method === 'get') {
+        return config;
+    }
+
+    // only our own page is allowed to read this reply, other websites can't see the code
+    const response = await api.get('/csrf-token');
+    // the code rides along in a header, PHP checks it against the one saved in the session
+    config.headers['X-CSRF-Token'] = response.data.csrfToken;
+
+    return config;
+});
+
 export default api;

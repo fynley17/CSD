@@ -125,6 +125,15 @@ class AuthController extends Controller
     }
 
     /**
+     * GET /api/csrf-token, gives the page the anti-CSRF code it has to send back with anything that changes data
+     * only our own pages can read this reply, browsers don't let another website see it
+     */
+    public function csrfToken(): void
+    {
+        $this->jsonResponse(['csrfToken' => Authentication::getCsrfToken()]);
+    }
+
+    /**
      * Reads the username and password the page sent
      * the login form sends them as JSON in the body of the request, not in the URL,
      * so they don't end up in the browser history or the server logs
