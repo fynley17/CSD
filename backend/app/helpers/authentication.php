@@ -57,6 +57,14 @@ class Authentication
             'secure' => $isHttps,
         ]);
 
+        // don't let the browser keep a saved copy of any reply that uses the session
+        // this is the line that makes PHP add Expires (a date back in 1981, so it's always out of date),
+        // Cache-Control and Pragma to the reply - all three tell the browser not to save a copy of the page
+        // so the next person on a shared computer can't bring up a page with someone else's details on it
+        session_cache_limiter('nocache');
+
+        // starts the session, this is also the line that sends Set-Cookie, handing the browser
+        // the login cookie with the name and settings above
         session_start();
     }
 

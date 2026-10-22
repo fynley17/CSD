@@ -23,9 +23,14 @@ if (in_array($origin, $allowedOrigins, true)) {
     header('Vary: Origin');
 }
 
+// the kinds of request an allowed page can send us, GET just reads and the others change things
 header('Access-Control-Allow-Methods: GET, POST, PATCH, DELETE, OPTIONS');
+// the extra labels an allowed page can put on a request, i.e. Content-Type saying the data is JSON
 header('Access-Control-Allow-Headers: Content-Type, Authorization');
 
+// before some requests the browser sends a quick OPTIONS check to see if its allowed to send the
+// real request, and it doesn't need a reply body
+// the lines above already answer it, so reply 204 (fine, nothing else to say) and stop there
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(204);
     exit;
@@ -44,7 +49,7 @@ $router->addRoute('POST', '/^\\/api\\/login$/', [new AuthController(), 'login'])
 $router->addRoute('POST', '/^\\/api\\/logout$/', [new AuthController(), 'logout']);
 $router->addRoute('GET', '/^\\/api\\/current-user$/', [new AuthController(), 'currentUser']);
 // gives the page its secret code, it sends that back with anything that changes data i.e. login or register
-// other websites can't read our replies, so they can't get the code to fake a request as you (that's CSRF)
+// other websites can't read our replies, so they can't get the code to fake a request as you (CSRF)
 $router->addRoute('GET', '/^\\/api\\/csrf-token$/', [new AuthController(), 'csrfToken']);
 
 return $router;
