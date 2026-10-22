@@ -34,6 +34,7 @@
     --fontSizeH1: 2rem;
     --fontSizeH2: 1.5rem;
     --fontSizeH3: 1.25rem;
+    /* Slightly larger title size helps the card stand out in a list. */
     --fontSizeTestCardTitle: 1.25rem;
     --fontSizeStat: 1.75rem;
     --fontSizeBody: 1rem;
@@ -84,6 +85,7 @@
     --spaceMobileButtonHorizontal: 12px;
     --spaceFooterBlock: 1.25rem;
     --spaceFooterInline: 1.875rem;
+    /* Keep action buttons comfortably tappable across devices. */
     --minTouchTarget: 44px;
 
     /* Shape and layout */

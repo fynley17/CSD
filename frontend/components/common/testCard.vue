@@ -41,7 +41,11 @@
 <script setup>
 import { computed } from 'vue';
 
+// The card shows the key information a student needs to decide whether to
+// view details or begin the assessment.
 const props = defineProps({
+    // Keep the prop contract strict so the component gets the expected data
+    // shape.
     test: {
         type: Object,
         required: true,
@@ -54,13 +58,18 @@ const props = defineProps({
 
 defineEmits(['details', 'start']);
 
+// Only show the time limit when it is a positive value.
 const hasTimeLimit = computed(() => Number.isInteger(props.test.timeLimit) && props.test.timeLimit > 0);
+
+// Show the question count when available, otherwise use a fallback label.
 const questionCount = computed(() =>
     Number.isInteger(props.test.questionCount) ? props.test.questionCount : 'Not available',
 );
 
+// Support older payloads by falling back to a second field when needed.
 const setBy = computed(() => props.test.createdByName || props.test.setBy || 'Not available');
 
+// Convert minutes into a readable string such as "1 hour 30 minutes".
 const timeLimit = computed(() => {
     const minutes = props.test.timeLimit;
     const hours = Math.floor(minutes / 60);
@@ -77,6 +86,7 @@ const timeLimit = computed(() => {
     return parts.join(' ');
 });
 
+// Format the date for display when it is valid; otherwise hide it.
 const dueDate = computed(() => {
     if (!props.test.dueDate) {
         return '';
@@ -92,6 +102,7 @@ const dueDate = computed(() => {
 </script>
 
 <style scoped>
+/* Keep the card compact enough to sit in a grid of student tests. */
 .testCard {
     border: 1px solid var(--colorDivider);
     border-radius: var(--radiusMd);
@@ -104,6 +115,7 @@ const dueDate = computed(() => {
     font-weight: 700;
 }
 
+/* Display the key details in a simple summary layout. */
 .testCardDetails {
     display: grid;
     gap: var(--spaceSm);
@@ -126,6 +138,7 @@ const dueDate = computed(() => {
     text-align: right;
 }
 
+/* Keep the actions side by side with a comfortable touch target. */
 .testCardActions {
     display: grid;
     grid-template-columns: 1fr 1fr;

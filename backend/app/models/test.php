@@ -4,8 +4,16 @@ namespace App\Models;
 
 class Test extends Model
 {
+    /**
+     * Returns the tests a student can view and start.
+     *
+     * The query filters by cohort and only includes tests with assigned
+     * questions, so empty or irrelevant assessments are not shown.
+     */
     public static function getAvailableForStudents(string $userID): array
     {
+        // Keep the result set to the student's cohort and only tests that are
+        // ready to be attempted.
         $stmt = self::getDB()->prepare(
             "SELECT
                 t.testID,
@@ -41,6 +49,7 @@ class Test extends Model
         );
         $stmt->execute([$userID]);
 
+        // Normalise the SQL output to the types the front end expects.
         $tests = $stmt->fetchAll(\PDO::FETCH_ASSOC);
         foreach ($tests as &$test) {
             $test['timeLimit'] = $test['timeLimit'] === null ? null : (int) $test['timeLimit'];
