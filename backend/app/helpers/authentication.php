@@ -23,6 +23,10 @@ class Authentication
     // can't slip its own fake login cookie into the browser
     private const SECURE_COOKIE_NAME = '__Host-RevisionHub';
 
+    // people get logged out after 30 minutes of doing nothing, OWASP suggests 15 to 30 for a low risk site like ours
+    // public so the tests can use it, the Vue pop-up has its own copy of the 30 minutes in idleTimer.js
+    public const IDLE_TIMEOUT_SECONDS = 30 * 60;
+
     // true on the live site's secure connection (https), the cookie's name and settings depend on it
     private bool $isHttps;
 
@@ -143,6 +147,15 @@ class Authentication
     }
 
     /**
+     * True if 30 minutes or more have passed since the last request.
+     * static and given the two times, so the tests can check it without waiting 30 minutes
+     */
+    public static function hasBeenIdleTooLong(int $lastActivity, int $now): bool
+    {
+        return $now - $lastActivity >= self::IDLE_TIMEOUT_SECONDS;
+    }
+
+    /**
      * Logs the user out, empties the session and deletes the cookie.
      */
     public function endSession(): void
@@ -180,6 +193,11 @@ class Authentication
         // it also prevents links from another site from logging the user in to this site
         ini_set('session.use_strict_mode', '1');
 
+        // PHP has its own clean-up that runs on about 1 in 100 requests, it deletes any session file
+        // nobody has touched for 24 minutes (PHP's default), so someone idle for 25 minutes could lose
+        // their login before our 30 are up, this line tells the clean-up to wait the full 30 instead
+        ini_set('session.gc_maxlifetime', (string) self::IDLE_TIMEOUT_SECONDS);
+
         // browsers refuse __Host- cookies on a normal connection, so on localhost it's just 'RevisionHub'
         if ($this->isHttps) {
             session_name(self::SECURE_COOKIE_NAME);
@@ -209,6 +227,28 @@ class Authentication
         // starts the session, this is also the line that sends Set-Cookie, handing the browser
         // the login cookie with the name and settings above
         session_start();
+
+        $this->checkIdleTimeout();
+    }
+
+    /**
+     * Logs the user out if they've done nothing for 30 minutes, otherwise the 30 minutes start again
+     * every request counts, so the "Stay logged in" button on the warning pop-up only has to send one
+     */
+    private function checkIdleTimeout(): void
+    {
+        $now = time();
+
+        // only someone logged in can time out, and there has to be a last time saved to compare with
+        $canTimeOut = isset($_SESSION['userID'], $_SESSION['lastActivity']);
+
+        if ($canTimeOut && self::hasBeenIdleTooLong($_SESSION['lastActivity'], $now)) {
+            // emptying the session logs them out, so this request gets the same 401 as anyone not logged in
+            $_SESSION = [];
+        }
+
+        // saves the time of this request, the next 30 minutes count from here
+        $_SESSION['lastActivity'] = $now;
     }
 
     /**
