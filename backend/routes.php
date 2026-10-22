@@ -28,9 +28,13 @@ header('Access-Control-Allow-Methods: GET, POST, PATCH, DELETE, OPTIONS');
 // the extra labels an allowed page can put on a request, i.e. Content-Type saying the data is JSON
 header('Access-Control-Allow-Headers: Content-Type, Authorization');
 
-// before some requests the browser sends a quick OPTIONS check to see if its allowed to send the
-// real request, and it doesn't need a reply body
-// the lines above already answer it, so reply 204 (fine, nothing else to say) and stop there
+// when the page is on a different address to PHP, the browser asks PHP first if it's allowed to
+// send the login, that question comes in as an 'OPTIONS' request, and the Access-Control lines above are the answer
+// so PHP sends back just those lines with code 204 (means "done, nothing else to send"), and exit stops here
+
+// without exit it would carry on to index.php, where the anti-CSRF check turns away anything that isn't a GET
+// and doesn't have the secret code - the browser's question never has it, so it would get a 403
+// and the browser would never send the login
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(204);
     exit;
@@ -44,12 +48,13 @@ $router->addRoute('POST', '/^\\/api\\/register$/', [new StudentController(), 're
 // Provide the cohort options shown by the registration form.
 $router->addRoute('GET', '/^\\/api\\/cohorts$/', [new CohortController(), 'getAllCohorts']);
 
-// login, logout and session check
-$router->addRoute('POST', '/^\\/api\\/login$/', [new AuthController(), 'login']);
-$router->addRoute('POST', '/^\\/api\\/logout$/', [new AuthController(), 'logout']);
-$router->addRoute('GET', '/^\\/api\\/current-user$/', [new AuthController(), 'currentUser']);
+// one AuthController shared by login, logout, the session check and the secret code
+$authController = new AuthController();
+$router->addRoute('POST', '/^\\/api\\/login$/', [$authController, 'login']);
+$router->addRoute('POST', '/^\\/api\\/logout$/', [$authController, 'logout']);
+$router->addRoute('GET', '/^\\/api\\/current-user$/', [$authController, 'currentUser']);
 // gives the page its secret code, it sends that back with anything that changes data i.e. login or register
-// other websites can't read our replies, so they can't get the code to fake a request as you (CSRF)
-$router->addRoute('GET', '/^\\/api\\/csrf-token$/', [new AuthController(), 'csrfToken']);
+// other websites can't read our replies, so they can't get the code to fake a request as a logged in user
+$router->addRoute('GET', '/^\\/api\\/csrf-token$/', [$authController, 'csrfToken']);
 
 return $router;

@@ -8,7 +8,7 @@ use App\Models\User;
 /**
  * Auth controller, answers the login page's login, logout and "who's logged in" requests
  * goes in the same order as the login flowchart
- * the session itself is handled by the Authentication helper
+ * the session itself is looked after by the Authentication object this controller keeps
  */
 class AuthController extends Controller
 {
@@ -19,6 +19,17 @@ class AuthController extends Controller
         . 'You will get an email when it is ready';
     private const ACCOUNT_DISABLED = 'Your account has been disabled. Contact your lecturer or an administrator';
     private const NOT_LOGGED_IN = 'You are not logged in';
+
+    // the login session helper, made once and shared by every method below
+    private Authentication $authentication;
+
+    /**
+     * Sets up the session helper as soon as the controller is made
+     */
+    public function __construct()
+    {
+        $this->authentication = new Authentication();
+    }
 
     /**
      * POST /api/login, checks the username and password then logs them in
@@ -76,7 +87,7 @@ class AuthController extends Controller
             }
 
             $user->recordLogin();
-            Authentication::saveLogin($user);
+            $this->authentication->saveLogin($user);
 
             // page uses accountType to pick which dashboard to go to
             $this->jsonResponse(['accountType' => $user->getAccountType()]);
@@ -90,7 +101,7 @@ class AuthController extends Controller
      */
     public function logout(): void
     {
-        Authentication::endSession();
+        $this->authentication->endSession();
         $this->jsonResponse(['message' => 'You have signed out']);
     }
 
@@ -99,7 +110,7 @@ class AuthController extends Controller
      */
     public function currentUser(): void
     {
-        $userID = Authentication::getLoggedInUserID();
+        $userID = $this->authentication->getLoggedInUserID();
 
         if ($userID === null) {
             $this->jsonResponse(['error' => self::NOT_LOGGED_IN], 401);
@@ -110,7 +121,7 @@ class AuthController extends Controller
 
             // account got deleted or disabled after they logged in, so log them out
             if ($user === null || !$user->isActive()) {
-                Authentication::endSession();
+                $this->authentication->endSession();
                 $this->jsonResponse(['error' => self::NOT_LOGGED_IN], 401);
             }
 
@@ -130,13 +141,13 @@ class AuthController extends Controller
      */
     public function csrfToken(): void
     {
-        $this->jsonResponse(['csrfToken' => Authentication::getCsrfToken()]);
+        $this->jsonResponse(['csrfToken' => $this->authentication->getCsrfToken()]);
     }
 
     /**
      * Reads the username and password the page sent
-     * the login form sends them as JSON in the body of the request, not in the URL,
-     * so they don't end up in the browser history or the server logs
+     * the login form sends them as JSON inside the request, so they never show up in the URL,
+     * the browser history or the server logs
      *
      * @return array|null null if either one is missing or blank
      */
@@ -167,8 +178,9 @@ class AuthController extends Controller
             return null;
         }
 
-        // both boxes have to be there and be text, not a number or a list
+        // both boxes have to be there and be text, not a number or an array - input validation
         // isset() catches a missing box, is_string() catches someone sending ['stu01'] or 1234 instead
+        // an array would crash the trim() below and give them a server error
         if (!isset($data['username']) || !is_string($data['username'])) {
             return null;
         }
@@ -176,7 +188,7 @@ class AuthController extends Controller
             return null;
         }
 
-        // trim spaces off the username but not the password, a password can have spaces in it
+        // trim spaces off the username only, a password can have spaces in it
         // i.e. ' stu01 ' copied in by accident still logs in as stu01
         $username = trim($data['username']);
 

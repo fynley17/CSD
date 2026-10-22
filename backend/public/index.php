@@ -19,7 +19,8 @@ $method = $_SERVER['REQUEST_METHOD'];
 // GET only reads data, everything else (login, register, sign out) has to bring the session's secret code
 // checked here once before any route runs, so a new route can't forget it, no code means a 403 and nothing happens
 if ($method !== 'GET') {
-    Authentication::requireCsrfToken();
+    $authentication = new Authentication();
+    $authentication->requireCsrfToken();
 }
 
 $router->dispatch($uri, $method);
