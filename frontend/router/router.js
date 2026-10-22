@@ -21,6 +21,10 @@ import LecturerDashboard from '../views/lecturerDashboard.vue';
 import TestingSelectionPage from '../views/testingPage.vue';
 import Leaderboard from '../views/leaderboard.vue';
 import StudentResults from '../views/studentResults.vue';
+// lecturer pages are protected by the requiredRoles check in the route guard
+import StudentManagement from '../views/studentManagement.vue';
+import TestManagement from '../views/testManagement.vue';
+import QuestionManagement from '../views/questionManagement.vue';
 
 // Define the application routes
 const routes = [
@@ -86,6 +90,24 @@ const routes = [
         name: 'studentResults',
         component: StudentResults,
         meta: { title: 'Results | RevisionHub', requiredRoles: ['student'], studentOnly: true },
+    },
+    {
+        path: '/student-management',
+        name: 'studentManagement',
+        component: StudentManagement,
+        meta: { title: 'Student Management | RevisionHub', requiredRoles: ['lecturer'] },
+    },
+    {
+        path: '/test-management',
+        name: 'testManagement',
+        component: TestManagement,
+        meta: { title: 'Test Management | RevisionHub', requiredRoles: ['lecturer'] },
+    },
+    {
+        path: '/question-management',
+        name: 'questionManagement',
+        component: QuestionManagement,
+        meta: { title: 'Question Management | RevisionHub', requiredRoles: ['lecturer'] },
     },
     // Send mistyped or retired URLs back to the public landing page.
     {
