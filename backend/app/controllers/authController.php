@@ -4,6 +4,7 @@ namespace App\Controllers;
 
 use App\Helpers\Authentication;
 use App\Models\User;
+use App\Models\Lecturer;
 
 /**
  * Auth controller, answers the login page's login, logout and "who's logged in" requests
@@ -87,8 +88,18 @@ class AuthController extends Controller
             }
 
             // just what the page needs, the hash never leaves the server
+            // Use the lecturer's name for the dashboard greeting when available.
+            $displayName = $user->getUsername();
+
+            if ($user instanceof Lecturer) {
+                $displayName = $user->getFullName() ?? $displayName;
+            }
+
+            // Return the account details needed by the frontend.
+            // Never include the user's password or password hash.
             $this->jsonResponse([
                 'username' => $user->getUsername(),
+                'displayName' => $displayName,
                 'accountType' => $user->getAccountType(),
             ]);
         } catch (\Throwable $e) {

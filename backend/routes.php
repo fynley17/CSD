@@ -4,6 +4,7 @@ use App\Router;
 use App\Controllers\StudentController;
 use App\Controllers\CohortController;
 use App\Controllers\AuthController;
+use App\Controllers\LecturerController;
 use App\Controllers\TestController;
 
 $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
@@ -48,5 +49,12 @@ $router->addRoute('GET', '/^\\/api\\/tests$/', [new TestController(), 'getAvaila
 $router->addRoute('POST', '/^\\/api\\/login$/', [new AuthController(), 'login']);
 $router->addRoute('POST', '/^\\/api\\/logout$/', [new AuthController(), 'logout']);
 $router->addRoute('GET', '/^\\/api\\/current-user$/', [new AuthController(), 'currentUser']);
+
+// lecturer dashboard summary
+$router->addRoute(
+    'GET',
+    '/^\\/api\\/lecturer\\/dashboard-summary$/',
+    [new LecturerController(), 'getDashboardSummary']
+);
 
 return $router;
