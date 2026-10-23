@@ -33,9 +33,28 @@
                     <RouterLink to="/question-management">Questions</RouterLink>
                 </nav>
 
+                <!-- an Administrator is a Lecturer too, so the admin links reuse the lecturer link styles -->
+                <nav
+                    v-if="isAdmin"
+                    class="lecturerNavigation desktopLecturerNavigation"
+                    aria-label="Administrator navigation"
+                >
+                    <RouterLink to="/lecturer-management">Lecturers</RouterLink>
+                    <RouterLink to="/subject-management">Subjects</RouterLink>
+                    <RouterLink to="/cohort-management">Cohorts</RouterLink>
+                    <RouterLink to="/student-management">Students</RouterLink>
+                    <RouterLink to="/test-management">Tests</RouterLink>
+                    <RouterLink to="/question-management">Questions</RouterLink>
+                </nav>
+
                 <!-- Desktop navigation -->
                 <div class="headerActions desktopActions">
                     <p v-if="authError" class="navbarError" role="alert">{{ authError }}</p>
+                    <!-- admins see the lecturer pages too, so this shows which account is logged in -->
+                    <p v-if="isAdmin" class="accountBadge">
+                        <i class="bi bi-person-circle" aria-hidden="true"></i>
+                        Administrator
+                    </p>
                     <button
                         v-if="currentUser"
                         type="button"
@@ -86,6 +105,22 @@
                         <RouterLink to="/test-management" @click="menuOpen = false"> Tests </RouterLink>
                         <RouterLink to="/question-management" @click="menuOpen = false"> Questions </RouterLink>
                     </nav>
+                    <p v-if="isAdmin" class="accountBadge">
+                        <i class="bi bi-person-circle" aria-hidden="true"></i>
+                        Administrator
+                    </p>
+                    <nav
+                        v-if="isAdmin"
+                        class="lecturerNavigation mobileLecturerNavigation"
+                        aria-label="Administrator navigation"
+                    >
+                        <RouterLink to="/lecturer-management" @click="menuOpen = false"> Lecturers </RouterLink>
+                        <RouterLink to="/subject-management" @click="menuOpen = false"> Subjects </RouterLink>
+                        <RouterLink to="/cohort-management" @click="menuOpen = false"> Cohorts </RouterLink>
+                        <RouterLink to="/student-management" @click="menuOpen = false"> Students </RouterLink>
+                        <RouterLink to="/test-management" @click="menuOpen = false"> Tests </RouterLink>
+                        <RouterLink to="/question-management" @click="menuOpen = false"> Questions </RouterLink>
+                    </nav>
                     <p v-if="authError" class="navbarError" role="alert">{{ authError }}</p>
                     <button
                         v-if="currentUser"
@@ -126,6 +161,7 @@ const isStudent = computed(() => currentUser.value?.accountType === 'student');
 // Prevent a slower session response from overwriting the result for a newer route.
 let authRequest = 0;
 const isLecturer = computed(() => currentUser.value?.accountType === 'lecturer');
+const isAdmin = computed(() => currentUser.value?.accountType === 'admin');
 const logoDestination = computed(() => {
     if (isLecturer.value) {
         return '/lecturer-dashboard';
@@ -133,6 +169,11 @@ const logoDestination = computed(() => {
 
     if (isStudent.value) {
         return '/testing-selection';
+    }
+
+    // admins go to their own dashboard - same as lecturers and students
+    if (isAdmin.value) {
+        return '/admin-dashboard';
     }
 
     return '/';
