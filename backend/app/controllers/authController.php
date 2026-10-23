@@ -18,7 +18,6 @@ class AuthController extends Controller
     private const ACCOUNT_PENDING = 'Your account is waiting for lecturer approval. '
         . 'You will get an email when it is ready';
     private const ACCOUNT_DISABLED = 'Your account has been disabled. Contact your lecturer or an administrator';
-    private const NOT_LOGGED_IN = 'You are not logged in';
 
     // the login session helper, made once and shared by every method below
     private Authentication $authentication;
@@ -107,13 +106,15 @@ class AuthController extends Controller
 
     /**
      * GET /api/current-user, tells the page who's logged in so the header can change by account type
+     * nobody logged in is a normal answer to that question, so it comes back as a 200 with loggedIn false
+     * a 401 would show in red in the browser console on every logged out page, and Lighthouse counts those
      */
     public function currentUser(): void
     {
         $userID = $this->authentication->getLoggedInUserID();
 
         if ($userID === null) {
-            $this->jsonResponse(['error' => self::NOT_LOGGED_IN], 401);
+            $this->jsonResponse(['loggedIn' => false]);
         }
 
         try {
@@ -122,11 +123,12 @@ class AuthController extends Controller
             // account got deleted or disabled after they logged in, so log them out
             if ($user === null || !$user->isActive()) {
                 $this->authentication->endSession();
-                $this->jsonResponse(['error' => self::NOT_LOGGED_IN], 401);
+                $this->jsonResponse(['loggedIn' => false]);
             }
 
             // just what the page needs, the hash never leaves the server
             $this->jsonResponse([
+                'loggedIn' => true,
                 'username' => $user->getUsername(),
                 'accountType' => $user->getAccountType(),
             ]);
