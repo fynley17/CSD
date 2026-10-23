@@ -3,9 +3,9 @@
 // and gives them the chance to stay logged in (WCAG compliance)
 
 // same 30 minutes as IDLE_TIMEOUT_SECONDS in authentication.php, setTimeout counts in milliseconds
-const IDLE_LIMIT_MS = 60 * 1000;
+const IDLE_LIMIT_MS = 30 * 60 * 1000;
 // the warning pop-up opens 2 minutes before the end
-const WARNING_AT_MS = IDLE_LIMIT_MS - 40 * 1000;
+const WARNING_AT_MS = IDLE_LIMIT_MS - 2 * 60 * 1000;
 
 // only runs while someone's logged in, a visitor on the landing page never gets the warning
 let isRunning = false;
