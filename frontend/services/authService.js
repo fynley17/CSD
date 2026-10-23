@@ -1,6 +1,7 @@
 // Auth service, every call the frontend makes to the login backend goes through here
 // pages just call login() or getCurrentUser() and don't need to know the backend addresses
 import api from './api';
+import { startIdleTimer, stopIdleTimer } from './idleTimer';
 
 /**
  * Sends the username and password to POST /api/login
@@ -11,6 +12,8 @@ import api from './api';
 export async function login(username, password) {
     // axios turns this object into JSON before sending it
     const response = await api.post('/login', { username, password });
+    // logged in, so the 30 minute countdown starts
+    startIdleTimer();
     return response.data;
 }
 
@@ -19,6 +22,8 @@ export async function login(username, password) {
  */
 export async function logout() {
     await api.post('/logout');
+    // signed out, so there's nothing left to count down
+    stopIdleTimer();
 }
 
 /**
@@ -28,11 +33,14 @@ export async function logout() {
 export async function getCurrentUser() {
     try {
         const response = await api.get('/current-user');
+        // still logged in, so the countdown runs, this is also what starts it again after a page refresh
+        startIdleTimer();
         return response.data;
     } catch (error) {
         // PHP sends 401 when nobody's logged in, that's a normal answer so give back null
         // anything else is an issue, like PHP not running, so pass the error on
         if (error.response?.status === 401) {
+            stopIdleTimer();
             return null;
         }
         throw error;

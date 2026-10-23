@@ -720,6 +720,21 @@ main {
     color: var(--colorText);
 }
 
+/* house style information box, used when someone's been signed out for being idle
+   light blue background and a Royal Blue left edge, so it doesn't look like an error */
+.loginForm [class~='alert-info'] {
+    background-color: var(--colorInfoLight);
+    border: 0;
+    border-left: 6px solid var(--colorBrand);
+    border-radius: 0;
+    color: var(--colorText);
+}
+
+/* the info icon goes Royal Blue to match the edge, the error one further down stays red */
+.loginForm [class~='alert-info'] .messageIcon {
+    stroke: var(--colorBrand);
+}
+
 /* the message box takes focus when it appears so screen readers read it out, so it gets the outline too */
 .loginForm [class~='alert-danger']:focus-visible {
     outline: 3px solid var(--colorFocus);

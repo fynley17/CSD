@@ -31,6 +31,10 @@ export default {
         };
     },
     computed: {
+        // true when the idle pop-up sent them here, i.e. /login?signedOut=idle
+        wasSignedOutForBeingIdle() {
+            return this.$route.query.signedOut === 'idle';
+        },
         hasFieldErrors() {
             return this.fieldErrors.username !== '' || this.fieldErrors.password !== '';
         },
@@ -94,6 +98,20 @@ export default {
         <div class="card-body p-4 p-md-5">
             <h1 class="mb-1">Welcome back</h1>
             <p class="secondaryText mb-4">Enter your details to login</p>
+
+            <!-- tells them why they're back at the login page if they were signed out for doing nothing for 30 minutes
+                 role="status" so a screen reader reads it out without interrupting -->
+            <div v-if="wasSignedOutForBeingIdle" class="alert alert-info d-flex gap-2" role="status">
+                <svg class="messageIcon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="12" y1="16" x2="12" y2="12" />
+                    <line x1="12" y1="8" x2="12.01" y2="8" />
+                </svg>
+                <p class="mb-0">
+                    <strong>Information:</strong> You were signed out after 30 minutes with no activity. Enter your
+                    details to login again
+                </p>
+            </div>
 
             <!-- one message box for both kinds of problem, empty boxes or PHP turning the login down
                  it stays put until Login is pressed again, house style messages never hide themselves -->

@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { restartIdleTimer } from './idleTimer';
 
 // axios sends requests to the backend in the background, so pages can update without reloading
 // every service file uses this one setup so they all talk to the backend the same way
@@ -28,6 +29,13 @@ api.interceptors.request.use(async (config) => {
     config.headers['X-CSRF-Token'] = response.data.csrfToken;
 
     return config;
+});
+
+// runs when a reply comes back from PHP, every request starts PHP's 30 minutes again,
+// so the countdown on the page starts again as well
+api.interceptors.response.use((response) => {
+    restartIdleTimer();
+    return response;
 });
 
 export default api;
