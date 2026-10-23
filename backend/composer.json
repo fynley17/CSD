@@ -17,7 +17,9 @@
         "app/models/administrator.php",
         "app/helpers/authentication.php",
         "app/helpers/mailer.php",
-        "app/controllers/authController.php"
+        "app/controllers/authController.php",
+        "app/controllers/verificationController.php",
+        "app/models/emailVerification.php"
     ],
     "psr-4": {
         "App\\": "app/"

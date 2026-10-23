@@ -89,8 +89,8 @@ class Student extends User
         $db->beginTransaction();
         try {
             $stmt = $db->prepare(
-                "INSERT INTO Users (userID, email, username, password, accountType, approvalStatus) "
-                . "VALUES (?, ?, ?, ?, ?, ?)"
+                "INSERT INTO Users (userID, email, username, password, accountType, approvalStatus, isEmailVerified) "
+                . "VALUES (?, ?, ?, ?, ?, ?, 0)"
             );
             $stmt->execute([$userID, $email, $studentNumber, $passwordHash, $accountType, $approvalStatus]);
 
@@ -108,14 +108,66 @@ class Student extends User
             throw $e;
         }
 
-        // Hand back what the controller needs to send the welcome email.
+        // Hand back what the controller needs to send the verification email.
         return [
             'success' => true,
+            'userID' => $userID,
             'email' => $email,
-            'firstName' => $firstName,
-            'lastName' => $lastName,
-            'cohortName' => $cohort['cohortName'],
         ];
+    }
+
+    /**
+     * Finds the details the verification and welcome emails need for one student.
+     *
+     * @return array|null null if there's no student with that ID
+     */
+    public static function findVerificationDetails(string $userID): ?array
+    {
+        $stmt = self::getDB()->prepare(
+            "SELECT Users.email, Users.isEmailVerified, Students.firstName, Students.lastName, Cohorts.cohortName "
+            . "FROM Users "
+            . "JOIN Students ON Students.userID = Users.userID "
+            . "JOIN Cohorts ON Cohorts.cohortID = Students.cohortID "
+            . "WHERE Users.userID = ?"
+        );
+        $stmt->execute([$userID]);
+        $row = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+        if ($row === false) {
+            return null;
+        }
+
+        $row['isEmailVerified'] = (bool) $row['isEmailVerified'];
+        return $row;
+    }
+
+    /**
+     * Changes the email address on an account that hasn't been verified yet, i.e. to fix a typo.
+     * Verified accounts are left alone, so this can't be used to take over someone's account.
+     *
+     * @return string the cleaned email address that was saved
+     */
+    public static function changeEmail(string $userID, mixed $email): string
+    {
+        // a space copied in by accident shouldn't stop the change
+        $email = is_string($email) ? strtolower(trim($email)) : $email;
+
+        if (!self::validEmail($email)) {
+            throw new \InvalidArgumentException('Enter an email address in the correct format, like name@example.com');
+        }
+        $db = self::getDB();
+
+        // another account already using it, the student's own account is skipped so re-entering it is fine
+        $stmt = $db->prepare("SELECT 1 FROM Users WHERE email = ? AND userID <> ? LIMIT 1");
+        $stmt->execute([$email, $userID]);
+        if ($stmt->fetchColumn() !== false) {
+            throw new \InvalidArgumentException('An account with this email address already exists');
+        }
+
+        $stmt = $db->prepare("UPDATE Users SET email = ? WHERE userID = ? AND isEmailVerified = 0");
+        $stmt->execute([$email, $userID]);
+
+        return $email;
     }
 
     // Helpers

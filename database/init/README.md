@@ -12,5 +12,7 @@ For existing databases, apply SQL files from `database/migrations` manually
 in order. The test-question migration preserves existing question-to-test
 assignments in `TestQuestions` before removing `Questions.testID`. The test due
 date migration adds the optional `Tests.dueDate` column used by student test
-cards. Do not run migrations through the init directory; init scripts run only
+cards. The email verification migration adds `Users.isEmailVerified` and the
+`EmailVerifications` table used by the registration verification email; existing
+accounts stay verified. Do not run migrations through the init directory; init scripts run only
 for a new volume.

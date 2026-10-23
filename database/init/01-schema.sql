@@ -32,6 +32,14 @@ CREATE TABLE `CompletedTests` (
   `percentageCorrect` decimal(5,2) NOT NULL DEFAULT 0.00
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE `EmailVerifications` (
+  -- One verification link per account; a new link replaces the old one.
+  `userID` uuid NOT NULL,
+  `tokenHash` char(64) NOT NULL COMMENT 'SHA-256 hash of the emailed link code, never the code itself',
+  `expiresAt` datetime NOT NULL,
+  `sentAt` datetime NOT NULL DEFAULT current_timestamp() COMMENT 'Used to stop repeated resend requests'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE `Lecturer` (
   `userID` uuid NOT NULL,
   `firstName` text NOT NULL,
@@ -101,6 +109,7 @@ CREATE TABLE `Users` (
   `accountType` enum('student','lecturer','admin') NOT NULL DEFAULT 'student',
   `approvalStatus` enum('pending','approved') NOT NULL DEFAULT 'pending',
   `isEnabled` tinyint(1) NOT NULL DEFAULT 1 COMMENT '1 = can sign in, 0 = disabled',
+  `isEmailVerified` tinyint(1) NOT NULL DEFAULT 1 COMMENT '0 = registered but the email link not clicked yet',
   `timestamp` timestamp NOT NULL DEFAULT current_timestamp() COMMENT 'Account creation time',
   `lastLogin` datetime DEFAULT NULL,
   `failedAttempts` tinyint(2) NOT NULL DEFAULT 0,
@@ -120,6 +129,10 @@ ALTER TABLE `CompletedTests`
   ADD PRIMARY KEY (`completedID`),
   ADD KEY `idx_ct_user` (`userID`),
   ADD KEY `idx_ct_test` (`testID`);
+
+ALTER TABLE `EmailVerifications`
+  ADD PRIMARY KEY (`userID`),
+  ADD UNIQUE KEY `uq_email_verifications_token` (`tokenHash`);
 
 ALTER TABLE `Lecturer`
   ADD PRIMARY KEY (`userID`);
@@ -171,6 +184,10 @@ ALTER TABLE `CompletedTests`
     REFERENCES `Students` (`userID`) ON DELETE CASCADE ON UPDATE CASCADE,
   ADD CONSTRAINT `fk_ct_test` FOREIGN KEY (`testID`)
     REFERENCES `Tests` (`testID`) ON UPDATE CASCADE;
+
+ALTER TABLE `EmailVerifications`
+  ADD CONSTRAINT `fk_email_verifications_user` FOREIGN KEY (`userID`)
+    REFERENCES `Users` (`userID`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 ALTER TABLE `Lecturer`
   ADD CONSTRAINT `fk_lecturer_user` FOREIGN KEY (`userID`)

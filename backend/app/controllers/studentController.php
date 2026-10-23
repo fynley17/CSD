@@ -2,7 +2,9 @@
 
 namespace App\Controllers;
 
+use App\Helpers\Authentication;
 use App\Helpers\Mailer;
+use App\Models\EmailVerification;
 use App\Models\Student;
 
 class StudentController extends Controller
@@ -25,16 +27,19 @@ class StudentController extends Controller
             $result = Student::register($data);
 
             if ($result['success']) {
-                // The account is already saved, so a failed email is logged but doesn't fail the registration.
-                Mailer::sendRegistrationEmail(
-                    $result['email'],
-                    $result['firstName'],
-                    $result['lastName'],
-                    $result['cohortName']
-                );
+                // The welcome email waits until the address is verified, so only the link is sent now.
+                // The account is already saved, so a failed email doesn't fail the registration,
+                // the check your email page lets them send it again.
+                $token = EmailVerification::createToken($result['userID']);
+                $emailSent = Mailer::sendVerificationEmail($result['email'], $token);
 
-                // Keep the response shape consistent with the message shown by the form.
-                $this->jsonResponse(['message' => 'Student registered successfully.'], 201);
+                // Lets this browser resend the link or fix a mistyped address without logging in.
+                Authentication::savePendingVerification($result['userID']);
+
+                $this->jsonResponse([
+                    'message' => 'Registration successful. Check your email to verify your address.',
+                    'emailSent' => $emailSent,
+                ], 201);
             } else {
                 $this->jsonResponse(['error' => 'Unable to register the student. Please try again.'], 400);
             }
