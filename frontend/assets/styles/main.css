@@ -34,6 +34,9 @@
     --fontSizeH1: 2rem;
     --fontSizeH2: 1.5rem;
     --fontSizeH3: 1.25rem;
+
+    /* Slightly larger title size helps the card stand out in a list. */
+    --fontSizeTestCardTitle: 1.25rem;
     --fontSizeStat: 1.75rem;
     --fontSizeBody: 1rem;
     --fontSizeSmall: 0.875rem;
@@ -83,6 +86,9 @@
     --spaceMobileButtonHorizontal: 12px;
     --spaceFooterBlock: 1.25rem;
     --spaceFooterInline: 1.875rem;
+
+    /* Keep action buttons comfortably tappable across devices. */
+    --minTouchTarget: 44px;
 
     /* Shape and layout */
     --radiusSm: 6px;
@@ -250,6 +256,18 @@ main {
     transform: translateX(-50%);
 }
 
+/* Lecturer navigation link. */
+.lecturerNavigation a {
+    display: inline-flex;
+    min-height: 40px;
+    align-items: center;
+    padding: var(--spaceXs) var(--spaceSm);
+    border-radius: var(--radiusSm);
+    color: var(--colorBrand);
+    font-weight: 600;
+    text-decoration: none;
+}
+
 .studentNavigation a {
     display: inline-flex;
     min-height: 40px;
@@ -259,6 +277,12 @@ main {
     color: var(--colorBrand);
     font-weight: 600;
     text-decoration: none;
+}
+
+/* Highlight the active lecturer page. */
+.lecturerNavigation a.routerLinkExactActive {
+    background-color: var(--colorBrand);
+    color: var(--colorSurface);
 }
 
 .studentNavigation a.routerLinkExactActive {
@@ -286,6 +310,53 @@ main {
 .mobileMenuToggle,
 .mobileNavigation {
     display: none;
+}
+
+/* Lecturer Navigation */
+
+/* Centre lecturer links on desktop. */
+.desktopLecturerNavigation {
+    position: absolute;
+    left: 50%;
+    display: flex;
+    align-items: center;
+    gap: var(--spaceXl);
+    transform: translateX(-50%);
+}
+
+/* Lecturer link hover effect. */
+.lecturerNavigation a:hover {
+    color: var(--colorPrimary);
+    text-decoration: underline;
+    text-underline-offset: 4px;
+}
+
+/* Keep the active page highlighted on hover. */
+.lecturerNavigation a.routerLinkExactActive:hover {
+    background-color: var(--colorBrand);
+    color: var(--colorSurface);
+}
+
+/* Mobile lecturer navigation. */
+@media (max-width: 767.98px) {
+    .desktopLecturerNavigation {
+        display: none;
+    }
+
+    .mobileLecturerNavigation {
+        display: flex;
+        flex-direction: column;
+        gap: var(--spaceSm);
+        padding: 0 var(--spaceSm) var(--spaceSm);
+    }
+
+    .mobileLecturerNavigation a {
+        width: 100%;
+    }
+
+    .mobileLecturerNavigation a.routerLinkExactActive {
+        padding-left: var(--spaceSm);
+    }
 }
 
 /* Mobile navigation */

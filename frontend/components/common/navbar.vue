@@ -4,7 +4,11 @@
     <header class="siteHeader">
         <nav class="navbar navbar-expand" aria-label="Main navigation">
             <div class="container-fluid">
-                <RouterLink class="navbar-brand" to="/" aria-label="RevisionHub home">
+                <RouterLink
+                    class="navbar-brand"
+                    :to="logoDestination"
+                    :aria-label="currentUser ? 'RevisionHub dashboard' : 'RevisionHub home'"
+                >
                     <img src="../../assets/images/Logo.png" alt="RevisionHub home" class="siteLogo" />
                 </RouterLink>
 
@@ -13,9 +17,20 @@
                     class="studentNavigation desktopStudentNavigation"
                     aria-label="Student navigation"
                 >
-                    <RouterLink to="/testing-selection">Tests</RouterLink>
+                    <RouterLink to="/test-selection">Tests</RouterLink>
                     <RouterLink to="/leaderboard">Leaderboard</RouterLink>
                     <RouterLink to="/student-results">Results</RouterLink>
+                </nav>
+
+                <nav
+                    v-if="isLecturer"
+                    class="lecturerNavigation desktopLecturerNavigation"
+                    aria-label="Lecturer navigation"
+                >
+                    <RouterLink to="/lecturer-dashboard">Dashboard</RouterLink>
+                    <RouterLink to="/student-management">Students</RouterLink>
+                    <RouterLink to="/test-management">Tests</RouterLink>
+                    <RouterLink to="/question-management">Questions</RouterLink>
                 </nav>
 
                 <!-- Desktop navigation -->
@@ -57,9 +72,19 @@
                         class="studentNavigation mobileStudentNavigation"
                         aria-label="Student navigation"
                     >
-                        <RouterLink to="/testing-selection" @click="menuOpen = false">Tests</RouterLink>
+                        <RouterLink to="/test-selection" @click="menuOpen = false">Tests</RouterLink>
                         <RouterLink to="/leaderboard" @click="menuOpen = false">Leaderboard</RouterLink>
                         <RouterLink to="/student-results" @click="menuOpen = false">Results</RouterLink>
+                    </nav>
+                    <nav
+                        v-if="isLecturer"
+                        class="lecturerNavigation mobileLecturerNavigation"
+                        aria-label="Lecturer navigation"
+                    >
+                        <RouterLink to="/lecturer-dashboard" @click="menuOpen = false"> Dashboard </RouterLink>
+                        <RouterLink to="/student-management" @click="menuOpen = false"> Students </RouterLink>
+                        <RouterLink to="/test-management" @click="menuOpen = false"> Tests </RouterLink>
+                        <RouterLink to="/question-management" @click="menuOpen = false"> Questions </RouterLink>
                     </nav>
                     <p v-if="authError" class="navbarError" role="alert">{{ authError }}</p>
                     <button
@@ -100,6 +125,18 @@ const router = useRouter();
 const isStudent = computed(() => currentUser.value?.accountType === 'student');
 // Prevent a slower session response from overwriting the result for a newer route.
 let authRequest = 0;
+const isLecturer = computed(() => currentUser.value?.accountType === 'lecturer');
+const logoDestination = computed(() => {
+    if (isLecturer.value) {
+        return '/lecturer-dashboard';
+    }
+
+    if (isStudent.value) {
+        return '/testing-selection';
+    }
+
+    return '/';
+});
 
 // Refresh the session after client-side navigation so the correct account links stay visible.
 watch(
