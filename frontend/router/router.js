@@ -100,19 +100,19 @@ const routes = [
         path: '/student-management',
         name: 'studentManagement',
         component: StudentManagement,
-        meta: { title: 'Student Management | RevisionHub', requiredRoles: ['lecturer'] },
+        meta: { title: 'Student Management | RevisionHub', requiredRoles: ['lecturer', 'admin'] },
     },
     {
         path: '/test-management',
         name: 'testManagement',
         component: TestManagement,
-        meta: { title: 'Test Management | RevisionHub', requiredRoles: ['lecturer'] },
+        meta: { title: 'Test Management | RevisionHub', requiredRoles: ['lecturer', 'admin'] },
     },
     {
         path: '/question-management',
         name: 'questionManagement',
         component: QuestionManagement,
-        meta: { title: 'Question Management | RevisionHub', requiredRoles: ['lecturer'] },
+        meta: { title: 'Question Management | RevisionHub', requiredRoles: ['lecturer', 'admin'] },
     },
     {
         path: '/lecturer-management',
