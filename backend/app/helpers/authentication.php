@@ -58,6 +58,39 @@ class Authentication
     }
 
     /**
+     * Remembers which unverified account this browser just registered, or logged in to with the right password.
+     * This doesn't log them in, it only lets them resend the verification email or fix a mistyped address.
+     */
+    public static function savePendingVerification(string $userID): void
+    {
+        self::startSession();
+        // new session ID for the same reason as saveLogin(), stops session fixation
+        session_regenerate_id(true);
+        $_SESSION['pendingVerificationUserID'] = $userID;
+    }
+
+    /**
+     * Returns the unverified account this browser is allowed to change, read from the session on the server.
+     *
+     * @return string|null null if this browser hasn't registered or logged in to an unverified account
+     */
+    public static function getPendingVerificationUserID(): ?string
+    {
+        self::startSession();
+
+        return $_SESSION['pendingVerificationUserID'] ?? null;
+    }
+
+    /**
+     * Forgets the unverified account, used once the email has been verified.
+     */
+    public static function clearPendingVerification(): void
+    {
+        self::startSession();
+        unset($_SESSION['pendingVerificationUserID']);
+    }
+
+    /**
      * Returns the ID of whoever is logged in, read from the session on the server.
      * Nothing comes in from the page, the browser only sends its session cookie, so controllers
      * should use this to find the current user rather than trusting a userID sent in a request.

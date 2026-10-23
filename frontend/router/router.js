@@ -12,6 +12,10 @@ import PrivacyPolicy from '../views/privacyPolicy.vue';
 import RegisterPage from '../views/registerPage.vue';
 // Import the Terms and conditions page and is displayed when users visit the terms and conditions URL
 import TermsAndConditions from '../views/termsAndConditions.vue';
+// shown after registering, lets the student resend the verification email or fix a mistyped address
+import CheckEmailPage from '../views/checkEmailPage.vue';
+// the link in the verification email opens this page
+import VerifyEmailPage from '../views/verifyEmailPage.vue';
 // one login page for every account type
 import LoginPage from '../views/loginPage.vue';
 // admin home page, only admins can open it
@@ -43,6 +47,18 @@ const routes = [
         name: 'register',
         // Loads the registration page, which contains the registration form.
         component: RegisterPage,
+    },
+    {
+        path: '/check-email',
+        name: 'checkEmail',
+        component: CheckEmailPage,
+        meta: { title: 'Check your email | RevisionHub' },
+    },
+    {
+        path: '/verify-email',
+        name: 'verifyEmail',
+        component: VerifyEmailPage,
+        meta: { title: 'Verify your email | RevisionHub' },
     },
     {
         path: '/terms',
