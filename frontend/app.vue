@@ -1,6 +1,7 @@
 <script setup>
 import Navbar from './components/common/navbar.vue';
 import Footer from './components/common/footer.vue';
+import IdleWarning from './components/common/idleWarning.vue';
 </script>
 
 <template>
@@ -14,5 +15,8 @@ import Footer from './components/common/footer.vue';
 
         <!-- Main content area displayed above the shared footer -->
         <Footer />
+
+        <!-- the "Are you still there?" pop-up, here so it can open on any page after 28 minutes idle -->
+        <IdleWarning />
     </div>
 </template>

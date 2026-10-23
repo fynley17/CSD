@@ -726,6 +726,16 @@ main {
     color: var(--colorText);
 }
 
+/* house style information box, used when someone's been signed out for being idle
+   light blue background and a Royal Blue left edge, so it doesn't look like an error */
+.loginForm [class~='alert-info'] {
+    background-color: var(--colorInfoLight);
+    border: 0;
+    border-left: 6px solid var(--colorBrand);
+    border-radius: 0;
+    color: var(--colorText);
+}
+
 /* the message box takes focus when it appears so screen readers read it out, so it gets the outline too */
 .loginForm [class~='alert-danger']:focus-visible {
     outline: 3px solid var(--colorFocus);
@@ -743,6 +753,12 @@ main {
     stroke-linecap: round;
 }
 
+/* the info box's icon goes Royal Blue to match its edge
+      it sits below the red icon rule, stylelint wants the more specific rule second */
+.loginForm [class~='alert-info'] .messageIcon {
+    stroke: var(--colorBrand);
+}
+
 .loginForm .messageTitle {
     margin-bottom: var(--spaceXs);
     color: var(--colorText);
@@ -754,6 +770,78 @@ main {
 /* the links in the message box jump to the box that needs fixing */
 .loginForm .messageList a {
     color: var(--colorError);
+}
+
+/* Pop-up for popupDialog.vue, house style section 5 says max 480px wide on a dark overlay */
+.popupDialog {
+    width: calc(100% - var(--spaceXl));
+    max-width: 30rem;
+    padding: 0;
+    background-color: var(--colorSurface);
+    border: 0;
+    border-radius: var(--radiusMd);
+    box-shadow: var(--shadowModal);
+    color: var(--colorText);
+}
+
+/* the dark layer behind it, the browser adds this itself when showModal() runs */
+.popupDialog::backdrop {
+    background-color: var(--colorText);
+    opacity: 0.6;
+}
+
+/* title on the left, X on the right, with a line underneath */
+.popupHeader {
+    padding: var(--spaceMd) var(--spaceLg);
+    border-bottom: 1px solid var(--colorDivider);
+}
+
+.popupTitle {
+    color: var(--colorText);
+    font-family: var(--fontBody);
+    font-size: var(--fontSizeH3);
+    font-weight: 700;
+}
+
+/* 44px so it's easy to tap on a phone, the focus outline already comes from the global button rule */
+.popupCloseButton {
+    display: flex;
+    min-width: 44px;
+    min-height: 44px;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    background-color: var(--colorSurface);
+    border: 0;
+    border-radius: var(--radiusSm);
+    color: var(--colorText);
+}
+
+.popupCloseButton svg {
+    width: 24px;
+    height: 24px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+}
+
+.popupBody {
+    padding: var(--spaceLg);
+}
+
+.popupFooter {
+    padding: 0 var(--spaceLg) var(--spaceLg);
+}
+
+/* warning icon in the middle of a pop-up, i.e. the account locked one */
+.popupIcon {
+    width: 40px;
+    height: 40px;
+    fill: none;
+    stroke: var(--colorError);
+    stroke-width: 2;
+    stroke-linecap: round;
 }
 
 /* Accessible skip link, helping keyboard users for example */

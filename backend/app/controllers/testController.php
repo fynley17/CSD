@@ -13,12 +13,14 @@ class TestController extends Controller
      */
     public function getAvailableTests(): void
     {
+        $authentication = new Authentication();
+
         // Ensure the caller is a student before returning any test data.
-        Authentication::requireRole(['student']);
+        $authentication->requireRole(['student']);
 
         try {
             // Check the current session and confirm the account is still active.
-            $userID = Authentication::getLoggedInUserID();
+            $userID = $authentication->getLoggedInUserID();
             $user = $userID === null ? null : User::findById($userID);
 
             if (
@@ -26,7 +28,7 @@ class TestController extends Controller
                 || !$user->isActive()
                 || $user->getAccountType() !== 'student'
             ) {
-                Authentication::endSession();
+                $authentication->endSession();
                 $this->jsonResponse(['error' => 'Your session has ended. Go to the login page to continue'], 401);
             }
 
