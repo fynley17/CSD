@@ -48,4 +48,28 @@ class Lecturer extends User
             'disabledAccounts' => (int) $row['disabledAccounts'],
         ];
     }
+
+    /**
+ * Gets the lecturer's full name for the dashboard greeting.
+ */
+    public function getFullName(): ?string
+    {
+        // Find the lecturer's profile using their logged-in user ID.
+        $stmt = self::getDB()->prepare(
+            'SELECT firstName, lastName FROM Lecturer WHERE userID = ?'
+        );
+
+        $stmt->execute([$this->getUserID()]);
+        $lecturer = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+        // Return null if the lecturer profile cannot be found.
+        if ($lecturer === false) {
+            return null;
+        }
+
+        // Combine the first and last names into one display name.
+        $fullName = trim($lecturer['firstName'] . ' ' . $lecturer['lastName']);
+
+        return $fullName !== '' ? $fullName : null;
+    }
 }

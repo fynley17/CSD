@@ -5,7 +5,7 @@
             <section class="mb-4">
                 <h1 class="h2 fw-bold mb-1">Lecturer Dashboard</h1>
                 <p class="text-secondary mb-0">
-                    Welcome, {{ lecturerName }}. Here's an overview of your platform activity.
+                    Hey, {{ lecturerName }}! Here's an overview of your platform activity.
                 </p>
             </section>
 
@@ -57,6 +57,7 @@
 <script setup>
 // Import Vue functions for reactive data, computed values and component lifecycle.
 import { computed, onMounted, ref } from 'vue';
+import { getCurrentUser } from '../services/authService';
 
 // Import reusable components for the dashboard tables.
 import StudentTable from '../components/tables/studentTable.vue';
@@ -71,8 +72,8 @@ import lockedAccountsImage from '../assets/images/lockedAccounts.jpg';
 // Import the service responsible for requesting summary data from the PHP backend.
 import { getDashboardSummary } from '../services/lecturerService';
 
-// Temporary lecturer name until the authenticated user's name is available.
-const lecturerName = 'Paul';
+// Store the name of the lecturer who is currently logged in.
+const lecturerName = ref('Lecturer');
 
 // Store the summary returned by the backend.
 // ref() makes the value reactive so Vue updates the dashboard when it changes.
@@ -109,19 +110,26 @@ const summaryCards = computed(() => [
     },
 ]);
 
-// Run when the dashboard component first loads.
-// Request the latest summary counts instead of hardcoding the numbers.
+// Run when the dashboard first loads.
 onMounted(async () => {
+    // Request the latest dashboard counts from the backend.
     try {
-        // Retrieve the four counts through the lecturer service.
         summary.value = await getDashboardSummary();
     } catch (error) {
-        // Use the error message returned by the backend when available.
-        // Otherwise, display a general message to the lecturer.
+        // Display the backend's error message when available.
         summaryError.value = error.response?.data?.error || 'Unable to load dashboard summary. Please try again.';
     } finally {
-        // Stop showing the loading state whether the request succeeds or fails.
+        // Stop displaying the loading state after the request finishes.
         isLoading.value = false;
+    }
+
+    // Retrieve the name of the currently logged-in user.
+    try {
+        const currentUser = await getCurrentUser();
+
+        lecturerName.value = currentUser.displayName || currentUser.username || 'Lecturer';
+    } catch {
+        // Keep the default greeting if the user details cannot be retrieved.
     }
 });
 </script>
