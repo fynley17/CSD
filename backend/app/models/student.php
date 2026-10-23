@@ -69,14 +69,16 @@ class Student extends User
             throw new \InvalidArgumentException('An account with this student number already exists.');
         }
 
-        $stmt = $db->prepare("SELECT cohortID FROM Cohorts WHERE cohortID = ? LIMIT 1");
+        // The cohort name is also needed for the welcome email.
+        $stmt = $db->prepare("SELECT cohortID, cohortName FROM Cohorts WHERE cohortID = ? LIMIT 1");
         $stmt->execute([$cohortID]);
-        $cohortID = $stmt->fetchColumn();
-        if ($cohortID === false) {
+        $cohort = $stmt->fetch(\PDO::FETCH_ASSOC);
+        if ($cohort === false) {
             throw new \InvalidArgumentException(
                 'The selected cohort was not found. Please reload the page and select an available cohort.'
             );
         }
+        $cohortID = $cohort['cohortID'];
 
         $userID = $db->query("SELECT UUID()")->fetchColumn();
         if (!is_string($userID) || $userID === '') {
@@ -106,7 +108,14 @@ class Student extends User
             throw $e;
         }
 
-        return ['success' => true];
+        // Hand back what the controller needs to send the welcome email.
+        return [
+            'success' => true,
+            'email' => $email,
+            'firstName' => $firstName,
+            'lastName' => $lastName,
+            'cohortName' => $cohort['cohortName'],
+        ];
     }
 
     // Helpers

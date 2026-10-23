@@ -2,6 +2,7 @@
 
 namespace App\Controllers;
 
+use App\Helpers\Mailer;
 use App\Models\Student;
 
 class StudentController extends Controller
@@ -24,6 +25,14 @@ class StudentController extends Controller
             $result = Student::register($data);
 
             if ($result['success']) {
+                // The account is already saved, so a failed email is logged but doesn't fail the registration.
+                Mailer::sendRegistrationEmail(
+                    $result['email'],
+                    $result['firstName'],
+                    $result['lastName'],
+                    $result['cohortName']
+                );
+
                 // Keep the response shape consistent with the message shown by the form.
                 $this->jsonResponse(['message' => 'Student registered successfully.'], 201);
             } else {

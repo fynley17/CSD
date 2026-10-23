@@ -1,6 +1,7 @@
 {
     "require": {
-        "vlucas/phpdotenv": "^5.7"
+        "vlucas/phpdotenv": "^5.7",
+        "phpmailer/phpmailer": "^7.1"
     },
     "autoload": {
     "classmap": [
@@ -15,6 +16,7 @@
         "app/models/lecturer.php",
         "app/models/administrator.php",
         "app/helpers/authentication.php",
+        "app/helpers/mailer.php",
         "app/controllers/authController.php"
     ],
     "psr-4": {
