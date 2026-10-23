@@ -145,12 +145,6 @@ ALTER TABLE `Questions`
   ADD PRIMARY KEY (`questionID`),
   ADD KEY `idx_questions_subject` (`subjectID`);
 
-ALTER TABLE `TestQuestions`
-  ADD CONSTRAINT `fk_test_questions_test` FOREIGN KEY (`testID`)
-    REFERENCES `Tests` (`testID`) ON DELETE CASCADE ON UPDATE CASCADE,
-  ADD CONSTRAINT `fk_test_questions_question` FOREIGN KEY (`questionID`)
-    REFERENCES `Questions` (`questionID`) ON DELETE CASCADE ON UPDATE CASCADE;
-
 ALTER TABLE `StudentAnswers`
   ADD PRIMARY KEY (`completedID`,`questionID`),
   ADD KEY `idx_sa_question` (`questionID`),
@@ -219,6 +213,12 @@ ALTER TABLE `Students`
 
 ALTER TABLE `Subjects`
   ADD CONSTRAINT `fk_subjects_cohort` FOREIGN KEY (`cohortID`) REFERENCES `Cohorts` (`cohortID`) ON UPDATE CASCADE;
+
+ALTER TABLE `TestQuestions`
+  ADD CONSTRAINT `fk_test_questions_test` FOREIGN KEY (`testID`)
+    REFERENCES `Tests` (`testID`) ON DELETE CASCADE ON UPDATE CASCADE,
+  ADD CONSTRAINT `fk_test_questions_question` FOREIGN KEY (`questionID`)
+    REFERENCES `Questions` (`questionID`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 ALTER TABLE `Tests`
   ADD CONSTRAINT `fk_tests_creator` FOREIGN KEY (`createdBy`) REFERENCES `Lecturer` (`userID`) ON UPDATE CASCADE,
