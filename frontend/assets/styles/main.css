@@ -752,6 +752,7 @@ main {
     stroke-width: 2;
     stroke-linecap: round;
 }
+
 /* the info box's icon goes Royal Blue to match its edge
       it sits below the red icon rule, stylelint wants the more specific rule second */
 .loginForm [class~='alert-info'] .messageIcon {
