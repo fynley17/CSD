@@ -17,7 +17,7 @@
                     class="studentNavigation desktopStudentNavigation"
                     aria-label="Student navigation"
                 >
-                    <RouterLink to="/testing-selection">Tests</RouterLink>
+                    <RouterLink to="/test-selection">Tests</RouterLink>
                     <RouterLink to="/leaderboard">Leaderboard</RouterLink>
                     <RouterLink to="/student-results">Results</RouterLink>
                 </nav>
@@ -72,7 +72,7 @@
                         class="studentNavigation mobileStudentNavigation"
                         aria-label="Student navigation"
                     >
-                        <RouterLink to="/testing-selection" @click="menuOpen = false">Tests</RouterLink>
+                        <RouterLink to="/test-selection" @click="menuOpen = false">Tests</RouterLink>
                         <RouterLink to="/leaderboard" @click="menuOpen = false">Leaderboard</RouterLink>
                         <RouterLink to="/student-results" @click="menuOpen = false">Results</RouterLink>
                     </nav>

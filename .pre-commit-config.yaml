@@ -90,7 +90,8 @@ repos:
 
           - id: frontend-unit-tests
             name: Frontend unit tests
-            entry: frontend/node_modules/.bin/vitest run
+            entry: npm --prefix frontend test
             language: system
             files: ^frontend/.*\.(test|spec)\.(js|ts|vue)$
             stages: [pre-push]
+            pass_filenames: false
