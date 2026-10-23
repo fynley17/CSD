@@ -736,11 +736,6 @@ main {
     color: var(--colorText);
 }
 
-/* the info icon goes Royal Blue to match the edge, the error one further down stays red */
-.loginForm [class~='alert-info'] .messageIcon {
-    stroke: var(--colorBrand);
-}
-
 /* the message box takes focus when it appears so screen readers read it out, so it gets the outline too */
 .loginForm [class~='alert-danger']:focus-visible {
     outline: 3px solid var(--colorFocus);
@@ -756,6 +751,11 @@ main {
     stroke: var(--colorError);
     stroke-width: 2;
     stroke-linecap: round;
+}
+/* the info box's icon goes Royal Blue to match its edge
+      it sits below the red icon rule, stylelint wants the more specific rule second */
+.loginForm [class~='alert-info'] .messageIcon {
+    stroke: var(--colorBrand);
 }
 
 .loginForm .messageTitle {
