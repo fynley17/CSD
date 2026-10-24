@@ -360,7 +360,7 @@ main {
 }
 
 /* Mobile navigation */
-@media (max-width: 1199.98px) {
+@media (max-width: 767px) {
     .siteHeader {
         padding: 0 var(--spaceSm);
     }
