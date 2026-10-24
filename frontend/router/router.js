@@ -148,6 +148,12 @@ const router = createRouter({
         return { top: 0 };
     },
 });
+// where each account type is sent if they try a page that isn't theirs, their own dashboard
+const DASHBOARD_ROUTES = {
+    admin: 'administratorDashboard',
+    lecturer: 'lecturerDashboard',
+    student: 'studentDashboard',
+};
 
 // runs before every page change, private pages ask the backend who's logged in first
 // this is what stops the back button showing a private page after logging out
@@ -177,7 +183,7 @@ router.beforeEach(async (to) => {
 
     // logged in but the wrong account type for a non-student protected page
     if (to.meta.requiredRoles && !to.meta.requiredRoles.includes(user.accountType)) {
-        return { name: 'landingPage' };
+        return { name: DASHBOARD_ROUTES[user.accountType] || 'landingPage' };
     }
 
     return true;

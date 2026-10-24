@@ -51,7 +51,7 @@ describe('Router page guard', () => {
     });
 
     /**
-     * A lecturer trying to open an admin page gets sent to the landing page (error)
+     * A lecturer trying to open an admin page gets sent back to their own dashboard (error)
      */
     it('turns a lecturer away from lecturer management', async () => {
         // Arrange
@@ -62,7 +62,7 @@ describe('Router page guard', () => {
         const pageReached = router.currentRoute.value;
 
         // Assert
-        expect(pageReached.name).toBe('landingPage');
+        expect(pageReached.name).toBe('lecturerDashboard');
     });
 
     /**
