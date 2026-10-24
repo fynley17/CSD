@@ -118,19 +118,19 @@ const routes = [
         path: '/lecturer-management',
         name: 'lecturerManagement',
         component: LecturerManagement,
-        meta: { title: 'Lecturer management | RevisionHub', requiredRoles: ['admin'] },
+        meta: { title: 'Lecturer Management | RevisionHub', requiredRoles: ['admin'] },
     },
     {
         path: '/subject-management',
         name: 'subjectManagement',
         component: SubjectManagement,
-        meta: { title: 'Subject management | RevisionHub', requiredRoles: ['admin'] },
+        meta: { title: 'Subject Management | RevisionHub', requiredRoles: ['admin'] },
     },
     {
         path: '/cohort-management',
         name: 'cohortManagement',
         component: CohortManagement,
-        meta: { title: 'Cohort management | RevisionHub', requiredRoles: ['admin'] },
+        meta: { title: 'Cohort Management | RevisionHub', requiredRoles: ['admin'] },
     },
     // Send mistyped or retired URLs back to the public landing page.
     {
