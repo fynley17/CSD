@@ -12,39 +12,11 @@
                     <img src="../../assets/images/Logo.png" alt="RevisionHub home" class="siteLogo" />
                 </RouterLink>
 
-                <nav
-                    v-if="isStudent"
-                    class="studentNavigation desktopStudentNavigation"
-                    aria-label="Student navigation"
-                >
-                    <RouterLink to="/test-selection">Tests</RouterLink>
-                    <RouterLink to="/leaderboard">Leaderboard</RouterLink>
-                    <RouterLink to="/student-results">Results</RouterLink>
-                </nav>
-
-                <nav
-                    v-if="isLecturer"
-                    class="lecturerNavigation desktopLecturerNavigation"
-                    aria-label="Lecturer navigation"
-                >
-                    <RouterLink to="/lecturer-dashboard">Dashboard</RouterLink>
-                    <RouterLink to="/student-management">Students</RouterLink>
-                    <RouterLink to="/test-management">Tests</RouterLink>
-                    <RouterLink to="/question-management">Questions</RouterLink>
-                </nav>
-
-                <!-- an Administrator is a Lecturer too, so the admin links reuse the lecturer link styles -->
-                <nav
-                    v-if="isAdmin"
-                    class="lecturerNavigation desktopLecturerNavigation"
-                    aria-label="Administrator navigation"
-                >
-                    <RouterLink to="/lecturer-management">Lecturers</RouterLink>
-                    <RouterLink to="/subject-management">Subjects</RouterLink>
-                    <RouterLink to="/cohort-management">Cohorts</RouterLink>
-                    <RouterLink to="/student-management">Students</RouterLink>
-                    <RouterLink to="/test-management">Tests</RouterLink>
-                    <RouterLink to="/question-management">Questions</RouterLink>
+                <!-- the page links for whoever is logged in, the list is in NAVIGATION below -->
+                <nav v-if="navigation" :class="navigation.desktopClass" :aria-label="navigation.label">
+                    <RouterLink v-for="link in navigation.links" :key="link.path" :to="link.path">
+                        {{ link.text }}
+                    </RouterLink>
                 </nav>
 
                 <!-- Desktop navigation -->
@@ -86,40 +58,19 @@
 
                 <!-- Mobile dropdown -->
                 <div id="mobileNavigation" class="mobileNavigation" :class="{ isOpen: menuOpen }" :hidden="!menuOpen">
-                    <nav
-                        v-if="isStudent"
-                        class="studentNavigation mobileStudentNavigation"
-                        aria-label="Student navigation"
-                    >
-                        <RouterLink to="/test-selection" @click="menuOpen = false">Tests</RouterLink>
-                        <RouterLink to="/leaderboard" @click="menuOpen = false">Leaderboard</RouterLink>
-                        <RouterLink to="/student-results" @click="menuOpen = false">Results</RouterLink>
-                    </nav>
-                    <nav
-                        v-if="isLecturer"
-                        class="lecturerNavigation mobileLecturerNavigation"
-                        aria-label="Lecturer navigation"
-                    >
-                        <RouterLink to="/lecturer-dashboard" @click="menuOpen = false"> Dashboard </RouterLink>
-                        <RouterLink to="/student-management" @click="menuOpen = false"> Students </RouterLink>
-                        <RouterLink to="/test-management" @click="menuOpen = false"> Tests </RouterLink>
-                        <RouterLink to="/question-management" @click="menuOpen = false"> Questions </RouterLink>
-                    </nav>
                     <p v-if="isAdmin" class="accountBadge">
                         <i class="bi bi-person-circle" aria-hidden="true"></i>
                         Administrator
                     </p>
-                    <nav
-                        v-if="isAdmin"
-                        class="lecturerNavigation mobileLecturerNavigation"
-                        aria-label="Administrator navigation"
-                    >
-                        <RouterLink to="/lecturer-management" @click="menuOpen = false"> Lecturers </RouterLink>
-                        <RouterLink to="/subject-management" @click="menuOpen = false"> Subjects </RouterLink>
-                        <RouterLink to="/cohort-management" @click="menuOpen = false"> Cohorts </RouterLink>
-                        <RouterLink to="/student-management" @click="menuOpen = false"> Students </RouterLink>
-                        <RouterLink to="/test-management" @click="menuOpen = false"> Tests </RouterLink>
-                        <RouterLink to="/question-management" @click="menuOpen = false"> Questions </RouterLink>
+                    <nav v-if="navigation" :class="navigation.mobileClass" :aria-label="navigation.label">
+                        <RouterLink
+                            v-for="link in navigation.links"
+                            :key="link.path"
+                            :to="link.path"
+                            @click="menuOpen = false"
+                        >
+                            {{ link.text }}
+                        </RouterLink>
                     </nav>
                     <p v-if="authError" class="navbarError" role="alert">{{ authError }}</p>
                     <button
@@ -162,6 +113,47 @@ const isStudent = computed(() => currentUser.value?.accountType === 'student');
 let authRequest = 0;
 const isLecturer = computed(() => currentUser.value?.accountType === 'lecturer');
 const isAdmin = computed(() => currentUser.value?.accountType === 'admin');
+// the page links for each account type, the desktop header and the phone menu both read from here
+// so the two menus always match. An Administrator is a Lecturer too, so admins share the lecturer link styles
+const NAVIGATION = {
+    student: {
+        label: 'Student navigation',
+        desktopClass: 'studentNavigation desktopStudentNavigation',
+        mobileClass: 'studentNavigation mobileStudentNavigation',
+        links: [
+            { path: '/test-selection', text: 'Tests' },
+            { path: '/leaderboard', text: 'Leaderboard' },
+            { path: '/student-results', text: 'Results' },
+        ],
+    },
+    lecturer: {
+        label: 'Lecturer navigation',
+        desktopClass: 'lecturerNavigation desktopLecturerNavigation',
+        mobileClass: 'lecturerNavigation mobileLecturerNavigation',
+        links: [
+            { path: '/lecturer-dashboard', text: 'Dashboard' },
+            { path: '/student-management', text: 'Students' },
+            { path: '/test-management', text: 'Tests' },
+            { path: '/question-management', text: 'Questions' },
+        ],
+    },
+    admin: {
+        label: 'Administrator navigation',
+        desktopClass: 'lecturerNavigation desktopLecturerNavigation',
+        mobileClass: 'lecturerNavigation mobileLecturerNavigation',
+        links: [
+            { path: '/admin-dashboard', text: 'Dashboard' },
+            { path: '/lecturer-management', text: 'Lecturers' },
+            { path: '/subject-management', text: 'Subjects' },
+            { path: '/cohort-management', text: 'Cohorts' },
+            { path: '/student-management', text: 'Students' },
+            { path: '/test-management', text: 'Tests' },
+            { path: '/question-management', text: 'Questions' },
+        ],
+    },
+};
+// the links for whoever is logged in, null for a visitor or an unknown account type so no links show
+const navigation = computed(() => NAVIGATION[currentUser.value?.accountType] || null);
 const logoDestination = computed(() => {
     if (isLecturer.value) {
         return '/lecturer-dashboard';

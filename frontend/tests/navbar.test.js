@@ -56,7 +56,7 @@ describe('Navbar', () => {
      */
     it('shows the administrator links and label to an admin', async () => {
         // Arrange
-        // mockResolvedValue sets what the pretend getCurrentUser() hands back, here an admin account
+        // mockResolvedValue sets what the pretend getCurrentUser() hands back - here an admin account
         vi.mocked(getCurrentUser).mockResolvedValue({ username: 'adm01', accountType: 'admin' });
 
         // Act
@@ -64,6 +64,7 @@ describe('Navbar', () => {
 
         // Assert
         expect(desktopLinkNames(header)).toEqual([
+            'Dashboard',
             'Lecturers',
             'Subjects',
             'Cohorts',
@@ -89,6 +90,21 @@ describe('Navbar', () => {
         expect(desktopLinkNames(header)).toEqual(['Dashboard', 'Students', 'Tests', 'Questions']);
         expect(header.find('.accountBadge').exists()).toBe(false);
         expect(header.get('.navbar-brand').attributes('href')).toBe('/lecturer-dashboard');
+    });
+
+    /**
+     * A student keeps their own three links and no Administrator label (normal)
+     */
+    it('shows the student links to a student', async () => {
+        // Arrange
+        vi.mocked(getCurrentUser).mockResolvedValue({ username: 'ws000001', accountType: 'student' });
+
+        // Act
+        const header = await loadHeader();
+
+        // Assert
+        expect(desktopLinkNames(header)).toEqual(['Tests', 'Leaderboard', 'Results']);
+        expect(header.find('.accountBadge').exists()).toBe(false);
     });
 
     /**
