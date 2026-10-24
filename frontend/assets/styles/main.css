@@ -448,6 +448,23 @@ main {
     }
 }
 
+/* account icon and type next to Sign out, Royal Blue which matches nav links */
+.accountBadge {
+    display: flex;
+    align-items: center;
+    gap: var(--spaceXs);
+    margin: 0;
+    color: var(--colorBrand);
+    font-size: var(--fontSizeSmall);
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+/* lines the account icon up with the links in the hamburger menu */
+.mobileNavigation .accountBadge {
+    padding: 0 var(--spaceSm);
+}
+
 /* Shared footer */
 .siteFooter {
     width: 100%;

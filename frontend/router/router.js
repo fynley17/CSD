@@ -25,6 +25,10 @@ import StudentResults from '../views/studentResults.vue';
 import StudentManagement from '../views/studentManagement.vue';
 import TestManagement from '../views/testManagement.vue';
 import QuestionManagement from '../views/questionManagement.vue';
+// administrator pages, only admins get in
+import LecturerManagement from '../views/lecturerManagement.vue';
+import SubjectManagement from '../views/subjectManagement.vue';
+import CohortManagement from '../views/cohortManagement.vue';
 
 // Define the application routes
 const routes = [
@@ -96,19 +100,37 @@ const routes = [
         path: '/student-management',
         name: 'studentManagement',
         component: StudentManagement,
-        meta: { title: 'Student Management | RevisionHub', requiredRoles: ['lecturer'] },
+        meta: { title: 'Student Management | RevisionHub', requiredRoles: ['lecturer', 'admin'] },
     },
     {
         path: '/test-management',
         name: 'testManagement',
         component: TestManagement,
-        meta: { title: 'Test Management | RevisionHub', requiredRoles: ['lecturer'] },
+        meta: { title: 'Test Management | RevisionHub', requiredRoles: ['lecturer', 'admin'] },
     },
     {
         path: '/question-management',
         name: 'questionManagement',
         component: QuestionManagement,
-        meta: { title: 'Question Management | RevisionHub', requiredRoles: ['lecturer'] },
+        meta: { title: 'Question Management | RevisionHub', requiredRoles: ['lecturer', 'admin'] },
+    },
+    {
+        path: '/lecturer-management',
+        name: 'lecturerManagement',
+        component: LecturerManagement,
+        meta: { title: 'Lecturer management | RevisionHub', requiredRoles: ['admin'] },
+    },
+    {
+        path: '/subject-management',
+        name: 'subjectManagement',
+        component: SubjectManagement,
+        meta: { title: 'Subject management | RevisionHub', requiredRoles: ['admin'] },
+    },
+    {
+        path: '/cohort-management',
+        name: 'cohortManagement',
+        component: CohortManagement,
+        meta: { title: 'Cohort management | RevisionHub', requiredRoles: ['admin'] },
     },
     // Send mistyped or retired URLs back to the public landing page.
     {
