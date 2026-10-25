@@ -6,6 +6,7 @@ use App\Controllers\CohortController;
 use App\Controllers\AuthController;
 use App\Controllers\TestController;
 use App\Controllers\VerificationController;
+use App\Controllers\AdministratorController;
 
 $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
 $allowedOrigins = [
@@ -56,4 +57,10 @@ $router->addRoute('POST', '/^\\/api\\/login$/', [new AuthController(), 'login'])
 $router->addRoute('POST', '/^\\/api\\/logout$/', [new AuthController(), 'logout']);
 $router->addRoute('GET', '/^\\/api\\/current-user$/', [new AuthController(), 'currentUser']);
 
+// totals for the admin dashboard cards, admins only
+$router->addRoute(
+    'GET',
+    '/^\\/api\\/admin\\/dashboard-summary$/',
+    [new AdministratorController(), 'getDashboardSummary']
+);
 return $router;
