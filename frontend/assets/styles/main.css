@@ -106,6 +106,12 @@
     --colorWhyRevisionHubBackground: #eef3fb;
     --colorContactRevisionHubBackground: #f5f7ff;
     --fontSizeContactText: 0.95rem;
+
+    /* Testing page answer box colours */
+    --colorAnswerRed: #d13340;
+    --colorAnswerBlue: #3066c9;
+    --colorAnswerYellow: #a16207;
+    --colorAnswerGreen: #46892a;
 }
 
 /* Global layout and typography */
@@ -188,6 +194,11 @@ button:focus-visible {
 
 main {
     padding-top: var(--navHeight);
+}
+
+/* No navbar on full screen pages, so no space is reserved for it */
+main.appMainFullScreen {
+    padding-top: 0;
 }
 
 /* Shared header */
