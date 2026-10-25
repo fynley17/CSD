@@ -8,7 +8,6 @@ export default {
             cohortsLoading: true,
             cohortsError: '',
             formError: '',
-            successMessage: '',
             isSubmitting: false,
             termsAccepted: false,
             form: {
@@ -39,7 +38,6 @@ export default {
     methods: {
         async submitRegistration() {
             this.formError = '';
-            this.successMessage = '';
 
             if (!this.termsAccepted) {
                 this.formError = 'Please agree to the terms and conditions before registering.';
@@ -88,8 +86,13 @@ export default {
                 };
 
                 const response = await api.post('/register', payload);
-                this.successMessage = response.data?.message || 'Registration successful.';
                 this.resetForm();
+                // The next step is verifying the email, that page can resend the link or fix a mistyped address.
+                // notSent tells it the first email failed, so it can point them at the resend button.
+                this.$router.push({
+                    name: 'checkEmail',
+                    query: response.data?.emailSent === false ? { notSent: '1' } : {},
+                });
             } catch (error) {
                 this.formError =
                     error.response?.data?.error ||
@@ -129,9 +132,6 @@ export default {
             <form @submit.prevent="submitRegistration">
                 <div v-if="formError" class="alert alert-danger" role="alert">
                     {{ formError }}
-                </div>
-                <div v-if="successMessage" class="alert alert-success" role="alert">
-                    {{ successMessage }}
                 </div>
 
                 <!-- Keep related fields grouped while Bootstrap controls their responsive columns. -->
