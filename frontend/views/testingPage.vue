@@ -53,7 +53,7 @@
                 </div>
             </div>
 
-            <div class="testingScore d-flex align-items-center gap-4">
+            <div class="testingScore">
                 <p class="testingPoints">{{ points.toLocaleString('en-GB') }} <span>PTS</span></p>
                 <span class="streakPill">Streak <span aria-hidden="true">🔥</span> x{{ streak }}</span>
             </div>
@@ -154,13 +154,9 @@ onBeforeUnmount(() => clearInterval(timerID));
     justify-content: space-between;
     align-items: flex-start;
     gap: var(--spaceMd);
-    padding: clamp(var(--spaceSm), 2.5vh, var(--spaceLg)) var(--contentPadding);
+    padding: var(--spaceMd) var(--contentPadding);
     border-bottom: 1px solid var(--colorDivider);
     background: var(--colorSurface);
-}
-
-.testingHeader p {
-    margin: 0;
 }
 
 /* Small uppercase labels above the progress and timer values. */
@@ -170,6 +166,11 @@ onBeforeUnmount(() => clearInterval(timerID));
     font-weight: 600;
     letter-spacing: 0.02em;
     text-transform: uppercase;
+}
+
+.testingLabel,
+.testingProgress {
+    margin: 0;
 }
 
 .testingProgress {
@@ -184,7 +185,7 @@ onBeforeUnmount(() => clearInterval(timerID));
     display: inline-flex;
     align-items: center;
     gap: var(--spaceSm);
-    margin-top: var(--spaceXs) !important;
+    margin: var(--spaceXs) 0 0;
     padding: 0 var(--spaceSm);
     border: 1px solid var(--colorDivider);
     border-radius: var(--radiusSm);
@@ -197,7 +198,7 @@ onBeforeUnmount(() => clearInterval(timerID));
 }
 
 .testingTimer i {
-    font-size: 0.65em;
+    font-size: var(--fontSizeH3);
 }
 
 /* Question and answers share the leftover height, spaced evenly. */
@@ -207,17 +208,17 @@ onBeforeUnmount(() => clearInterval(timerID));
     min-height: 0;
     flex-direction: column;
     justify-content: space-evenly;
-    gap: clamp(var(--spaceMd), 4vh, var(--space2xl));
+    gap: var(--spaceXl);
     width: 100%;
     max-width: var(--contentMaxWidthLarge);
     margin: 0 auto;
-    padding: clamp(var(--spaceMd), 4vh, var(--space2xl)) var(--contentPadding);
+    padding: var(--spaceXl) var(--contentPadding);
     overflow-y: auto;
 }
 
 /* White card that matches the rest of the site's cards. */
 .questionBox {
-    padding: clamp(var(--spaceLg), 5vh, var(--space2xl)) clamp(var(--spaceMd), 3vw, var(--spaceXl));
+    padding: var(--space2xl) var(--spaceXl);
     border: 1px solid var(--colorDivider);
     border-radius: var(--radiusMd);
     background: var(--colorSurface);
@@ -239,15 +240,15 @@ onBeforeUnmount(() => clearInterval(timerID));
 .answerGrid {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: clamp(var(--spaceSm), 1.5vw, var(--spaceLg));
+    gap: var(--spaceMd);
 }
 
 .answerButton {
     display: flex;
     align-items: center;
-    gap: clamp(var(--spaceSm), 1.5vw, var(--spaceLg));
+    gap: var(--spaceLg);
     min-height: clamp(64px, 11vh, 110px);
-    padding: var(--spaceMd) clamp(var(--spaceMd), 2vw, var(--spaceLg));
+    padding: var(--spaceMd) var(--spaceLg);
     border: 0;
     border-radius: var(--radiusMd);
     box-shadow: var(--shadowCard);
@@ -310,7 +311,7 @@ onBeforeUnmount(() => clearInterval(timerID));
     justify-content: space-between;
     align-items: center;
     gap: var(--spaceMd);
-    padding: clamp(var(--spaceSm), 1.5vh, var(--spaceMd)) var(--contentPadding);
+    padding: var(--spaceSm) var(--contentPadding);
     border-top: 1px solid var(--colorDivider);
     background: var(--colorSurface);
 }
@@ -350,6 +351,13 @@ onBeforeUnmount(() => clearInterval(timerID));
     text-transform: uppercase;
 }
 
+/* Points and streak sit side by side, set here as bootstrap's gap utility uses !important. */
+.testingScore {
+    display: flex;
+    align-items: center;
+    gap: var(--spaceLg);
+}
+
 .testingPoints {
     color: var(--colorText);
     font-size: var(--fontSizeSmall);
@@ -381,18 +389,27 @@ onBeforeUnmount(() => clearInterval(timerID));
 
     .testingBody {
         justify-content: flex-start;
+        gap: var(--spaceLg);
+        padding-block: var(--spaceLg);
+    }
+
+    .questionBox {
+        padding: var(--spaceLg) var(--spaceMd);
     }
 
     .answerGrid {
         grid-template-columns: 1fr;
+        gap: var(--spaceSm);
     }
 
     .answerButton {
         min-height: 60px;
+        gap: var(--spaceMd);
+        padding-inline: var(--spaceMd);
     }
 
     .testingScore {
-        gap: var(--spaceMd) !important;
+        gap: var(--spaceMd);
     }
 }
 
@@ -438,6 +455,17 @@ onBeforeUnmount(() => clearInterval(timerID));
         width: var(--spaceXl);
         height: var(--spaceXl);
         font-size: var(--fontSizeBody);
+    }
+}
+
+/* Turn off the hover lift for people who have asked their device for less motion. */
+@media (prefers-reduced-motion: reduce) {
+    .answerButton {
+        transition: none;
+    }
+
+    .answerButton:hover {
+        transform: none;
     }
 }
 </style>
