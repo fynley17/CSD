@@ -4,10 +4,10 @@
         <div class="container-fluid">
             <section class="mb-4">
                 <h1 class="h2 fw-bold mb-1">Administrator Dashboard</h1>
-                <p class="text-secondary mb-0">Here's an overview of subjects and lecturers.</p>
+                <p class="mb-0">Here's an overview of subjects and lecturers.</p>
             </section>
 
-            <!-- only shows if PHP couldn't send the totals, the cards then show a dash instead of a number -->
+            <!-- only shows if PHP couldn't send the totals, the cards then show a dash -->
             <div v-if="summaryError" class="alert alert-danger" role="alert">
                 <strong>There is a problem:</strong> {{ summaryError }}
             </div>

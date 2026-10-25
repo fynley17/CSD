@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 // Tests for the admin dashboard cards, checks the four totals from PHP show on the right cards
-// and that a failed request shows a message instead of wrong numbers
+// and that a failed request shows a message and no numbers
 // each test is laid out Arrange (pick what PHP sends back), Act (open the page), Assert (check the cards)
 import { flushPromises, mount } from '@vue/test-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';

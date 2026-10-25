@@ -25,7 +25,9 @@ class Administrator extends Lecturer
                 (SELECT COUNT(*) FROM Users WHERE accountType = 'lecturer' AND isEnabled = 0) AS disabledLecturers
         ";
 
-        $row = self::getDB()->query($sql)->fetch(\PDO::FETCH_ASSOC);
+        $stmt = self::getDB()->prepare($sql);
+        $stmt->execute();
+        $row = $stmt->fetch(\PDO::FETCH_ASSOC);
 
         if ($row === false) {
             throw new \RuntimeException('The admin dashboard totals could not be read');

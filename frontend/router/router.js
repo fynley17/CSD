@@ -76,7 +76,7 @@ const routes = [
         name: 'administratorDashboard',
         component: AdministratorDashboard,
         // requiredRoles is read by the guard below, anyone else gets turned away
-        meta: { title: 'Administrator dashboard | RevisionHub', requiredRoles: ['admin'] },
+        meta: { title: 'Administrator Dashboard | RevisionHub', requiredRoles: ['admin'] },
     },
     {
         path: '/lecturer-dashboard',
