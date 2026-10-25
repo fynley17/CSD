@@ -12,6 +12,10 @@ import PrivacyPolicy from '../views/privacyPolicy.vue';
 import RegisterPage from '../views/registerPage.vue';
 // Import the Terms and conditions page and is displayed when users visit the terms and conditions URL
 import TermsAndConditions from '../views/termsAndConditions.vue';
+// shown after registering, lets the student resend the verification email or fix a mistyped address
+import CheckEmailPage from '../views/checkEmailPage.vue';
+// the link in the verification email opens this page
+import VerifyEmailPage from '../views/verifyEmailPage.vue';
 // one login page for every account type
 import LoginPage from '../views/loginPage.vue';
 // admin home page, only admins can open it
@@ -19,6 +23,7 @@ import AdministratorDashboard from '../views/administratorDashboard.vue';
 import LecturerDashboard from '../views/lecturerDashboard.vue';
 // student pages are protected by the requiredRoles check in the route guard
 import TestSelectionPage from '../views/testSelectionPage.vue';
+import TestingPage from '../views/testingPage.vue';
 import Leaderboard from '../views/leaderboard.vue';
 import StudentResults from '../views/studentResults.vue';
 // lecturer pages are protected by the requiredRoles check in the route guard
@@ -43,6 +48,18 @@ const routes = [
         name: 'register',
         // Loads the registration page, which contains the registration form.
         component: RegisterPage,
+    },
+    {
+        path: '/check-email',
+        name: 'checkEmail',
+        component: CheckEmailPage,
+        meta: { title: 'Check your email | RevisionHub' },
+    },
+    {
+        path: '/verify-email',
+        name: 'verifyEmail',
+        component: VerifyEmailPage,
+        meta: { title: 'Verify your email | RevisionHub' },
     },
     {
         path: '/terms',
@@ -79,6 +96,13 @@ const routes = [
         name: 'testSelection',
         component: TestSelectionPage,
         meta: { title: 'Test Selection | RevisionHub', requiredRoles: ['student'], studentOnly: true },
+    },
+    {
+        path: '/testing',
+        name: 'testing',
+        component: TestingPage,
+        // hideLayout tells app.vue to drop the navbar and footer so the test fills the screen
+        meta: { title: 'Test | RevisionHub', requiredRoles: ['student'], studentOnly: true, hideLayout: true },
     },
     {
         path: '/leaderboard',
@@ -127,6 +151,13 @@ const router = createRouter({
     },
 });
 
+// the dashboard each account type is sent to when it opens a page it can't use
+const dashboardRoutes = {
+    admin: 'administratorDashboard',
+    lecturer: 'lecturerDashboard',
+    student: 'testSelection',
+};
+
 // runs before every page change, private pages ask the backend who's logged in first
 // this is what stops the back button showing a private page after logging out
 router.beforeEach(async (to) => {
@@ -144,9 +175,15 @@ router.beforeEach(async (to) => {
         user = null;
     }
 
-    // Student pages require a student session, not simply any signed-in account.
-    if (to.meta.studentOnly && user?.accountType !== 'student') {
-        return { name: 'login', query: { redirect: to.fullPath } };
+    // Student pages send signed-out visitors to the landing page and any other
+    // account type back to their own dashboard.
+    if (to.meta.studentOnly) {
+        if (user === null) {
+            return { name: 'landingPage' };
+        }
+        if (user.accountType !== 'student') {
+            return { name: dashboardRoutes[user.accountType] || 'landingPage' };
+        }
     }
 
     if (user === null) {

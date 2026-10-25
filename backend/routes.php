@@ -6,6 +6,7 @@ use App\Controllers\CohortController;
 use App\Controllers\AuthController;
 use App\Controllers\LecturerController;
 use App\Controllers\TestController;
+use App\Controllers\VerificationController;
 
 $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
 $allowedOrigins = [
@@ -44,6 +45,12 @@ $router->addRoute('POST', '/^\\/api\\/register$/', [new StudentController(), 're
 $router->addRoute('GET', '/^\\/api\\/cohorts$/', [new CohortController(), 'getAllCohorts']);
 // Provide tests with assigned questions to authenticated students.
 $router->addRoute('GET', '/^\\/api\\/tests$/', [new TestController(), 'getAvailableTests']);
+
+// email verification, used by the check your email and verify email pages
+$router->addRoute('POST', '/^\\/api\\/verify-email$/', [new VerificationController(), 'verifyEmail']);
+$router->addRoute('GET', '/^\\/api\\/pending-verification$/', [new VerificationController(), 'getPendingVerification']);
+$router->addRoute('POST', '/^\\/api\\/resend-verification$/', [new VerificationController(), 'resendVerification']);
+$router->addRoute('POST', '/^\\/api\\/change-email$/', [new VerificationController(), 'changeEmail']);
 
 // login, logout and session check
 $router->addRoute('POST', '/^\\/api\\/login$/', [new AuthController(), 'login']);

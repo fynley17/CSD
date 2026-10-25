@@ -11,7 +11,7 @@ namespace App\Models;
 abstract class User extends Model
 {
     // the Users columns login needs, kept in one place so both searches match
-    private const COLUMNS = 'userID, username, password, accountType, approvalStatus, isEnabled';
+    private const COLUMNS = 'userID, username, password, accountType, approvalStatus, isEnabled, isEmailVerified';
 
     // private so nothing outside this class can change them
     private string $userID;
@@ -20,6 +20,7 @@ abstract class User extends Model
     private string $accountType;
     private string $approvalStatus;
     private bool $isEnabled;
+    private bool $isEmailVerified;
 
     /**
      * Fills in the shared details from a row of the Users table, used by Student, Lecturer and Administrator.
@@ -33,6 +34,7 @@ abstract class User extends Model
         $this->approvalStatus = $row['approvalStatus'];
         // the database gives 1 or 0, this turns it into true or false
         $this->isEnabled = (bool) $row['isEnabled'];
+        $this->isEmailVerified = (bool) $row['isEmailVerified'];
     }
 
     /**
@@ -112,6 +114,14 @@ abstract class User extends Model
     public function isPending(): bool
     {
         return $this->approvalStatus === 'pending';
+    }
+
+    /**
+     * True once they've clicked the link in their verification email
+     */
+    public function isEmailVerified(): bool
+    {
+        return $this->isEmailVerified;
     }
 
     /**

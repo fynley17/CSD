@@ -16,6 +16,7 @@ class AuthController extends Controller
     // messages the user sees, using house style section 7, the page adds "There is a problem:" in front
     private const MISSING_DETAILS = 'Enter your username and password';
     private const WRONG_DETAILS = 'Username or password is incorrect';
+    private const EMAIL_NOT_VERIFIED = 'You need to verify your email address before you can login';
     private const ACCOUNT_PENDING = 'Your account is waiting for lecturer approval. '
         . 'You will get an email when it is ready';
     private const ACCOUNT_DISABLED = 'Your account has been disabled. Contact your lecturer or an administrator';
@@ -40,7 +41,12 @@ class AuthController extends Controller
                 $this->jsonResponse(['error' => self::WRONG_DETAILS], 401);
             }
 
-            // these two only get checked once the password is right, a stranger never sees them
+            // these only get checked once the password is right, a stranger never sees them
+            // an unverified email comes first, the page sends them to check your email to resend or fix it
+            if (!$user->isEmailVerified()) {
+                Authentication::savePendingVerification($user->getUserID());
+                $this->jsonResponse(['error' => self::EMAIL_NOT_VERIFIED, 'emailNotVerified' => true], 403);
+            }
             if ($user->isPending()) {
                 $this->jsonResponse(['error' => self::ACCOUNT_PENDING], 403);
             }
