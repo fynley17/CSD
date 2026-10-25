@@ -40,6 +40,13 @@ final class TestModelTest extends TestCase
             )'
         );
         $this->db->exec('CREATE TABLE TestQuestions (testID TEXT NOT NULL, questionID TEXT NOT NULL)');
+        $this->db->exec(
+            'CREATE TABLE CompletedTests (
+                testID TEXT NOT NULL,
+                userID TEXT NOT NULL,
+                percentageCorrect REAL NOT NULL
+            )'
+        );
 
         $this->db->exec(
             "INSERT INTO Subjects VALUES
@@ -120,6 +127,26 @@ final class TestModelTest extends TestCase
         self::assertNotContains('other-cohort-test', $testIDs);
         self::assertNotContains('answerID', array_keys($tests[0]));
         self::assertNotContains('isCorrect', array_keys($tests[0]));
+    }
+
+    public function testHidesTestsTheStudentHasFullMarksOn(): void
+    {
+        // a lower score keeps the test available, full marks removes it for that student only
+        $this->db->exec(
+            "INSERT INTO CompletedTests VALUES
+                ('untimed-test', 'student-user-1', 50),
+                ('test-with-questions', 'student-user-1', 50),
+                ('test-with-questions', 'student-user-1', 100),
+                ('other-cohort-test', 'student-user-1', 100)"
+        );
+
+        $testIDs = array_column(Test::getAvailableForStudents('student-user-1'), 'testID');
+
+        self::assertSame(['untimed-test'], $testIDs);
+        self::assertSame(
+            ['other-cohort-test'],
+            array_column(Test::getAvailableForStudents('student-user-2'), 'testID')
+        );
     }
 
     public function testReturnsOnlyTestsForTheLoggedInStudentsCohort(): void

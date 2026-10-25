@@ -63,6 +63,12 @@
                 <span>({{ formatPercentage(result.percentageCorrect) }})</span>
             </p>
 
+            <!-- full marks finishes the test, the backend stops it being taken again -->
+            <p v-if="hasFullMarks" class="fullMarksNote">
+                <i class="bi bi-trophy-fill" aria-hidden="true"></i>
+                Full marks! This test is complete and has been removed from your tests.
+            </p>
+
             <dl class="introDetails">
                 <div>
                     <dt>Points earned</dt>
@@ -228,6 +234,8 @@ const formattedTime = computed(() => {
     const seconds = secondsRemaining.value % 60;
     return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 });
+
+const hasFullMarks = computed(() => result.value !== null && result.value.correctCount === result.value.questionCount);
 
 // The most questions answered correctly in a row.
 const bestStreak = computed(() => {
@@ -515,6 +523,19 @@ onBeforeUnmount(stopTimer);
 .resultsMark span {
     color: var(--colorTextSecondary);
     font-size: var(--fontSizeH3);
+}
+
+.fullMarksNote {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: var(--spaceSm);
+    margin: var(--spaceMd) 0 0;
+    padding: var(--spaceSm) var(--spaceMd);
+    border-radius: var(--radiusSm);
+    background: var(--colorSuccessLight);
+    color: var(--colorSuccess);
+    font-weight: 700;
 }
 
 .reviewTitle {

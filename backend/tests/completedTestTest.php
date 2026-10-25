@@ -174,6 +174,21 @@ final class CompletedTestTest extends TestCase
         self::assertEquals(2, $this->db->query('SELECT COUNT(*) FROM CompletedTests')->fetchColumn());
     }
 
+    public function testCannotOpenOrRetakeATestAfterFullMarks(): void
+    {
+        $answers = ['question-1' => 'a1', 'question-2' => 'b1', 'question-3' => 'c1'];
+        $result = CompletedTest::submit('student-1', 'test-1', $answers);
+        self::assertEquals(100, $result['percentageCorrect']);
+
+        // a second tab or a typed URL can't earn the points again
+        self::assertNull(Test::getForStudent('test-1', 'student-1'));
+        self::assertNull(CompletedTest::submit('student-1', 'test-1', $answers));
+
+        self::assertEquals(1, $this->db->query('SELECT COUNT(*) FROM CompletedTests')->fetchColumn());
+        $points = $this->db->query("SELECT points FROM Students WHERE userID = 'student-1'")->fetchColumn();
+        self::assertEquals(190, $points);
+    }
+
     public function testRejectsAnAnswerFromADifferentQuestion(): void
     {
         $this->expectException(\InvalidArgumentException::class);

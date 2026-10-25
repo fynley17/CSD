@@ -150,6 +150,7 @@ describe('TestingPage', () => {
         expect(submitTest).toHaveBeenCalledWith('test-1', { 'question-1': 'a1', 'question-2': 'b2' });
         expect(wrapper.get('.resultsMark').text()).toContain('1/2');
         expect(wrapper.text()).toContain('+20 PTS');
+        expect(wrapper.find('.fullMarksNote').exists()).toBe(false);
 
         // the wrong answer is shown alongside the correct one
         const wrongQuestion = wrapper.findAll('.reviewQuestion')[1];
@@ -157,6 +158,21 @@ describe('TestingPage', () => {
         expect(wrongQuestion.get('.reviewAnswerCorrect').text()).toContain('rem');
         expect(wrongQuestion.get('.reviewAnswerCorrect').text()).toContain('Correct answer');
         expect(wrongQuestion.get('.reviewAnswerWrong').text()).toContain('Your answer');
+    });
+
+    it('tells the student a full marks test is complete and removed from their tests', async () => {
+        const fullMarks = structuredClone(result);
+        fullMarks.correctCount = 2;
+        fullMarks.questions[1].isCorrect = true;
+        submitTest.mockResolvedValue(fullMarks);
+        const wrapper = await mountPage();
+
+        await wrapper.get('.testingPrimaryButton').trigger('click');
+        await wrapper.findAll('.answerButton')[0].trigger('click');
+        await wrapper.findAll('.answerButton')[0].trigger('click');
+        await flushPromises();
+
+        expect(wrapper.get('.fullMarksNote').text()).toContain('removed from your tests');
     });
 
     it('hands the test in when the timer runs out, unanswered questions as null', async () => {

@@ -4,11 +4,22 @@ namespace App\Models;
 
 class Test extends Model
 {
+    // True once the student (the ?) has got full marks on test t. That test is then finished
+    // for them, so it can't be retaken over and over to keep earning points.
+    private const FULL_MARKS_ATTEMPT = "EXISTS (
+                SELECT 1
+                FROM CompletedTests AS ct
+                WHERE ct.testID = t.testID
+                    AND ct.userID = ?
+                    AND ct.percentageCorrect >= 100
+            )";
+
     /**
      * Returns the tests a student can view and start.
      *
      * The query filters by cohort and only includes tests with assigned
-     * questions, so empty or irrelevant assessments are not shown.
+     * questions, so empty or irrelevant assessments are not shown. Tests the
+     * student already has full marks on are left out too.
      */
     public static function getAvailableForStudents(string $userID): array
     {
@@ -45,9 +56,10 @@ class Test extends Model
                 FROM TestQuestions AS tq
                 WHERE tq.testID = t.testID
             )
+            AND NOT " . self::FULL_MARKS_ATTEMPT . "
             ORDER BY t.dueDate IS NULL, t.dueDate, t.testName"
         );
-        $stmt->execute([$userID]);
+        $stmt->execute([$userID, $userID]);
 
         // Normalise the SQL output to the types the front end expects.
         $tests = $stmt->fetchAll(\PDO::FETCH_ASSOC);
@@ -66,7 +78,8 @@ class Test extends Model
      * isCorrect is never selected here, so the correct answers can't be read in the
      * browser while the test is running. They're only sent back once it's marked.
      *
-     * @return array|null null if the test isn't in the student's cohort or has no questions
+     * @return array|null null if the test isn't in the student's cohort, has no questions,
+     *                    or the student already has full marks on it
      */
     public static function getForStudent(string $testID, string $userID): ?array
     {
@@ -79,9 +92,10 @@ class Test extends Model
             FROM Tests AS t
             INNER JOIN Subjects AS s ON s.subjectID = t.subjectID
             INNER JOIN Students AS student ON student.cohortID = s.cohortID
-            WHERE t.testID = ? AND student.userID = ?"
+            WHERE t.testID = ? AND student.userID = ?
+            AND NOT " . self::FULL_MARKS_ATTEMPT
         );
-        $stmt->execute([$testID, $userID]);
+        $stmt->execute([$testID, $userID, $userID]);
         $test = $stmt->fetch(\PDO::FETCH_ASSOC);
 
         if ($test === false) {
