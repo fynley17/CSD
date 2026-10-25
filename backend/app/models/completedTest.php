@@ -98,6 +98,22 @@ class CompletedTest extends Model
                 ]);
             }
 
+            // Work out each question's percentageCorrect again from every answer saved for it,
+            // so it's always right rather than drifting. Unanswered ones (the timer ran out
+            // before the student saw them) don't count. 100.0 stops SQLite rounding down to 0 in tests.
+            $stmt = $db->prepare(
+                'UPDATE Questions SET percentageCorrect = COALESCE((
+                    SELECT ROUND(100.0 * SUM(a.isCorrect) / COUNT(*))
+                    FROM StudentAnswers AS sa
+                    INNER JOIN Answers AS a ON a.answerID = sa.selectedAnswerID
+                    WHERE sa.questionID = Questions.questionID
+                ), 0)
+                WHERE questionID = ?'
+            );
+            foreach ($markedQuestions as $markedQuestion) {
+                $stmt->execute([$markedQuestion['questionID']]);
+            }
+
             // the running total the leaderboard uses, it can go negative
             $stmt = $db->prepare('UPDATE Students SET points = points + ? WHERE userID = ?');
             $stmt->execute([$pointsEarned, $userID]);

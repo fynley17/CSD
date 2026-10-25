@@ -27,7 +27,13 @@ final class CompletedTestTest extends TestCase
         $this->db->exec(
             'CREATE TABLE Students (userID TEXT PRIMARY KEY, cohortID TEXT NOT NULL, points INTEGER NOT NULL DEFAULT 0)'
         );
-        $this->db->exec('CREATE TABLE Questions (questionID TEXT PRIMARY KEY, question TEXT NOT NULL)');
+        $this->db->exec(
+            'CREATE TABLE Questions (
+                questionID TEXT PRIMARY KEY,
+                question TEXT NOT NULL,
+                percentageCorrect INTEGER NOT NULL DEFAULT 0
+            )'
+        );
         $this->db->exec(
             'CREATE TABLE TestQuestions (
                 testID TEXT NOT NULL,
@@ -69,7 +75,7 @@ final class CompletedTestTest extends TestCase
             "INSERT INTO Subjects VALUES ('subject-1', 'Web Apps', 'cohort-1');
              INSERT INTO Students VALUES ('student-1', 'cohort-1', 100), ('student-2', 'cohort-2', 0);
              INSERT INTO Tests VALUES ('test-1', 'Web Apps Test', 'Review', 5, 'subject-1');
-             INSERT INTO Questions VALUES
+             INSERT INTO Questions (questionID, question) VALUES
                 ('question-1', 'What is not a JS framework?'),
                 ('question-2', 'What does HTML stand for?'),
                 ('question-3', 'Which is a CSS unit?');
@@ -150,6 +156,36 @@ final class CompletedTestTest extends TestCase
 
         $points = $this->db->query("SELECT points FROM Students WHERE userID = 'student-1'")->fetchColumn();
         self::assertEquals(120, $points);
+    }
+
+    public function testUpdatesEachQuestionsPercentageCorrectAcrossAttempts(): void
+    {
+        // student-2's cohort can see the test too for this check
+        $this->db->exec("UPDATE Students SET cohortID = 'cohort-1' WHERE userID = 'student-2'");
+
+        CompletedTest::submit('student-1', 'test-1', ['question-1' => 'a1', 'question-2' => 'b2']);
+        self::assertSame(['question-1' => 100, 'question-2' => 0, 'question-3' => 0], $this->percentages());
+
+        // 1 of 2 right for question-1, 1 of 2 for question-2, 2 of 3 for question-3,
+        // and the unanswered question-3 from the first attempt isn't counted
+        CompletedTest::submit(
+            'student-2',
+            'test-1',
+            ['question-1' => 'a2', 'question-2' => 'b1', 'question-3' => 'c1']
+        );
+        CompletedTest::submit('student-2', 'test-1', ['question-3' => 'c1']);
+        CompletedTest::submit('student-1', 'test-1', ['question-3' => 'c2']);
+
+        self::assertSame(['question-1' => 50, 'question-2' => 50, 'question-3' => 67], $this->percentages());
+    }
+
+    /**
+     * @return array<string, int> questionID => percentageCorrect
+     */
+    private function percentages(): array
+    {
+        $rows = $this->db->query('SELECT questionID, percentageCorrect FROM Questions ORDER BY questionID');
+        return array_map('intval', $rows->fetchAll(\PDO::FETCH_KEY_PAIR));
     }
 
     public function testMissingAnswersCountAsUnanswered(): void
