@@ -30,10 +30,7 @@
                 </div>
             </dl>
 
-            <div class="testCardActions mt-auto">
-                <button type="button" class="btn testCardDetailsButton" @click="$emit('details', test)">Details</button>
-                <button type="button" class="btn testCardStartButton" @click="$emit('start', test)">Start test</button>
-            </div>
+            <button type="button" class="btn testCardStartButton" @click="$emit('start', test)">Start Test</button>
         </div>
     </article>
 </template>
@@ -42,7 +39,6 @@
 import { computed } from 'vue';
 
 // The card shows the key information a student needs to decide whether to
-// view details or begin the assessment.
 const props = defineProps({
     // Keep the prop contract strict so the component gets the expected data
     // shape.
@@ -56,7 +52,7 @@ const props = defineProps({
     },
 });
 
-defineEmits(['details', 'start']);
+defineEmits(['start']);
 
 // Only show the time limit when it is a positive value.
 const hasTimeLimit = computed(() => Number.isInteger(props.test.timeLimit) && props.test.timeLimit > 0);
@@ -145,21 +141,8 @@ const dueDate = computed(() => {
     gap: var(--spaceSm);
 }
 
-.testCardDetailsButton,
 .testCardStartButton {
     min-height: var(--minTouchTarget);
-}
-
-.testCardDetailsButton {
-    border-color: var(--colorDivider);
-    background: var(--colorDisabled);
-    color: var(--colorText);
-}
-
-.testCardDetailsButton:hover {
-    border-color: var(--colorDivider);
-    background: var(--colorDivider);
-    color: var(--colorText);
 }
 
 .testCardStartButton {
