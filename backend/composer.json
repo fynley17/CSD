@@ -18,7 +18,7 @@
         "app/models/test.php",
         "app/helpers/authentication.php",
         "app/controllers/authController.php",
-        "app/controllers/lecturerController.php"
+        "app/controllers/lecturerController.php",
         "app/helpers/mailer.php",
         "app/controllers/authController.php",
         "app/controllers/verificationController.php",
