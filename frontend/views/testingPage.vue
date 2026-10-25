@@ -1,5 +1,6 @@
 <template>
     <section class="testingPage" aria-labelledby="questionText">
+        <!-- Progress through the test and the countdown timer -->
         <header class="testingHeader">
             <div>
                 <p class="testingLabel">Progress</p>
@@ -17,11 +18,13 @@
             </div>
         </header>
 
+        <!-- The current question and its answer options -->
         <div class="testingBody">
             <div class="questionBox">
                 <h1 id="questionText" class="questionText">{{ currentQuestion.question }}</h1>
             </div>
 
+            <!-- aria-pressed tells screen readers which answer is currently chosen -->
             <div class="answerGrid">
                 <button
                     v-for="(answer, index) in currentQuestion.answers"
@@ -40,6 +43,7 @@
             </div>
         </div>
 
+        <!-- Test details on the left, the student's points and streak on the right -->
         <footer class="testingFooter">
             <div class="d-flex align-items-center gap-3">
                 <span class="testIcon" aria-hidden="true"><i class="bi bi-controller"></i></span>
@@ -49,8 +53,8 @@
                 </div>
             </div>
 
-            <div class="d-flex align-items-center gap-4">
-                <p class="testingPoints">{{ points.toLocaleString() }} <span>PTS</span></p>
+            <div class="testingScore d-flex align-items-center gap-4">
+                <p class="testingPoints">{{ points.toLocaleString('en-GB') }} <span>PTS</span></p>
                 <span class="streakPill">Streak <span aria-hidden="true">🔥</span> x{{ streak }}</span>
             </div>
         </footer>
@@ -65,6 +69,7 @@ import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 const test = {
     testName: 'Webapps basics',
     subjectName: 'Webapps',
+    // time limit in minutes, the same unit the Tests table uses
     timeLimit: 5,
 };
 
@@ -90,6 +95,7 @@ const answerStyles = [
     { className: 'answerGreen', icon: 'bi-square-fill' },
 ];
 
+// Where the student is in the test and what they have chosen so far.
 const currentIndex = ref(0);
 const selectedAnswerID = ref(null);
 const points = ref(0);
@@ -97,6 +103,7 @@ const streak = ref(0);
 const secondsRemaining = ref(test.timeLimit * 60);
 
 const currentQuestion = computed(() => questions[currentIndex.value]);
+// questions are numbered from 1 for students, the array starts at 0
 const currentQuestionNumber = computed(() => currentIndex.value + 1);
 
 // Show the countdown as mm:ss.
@@ -106,12 +113,14 @@ const formattedTime = computed(() => {
     return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 });
 
+// Remember the chosen answer, scoring happens once the questions endpoint exists.
 function selectAnswer(answer) {
     selectedAnswerID.value = answer.answerID;
 }
 
 let timerID;
 
+// Count down once a second and stop at zero.
 onMounted(() => {
     timerID = setInterval(() => {
         if (secondsRemaining.value > 0) {
@@ -122,6 +131,7 @@ onMounted(() => {
     }, 1000);
 });
 
+// Stop the timer if the student leaves the page so it doesn't keep running.
 onBeforeUnmount(() => clearInterval(timerID));
 </script>
 
@@ -134,7 +144,7 @@ onBeforeUnmount(() => clearInterval(timerID));
     height: 100dvh;
     flex-direction: column;
     overflow: hidden;
-    background: var(--colorSurface);
+    background: var(--colorPageBackground);
 }
 
 /* Progress and timer sit above the question. */
@@ -144,40 +154,45 @@ onBeforeUnmount(() => clearInterval(timerID));
     justify-content: space-between;
     align-items: flex-start;
     gap: var(--spaceMd);
-    padding: clamp(0.75rem, 2.5vh, 1.5rem) 6% clamp(0.5rem, 1.5vh, 1rem);
-    border-bottom: 1px solid var(--colorText);
+    padding: clamp(var(--spaceSm), 2.5vh, var(--spaceLg)) var(--contentPadding);
+    border-bottom: 1px solid var(--colorDivider);
+    background: var(--colorSurface);
 }
 
 .testingHeader p {
     margin: 0;
 }
 
+/* Small uppercase labels above the progress and timer values. */
 .testingLabel {
     color: var(--colorTextSecondary);
-    font-size: clamp(0.6875rem, 1.2vw, var(--fontSizeSmall));
+    font-size: var(--fontSizeSmall);
     font-weight: 600;
     letter-spacing: 0.02em;
     text-transform: uppercase;
 }
 
 .testingProgress {
-    padding: var(--spaceSm) 0 0 clamp(0rem, 2.5vw, var(--spaceXl));
-    color: var(--colorTextSecondary);
-    font-size: clamp(1rem, 1.8vw, var(--fontSizeH3));
+    padding-top: var(--spaceXs);
+    color: var(--colorText);
+    font-size: var(--fontSizeH3);
     font-weight: 700;
 }
 
+/* tabular-nums stops the digits shifting width as the timer counts down. */
 .testingTimer {
     display: inline-flex;
     align-items: center;
     gap: var(--spaceSm);
-    margin-top: var(--spaceSm) !important;
-    padding: 0 var(--spaceXs);
-    border: 1px solid var(--colorText);
-    color: var(--colorText);
-    font-size: clamp(1.5rem, 3.2vw, 2.25rem);
-    font-weight: 800;
-    line-height: 1.1;
+    margin-top: var(--spaceXs) !important;
+    padding: 0 var(--spaceSm);
+    border: 1px solid var(--colorDivider);
+    border-radius: var(--radiusSm);
+    background: var(--colorSurfaceAlt);
+    color: var(--colorBrand);
+    font-size: var(--fontSizeStat);
+    font-weight: 700;
+    line-height: 1.2;
     font-variant-numeric: tabular-nums;
 }
 
@@ -192,27 +207,30 @@ onBeforeUnmount(() => clearInterval(timerID));
     min-height: 0;
     flex-direction: column;
     justify-content: space-evenly;
-    gap: clamp(1rem, 4vh, 3rem);
+    gap: clamp(var(--spaceMd), 4vh, var(--space2xl));
     width: 100%;
     max-width: var(--contentMaxWidthLarge);
     margin: 0 auto;
-    padding: clamp(1rem, 4vh, 3rem) 6%;
+    padding: clamp(var(--spaceMd), 4vh, var(--space2xl)) var(--contentPadding);
     overflow-y: auto;
 }
 
+/* White card that matches the rest of the site's cards. */
 .questionBox {
-    padding: clamp(1.25rem, 5vh, 3rem) clamp(1rem, 3vw, 2rem);
-    border-radius: clamp(12px, 1.5vw, 20px);
+    padding: clamp(var(--spaceLg), 5vh, var(--space2xl)) clamp(var(--spaceMd), 3vw, var(--spaceXl));
+    border: 1px solid var(--colorDivider);
+    border-radius: var(--radiusMd);
     background: var(--colorSurface);
-    box-shadow: 0 8px 20px rgba(17, 24, 39, 0.25);
+    box-shadow: var(--shadowModal);
     text-align: center;
 }
 
+/* Uses the heading font and brand colour like the other page headings. */
 .questionText {
     margin: 0;
-    color: var(--colorText);
-    font-family: var(--fontBody);
-    font-size: clamp(1.25rem, 2.4vw, 2rem);
+    color: var(--colorBrand);
+    font-family: var(--fontHeading);
+    font-size: var(--fontSizeH2);
     font-weight: 700;
     overflow-wrap: anywhere;
 }
@@ -221,20 +239,21 @@ onBeforeUnmount(() => clearInterval(timerID));
 .answerGrid {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: clamp(0.75rem, 1.5vw, 1.25rem);
+    gap: clamp(var(--spaceSm), 1.5vw, var(--spaceLg));
 }
 
 .answerButton {
     display: flex;
     align-items: center;
-    gap: clamp(0.75rem, 1.5vw, 1.25rem);
+    gap: clamp(var(--spaceSm), 1.5vw, var(--spaceLg));
     min-height: clamp(64px, 11vh, 110px);
-    padding: var(--spaceMd) clamp(1rem, 2vw, 1.5rem);
+    padding: var(--spaceMd) clamp(var(--spaceMd), 2vw, var(--spaceLg));
     border: 0;
-    border-radius: 14px;
-    box-shadow: 0 4px 8px rgba(17, 24, 39, 0.15);
+    border-radius: var(--radiusMd);
+    box-shadow: var(--shadowCard);
     color: var(--colorSurface);
-    font-size: clamp(1.1rem, 1.8vw, 1.5rem);
+    font-family: var(--fontBody);
+    font-size: var(--fontSizeH3);
     font-weight: 700;
     text-align: left;
     overflow-wrap: anywhere;
@@ -248,38 +267,40 @@ onBeforeUnmount(() => clearInterval(timerID));
     transform: translateY(-2px);
 }
 
+/* Outline the chosen answer in the same colour as the site's focus ring. */
 .answerButton[aria-pressed='true'] {
-    outline: 4px solid var(--colorText);
+    outline: 4px solid var(--colorFocus);
     outline-offset: 3px;
 }
 
+/* White outlined square around each shape icon. */
 .answerIcon {
     display: inline-flex;
     flex-shrink: 0;
     justify-content: center;
     align-items: center;
-    width: clamp(38px, 4vw, 50px);
-    height: clamp(38px, 4vw, 50px);
+    width: var(--minTouchTarget);
+    height: var(--minTouchTarget);
     border-radius: var(--radiusMd);
-    background: rgba(255, 255, 255, 0.15);
-    font-size: clamp(1.1rem, 2vw, 1.5rem);
+    border: 2px solid var(--colorSurface);
+    font-size: var(--fontSizeH3);
 }
 
+/* Answer colours are set in main.css. */
 .answerRed {
-    background: #d13340;
+    background: var(--colorAnswerRed);
 }
 
 .answerBlue {
-    background: #3066c9;
+    background: var(--colorAnswerBlue);
 }
 
-/* Darker than a pure yellow so the white text stays readable. */
 .answerYellow {
-    background: #b8861f;
+    background: var(--colorAnswerYellow);
 }
 
 .answerGreen {
-    background: #46892a;
+    background: var(--colorAnswerGreen);
 }
 
 /* Test details, points and streak along the bottom. */
@@ -289,8 +310,9 @@ onBeforeUnmount(() => clearInterval(timerID));
     justify-content: space-between;
     align-items: center;
     gap: var(--spaceMd);
-    padding: clamp(0.5rem, 1.5vh, 1rem) 4%;
-    border-top: 1px solid var(--colorText);
+    padding: clamp(var(--spaceSm), 1.5vh, var(--spaceMd)) var(--contentPadding);
+    border-top: 1px solid var(--colorDivider);
+    background: var(--colorSurface);
 }
 
 .testingFooter p {
@@ -302,16 +324,17 @@ onBeforeUnmount(() => clearInterval(timerID));
     flex-shrink: 0;
     justify-content: center;
     align-items: center;
-    width: 38px;
-    height: 38px;
+    width: var(--minTouchTarget);
+    height: var(--minTouchTarget);
     border-radius: var(--radiusMd);
-    background: #8b3dff;
+    background: var(--colorPrimary);
     color: var(--colorSurface);
-    font-size: 1.25rem;
+    font-size: var(--fontSizeH3);
 }
 
 .testName {
-    font-size: clamp(1rem, 1.6vw, var(--fontSizeH3));
+    color: var(--colorText);
+    font-size: var(--fontSizeH3);
     font-weight: 700;
     line-height: 1.2;
 }
@@ -319,14 +342,16 @@ onBeforeUnmount(() => clearInterval(timerID));
 .subjectBadge {
     display: inline-block;
     padding: 0 var(--spaceXs);
-    border: 1px solid var(--colorText);
-    border-radius: 4px;
+    border-radius: var(--radiusSm);
+    background: var(--colorPrimaryLight);
+    color: var(--colorBrand);
     font-size: var(--fontSizeFooter);
     font-weight: 700;
     text-transform: uppercase;
 }
 
 .testingPoints {
+    color: var(--colorText);
     font-size: var(--fontSizeSmall);
     font-weight: 700;
     white-space: nowrap;
@@ -339,7 +364,7 @@ onBeforeUnmount(() => clearInterval(timerID));
 .streakPill {
     padding: var(--spaceSm) var(--spaceMd);
     border-radius: var(--radiusPill);
-    background: #c2410c;
+    background: var(--colorWarning);
     color: var(--colorSurface);
     font-size: var(--fontSizeSmall);
     font-weight: 700;
@@ -349,7 +374,8 @@ onBeforeUnmount(() => clearInterval(timerID));
 /* Phones: stack the answers and tighten the spacing. */
 @media (max-width: 767.98px) {
     .testingHeader,
-    .testingBody {
+    .testingBody,
+    .testingFooter {
         padding-inline: var(--spaceMd);
     }
 
@@ -365,11 +391,7 @@ onBeforeUnmount(() => clearInterval(timerID));
         min-height: 60px;
     }
 
-    .testingFooter {
-        padding-inline: var(--spaceMd);
-    }
-
-    .testingFooter > div:last-child {
+    .testingScore {
         gap: var(--spaceMd) !important;
     }
 }
@@ -403,19 +425,19 @@ onBeforeUnmount(() => clearInterval(timerID));
     }
 
     .questionText {
-        font-size: 1.1rem;
+        font-size: var(--fontSizeHeroText);
     }
 
     .answerButton {
-        min-height: 48px;
+        min-height: var(--minTouchTarget);
         padding-block: var(--spaceSm);
-        font-size: 1rem;
+        font-size: var(--fontSizeBody);
     }
 
     .answerIcon {
-        width: 32px;
-        height: 32px;
-        font-size: 1rem;
+        width: var(--spaceXl);
+        height: var(--spaceXl);
+        font-size: var(--fontSizeBody);
     }
 }
 </style>
