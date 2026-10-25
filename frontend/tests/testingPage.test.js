@@ -83,10 +83,35 @@ describe('TestingPage', () => {
         vi.clearAllMocks();
         getTest.mockResolvedValue(structuredClone(test));
         submitTest.mockResolvedValue(structuredClone(result));
+        // 0.99 makes the shuffle swap nothing, so the answers stay in the order above
+        vi.spyOn(Math, 'random').mockReturnValue(0.99);
     });
 
     afterEach(() => {
         vi.useRealTimers();
+        vi.restoreAllMocks();
+    });
+
+    it('shuffles the answer boxes and keeps that order in the review', async () => {
+        // 0 swaps every pair, so each question's two answers are reversed
+        Math.random.mockReturnValue(0);
+        const wrapper = await mountPage();
+        await wrapper.get('.testingPrimaryButton').trigger('click');
+
+        const shownAnswers = wrapper.findAll('.answerText').map((answer) => answer.text());
+        expect(shownAnswers).toEqual(['Vue', 'Django']);
+
+        // the first box is now Vue, so clicking it sends a2
+        await wrapper.findAll('.answerButton')[0].trigger('click');
+        await wrapper.findAll('.answerButton')[0].trigger('click');
+        await flushPromises();
+
+        expect(submitTest).toHaveBeenCalledWith('test-1', { 'question-1': 'a2', 'question-2': 'b2' });
+        const reviewAnswers = wrapper.findAll('.reviewQuestion')[0].findAll('.reviewAnswer');
+        expect(reviewAnswers.map((answer) => answer.text())).toEqual([
+            expect.stringContaining('Vue'),
+            expect.stringContaining('Django'),
+        ]);
     });
 
     it('loads the chosen test and shows a start screen first', async () => {

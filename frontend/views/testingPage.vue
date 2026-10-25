@@ -240,6 +240,17 @@ const bestStreak = computed(() => {
     return best;
 });
 
+// Fisher-Yates shuffle, returns a new array so the original isn't changed.
+// Used so the correct answer isn't always in the same box.
+function shuffle(items) {
+    const shuffled = [...items];
+    for (let i = shuffled.length - 1; i > 0; i -= 1) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled;
+}
+
 // Repeat the four styles if a question ever has more than four answers.
 function answerStyle(index) {
     return answerStyles[index % answerStyles.length];
@@ -328,7 +339,18 @@ async function finishTest() {
     }
 
     try {
-        result.value = await submitTest(test.value.testID, answers);
+        const markedTest = await submitTest(test.value.testID, answers);
+
+        // List the review answers in the same order the student saw them.
+        for (const markedQuestion of markedTest.questions) {
+            const shownAnswers = questions.value.find(
+                (question) => question.questionID === markedQuestion.questionID,
+            ).answers;
+            const position = (answer) => shownAnswers.findIndex((shown) => shown.answerID === answer.answerID);
+            markedQuestion.answers.sort((first, second) => position(first) - position(second));
+        }
+
+        result.value = markedTest;
         phase.value = 'results';
         await nextTick();
         resultsHeading.value?.focus();
@@ -339,7 +361,12 @@ async function finishTest() {
 
 onMounted(async () => {
     try {
-        test.value = await getTest(route.params.testID);
+        const loadedTest = await getTest(route.params.testID);
+        loadedTest.questions = loadedTest.questions.map((question) => ({
+            ...question,
+            answers: shuffle(question.answers),
+        }));
+        test.value = loadedTest;
         phase.value = 'intro';
     } catch (error) {
         loadError.value = error.response?.data?.error || 'Unable to load this test. Please try again later.';
