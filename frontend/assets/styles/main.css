@@ -190,6 +190,11 @@ main {
     padding-top: var(--navHeight);
 }
 
+/* No navbar on full screen pages, so no space is reserved for it */
+main.appMainFullScreen {
+    padding-top: 0;
+}
+
 /* Shared header */
 .siteHeader {
     position: fixed;

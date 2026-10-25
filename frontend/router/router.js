@@ -23,6 +23,7 @@ import AdministratorDashboard from '../views/administratorDashboard.vue';
 import LecturerDashboard from '../views/lecturerDashboard.vue';
 // student pages are protected by the requiredRoles check in the route guard
 import TestSelectionPage from '../views/testSelectionPage.vue';
+import TestingPage from '../views/testingPage.vue';
 import Leaderboard from '../views/leaderboard.vue';
 import StudentResults from '../views/studentResults.vue';
 // lecturer pages are protected by the requiredRoles check in the route guard
@@ -95,6 +96,13 @@ const routes = [
         name: 'testSelection',
         component: TestSelectionPage,
         meta: { title: 'Test Selection | RevisionHub', requiredRoles: ['student'], studentOnly: true },
+    },
+    {
+        path: '/testing',
+        name: 'testing',
+        component: TestingPage,
+        // hideLayout tells app.vue to drop the navbar and footer so the test fills the screen
+        meta: { title: 'Test | RevisionHub', requiredRoles: ['student'], studentOnly: true, hideLayout: true },
     },
     {
         path: '/leaderboard',
