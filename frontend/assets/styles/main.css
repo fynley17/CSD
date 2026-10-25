@@ -1078,6 +1078,11 @@ main {
     object-position: center;
 }
 
+/* the line under a page heading, house style Slate Grey for captions, 7:1 on the page background */
+.pageIntro {
+    color: var(--colorTextSecondary);
+}
+
 /* Responsive layouts */
 @media (max-width: 991.98px) {
     .whyRevisionHubCards {

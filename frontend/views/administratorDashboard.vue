@@ -1,10 +1,10 @@
 <!-- Administrator dashboard, where admins land after logging in, four cards give the totals at a glance -->
 <template>
-    <section class="container-fluid bg-light py-4 px-3 px-lg-4">
+    <section class="container-fluid py-4 px-3 px-lg-4">
         <div class="container-fluid">
             <section class="mb-4">
                 <h1 class="h2 fw-bold mb-1">Administrator Dashboard</h1>
-                <p class="mb-0">Here's an overview of subjects and lecturers.</p>
+                <p class="pageIntro mb-0">Here's an overview of subjects and lecturers.</p>
             </section>
 
             <!-- only shows if PHP couldn't send the totals, the cards then show a dash -->
