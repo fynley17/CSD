@@ -2,18 +2,48 @@
 
 use App\Models\Administrator;
 use App\Models\Lecturer;
+use App\Models\Model;
 use App\Models\Student;
 use App\Models\User;
 use PHPUnit\Framework\TestCase;
 
 /**
  * Tests for the login checks in User
- * uses made up users so it doesn't need the database
+ * uses made up users, and a pretend database in memory for the failed attempt counting
  */
 final class UserTest extends TestCase
 {
     // fake password the test users get
     private const TEST_PASSWORD = 'Test1234!';
+
+    private \PDO $db;
+
+    /**
+     * addFailedAttempt() counts in the database, so each test gets a fresh pretend Users table in memory
+     * the real database is never touched, same way testModelTest.php does it
+     */
+    protected function setUp(): void
+    {
+        $this->db = new \PDO('sqlite::memory:');
+        $this->db->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
+        $this->db->exec(
+            'CREATE TABLE Users (userID TEXT PRIMARY KEY, failedAttempts INTEGER, lockedUntil TEXT, lastFailedAt TEXT)'
+        );
+        $this->db->exec("INSERT INTO Users VALUES ('test-user-id', 0, NULL, NULL)");
+
+        // points the models at the pretend database instead of the real one
+        $dbProperty = new \ReflectionProperty(Model::class, 'db');
+        $dbProperty->setValue(null, $this->db);
+    }
+
+    /**
+     * Unhooks the pretend database so the next test file starts clean
+     */
+    protected function tearDown(): void
+    {
+        $dbProperty = new \ReflectionProperty(Model::class, 'db');
+        $dbProperty->setValue(null, null);
+    }
 
     /**
      * Makes a pretend Users row so the tests don't need the database
@@ -47,6 +77,15 @@ final class UserTest extends TestCase
     }
 
     /**
+     * Puts a count and the time of the last wrong password into the pretend Users table
+     */
+    private function setStoredAttempts(int $failedAttempts, int $lastFailedAt): void
+    {
+        $stmt = $this->db->prepare('UPDATE Users SET failedAttempts = ?, lastFailedAt = ? WHERE userID = ?');
+        $stmt->execute([$failedAttempts, date('Y-m-d H:i:s', $lastFailedAt), 'test-user-id']);
+    }
+
+    /**
      * Makes a pretend student from that row
      * a Student because User is abstract, the login code it runs is still all from User
      */
@@ -60,7 +99,14 @@ final class UserTest extends TestCase
      */
     public function testLoginAcceptsCorrectPassword(): void
     {
-        self::assertTrue($this->makeUser()->login(self::TEST_PASSWORD));
+        // Arrange
+        $user = $this->makeUser();
+
+        // Act
+        $loggedIn = $user->login(self::TEST_PASSWORD);
+
+        // Assert
+        self::assertTrue($loggedIn);
     }
 
     /**
@@ -68,7 +114,14 @@ final class UserTest extends TestCase
      */
     public function testLoginRejectsWrongPassword(): void
     {
-        self::assertFalse($this->makeUser()->login('WrongPass1!'));
+        // Arrange
+        $user = $this->makeUser();
+
+        // Act
+        $loggedIn = $user->login('WrongPass1!');
+
+        // Assert
+        self::assertFalse($loggedIn);
     }
 
     /**
@@ -77,7 +130,14 @@ final class UserTest extends TestCase
      */
     public function testLoginRejectsPasswordInWrongCase(): void
     {
-        self::assertFalse($this->makeUser()->login('test1234!'));
+        // Arrange
+        $user = $this->makeUser();
+
+        // Act
+        $loggedIn = $user->login('test1234!');
+
+        // Assert
+        self::assertFalse($loggedIn);
     }
 
     /**
@@ -86,7 +146,14 @@ final class UserTest extends TestCase
      */
     public function testLoginRejectsEmptyPassword(): void
     {
-        self::assertFalse($this->makeUser()->login(''));
+        // Arrange
+        $user = $this->makeUser();
+
+        // Act
+        $loggedIn = $user->login('');
+
+        // Assert
+        self::assertFalse($loggedIn);
     }
 
     /**
@@ -94,10 +161,16 @@ final class UserTest extends TestCase
      */
     public function testApprovedEnabledAccountIsActive(): void
     {
+        // Arrange
         $user = $this->makeUser();
 
-        self::assertTrue($user->isActive());
-        self::assertFalse($user->isPending());
+        // Act
+        $isActive = $user->isActive();
+        $isPending = $user->isPending();
+
+        // Assert
+        self::assertTrue($isActive);
+        self::assertFalse($isPending);
     }
 
     /**
@@ -106,10 +179,16 @@ final class UserTest extends TestCase
      */
     public function testPendingAccountIsNotActive(): void
     {
+        // Arrange
         $user = $this->makeUser(['approvalStatus' => 'pending']);
 
-        self::assertFalse($user->isActive());
-        self::assertTrue($user->isPending());
+        // Act
+        $isActive = $user->isActive();
+        $isPending = $user->isPending();
+
+        // Assert
+        self::assertFalse($isActive);
+        self::assertTrue($isPending);
     }
 
     /**
@@ -118,7 +197,14 @@ final class UserTest extends TestCase
      */
     public function testDisabledAccountIsNotActive(): void
     {
-        self::assertFalse($this->makeUser(['isEnabled' => 0])->isActive());
+        // Arrange
+        $user = $this->makeUser(['isEnabled' => 0]);
+
+        // Act
+        $isActive = $user->isActive();
+
+        // Assert
+        self::assertFalse($isActive);
     }
 
     /**
@@ -127,8 +213,17 @@ final class UserTest extends TestCase
      */
     public function testUnverifiedEmailIsReported(): void
     {
-        self::assertTrue($this->makeUser()->isEmailVerified());
-        self::assertFalse($this->makeUser(['isEmailVerified' => 0])->isEmailVerified());
+        // Arrange
+        $verifiedUser = $this->makeUser();
+        $unverifiedUser = $this->makeUser(['isEmailVerified' => 0]);
+
+        // Act
+        $verifiedResult = $verifiedUser->isEmailVerified();
+        $unverifiedResult = $unverifiedUser->isEmailVerified();
+
+        // Assert
+        self::assertTrue($verifiedResult);
+        self::assertFalse($unverifiedResult);
     }
 
     /**
@@ -137,11 +232,18 @@ final class UserTest extends TestCase
      */
     public function testGettersReturnAccountDetails(): void
     {
+        // Arrange
         $user = $this->makeUser();
 
-        self::assertSame('test-user-id', $user->getUserID());
-        self::assertSame('ws000001', $user->getUsername());
-        self::assertSame('student', $user->getAccountType());
+        // Act
+        $userID = $user->getUserID();
+        $username = $user->getUsername();
+        $accountType = $user->getAccountType();
+
+        // Assert
+        self::assertSame('test-user-id', $userID);
+        self::assertSame('ws000001', $username);
+        self::assertSame('student', $accountType);
     }
 
     /**
@@ -150,21 +252,32 @@ final class UserTest extends TestCase
      */
     public function testAccountTypesInheritFromUser(): void
     {
+        // Arrange and Act, making each account type is the thing being tested
         $student = $this->makeUser();
         $lecturer = new Lecturer($this->makeRow(['accountType' => 'lecturer']));
         $admin = new Administrator($this->makeRow(['accountType' => 'admin']));
 
+        // Assert
         self::assertInstanceOf(User::class, $student);
         self::assertInstanceOf(User::class, $lecturer);
         self::assertInstanceOf(Lecturer::class, $admin);
     }
 
     /**
-     * Account that's never had a wrong password isn't locked (normal)
+     * Account that's never had a wrong password isn't locked, and has no lock time left (normal)
      */
     public function testNewAccountIsNotLocked(): void
     {
-        self::assertFalse($this->makeUser()->isLocked());
+        // Arrange
+        $user = $this->makeUser();
+
+        // Act
+        $isLocked = $user->isLocked();
+        $minutesLeft = $user->getMinutesUntilUnlock();
+
+        // Assert
+        self::assertFalse($isLocked);
+        self::assertSame(0, $minutesLeft);
     }
 
     /**
@@ -172,25 +285,35 @@ final class UserTest extends TestCase
      */
     public function testTwoFailedAttemptsDoNotLockAccount(): void
     {
+        // Arrange
         $user = $this->makeUser();
+
+        // Act
         $user->addFailedAttempt();
         $user->addFailedAttempt();
 
+        // Assert
         self::assertFalse($user->isLocked());
         self::assertSame(2, $user->getFailedAttempts());
     }
 
     /**
-     * The 3rd wrong password in a row locks it, and the count goes back to 0 ready for after the lock (boundary)
+     * The 3rd wrong password in a row locks it for the full 15 minutes,
+     * and the count goes back to 0 ready for after the lock (boundary)
      */
     public function testLocksAccountOnThirdFailedAttempt(): void
     {
+        // Arrange
         $user = $this->makeUser();
+
+        // Act
         for ($attempt = 1; $attempt <= User::MAX_FAILED_ATTEMPTS; $attempt++) {
             $user->addFailedAttempt();
         }
 
+        // Assert
         self::assertTrue($user->isLocked());
+        self::assertSame(User::LOCK_MINUTES, $user->getMinutesUntilUnlock());
         self::assertSame(0, $user->getFailedAttempts());
     }
 
@@ -199,9 +322,15 @@ final class UserTest extends TestCase
      */
     public function testAccountIsLockedUntilUnlockTime(): void
     {
+        // Arrange
         $lockedUntil = date('Y-m-d H:i:s', time() + 60);
+        $user = $this->makeUser(['lockedUntil' => $lockedUntil]);
 
-        self::assertTrue($this->makeUser(['lockedUntil' => $lockedUntil])->isLocked());
+        // Act
+        $isLocked = $user->isLocked();
+
+        // Assert
+        self::assertTrue($isLocked);
     }
 
     /**
@@ -209,9 +338,15 @@ final class UserTest extends TestCase
      */
     public function testLockRunsOutByItself(): void
     {
+        // Arrange
         $lockedUntil = date('Y-m-d H:i:s', time() - 1);
+        $user = $this->makeUser(['lockedUntil' => $lockedUntil]);
 
-        self::assertFalse($this->makeUser(['lockedUntil' => $lockedUntil])->isLocked());
+        // Act
+        $isLocked = $user->isLocked();
+
+        // Assert
+        self::assertFalse($isLocked);
     }
 
     /**
@@ -219,25 +354,71 @@ final class UserTest extends TestCase
      */
     public function testClearFailedAttemptsStartsCountAgain(): void
     {
+        // Arrange, 2 wrong passwords a minute ago
+        $this->setStoredAttempts(2, time() - 60);
         $user = $this->makeUser(['failedAttempts' => 2]);
+
+        // Act, right password then a wrong one
         $user->clearFailedAttempts();
+        $user->saveLoginAttempts();
         $user->addFailedAttempt();
 
+        // Assert
         self::assertFalse($user->isLocked());
         self::assertSame(1, $user->getFailedAttempts());
     }
 
     /**
-     * Straight after the 3rd wrong password the full 15 minutes are left (normal)
+     * Wrong passwords sent at the same time all count, Fyn's race condition (error)
+     * three requests each load the user while the count is still 0, the old code had every one save 1
      */
-    public function testFullLockTimeLeftStraightAfterLocking(): void
+    public function testWrongPasswordsAtTheSameTimeStillLock(): void
     {
-        $user = $this->makeUser();
-        for ($attempt = 1; $attempt <= User::MAX_FAILED_ATTEMPTS; $attempt++) {
-            $user->addFailedAttempt();
-        }
+        // Arrange, three copies of the same account, like three login requests arriving together
+        $firstRequest = $this->makeUser();
+        $secondRequest = $this->makeUser();
+        $thirdRequest = $this->makeUser();
 
-        self::assertSame(User::LOCK_MINUTES, $user->getMinutesUntilUnlock());
+        // Act
+        $firstRequest->addFailedAttempt();
+        $secondRequest->addFailedAttempt();
+        $thirdRequest->addFailedAttempt();
+
+        // Assert, the third one sees the real count of 3 and locks
+        self::assertTrue($thirdRequest->isLocked());
+    }
+
+    /**
+     * Wrong passwords over 15 minutes ago are forgotten, so they can't add up over weeks (boundary)
+     */
+    public function testOldFailedAttemptsStopCounting(): void
+    {
+        // Arrange, 2 wrong passwords, the last one 16 minutes ago
+        $this->setStoredAttempts(2, time() - (User::ATTEMPT_WINDOW_MINUTES + 1) * 60);
+        $user = $this->makeUser(['failedAttempts' => 2]);
+
+        // Act
+        $user->addFailedAttempt();
+
+        // Assert, counts as the first one again, not the third
+        self::assertFalse($user->isLocked());
+        self::assertSame(1, $user->getFailedAttempts());
+    }
+
+    /**
+     * Wrong passwords just inside the 15 minutes still add up (boundary)
+     */
+    public function testRecentFailedAttemptsStillCount(): void
+    {
+        // Arrange, 2 wrong passwords, the last one 14 minutes ago
+        $this->setStoredAttempts(2, time() - (User::ATTEMPT_WINDOW_MINUTES - 1) * 60);
+        $user = $this->makeUser(['failedAttempts' => 2]);
+
+        // Act
+        $user->addFailedAttempt();
+
+        // Assert
+        self::assertTrue($user->isLocked());
     }
 
     /**
@@ -245,16 +426,14 @@ final class UserTest extends TestCase
      */
     public function testUnderAMinuteLeftRoundsUpToOne(): void
     {
+        // Arrange
         $lockedUntil = date('Y-m-d H:i:s', time() + 30);
+        $user = $this->makeUser(['lockedUntil' => $lockedUntil]);
 
-        self::assertSame(1, $this->makeUser(['lockedUntil' => $lockedUntil])->getMinutesUntilUnlock());
-    }
+        // Act
+        $minutesLeft = $user->getMinutesUntilUnlock();
 
-    /**
-     * An account that isn't locked has no time left (error)
-     */
-    public function testNoTimeLeftWhenNotLocked(): void
-    {
-        self::assertSame(0, $this->makeUser()->getMinutesUntilUnlock());
+        // Assert
+        self::assertSame(1, $minutesLeft);
     }
 }

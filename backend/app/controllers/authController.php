@@ -62,7 +62,6 @@ class AuthController extends Controller
             // same message for a wrong password as for a wrong username, stops people fishing for real usernames
             if (!$user->login($details['password'])) {
                 $user->addFailedAttempt();
-                $user->saveLoginAttempts();
 
                 // that was the 3rd wrong one in a row, so it's locked now
                 // it unlocks by itself after 15 minutes, no administrator required,

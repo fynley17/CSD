@@ -14,10 +14,12 @@ abstract class User extends Model
     private const COLUMNS = 'userID, username, password, accountType, approvalStatus, isEnabled, isEmailVerified, '
         . 'failedAttempts, lockedUntil';
 
-    // 3 wrong passwords in a row locks the account for 15 minutes, then it unlocks by itself
+    // 3 wrong passwords within 15 minutes locks the account for 15 minutes, then it unlocks by itself
     // public so the login controller and the tests use the same numbers
     public const MAX_FAILED_ATTEMPTS = 3;
     public const LOCK_MINUTES = 15;
+    // wrong passwords only add up if they're within 15 minutes of each other
+    public const ATTEMPT_WINDOW_MINUTES = 15;
 
     // private so nothing outside this class can change them
     private string $userID;
@@ -164,18 +166,34 @@ abstract class User extends Model
 
     /**
      * Counts one wrong password, and locks the account when it reaches MAX_FAILED_ATTEMPTS.
-     * Only changes this object, saveLoginAttempts() is what writes it to the database.
+     * Saves straight away, the database does the adding so wrong passwords sent at the same time all count.
      */
     public function addFailedAttempt(): void
     {
-        $this->failedAttempts++;
+        $now = time();
+        // the last wrong password has to be newer than this to count, older ones are forgotten
+        $countFrom = date('Y-m-d H:i:s', $now - self::ATTEMPT_WINDOW_MINUTES * 60);
+
+        // the database adds the 1 itself, so 20 wrong passwords at once can't all read 0 and all save 1
+        // if the last wrong one was over 15 minutes ago (or never), the count starts again at 1
+        $stmt = self::getDB()->prepare(
+            'UPDATE Users SET failedAttempts = CASE WHEN lastFailedAt IS NULL OR lastFailedAt < ? THEN 1 '
+            . 'ELSE failedAttempts + 1 END, lastFailedAt = ? WHERE userID = ?'
+        );
+        $stmt->execute([$countFrom, date('Y-m-d H:i:s', $now), $this->userID]);
+
+        // reads the real count back, it includes any other wrong passwords that came in at the same time
+        $stmt = self::getDB()->prepare('SELECT failedAttempts FROM Users WHERE userID = ?');
+        $stmt->execute([$this->userID]);
+        $this->failedAttempts = (int) $stmt->fetchColumn();
 
         if ($this->failedAttempts >= self::MAX_FAILED_ATTEMPTS) {
             // the unlock time is worked out and checked with PHP's clock,
             // so it doesn't matter what timezone the database is set to
-            $this->lockedUntil = date('Y-m-d H:i:s', time() + self::LOCK_MINUTES * 60);
+            $this->lockedUntil = date('Y-m-d H:i:s', $now + self::LOCK_MINUTES * 60);
             // back to 0, so they get 3 fresh tries once the lock runs out
             $this->failedAttempts = 0;
+            $this->saveLoginAttempts();
         }
     }
 
