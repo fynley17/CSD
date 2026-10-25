@@ -350,7 +350,7 @@ main.appMainFullScreen {
 
 /* House-style colour for hint and supporting text. */
 .hintText {
-    color: #4b5563;
+    color: var(--colorTextSecondary);
 }
 
 /* Mobile lecturer navigation. */
