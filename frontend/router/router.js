@@ -151,6 +151,13 @@ const router = createRouter({
     },
 });
 
+// the dashboard each account type is sent to when it opens a page it can't use
+const dashboardRoutes = {
+    admin: 'administratorDashboard',
+    lecturer: 'lecturerDashboard',
+    student: 'testSelection',
+};
+
 // runs before every page change, private pages ask the backend who's logged in first
 // this is what stops the back button showing a private page after logging out
 router.beforeEach(async (to) => {
@@ -168,9 +175,15 @@ router.beforeEach(async (to) => {
         user = null;
     }
 
-    // Student pages require a student session, not simply any signed-in account.
-    if (to.meta.studentOnly && user?.accountType !== 'student') {
-        return { name: 'login', query: { redirect: to.fullPath } };
+    // Student pages send signed-out visitors to the landing page and any other
+    // account type back to their own dashboard.
+    if (to.meta.studentOnly) {
+        if (user === null) {
+            return { name: 'landingPage' };
+        }
+        if (user.accountType !== 'student') {
+            return { name: dashboardRoutes[user.accountType] || 'landingPage' };
+        }
     }
 
     if (user === null) {
