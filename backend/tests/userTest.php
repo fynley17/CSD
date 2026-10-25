@@ -33,6 +33,7 @@ final class UserTest extends TestCase
             'isEnabled' => 1,
             'failedAttempts' => 0,
             'lockedUntil' => null,
+            'isEmailVerified' => 1,
         ];
 
         // goes through each change the test passed in and overwrites that column in the row
@@ -118,6 +119,16 @@ final class UserTest extends TestCase
     public function testDisabledAccountIsNotActive(): void
     {
         self::assertFalse($this->makeUser(['isEnabled' => 0])->isActive());
+    }
+
+    /**
+     * Account that hasn't clicked its email link shows as unverified (error)
+     * the login controller uses this to send them to the check your email page
+     */
+    public function testUnverifiedEmailIsReported(): void
+    {
+        self::assertTrue($this->makeUser()->isEmailVerified());
+        self::assertFalse($this->makeUser(['isEmailVerified' => 0])->isEmailVerified());
     }
 
     /**

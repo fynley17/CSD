@@ -28,6 +28,8 @@ export default {
             serverError: '',
             // PHP's locked message, goes in the pop-up instead of the red box
             lockedMessage: '',
+            // true when the password was right but the email isn't verified yet, shows the check your email link
+            needsVerification: false,
         };
     },
     computed: {
@@ -43,6 +45,7 @@ export default {
         // runs when Login is pressed, a quick empty box check first, then PHP does the proper check
         async submitLogin() {
             this.serverError = '';
+            this.needsVerification = false;
 
             if (!this.checkFields()) {
                 // the message box needs a moment to appear before it can take focus
@@ -66,6 +69,7 @@ export default {
                 } else {
                     // PHP's messages already use the house style wording, so they're shown as they come
                     this.serverError = error.response?.data?.error || 'Something went wrong. Try again later';
+                    this.needsVerification = error.response?.data?.emailNotVerified === true;
                 }
             } finally {
                 this.isSubmitting = false;
@@ -139,7 +143,13 @@ export default {
                         </li>
                     </ul>
                 </div>
-                <p v-else class="mb-0"><strong>There is a problem:</strong> {{ serverError }}</p>
+                <div v-else>
+                    <p class="mb-0"><strong>There is a problem:</strong> {{ serverError }}</p>
+                    <!-- PHP has remembered this account, so the next page can resend the link or fix the address -->
+                    <router-link v-if="needsVerification" to="/check-email" class="d-inline-block mt-2">
+                        Resend the email or change your email address
+                    </router-link>
+                </div>
             </div>
 
             <!-- novalidate turns off the browser's own pop-ups so only the house style errors show -->

@@ -19,7 +19,7 @@ services:
             start_period: 10s
 
     backend:
-        image: php:8.4-cli
+        image: revisionhub-backend
         build:
             context: .
             dockerfile: backend/Dockerfile
@@ -36,6 +36,13 @@ services:
             DB_NAME: ${MARIADB_DATABASE:-revisionhub}
             DB_USER: ${MARIADB_USER:-revisionhub_dev}
             DB_PASSWORD: ${MARIADB_PASSWORD:-revisionhub_dev}
+            SMTP_HOST: ${SMTP_HOST:-smtp.gmail.com}
+            SMTP_PORT: ${SMTP_PORT:-587}
+            SMTP_USER: ${SMTP_USER:-}
+            SMTP_PASS: ${SMTP_PASS:-}
+            MAIL_FROM_NAME: ${MAIL_FROM_NAME:-RevisionHub}
+            # the address the links in emails open, i.e. the verify email link
+            APP_URL: ${APP_URL:-http://localhost:5173}
         ports:
             - "127.0.0.1:${BACKEND_PORT:-8000}:8000"
         volumes:

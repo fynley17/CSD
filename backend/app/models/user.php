@@ -11,7 +11,7 @@ namespace App\Models;
 abstract class User extends Model
 {
     // the Users columns login needs, kept in one place so both searches match
-    private const COLUMNS = 'userID, username, password, accountType, approvalStatus, isEnabled, '
+    private const COLUMNS = 'userID, username, password, accountType, approvalStatus, isEnabled, isEmailVerified, '
         . 'failedAttempts, lockedUntil';
 
     // 3 wrong passwords in a row locks the account for 15 minutes, then it unlocks by itself
@@ -29,6 +29,7 @@ abstract class User extends Model
     private int $failedAttempts;
     // null when the account isn't locked
     private ?string $lockedUntil;
+    private bool $isEmailVerified;
 
     /**
      * Fills in the shared details from a row of the Users table, used by Student, Lecturer and Administrator.
@@ -44,6 +45,7 @@ abstract class User extends Model
         $this->isEnabled = (bool) $row['isEnabled'];
         $this->failedAttempts = (int) $row['failedAttempts'];
         $this->lockedUntil = $row['lockedUntil'];
+        $this->isEmailVerified = (bool) $row['isEmailVerified'];
     }
 
     /**
@@ -123,6 +125,14 @@ abstract class User extends Model
     public function isPending(): bool
     {
         return $this->approvalStatus === 'pending';
+    }
+
+    /**
+    * True once they've clicked the link in their verification email
+    */
+    public function isEmailVerified(): bool
+    {
+        return $this->isEmailVerified;
     }
 
     /**

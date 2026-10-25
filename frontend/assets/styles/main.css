@@ -106,6 +106,12 @@
     --colorWhyRevisionHubBackground: #eef3fb;
     --colorContactRevisionHubBackground: #f5f7ff;
     --fontSizeContactText: 0.95rem;
+
+    /* Testing page answer box colours */
+    --colorAnswerRed: #d13340;
+    --colorAnswerBlue: #3066c9;
+    --colorAnswerYellow: #a16207;
+    --colorAnswerGreen: #46892a;
 }
 
 /* Global layout and typography */
@@ -188,6 +194,11 @@ button:focus-visible {
 
 main {
     padding-top: var(--navHeight);
+}
+
+/* No navbar on full screen pages, so no space is reserved for it */
+main.appMainFullScreen {
+    padding-top: 0;
 }
 
 /* Shared header */
@@ -659,6 +670,7 @@ main {
 
 /* Login form, Bootstrap's form classes themed with the tokens above
    everything starts with .loginForm so it only styles the login card and the registration form keeps its own look
+   the check your email and verify email cards also use .loginForm, so their boxes and messages match login
    Bootstrap's class names have dashes, so they're matched with [class~='...'] to keep the camelCase rule happy */
 
 /* labels in bold so they stand out from the hint text under them */
@@ -842,6 +854,32 @@ main {
     stroke: var(--colorError);
     stroke-width: 2;
     stroke-linecap: round;
+}
+
+/* Check your email and verify email cards, the rest of their look comes from the .loginForm rules above */
+
+/* house style success box, same shape as the problem box but green, dark text so it passes contrast */
+.verificationCard .successMessage {
+    background-color: var(--colorSuccessLight);
+    border: 0;
+    border-left: 6px solid var(--colorSuccess);
+    border-radius: 0;
+    color: var(--colorText);
+}
+
+.verificationCard .successMessage:focus-visible {
+    outline: 3px solid var(--colorFocus);
+    outline-offset: 2px;
+}
+
+/* green tick instead of the red warning icon */
+.verificationCard .successMessage .messageIcon {
+    stroke: var(--colorSuccess);
+}
+
+/* long email addresses wrap instead of pushing the card wider than a phone screen */
+.verificationCard .verificationEmail {
+    overflow-wrap: anywhere;
 }
 
 /* Accessible skip link, helping keyboard users for example */
