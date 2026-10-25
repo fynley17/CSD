@@ -8,7 +8,7 @@
 
         <div v-else class="testCardGrid mt-4">
             <div v-for="test in tests" :key="test.testID" class="testCardGridItem">
-                <TestCard :test="test" />
+                <TestCard :test="test" @start="startTest" />
             </div>
         </div>
     </main>
@@ -16,10 +16,17 @@
 
 <script setup>
 import { onMounted, ref } from 'vue';
+import { useRouter } from 'vue-router';
 import TestCard from '../components/common/testCard.vue';
 import { getAvailableTests } from '../services/testService';
 
+const router = useRouter();
 const tests = ref([]);
+
+// The testing page loads the questions for the chosen test from its ID in the URL.
+function startTest(test) {
+    router.push({ name: 'testing', params: { testID: test.testID } });
+}
 const isLoading = ref(true);
 const loadError = ref('');
 

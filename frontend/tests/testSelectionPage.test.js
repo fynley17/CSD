@@ -9,6 +9,11 @@ vi.mock('../services/testService', () => ({
     getAvailableTests: vi.fn(),
 }));
 
+const push = vi.fn();
+vi.mock('vue-router', () => ({
+    useRouter: () => ({ push }),
+}));
+
 const test = {
     testID: 'test-1',
     testName: 'Web Apps Fundamentals',
@@ -63,5 +68,15 @@ describe('TestSelectionPage', () => {
         await flushPromises();
 
         expect(wrapper.get('[role="alert"]').text()).toBe('Unable to load tests.');
+    });
+
+    it('opens the testing page for the test whose Start button was clicked', async () => {
+        getAvailableTests.mockResolvedValue([test]);
+
+        const wrapper = mount(TestSelectionPage);
+        await flushPromises();
+        await wrapper.get('.testCardStartButton').trigger('click');
+
+        expect(push).toHaveBeenCalledWith({ name: 'testing', params: { testID: 'test-1' } });
     });
 });

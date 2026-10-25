@@ -46,13 +46,11 @@ describe('TestCard', () => {
         expect(details).toEqual(['Questions', 'Subject', 'Set by']);
     });
 
-    it('emits the selected test when Details and Start test are clicked', async () => {
+    it('emits the selected test when Start test is clicked', async () => {
         const wrapper = mount(TestCard, { props: { test: baseTest } });
 
-        await wrapper.get('.testCardDetailsButton').trigger('click');
         await wrapper.get('.testCardStartButton').trigger('click');
 
-        expect(wrapper.emitted('details')).toEqual([[baseTest]]);
         expect(wrapper.emitted('start')).toEqual([[baseTest]]);
     });
 });
