@@ -37,6 +37,7 @@
 
 <script setup>
 import { computed } from 'vue';
+import { formatTimeLimit } from '../../utils/formatTimeLimit';
 
 // The card shows the key information a student needs to decide whether to
 const props = defineProps({
@@ -66,21 +67,7 @@ const questionCount = computed(() =>
 const setBy = computed(() => props.test.createdByName || props.test.setBy || 'Not available');
 
 // Convert minutes into a readable string such as "1 hour 30 minutes".
-const timeLimit = computed(() => {
-    const minutes = props.test.timeLimit;
-    const hours = Math.floor(minutes / 60);
-    const remainingMinutes = minutes % 60;
-    const parts = [];
-
-    if (hours > 0) {
-        parts.push(`${hours} ${hours === 1 ? 'hour' : 'hours'}`);
-    }
-    if (remainingMinutes > 0) {
-        parts.push(`${remainingMinutes} ${remainingMinutes === 1 ? 'minute' : 'minutes'}`);
-    }
-
-    return parts.join(' ');
-});
+const timeLimit = computed(() => formatTimeLimit(props.test.timeLimit));
 
 // Format the date for display when it is valid; otherwise hide it.
 const dueDate = computed(() => {
