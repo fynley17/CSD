@@ -6,7 +6,7 @@ use PHPUnit\Framework\TestCase;
 
 /**
  * Tests for the admin dashboard totals, the numbers on the four cards
- * a small pretend database is made in memory for each test, so the real one isn't involved
+ * a small pretend database is made in memory for each test, so the real one is never touched
  * each test is laid out Arrange (add the rows), Act (count them), Assert (check the numbers)
  */
 final class AdministratorDashboardSummaryTest extends TestCase
@@ -97,6 +97,23 @@ final class AdministratorDashboardSummaryTest extends TestCase
         // Assert
         $this->assertSame(1, $summary['totalLecturers']);
         $this->assertSame(0, $summary['disabledLecturers']);
+    }
+
+    /**
+     * If the database can't be read the model throws, so the page shows an error and not a row of 0s (error)
+     */
+    public function testThrowsWhenTheDatabaseCannotBeRead(): void
+    {
+        // Arrange
+        // takes away the Subjects table so the counts can't run
+        $this->db->exec('DROP TABLE Subjects');
+        $this->expectException(PDOException::class);
+
+        // Act
+        Administrator::getDashboardSummary();
+
+        // Assert
+        // expectException() above is the check, the test fails if nothing gets thrown
     }
 
     /**
