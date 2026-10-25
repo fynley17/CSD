@@ -1,7 +1,7 @@
 <template>
     <a class="skipLink" href="#main-content"> Skip to main content </a>
 
-    <header class="siteHeader">
+    <header class="siteHeader" :class="{ adminHeader: isAdmin }">
         <nav class="navbar navbar-expand" aria-label="Main navigation">
             <div class="container-fluid">
                 <RouterLink
