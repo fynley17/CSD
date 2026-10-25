@@ -337,6 +337,11 @@ main {
     color: var(--colorSurface);
 }
 
+/* House-style colour for hint and supporting text. */
+.hintText {
+    color: #4b5563;
+}
+
 /* Mobile lecturer navigation. */
 @media (max-width: 767.98px) {
     .desktopLecturerNavigation {

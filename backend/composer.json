@@ -14,6 +14,7 @@
         "app/models/user.php",
         "app/models/lecturer.php",
         "app/models/administrator.php",
+        "app/models/test.php",
         "app/helpers/authentication.php",
         "app/controllers/authController.php",
         "app/controllers/lecturerController.php"

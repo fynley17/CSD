@@ -4,9 +4,7 @@
             <!-- Welcome section at the top of the lecturer dashboard. -->
             <section class="mb-4">
                 <h1 class="h2 fw-bold mb-1">Lecturer Dashboard</h1>
-                <p class="text-secondary mb-0">
-                    Hey, {{ lecturerName }}! Here's an overview of your platform activity.
-                </p>
+                <p class="hintText mb-0">Hey, {{ lecturerName }}! Here's an overview of your platform activity.</p>
             </section>
 
             <!-- Display an error message if the dashboard data cannot be loaded. -->
@@ -117,7 +115,7 @@ onMounted(async () => {
         summary.value = await getDashboardSummary();
     } catch (error) {
         // Display the backend's error message when available.
-        summaryError.value = error.response?.data?.error || 'Unable to load dashboard summary. Please try again.';
+        summaryError.value = error.response?.data?.error || 'Unable to load dashboard summary. Please try again later.';
     } finally {
         // Stop displaying the loading state after the request finishes.
         isLoading.value = false;
