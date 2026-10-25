@@ -4,7 +4,7 @@ import { setIdleHandlers } from '../../services/idleTimer';
 import { getCurrentUser } from '../../services/authService';
 
 // "Are you still there?" pop-up, sits in app.vue so it works on every page
-// idleTimer.js opens it after 28 minutes with no requests, 2 minutes before PHP logs them out
+// idleTimer.js opens it after 28 minutes with no requests or typing, 2 minutes before PHP logs them out
 export default {
     components: {
         PopupDialog,
@@ -15,7 +15,7 @@ export default {
         };
     },
     mounted() {
-        setIdleHandlers(this.showWarning, this.handleTimeout);
+        setIdleHandlers(this.showWarning, this.handleTimeout, this.checkStillLoggedIn);
     },
     methods: {
         /**
