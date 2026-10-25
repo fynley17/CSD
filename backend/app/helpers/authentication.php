@@ -118,9 +118,24 @@ class Authentication
             $this->stop(401, 'Your session has ended. Go to the login page to continue');
         }
 
+        // the session only knows what the account was like at login, so the database is checked every time
+        // that way a lecturer disabling a student takes effect on their next click, not 30 minutes later
+        try {
+            $user = User::findById($_SESSION['userID']);
+        } catch (\Throwable $e) {
+            error_log('Checking the logged in account failed: ' . $e->getMessage());
+            $this->stop(500, 'Something went wrong. Try again later');
+        }
+
+        // deleted or disabled since they logged in, so they're logged out straight away
+        if ($user === null || !$user->isActive()) {
+            $this->endSession();
+            $this->stop(401, 'Your session has ended. Go to the login page to continue');
+        }
+
         // 403 = logged in, but the wrong account type for this page
         // true makes in_array check the type as well, so only an exact match gets through
-        if (!in_array($_SESSION['accountType'] ?? '', $allowedRoles, true)) {
+        if (!in_array($user->getAccountType(), $allowedRoles, true)) {
             $this->stop(403, 'You do not have permission to view this page');
         }
     }
