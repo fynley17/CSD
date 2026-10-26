@@ -348,6 +348,11 @@ main.appMainFullScreen {
     color: var(--colorSurface);
 }
 
+/* House-style colour for hint and supporting text. */
+.hintText {
+    color: var(--colorTextSecondary);
+}
+
 /* Mobile lecturer navigation. */
 @media (max-width: 767.98px) {
     .desktopLecturerNavigation {
