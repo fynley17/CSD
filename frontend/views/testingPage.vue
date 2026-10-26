@@ -744,12 +744,6 @@ onBeforeUnmount(stopTimer);
     overflow-wrap: anywhere;
 }
 
-/* The heading is only focused from code to move screen readers, so no outline is needed. */
-.questionText:focus,
-.introTitle:focus {
-    outline: none;
-}
-
 /* Two by two grid of answers, stacked on small screens. */
 .answerGrid {
     display: grid;

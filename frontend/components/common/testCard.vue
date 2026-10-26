@@ -121,18 +121,9 @@ const dueDate = computed(() => {
     text-align: right;
 }
 
-/* Keep the actions side by side with a comfortable touch target. */
-.testCardActions {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: var(--spaceSm);
-}
-
+/* Brand coloured start button with a comfortable touch target. */
 .testCardStartButton {
     min-height: var(--minTouchTarget);
-}
-
-.testCardStartButton {
     border-color: var(--colorBrand);
     background: var(--colorBrand);
     color: var(--colorSurface);
