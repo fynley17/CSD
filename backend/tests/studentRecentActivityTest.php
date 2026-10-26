@@ -6,18 +6,18 @@ use PHPUnit\Framework\TestCase;
 
 final class StudentRecentActivityTest extends TestCase
 {
-    private PDO $db;
+    private \Pdo\Sqlite $db;
 
     protected function setUp(): void
     {
-        // Arrange: create a separate in-memory database for this test.
+        // Arrange: create an isolated in-memory SQLite database.
         // This prevents the test from changing the development database.
-        $this->db = new PDO('sqlite::memory:');
+        $this->db = new \Pdo\Sqlite('sqlite::memory:');
         $this->db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-        // SQLite does not always provide MariaDB's CONCAT_WS function.
-        // Register a compatible function so the real model query can be tested.
-        $this->db->sqliteCreateFunction(
+        // Register CONCAT_WS so SQLite can run the name-building query
+        // used by the Student model in MariaDB.
+        $this->db->createFunction(
             'CONCAT_WS',
             static function ($separator, ...$values): string {
                 $values = array_filter(
