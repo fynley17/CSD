@@ -64,4 +64,10 @@ $router->addRoute(
     [new LecturerController(), 'getDashboardSummary']
 );
 
+$router->addRoute(
+    'GET',
+    '/^\\/api\\/lecturer\\/recent-students$/',
+    [new LecturerController(), 'getRecentStudentActivity']
+);
+
 return $router;

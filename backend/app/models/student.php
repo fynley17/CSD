@@ -191,6 +191,41 @@ class Student extends User
             && preg_match('/[^a-zA-Z0-9\s]/', $password) === 1;
     }
 
+    /**
+     * Gets the five most recently logged-in students for the dashboard.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public static function getRecentActivity(): array
+    {
+        // Arrange: select student details and their latest login information.
+        $sql = "
+            SELECT
+                CONCAT_WS(' ', s.firstName, s.lastName) AS name,
+                u.username AS studentNumber,
+                u.email,
+                CASE
+                    WHEN u.isEnabled = 0 THEN 'Disabled'
+                    WHEN u.approvalStatus = 'pending' THEN 'Pending approval'
+                    ELSE 'Active'
+                END AS status,
+                u.lastLogin
+            FROM Students AS s
+            INNER JOIN Users AS u ON u.userID = s.userID
+            WHERE u.accountType = 'student'
+            AND u.lastLogin IS NOT NULL
+            ORDER BY u.lastLogin DESC
+            LIMIT 5
+        ";
+
+        // Act: execute the query using the shared database connection.
+        $stmt = self::getDB()->prepare($sql);
+        $stmt->execute();
+
+        // Assert/return: provide the results to the controller.
+        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+    }
+
     private static function validEmail($email)
     {
         return is_string($email) && filter_var($email, FILTER_VALIDATE_EMAIL) !== false;
