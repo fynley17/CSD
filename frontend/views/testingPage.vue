@@ -416,9 +416,10 @@ onBeforeUnmount(stopTimer);
     justify-content: flex-start;
 }
 
+/* White card holding the start screen, status messages and results summary. */
 .testingPanel {
     width: 100%;
-    max-width: 40rem;
+    max-width: var(--testingPanelMaxWidth);
     padding: var(--spaceXl);
     border: 1px solid var(--colorDivider);
     border-radius: var(--radiusMd);
@@ -426,16 +427,13 @@ onBeforeUnmount(stopTimer);
     box-shadow: var(--shadowModal);
 }
 
+/* Colour, font and weight come from the global h1 style. */
 .introTitle {
     margin: var(--spaceSm) 0;
-    color: var(--colorBrand);
-    font-family: var(--fontHeading);
-    font-size: var(--fontSizeH1);
-    font-weight: 700;
     overflow-wrap: anywhere;
 }
 
-/* Same summary layout as the test card details. */
+/* Same summary layout as the test card details, with a divider between rows. */
 .introDetails {
     display: grid;
     gap: var(--spaceSm);
@@ -461,17 +459,20 @@ onBeforeUnmount(stopTimer);
     text-align: right;
 }
 
+/* How the test works, in smaller secondary text. */
 .introHint {
     color: var(--colorTextSecondary);
     font-size: var(--fontSizeSmall);
 }
 
+/* Back is the smaller button so Start Test stands out. */
 .introActions {
     display: grid;
     grid-template-columns: 1fr 2fr;
     gap: var(--spaceSm);
 }
 
+/* Buttons match the test card's Start Test button and keep a comfortable touch target. */
 .testingPrimaryButton,
 .testingSecondaryButton {
     display: inline-flex;
@@ -503,6 +504,7 @@ onBeforeUnmount(stopTimer);
     background: var(--colorSurfaceAlt);
 }
 
+/* The mark is centred, the details below it stay left aligned like the start screen. */
 .resultsSummary {
     text-align: center;
 }
@@ -511,10 +513,11 @@ onBeforeUnmount(stopTimer);
     text-align: left;
 }
 
+/* tabular-nums keeps the digits evenly spaced, the same as the timer. */
 .resultsMark {
     margin: var(--spaceMd) 0 0;
     color: var(--colorText);
-    font-size: var(--fontSizeHeroTitleMobile);
+    font-size: var(--fontSizeResultsMark);
     font-weight: 700;
     line-height: 1.1;
     font-variant-numeric: tabular-nums;
@@ -525,6 +528,7 @@ onBeforeUnmount(stopTimer);
     font-size: var(--fontSizeH3);
 }
 
+/* Success colours from main.css, the trophy icon and text say it without colour. */
 .fullMarksNote {
     display: flex;
     justify-content: center;
@@ -538,20 +542,18 @@ onBeforeUnmount(stopTimer);
     font-weight: 700;
 }
 
+/* Colour, font and size come from the global h2 style, it only needs to line up with the cards. */
 .reviewTitle {
     width: 100%;
-    max-width: 40rem;
+    max-width: var(--testingPanelMaxWidth);
     margin: var(--spaceMd) 0 0;
-    color: var(--colorBrand);
-    font-family: var(--fontHeading);
-    font-size: var(--fontSizeH2);
 }
 
 .reviewList {
     display: grid;
     gap: var(--spaceMd);
     width: 100%;
-    max-width: 40rem;
+    max-width: var(--testingPanelMaxWidth);
     margin: 0;
     padding: 0;
     list-style: none;
@@ -561,7 +563,7 @@ onBeforeUnmount(stopTimer);
 .reviewQuestion {
     padding: var(--spaceLg);
     border: 1px solid var(--colorDivider);
-    border-left-width: 6px;
+    border-left-width: var(--reviewAccentWidth);
     border-radius: var(--radiusMd);
     background: var(--colorSurface);
     box-shadow: var(--shadowCard);
@@ -575,6 +577,7 @@ onBeforeUnmount(stopTimer);
     border-left-color: var(--colorError);
 }
 
+/* Question on the left, Correct / Incorrect on the right. */
 .reviewQuestionHeader {
     display: flex;
     justify-content: space-between;
@@ -583,11 +586,9 @@ onBeforeUnmount(stopTimer);
     margin-bottom: var(--spaceMd);
 }
 
+/* Font, size and weight come from the global h3 style. */
 .reviewQuestionText {
     margin: 0;
-    color: var(--colorText);
-    font-size: var(--fontSizeH3);
-    font-weight: 700;
     overflow-wrap: anywhere;
 }
 
@@ -614,6 +615,7 @@ onBeforeUnmount(stopTimer);
     list-style: none;
 }
 
+/* Every option is listed, the labels wrap under the answer on narrow screens. */
 .reviewAnswer {
     display: flex;
     justify-content: space-between;
@@ -626,6 +628,7 @@ onBeforeUnmount(stopTimer);
     overflow-wrap: anywhere;
 }
 
+/* Green for the correct answer, red for the wrong answer the student picked. */
 .reviewAnswerCorrect {
     border-color: var(--colorSuccess);
     background: var(--colorSuccessLight);
@@ -641,6 +644,7 @@ onBeforeUnmount(stopTimer);
     gap: var(--spaceXs);
 }
 
+/* White pill so "Your answer" and "Correct answer" read clearly on either colour. */
 .reviewLabel {
     padding: 0 var(--spaceSm);
     border-radius: var(--radiusPill);
