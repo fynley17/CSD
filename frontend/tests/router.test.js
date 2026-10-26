@@ -66,7 +66,8 @@ describe('Router page guard', () => {
     });
 
     /**
-     * An admin can't get into the pages only students use, i.e. the leaderboard (error)
+     * An admin can't get into the pages only students use, i.e. the leaderboard
+     * and goes back to their dashboard (error)
      */
     it('turns an admin away from the student leaderboard', async () => {
         // Arrange
@@ -77,7 +78,7 @@ describe('Router page guard', () => {
         const pageReached = router.currentRoute.value;
 
         // Assert
-        expect(pageReached.name).toBe('login');
+        expect(pageReached.name).toBe('administratorDashboard');
     });
 
     /**
@@ -95,5 +96,41 @@ describe('Router page guard', () => {
         // Assert
         expect(pageReached.name).toBe('login');
         expect(pageReached.query.redirect).toBe('/lecturer-management');
+    });
+});
+
+describe('router guard for student only pages', () => {
+    beforeEach(async () => {
+        vi.clearAllMocks();
+        // start each test from the public landing page
+        getCurrentUser.mockResolvedValue(null);
+        await router.push('/');
+    });
+
+    it('sends signed-out visitors to the landing page', async () => {
+        getCurrentUser.mockResolvedValue(null);
+        await router.push('/testing');
+        expect(router.currentRoute.value.name).toBe('landingPage');
+    });
+
+    it('treats an unreachable backend as signed out', async () => {
+        getCurrentUser.mockRejectedValue(new Error('Network Error'));
+        await router.push('/leaderboard');
+        expect(router.currentRoute.value.name).toBe('landingPage');
+    });
+
+    it.each([
+        ['admin', 'administratorDashboard'],
+        ['lecturer', 'lecturerDashboard'],
+    ])('sends a signed-in %s to their dashboard', async (accountType, dashboard) => {
+        getCurrentUser.mockResolvedValue({ accountType });
+        await router.push('/test-selection');
+        expect(router.currentRoute.value.name).toBe(dashboard);
+    });
+
+    it('lets students open student only pages', async () => {
+        getCurrentUser.mockResolvedValue({ accountType: 'student' });
+        await router.push('/testing');
+        expect(router.currentRoute.value.name).toBe('testing');
     });
 });
