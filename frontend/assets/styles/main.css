@@ -668,6 +668,27 @@ main.appMainFullScreen {
     color: var(--colorPrimary);
 }
 
+/* Logo and slogan beside the login form
+   the logo picture has an off-white background, multiply blends it into the white card so no grey box shows */
+.loginBrandLogo {
+    display: block;
+    width: 100%;
+    max-width: 320px;
+    height: auto;
+    margin: 0 auto;
+    mix-blend-mode: multiply;
+}
+
+/* slogan in the heading font and brand blue, same as the page headings */
+.loginBrandSlogan {
+    margin-top: var(--spaceMd);
+    color: var(--colorBrand);
+    font-family: var(--fontHeading);
+    font-size: var(--fontSizeH3);
+    font-weight: 700;
+    text-align: center;
+}
+
 /* Login form, Bootstrap's form classes themed with the tokens above
    everything starts with .loginForm so it only styles the login card and the registration form keeps its own look
    the check your email and verify email cards also use .loginForm, so their boxes and messages match login
