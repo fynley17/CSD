@@ -669,14 +669,13 @@ main.appMainFullScreen {
 }
 
 /* Logo and slogan beside the login form
-   the logo picture has an off-white background, multiply blends it into the white card so no grey box shows */
+   the picture has a see-through background so it sits straight on the page */
 .loginBrandLogo {
     display: block;
     width: 100%;
     max-width: 320px;
     height: auto;
     margin: 0 auto;
-    mix-blend-mode: multiply;
 }
 
 /* slogan in the heading font and brand blue, same as the page headings */

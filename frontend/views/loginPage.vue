@@ -14,13 +14,9 @@ export default {
     <div class="container py-5">
         <div class="row justify-content-center align-items-stretch g-4">
             <!-- logo and slogan, order-last moves them under the form on phones so the form comes first -->
-            <div class="col-12 col-md-6 col-lg-5 order-last order-md-first">
-                <div class="card surfaceCard loginBrand h-100">
-                    <div class="card-body p-4 p-md-5 d-flex flex-column justify-content-center">
-                        <img src="../assets/images/Logo.png" alt="RevisionHub" class="loginBrandLogo" />
-                        <p class="loginBrandSlogan mb-0">Learn, Practise, Progress</p>
-                    </div>
-                </div>
+            <div class="col-12 col-md-6 col-lg-5 order-last order-md-first d-flex flex-column justify-content-center">
+                <img src="../assets/images/logoTransparent.png" alt="RevisionHub" class="loginBrandLogo" />
+                <p class="loginBrandSlogan mb-0">Learn - Practise - Progress</p>
             </div>
 
             <div class="col-12 col-md-6 col-lg-5">
