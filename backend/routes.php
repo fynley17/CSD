@@ -5,6 +5,7 @@ use App\Controllers\StudentController;
 use App\Controllers\CohortController;
 use App\Controllers\AuthController;
 use App\Controllers\LecturerController;
+use App\Controllers\ResultController;
 use App\Controllers\TestController;
 use App\Controllers\VerificationController;
 
@@ -45,6 +46,8 @@ $router->addRoute('POST', '/^\\/api\\/register$/', [new StudentController(), 're
 $router->addRoute('GET', '/^\\/api\\/cohorts$/', [new CohortController(), 'getAllCohorts']);
 // Provide tests with assigned questions to authenticated students.
 $router->addRoute('GET', '/^\\/api\\/tests$/', [new TestController(), 'getAvailableTests']);
+// Provide the tests the authenticated student has already completed.
+$router->addRoute('GET', '/^\\/api\\/tests\\/completed$/', [new ResultController(), 'getCompletedTests']);
 
 // email verification, used by the check your email and verify email pages
 $router->addRoute('POST', '/^\\/api\\/verify-email$/', [new VerificationController(), 'verifyEmail']);

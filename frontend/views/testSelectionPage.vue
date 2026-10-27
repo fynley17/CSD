@@ -11,19 +11,39 @@
                 <TestCard :test="test" />
             </div>
         </div>
+
+        <section class="mt-5" aria-labelledby="completedTestsHeading">
+            <h2 id="completedTestsHeading">Completed tests</h2>
+
+            <p v-if="isLoadingCompleted" class="text-secondary" role="status">Loading completed tests...</p>
+            <p v-else-if="completedLoadError" class="alert alert-danger" role="alert">{{ completedLoadError }}</p>
+            <p v-else-if="completedTests.length === 0" class="text-secondary">You have not completed any tests yet.</p>
+
+            <ul v-else class="completedTestList list-unstyled mt-4 mb-0">
+                <li v-for="result in completedTests" :key="result.completedID">
+                    <CompletedTestItem :result="result" />
+                </li>
+            </ul>
+        </section>
     </main>
 </template>
 
 <script setup>
 import { onMounted, ref } from 'vue';
+import CompletedTestItem from '../components/common/completedTestItem.vue';
 import TestCard from '../components/common/testCard.vue';
+import { getCompletedTests } from '../services/resultService';
 import { getAvailableTests } from '../services/testService';
 
 const tests = ref([]);
 const isLoading = ref(true);
 const loadError = ref('');
 
-onMounted(async () => {
+const completedTests = ref([]);
+const isLoadingCompleted = ref(true);
+const completedLoadError = ref('');
+
+async function loadAvailableTests() {
     try {
         tests.value = await getAvailableTests();
     } catch (error) {
@@ -31,7 +51,21 @@ onMounted(async () => {
     } finally {
         isLoading.value = false;
     }
-});
+}
+
+async function loadCompletedTests() {
+    try {
+        completedTests.value = await getCompletedTests();
+    } catch (error) {
+        completedLoadError.value =
+            error.response?.data?.error || 'Unable to load completed tests. Please try again later.';
+    } finally {
+        isLoadingCompleted.value = false;
+    }
+}
+
+// Load both lists side by side so a failure in one does not hide the other.
+onMounted(() => Promise.all([loadAvailableTests(), loadCompletedTests()]));
 </script>
 
 <style scoped>
@@ -43,6 +77,12 @@ onMounted(async () => {
 .testCardGridItem {
     break-inside: avoid;
     margin-bottom: var(--spaceLg);
+}
+
+/* Stack completed tests in a single list beneath the cards. */
+.completedTestList {
+    display: grid;
+    gap: var(--spaceMd);
 }
 
 @media (max-width: 991.98px) {
