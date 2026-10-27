@@ -22,6 +22,9 @@ function cardText(page) {
     return page.findAll('.card').map((card) => [card.get('h2').text(), card.get('p').text()]);
 }
 
+// LecturerTable is stubbed out, these tests are only about the cards (its own tests are in lecturerTable.test.js)
+const withoutTable = { global: { stubs: { LecturerTable: true } } };
+
 describe('AdministratorDashboard', () => {
     // clears the pretend answer before each test, so one test can't change the next one
     beforeEach(() => {
@@ -41,7 +44,7 @@ describe('AdministratorDashboard', () => {
         });
 
         // Act
-        const page = mount(AdministratorDashboard);
+        const page = mount(AdministratorDashboard, withoutTable);
         await flushPromises();
 
         // Assert
@@ -67,7 +70,7 @@ describe('AdministratorDashboard', () => {
         });
 
         // Act
-        const page = mount(AdministratorDashboard);
+        const page = mount(AdministratorDashboard, withoutTable);
         await flushPromises();
 
         // Assert
@@ -84,7 +87,7 @@ describe('AdministratorDashboard', () => {
         });
 
         // Act
-        const page = mount(AdministratorDashboard);
+        const page = mount(AdministratorDashboard, withoutTable);
         await flushPromises();
 
         // Assert
