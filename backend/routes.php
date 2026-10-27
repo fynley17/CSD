@@ -64,4 +64,11 @@ $router->addRoute(
     [new LecturerController(), 'getDashboardSummary']
 );
 
+// Return all tests for the lecturer dashboard.
+$router->addRoute(
+    'GET',
+    '/^\\/api\\/lecturer\\/tests$/',
+    [new TestController(), 'getAllForLecturer']
+);
+
 return $router;

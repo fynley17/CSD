@@ -27,7 +27,11 @@ class TestController extends Controller
                 || $user->getAccountType() !== 'student'
             ) {
                 Authentication::endSession();
-                $this->jsonResponse(['error' => 'Your session has ended. Go to the login page to continue'], 401);
+                $this->jsonResponse(
+                    ['error' => 'Your session has ended. Go to the login page to continue'],
+                    401
+                );
+                return;
             }
 
             // Delegate the actual filtering to the model.
@@ -39,7 +43,39 @@ class TestController extends Controller
                 get_class($e),
                 $e->getMessage()
             ));
-            $this->jsonResponse(['error' => 'Unable to load tests. Please try again later.'], 500);
+
+            $this->jsonResponse(
+                ['error' => 'Unable to load tests. Please try again later.'],
+                500
+            );
+        }
+    }
+
+    /**
+     * Loads all tests for the lecturer dashboard.
+     */
+    public function getAllForLecturer(): void
+    {
+        // Ensure only lecturers can access the dashboard test list.
+        Authentication::requireRole(['lecturer']);
+
+        try {
+            // Retrieve all tests with their subject and question count.
+            $tests = Test::getAllForLecturer();
+
+            $this->jsonResponse($tests);
+        } catch (\Throwable $e) {
+            // Log the exception and return a generic error to the client.
+            error_log(sprintf(
+                'Loading lecturer tests failed (%s): %s',
+                get_class($e),
+                $e->getMessage()
+            ));
+
+            $this->jsonResponse(
+                ['error' => 'Unable to load tests. Please try again later.'],
+                500
+            );
         }
     }
 }
