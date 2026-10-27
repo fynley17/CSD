@@ -337,6 +337,13 @@ function selectAnswer(answer) {
 
 // Sends every question to be marked, ones the timer cut off go as null (unanswered).
 async function finishTest() {
+    // Only hand in from a question, or retry after a failed submit, so the timer,
+    // the last answer and repeat Try again clicks can't send the test twice.
+    const isRetry = phase.value === 'submitting' && submitError.value !== '';
+    if (phase.value !== 'question' && !isRetry) {
+        return;
+    }
+
     stopTimer();
     phase.value = 'submitting';
     submitError.value = '';
