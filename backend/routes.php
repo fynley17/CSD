@@ -95,5 +95,11 @@ $router->addRoute(
     '/^\\/api\\/lecturer\\/questions$/',
     [new QuestionController(), 'getAllForLecturer']
 );
+// the lecturers in the admin dashboard table, admins only
+$router->addRoute(
+    'GET',
+    '/^\\/api\\/admin\\/recent-lecturers$/',
+    [new AdministratorController(), 'getRecentLecturers']
+);
 
 return $router;
