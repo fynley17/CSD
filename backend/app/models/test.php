@@ -47,14 +47,60 @@ class Test extends Model
             )
             ORDER BY t.dueDate IS NULL, t.dueDate, t.testName"
         );
+
         $stmt->execute([$userID]);
 
         // Normalise the SQL output to the types the front end expects.
         $tests = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
         foreach ($tests as &$test) {
-            $test['timeLimit'] = $test['timeLimit'] === null ? null : (int) $test['timeLimit'];
+            $test['timeLimit'] = $test['timeLimit'] === null
+                ? null
+                : (int) $test['timeLimit'];
+
             $test['questionCount'] = (int) $test['questionCount'];
         }
+
+        unset($test);
+
+        return $tests;
+    }
+
+    /**
+     * Returns all tests for the lecturer dashboard.
+     *
+     * Includes each test's subject, question count and time limit.
+     */
+    public static function getAllForLecturer(): array
+    {
+        $sql = "
+            SELECT
+                t.testID,
+                t.testName,
+                s.subjectName,
+                (
+                    SELECT COUNT(*)
+                    FROM TestQuestions AS tq
+                    WHERE tq.testID = t.testID
+                ) AS questionCount,
+                t.timeLimit
+            FROM Tests AS t
+            INNER JOIN Subjects AS s ON s.subjectID = t.subjectID
+            ORDER BY t.testName
+        ";
+
+        $stmt = self::getDB()->query($sql);
+        $tests = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+        // Convert numeric fields to the types expected by the frontend.
+        foreach ($tests as &$test) {
+            $test['questionCount'] = (int) $test['questionCount'];
+
+            $test['timeLimit'] = $test['timeLimit'] === null
+                ? null
+                : (int) $test['timeLimit'];
+        }
+
         unset($test);
 
         return $tests;
