@@ -4,6 +4,7 @@ use App\Router;
 use App\Controllers\StudentController;
 use App\Controllers\CohortController;
 use App\Controllers\AuthController;
+use App\Controllers\LecturerController;
 use App\Controllers\TestController;
 use App\Controllers\VerificationController;
 use App\Controllers\AdministratorController;
@@ -63,4 +64,11 @@ $router->addRoute(
     '/^\\/api\\/admin\\/dashboard-summary$/',
     [new AdministratorController(), 'getDashboardSummary']
 );
+// lecturer dashboard summary
+$router->addRoute(
+    'GET',
+    '/^\\/api\\/lecturer\\/dashboard-summary$/',
+    [new LecturerController(), 'getDashboardSummary']
+);
+
 return $router;
