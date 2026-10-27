@@ -20,6 +20,7 @@ final class TestModelTest extends TestCase
                 testDescription TEXT,
                 timeLimit INTEGER,
                 dueDate TEXT,
+                questionCount INTEGER,
                 subjectID TEXT NOT NULL,
                 createdBy TEXT NOT NULL
             )'
@@ -58,10 +59,10 @@ final class TestModelTest extends TestCase
              INSERT INTO Lecturer VALUES ('lecturer-1', 'Alex', 'Lecturer');
              INSERT INTO Tests VALUES
                 ('test-with-questions', 'Web Apps Test', 'Review web apps', 75,
-                 '2026-10-30', 'subject-1', 'lecturer-1'),
-                ('untimed-test', 'Untimed Test', NULL, NULL, NULL, 'subject-1', 'lecturer-1'),
-                ('empty-test', 'Empty Test', 'No assigned questions', NULL, NULL, 'subject-1', 'lecturer-1'),
-                ('other-cohort-test', 'Cyber Security Test', 'Other cohort test', NULL, NULL,
+                 '2026-10-30', NULL, 'subject-1', 'lecturer-1'),
+                ('untimed-test', 'Untimed Test', NULL, NULL, NULL, NULL, 'subject-1', 'lecturer-1'),
+                ('empty-test', 'Empty Test', 'No assigned questions', NULL, NULL, 5, 'subject-1', 'lecturer-1'),
+                ('other-cohort-test', 'Cyber Security Test', 'Other cohort test', NULL, NULL, NULL,
                  'subject-2', 'lecturer-1');
              INSERT INTO TestQuestions VALUES
                 ('test-with-questions', 'question-1'),
@@ -116,6 +117,18 @@ final class TestModelTest extends TestCase
         self::assertNull($untimedTest['timeLimit']);
         self::assertNull($untimedTest['dueDate']);
         self::assertSame(1, $untimedTest['questionCount']);
+    }
+
+    public function testQuestionCountIsHowManyQuestionsEachAttemptDraws(): void
+    {
+        // a set count is shown, but never more than the pool holds
+        $this->db->exec("UPDATE Tests SET questionCount = 1 WHERE testID = 'test-with-questions'");
+        $this->db->exec("UPDATE Tests SET questionCount = 4 WHERE testID = 'untimed-test'");
+
+        $tests = Test::getAvailableForStudents('student-user-1');
+
+        self::assertSame([1, 1], array_column($tests, 'questionCount'));
+        self::assertArrayNotHasKey('questionsPerAttempt', $tests[0]);
     }
 
     public function testDoesNotReturnTestsWithoutAssignedQuestionsOrAnswerData(): void

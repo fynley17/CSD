@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import api from '../services/api';
-import { getAvailableTests, getTest, submitTest } from '../services/testService';
+import { getAvailableTests, startTestAttempt, submitTest } from '../services/testService';
 
 vi.mock('../services/api', () => ({
     default: {
@@ -22,12 +22,12 @@ describe('testService', () => {
         expect(api.get).toHaveBeenCalledWith('/tests');
     });
 
-    it('requests one test by its ID', async () => {
+    it('starts an attempt at one test by its ID', async () => {
         const test = { testID: 'test-1', questions: [] };
-        api.get.mockResolvedValue({ data: test });
+        api.post.mockResolvedValue({ data: test });
 
-        await expect(getTest('test-1')).resolves.toEqual(test);
-        expect(api.get).toHaveBeenCalledWith('/tests/test-1');
+        await expect(startTestAttempt('test-1')).resolves.toEqual(test);
+        expect(api.post).toHaveBeenCalledWith('/tests/test-1/start');
     });
 
     it('posts the chosen answers and returns the marked test', async () => {

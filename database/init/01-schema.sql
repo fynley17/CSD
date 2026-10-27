@@ -97,6 +97,9 @@ CREATE TABLE `Tests` (
   `testDescription` varchar(100) DEFAULT NULL,
   `timeLimit` int(3) DEFAULT NULL COMMENT 'Minutes; NULL = untimed',
   `dueDate` date DEFAULT NULL,
+  `questionCount` int(3) DEFAULT NULL COMMENT
+    'Questions drawn at random from the TestQuestions pool per attempt; '
+    'NULL = all',
   `createdBy` uuid NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 

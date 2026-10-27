@@ -16,5 +16,8 @@ cards. The email verification migration adds `Users.isEmailVerified` and the
 `EmailVerifications` table used by the registration verification email; existing
 accounts stay verified. The cohorts migration adds `Cohorts.isActive` and widens
 `Cohorts.cohortName` to 50 characters, for databases created before CTS-158;
-existing cohorts stay active. Do not run migrations through the init directory; init scripts run only
+existing cohorts stay active. The test question count migration adds the optional
+`Tests.questionCount` column, the number of questions each attempt draws at
+random from the questions assigned to the test in `TestQuestions` (NULL asks
+them all). Do not run migrations through the init directory; init scripts run only
 for a new volume.

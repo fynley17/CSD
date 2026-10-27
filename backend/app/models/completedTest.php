@@ -16,19 +16,24 @@ class CompletedTest extends Model
     /**
      * Marks the student's answers, saves the attempt and adds the points to their total.
      *
+     * @param string[] $questionIDs the questions drawn for this attempt when it started, in the order
+     *                              they were asked. Only these are marked, whatever the browser sends.
      * @param array $submittedAnswers questionID => answerID, or null for a question left unanswered
      *                                (e.g. the timer ran out). Missing questions also count as unanswered.
      * @return array|null the marked test for the results screen, null if the student can't take this test
      * @throws \InvalidArgumentException if an answer doesn't belong to its question
      */
-    public static function submit(string $userID, string $testID, array $submittedAnswers): ?array
+    public static function submit(string $userID, string $testID, array $questionIDs, array $submittedAnswers): ?array
     {
         // reuse the cohort check so a student can't submit a test they couldn't open
-        if (Test::getForStudent($testID, $userID) === null) {
+        if (!Test::isAvailableToStudent($testID, $userID)) {
             return null;
         }
 
-        $questions = Test::getQuestions($testID, true);
+        $questions = Test::getQuestions($testID, true, $questionIDs);
+        if (count($questions) === 0) {
+            throw new \InvalidArgumentException('This attempt could not be found. Please start the test again.');
+        }
         $markedQuestions = [];
         $correctCount = 0;
         $pointsEarned = 0;

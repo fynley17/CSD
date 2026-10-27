@@ -3,10 +3,10 @@
 import { flushPromises, mount, RouterLinkStub } from '@vue/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import TestingPage from '../views/testingPage.vue';
-import { getTest, submitTest } from '../services/testService';
+import { startTestAttempt, submitTest } from '../services/testService';
 
 vi.mock('../services/testService', () => ({
-    getTest: vi.fn(),
+    startTestAttempt: vi.fn(),
     submitTest: vi.fn(),
 }));
 
@@ -81,7 +81,7 @@ async function mountPage() {
 describe('TestingPage', () => {
     beforeEach(() => {
         vi.clearAllMocks();
-        getTest.mockResolvedValue(structuredClone(test));
+        startTestAttempt.mockResolvedValue(structuredClone(test));
         submitTest.mockResolvedValue(structuredClone(result));
         // 0.99 makes the shuffle swap nothing, so the answers stay in the order above
         vi.spyOn(Math, 'random').mockReturnValue(0.99);
@@ -117,7 +117,7 @@ describe('TestingPage', () => {
     it('loads the chosen test and shows a start screen first', async () => {
         const wrapper = await mountPage();
 
-        expect(getTest).toHaveBeenCalledWith('test-1');
+        expect(startTestAttempt).toHaveBeenCalledWith('test-1');
         expect(wrapper.get('h1').text()).toBe('Web Apps basics');
         expect(wrapper.text()).toContain('Web Apps');
         expect(wrapper.text()).toContain('5 minutes');
@@ -125,7 +125,7 @@ describe('TestingPage', () => {
     });
 
     it('says when a test has no time limit and hides the timer', async () => {
-        getTest.mockResolvedValue({ ...test, timeLimit: null });
+        startTestAttempt.mockResolvedValue({ ...test, timeLimit: null });
         const wrapper = await mountPage();
 
         expect(wrapper.text()).toContain('No time limit');
@@ -177,7 +177,7 @@ describe('TestingPage', () => {
 
     it('hands the test in when the timer runs out, unanswered questions as null', async () => {
         vi.useFakeTimers();
-        getTest.mockResolvedValue({ ...test, timeLimit: 1 });
+        startTestAttempt.mockResolvedValue({ ...test, timeLimit: 1 });
         const wrapper = await mountPage();
 
         await wrapper.get('.testingPrimaryButton').trigger('click');
@@ -209,7 +209,7 @@ describe('TestingPage', () => {
     });
 
     it('shows the API error when the test cannot be loaded', async () => {
-        getTest.mockRejectedValue({ response: { data: { error: 'This test is not available.' } } });
+        startTestAttempt.mockRejectedValue({ response: { data: { error: 'This test is not available.' } } });
         const wrapper = await mountPage();
 
         expect(wrapper.get('[role="alert"]').text()).toBe('This test is not available.');

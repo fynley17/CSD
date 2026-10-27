@@ -44,8 +44,8 @@ $router->addRoute('POST', '/^\\/api\\/register$/', [new StudentController(), 're
 $router->addRoute('GET', '/^\\/api\\/cohorts$/', [new CohortController(), 'getAllCohorts']);
 // Provide tests with assigned questions to authenticated students.
 $router->addRoute('GET', '/^\\/api\\/tests$/', [new TestController(), 'getAvailableTests']);
-// One test with its questions for the testing page, then marking and saving the finished attempt.
-$router->addRoute('GET', '/^\\/api\\/tests\\/([0-9a-zA-Z-]+)$/', [new TestController(), 'getTest']);
+// Start a test (draws its questions at random from the pool), then mark and save the finished attempt.
+$router->addRoute('POST', '/^\\/api\\/tests\\/([0-9a-zA-Z-]+)\\/start$/', [new TestController(), 'startTest']);
 $router->addRoute('POST', '/^\\/api\\/tests\\/([0-9a-zA-Z-]+)\\/complete$/', [new TestController(), 'submitTest']);
 
 // email verification, used by the check your email and verify email pages

@@ -41,7 +41,8 @@ class Test extends Model
                 COALESCE(
                     NULLIF(TRIM(CONCAT_WS(' ', l.firstName, l.lastName)), ''),
                     'Unknown lecturer'
-                ) AS createdByName
+                ) AS createdByName,
+                t.questionCount AS questionsPerAttempt
             FROM Tests AS t
             INNER JOIN Subjects AS s ON s.subjectID = t.subjectID
             INNER JOIN Lecturer AS l ON l.userID = t.createdBy
@@ -65,7 +66,9 @@ class Test extends Model
         $tests = $stmt->fetchAll(\PDO::FETCH_ASSOC);
         foreach ($tests as &$test) {
             $test['timeLimit'] = $test['timeLimit'] === null ? null : (int) $test['timeLimit'];
-            $test['questionCount'] = (int) $test['questionCount'];
+            // the card shows how many questions the student will get, not the size of the pool
+            $test['questionCount'] = self::attemptSize($test['questionsPerAttempt'], (int) $test['questionCount']);
+            unset($test['questionsPerAttempt']);
         }
         unset($test);
 
@@ -73,7 +76,11 @@ class Test extends Model
     }
 
     /**
-     * Returns one test with its questions and answer options, ready to be taken.
+     * Starts an attempt: returns the test with questions drawn at random from its pool,
+     * each with its answer options, ready to be taken.
+     *
+     * The pool is every question assigned to the test in TestQuestions, and the test's
+     * questionCount says how many are drawn, so each attempt gets its own set of questions.
      *
      * isCorrect is never selected here, so the correct answers can't be read in the
      * browser while the test is running. They're only sent back once it's marked.
@@ -83,29 +90,20 @@ class Test extends Model
      */
     public static function getForStudent(string $testID, string $userID): ?array
     {
-        $db = self::getDB();
-
-        // Same cohort check as getAvailableForStudents(), so a student can't open
-        // another cohort's test by typing its ID into the URL.
-        $stmt = $db->prepare(
-            "SELECT t.testID, t.testName, t.testDescription, t.timeLimit, s.subjectName
-            FROM Tests AS t
-            INNER JOIN Subjects AS s ON s.subjectID = t.subjectID
-            INNER JOIN Students AS student ON student.cohortID = s.cohortID
-            WHERE t.testID = ? AND student.userID = ?
-            AND NOT " . self::FULL_MARKS_ATTEMPT
-        );
-        $stmt->execute([$testID, $userID, $userID]);
-        $test = $stmt->fetch(\PDO::FETCH_ASSOC);
-
-        if ($test === false) {
+        $test = self::findForStudent($testID, $userID);
+        if ($test === null) {
             return null;
         }
 
-        $questions = self::getQuestions($testID, false);
-        if (count($questions) === 0) {
+        $pool = self::getQuestions($testID, false);
+        if (count($pool) === 0) {
             return null;
         }
+
+        // shuffle the whole pool and keep the first few, so every question has the same chance
+        shuffle($pool);
+        $questions = array_slice($pool, 0, self::attemptSize($test['questionsPerAttempt'], count($pool)));
+        unset($test['questionsPerAttempt']);
 
         $test['timeLimit'] = $test['timeLimit'] === null ? null : (int) $test['timeLimit'];
         $test['questionCount'] = count($questions);
@@ -115,11 +113,61 @@ class Test extends Model
     }
 
     /**
+     * True if the student can take this test right now, without drawing any questions.
+     */
+    public static function isAvailableToStudent(string $testID, string $userID): bool
+    {
+        return self::findForStudent($testID, $userID) !== null;
+    }
+
+    /**
+     * Returns the test's details if the student can take it, null if they can't.
+     */
+    private static function findForStudent(string $testID, string $userID): ?array
+    {
+        // Same checks as getAvailableForStudents(), so a student can't open another
+        // cohort's test, or an empty one, by typing its ID into the URL.
+        $stmt = self::getDB()->prepare(
+            "SELECT t.testID, t.testName, t.testDescription, t.timeLimit,
+                t.questionCount AS questionsPerAttempt, s.subjectName
+            FROM Tests AS t
+            INNER JOIN Subjects AS s ON s.subjectID = t.subjectID
+            INNER JOIN Students AS student ON student.cohortID = s.cohortID
+            WHERE t.testID = ? AND student.userID = ?
+            AND EXISTS (
+                SELECT 1
+                FROM TestQuestions AS tq
+                WHERE tq.testID = t.testID
+            )
+            AND NOT " . self::FULL_MARKS_ATTEMPT
+        );
+        $stmt->execute([$testID, $userID, $userID]);
+        $test = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+        return $test === false ? null : $test;
+    }
+
+    /**
+     * How many questions one attempt gets: the test's questionCount, but never more than
+     * the pool holds. No questionCount set means every question in the pool.
+     */
+    private static function attemptSize(int|string|null $questionsPerAttempt, int $poolSize): int
+    {
+        if ($questionsPerAttempt === null || (int) $questionsPerAttempt <= 0) {
+            return $poolSize;
+        }
+
+        return min((int) $questionsPerAttempt, $poolSize);
+    }
+
+    /**
      * Returns a test's questions in the lecturer's order, each with its answer options.
      *
      * @param bool $includeCorrect true only when marking, adds isCorrect to every answer
+     * @param string[]|null $questionIDs only these questions, in this order (the ones drawn for an
+     *                                   attempt). Any that aren't in the test are left out.
      */
-    public static function getQuestions(string $testID, bool $includeCorrect): array
+    public static function getQuestions(string $testID, bool $includeCorrect, ?array $questionIDs = null): array
     {
         $db = self::getDB();
 
@@ -160,6 +208,18 @@ class Test extends Model
         }
         unset($question);
 
-        return $questions;
+        if ($questionIDs === null) {
+            return $questions;
+        }
+
+        $questionsByID = array_column($questions, null, 'questionID');
+        $chosen = [];
+        foreach ($questionIDs as $questionID) {
+            if (isset($questionsByID[$questionID])) {
+                $chosen[] = $questionsByID[$questionID];
+            }
+        }
+
+        return $chosen;
     }
 }

@@ -5,9 +5,10 @@ export async function getAvailableTests() {
     return response.data;
 }
 
-// One test with its questions and answer options, the correct answers aren't included.
-export async function getTest(testID) {
-    const response = await api.get(`/tests/${encodeURIComponent(testID)}`);
+// Starts an attempt, the backend draws the test's questions at random from its pool
+// and sends them with their answer options, the correct answers aren't included.
+export async function startTestAttempt(testID) {
+    const response = await api.post(`/tests/${encodeURIComponent(testID)}/start`);
     return response.data;
 }
 

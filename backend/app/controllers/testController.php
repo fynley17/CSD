@@ -29,9 +29,10 @@ class TestController extends Controller
     }
 
     /**
-     * Loads one test and its questions for the testing page, without the correct answers.
+     * Starts an attempt: draws the test's questions at random from its pool and sends them
+     * to the testing page, without the correct answers. Starting again draws a new set.
      */
-    public function getTest(string $testID): void
+    public function startTest(string $testID): void
     {
         $userID = $this->requireActiveStudent();
 
@@ -40,6 +41,9 @@ class TestController extends Controller
             if ($test === null) {
                 $this->jsonResponse(['error' => self::TEST_NOT_FOUND], 404);
             }
+
+            // remember the drawn questions so the submission is marked against this set
+            Authentication::saveTestAttempt($testID, array_column($test['questions'], 'questionID'));
 
             $this->jsonResponse($test);
         } catch (\Throwable $e) {
@@ -50,6 +54,7 @@ class TestController extends Controller
 
     /**
      * Marks the student's answers, saves the attempt and returns the results with the correct answers.
+     * Only the questions drawn when the test was started are marked.
      * Expects {"answers": {"<questionID>": "<answerID>" or null}}.
      */
     public function submitTest(string $testID): void
@@ -62,10 +67,17 @@ class TestController extends Controller
                 throw new \InvalidArgumentException('Your answers could not be read. Please try again.');
             }
 
-            $result = CompletedTest::submit($userID, $testID, $data['answers']);
+            $questionIDs = Authentication::getTestAttempt($testID);
+            if ($questionIDs === null) {
+                throw new \InvalidArgumentException('This attempt could not be found. Please start the test again.');
+            }
+
+            $result = CompletedTest::submit($userID, $testID, $questionIDs, $data['answers']);
             if ($result === null) {
                 $this->jsonResponse(['error' => self::TEST_NOT_FOUND], 404);
             }
+
+            Authentication::clearTestAttempt($testID);
 
             $this->jsonResponse($result, 201);
         } catch (\InvalidArgumentException $e) {

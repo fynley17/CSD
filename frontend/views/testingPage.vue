@@ -188,7 +188,7 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
-import { getTest, submitTest } from '../services/testService';
+import { startTestAttempt, submitTest } from '../services/testService';
 import { formatTimeLimit } from '../utils/formatTimeLimit';
 
 const route = useRoute();
@@ -367,9 +367,11 @@ async function finishTest() {
     }
 }
 
+// The Start Test button on the test card brings the student here, so the questions
+// for this attempt are drawn from the pool as soon as the page opens.
 onMounted(async () => {
     try {
-        const loadedTest = await getTest(route.params.testID);
+        const loadedTest = await startTestAttempt(route.params.testID);
         loadedTest.questions = loadedTest.questions.map((question) => ({
             ...question,
             answers: shuffle(question.answers),
