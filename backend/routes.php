@@ -67,7 +67,7 @@ $router->addRoute(
 $router->addRoute(
     'GET',
     '/^\\/api\\/lecturer\\/recent-students$/',
-    [new LecturerController(), 'getRecentStudentActivity']
+    [new StudentController(), 'getRecentStudentActivity']
 );
 
 return $router;
