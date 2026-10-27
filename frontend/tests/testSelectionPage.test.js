@@ -4,6 +4,7 @@ import { flushPromises, mount } from '@vue/test-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import TestSelectionPage from '../views/testSelectionPage.vue';
 import { getAvailableTests } from '../services/testService';
+import { getCompletedTests } from '../services/resultService';
 
 vi.mock('../services/testService', () => ({
     getAvailableTests: vi.fn(),
@@ -12,6 +13,8 @@ vi.mock('../services/testService', () => ({
 const push = vi.fn();
 vi.mock('vue-router', () => ({
     useRouter: () => ({ push }),
+vi.mock('../services/resultService', () => ({
+    getCompletedTests: vi.fn(),
 }));
 
 const test = {
@@ -25,9 +28,22 @@ const test = {
     dueDate: null,
 };
 
+const completedTest = {
+    completedID: 'completed-1',
+    testID: 'test-2',
+    testName: 'Cyber Security Basics',
+    testDescription: 'Check your understanding of security basics.',
+    subjectName: 'Cyber Security',
+    completedDate: '2026-10-20 09:00:00',
+    questionCount: 10,
+    pointsEarned: 260,
+    percentageCorrect: 80,
+};
+
 describe('TestSelectionPage', () => {
     beforeEach(() => {
         vi.clearAllMocks();
+        getCompletedTests.mockResolvedValue([]);
     });
 
     it('shows loading state and then renders cards for the returned tests', async () => {
@@ -78,5 +94,37 @@ describe('TestSelectionPage', () => {
         await wrapper.get('.testCardStartButton').trigger('click');
 
         expect(push).toHaveBeenCalledWith({ name: 'testing', params: { testID: 'test-1' } });
+    it('renders the completed tests below the tests to complete', async () => {
+        getAvailableTests.mockResolvedValue([test]);
+        getCompletedTests.mockResolvedValue([completedTest]);
+
+        const wrapper = mount(TestSelectionPage);
+        await flushPromises();
+
+        expect(getCompletedTests).toHaveBeenCalledOnce();
+        expect(wrapper.findAll('.completedTestItem')).toHaveLength(1);
+        expect(wrapper.get('.completedTestTitle').text()).toBe(completedTest.testName);
+        expect(wrapper.get('.completedTestPercentage').text()).toBe('80%');
+    });
+
+    it('shows an empty state when no tests have been completed', async () => {
+        getAvailableTests.mockResolvedValue([test]);
+
+        const wrapper = mount(TestSelectionPage);
+        await flushPromises();
+
+        expect(wrapper.text()).toContain('You have not completed any tests yet.');
+        expect(wrapper.find('.completedTestItem').exists()).toBe(false);
+    });
+
+    it('still shows the tests to complete when completed tests fail to load', async () => {
+        getAvailableTests.mockResolvedValue([test]);
+        getCompletedTests.mockRejectedValue(new Error('Network error'));
+
+        const wrapper = mount(TestSelectionPage);
+        await flushPromises();
+
+        expect(wrapper.findAll('.testCard')).toHaveLength(1);
+        expect(wrapper.get('[role="alert"]').text()).toBe('Unable to load completed tests. Please try again later.');
     });
 });
