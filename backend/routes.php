@@ -8,6 +8,7 @@ use App\Controllers\LecturerController;
 use App\Controllers\ResultController;
 use App\Controllers\TestController;
 use App\Controllers\VerificationController;
+use App\Controllers\QuestionController;
 
 $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
 $allowedOrigins = [
@@ -75,6 +76,13 @@ $router->addRoute(
     'GET',
     '/^\\/api\\/lecturer\\/tests$/',
     [new TestController(), 'getAllForLecturer']
+);
+
+// Return all questions for the lecturer question management page.
+$router->addRoute(
+    'GET',
+    '/^\\/api\\/lecturer\\/questions$/',
+    [new QuestionController(), 'getAllForLecturer']
 );
 
 return $router;
