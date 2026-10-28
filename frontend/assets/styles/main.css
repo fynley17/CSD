@@ -112,6 +112,11 @@
     --colorAnswerBlue: #3066c9;
     --colorAnswerYellow: #a16207;
     --colorAnswerGreen: #46892a;
+
+    /* Testing page start, results and review screens */
+    --testingPanelMaxWidth: 40rem;
+    --fontSizeResultsMark: clamp(2rem, 7vw, 3rem);
+    --reviewAccentWidth: 6px;
 }
 
 /* Global layout and typography */
@@ -346,6 +351,11 @@ main.appMainFullScreen {
 .lecturerNavigation a.routerLinkExactActive:hover {
     background-color: var(--colorBrand);
     color: var(--colorSurface);
+}
+
+/* House-style colour for hint and supporting text. */
+.hintText {
+    color: var(--colorTextSecondary);
 }
 
 /* Mobile lecturer navigation. */

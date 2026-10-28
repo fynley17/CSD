@@ -15,11 +15,18 @@
         "app/models/user.php",
         "app/models/lecturer.php",
         "app/models/administrator.php",
+        "app/models/test.php",
+        "app/models/result.php",
+        "app/controllers/resultController.php",
         "app/helpers/authentication.php",
-        "app/helpers/mailer.php",
         "app/controllers/authController.php",
+        "app/controllers/lecturerController.php",
+        "app/controllers/testController.php",
+        "app/helpers/mailer.php",
         "app/controllers/verificationController.php",
-        "app/models/emailVerification.php"
+        "app/models/emailVerification.php",
+        "app/controllers/testController.php",
+        "app/models/completedTest.php"
     ],
     "psr-4": {
         "App\\": "app/"

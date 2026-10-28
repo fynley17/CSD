@@ -4,6 +4,8 @@ use App\Router;
 use App\Controllers\StudentController;
 use App\Controllers\CohortController;
 use App\Controllers\AuthController;
+use App\Controllers\LecturerController;
+use App\Controllers\ResultController;
 use App\Controllers\TestController;
 use App\Controllers\VerificationController;
 
@@ -44,6 +46,11 @@ $router->addRoute('POST', '/^\\/api\\/register$/', [new StudentController(), 're
 $router->addRoute('GET', '/^\\/api\\/cohorts$/', [new CohortController(), 'getAllCohorts']);
 // Provide tests with assigned questions to authenticated students.
 $router->addRoute('GET', '/^\\/api\\/tests$/', [new TestController(), 'getAvailableTests']);
+// Start a test (draws its questions at random from the pool), then mark and save the finished attempt.
+$router->addRoute('POST', '/^\\/api\\/tests\\/([0-9a-zA-Z-]+)\\/start$/', [new TestController(), 'startTest']);
+$router->addRoute('POST', '/^\\/api\\/tests\\/([0-9a-zA-Z-]+)\\/complete$/', [new TestController(), 'submitTest']);
+// Provide the tests the authenticated student has already completed.
+$router->addRoute('GET', '/^\\/api\\/tests\\/completed$/', [new ResultController(), 'getCompletedTests']);
 
 // email verification, used by the check your email and verify email pages
 $router->addRoute('POST', '/^\\/api\\/verify-email$/', [new VerificationController(), 'verifyEmail']);
@@ -55,5 +62,19 @@ $router->addRoute('POST', '/^\\/api\\/change-email$/', [new VerificationControll
 $router->addRoute('POST', '/^\\/api\\/login$/', [new AuthController(), 'login']);
 $router->addRoute('POST', '/^\\/api\\/logout$/', [new AuthController(), 'logout']);
 $router->addRoute('GET', '/^\\/api\\/current-user$/', [new AuthController(), 'currentUser']);
+
+// lecturer dashboard summary
+$router->addRoute(
+    'GET',
+    '/^\\/api\\/lecturer\\/dashboard-summary$/',
+    [new LecturerController(), 'getDashboardSummary']
+);
+
+// Return all tests for the lecturer dashboard.
+$router->addRoute(
+    'GET',
+    '/^\\/api\\/lecturer\\/tests$/',
+    [new TestController(), 'getAllForLecturer']
+);
 
 return $router;
