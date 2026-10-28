@@ -469,6 +469,97 @@ main.appMainFullScreen {
     }
 }
 
+/* admins have seven links, which only fit next to the logo from 1300px wide,
+   so below that the admin header uses the same menu button as phones do */
+@media (max-width: 1299.98px) {
+    .adminHeader [class~='container-fluid'] {
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--spaceSm);
+    }
+
+    .adminHeader .desktopLecturerNavigation,
+    .adminHeader .desktopActions {
+        display: none;
+    }
+
+    .adminHeader .mobileMenuToggle {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        gap: var(--spaceXs);
+        width: 44px;
+        height: 44px;
+        padding: var(--spaceSm);
+        border: 1px solid var(--colorDivider);
+        border-radius: var(--radiusSm);
+        background-color: var(--colorSurface);
+        cursor: pointer;
+    }
+
+    .adminHeader .mobileMenuToggle span {
+        display: block;
+        width: 100%;
+        height: 2px;
+        background-color: var(--colorPrimary);
+    }
+
+    .adminHeader .mobileNavigation.isOpen {
+        position: absolute;
+        top: 100%;
+        right: 0;
+        display: flex;
+        flex-direction: column;
+        gap: var(--spaceSm);
+        min-width: 160px;
+        padding: var(--spaceMd);
+        border: 1px solid var(--colorDivider);
+        border-radius: var(--radiusSm);
+        background-color: var(--colorSurface);
+        box-shadow: var(--shadowCard);
+    }
+
+    .adminHeader .mobileNavigation .headerButton {
+        display: flex;
+        justify-content: center;
+        white-space: nowrap;
+    }
+
+    .adminHeader .mobileLecturerNavigation {
+        display: flex;
+        flex-direction: column;
+        gap: var(--spaceSm);
+        padding: 0 var(--spaceSm) var(--spaceSm);
+    }
+
+    .adminHeader .mobileLecturerNavigation a {
+        width: 100%;
+    }
+
+    .adminHeader .mobileLecturerNavigation a.routerLinkExactActive {
+        padding-left: var(--spaceSm);
+    }
+}
+
+/* account icon and type next to Sign out, Royal Blue which matches nav links */
+.accountBadge {
+    display: flex;
+    align-items: center;
+    gap: var(--spaceXs);
+    margin: 0;
+    color: var(--colorBrand);
+    font-size: var(--fontSizeSmall);
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+/* lines the account icon up with the links in the hamburger menu */
+.mobileNavigation .accountBadge {
+    padding: 0 var(--spaceSm);
+}
+
 /* Shared footer */
 .siteFooter {
     width: 100%;
