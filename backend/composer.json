@@ -24,7 +24,10 @@
         "app/helpers/mailer.php",
         "app/controllers/authController.php",
         "app/controllers/verificationController.php",
-        "app/models/emailVerification.php"
+        "app/models/emailVerification.php",
+        "app/controllers/testController.php",
+        "app/models/question.php",
+        "app/controllers/questionController.php"
     ],
     "psr-4": {
         "App\\": "app/"
