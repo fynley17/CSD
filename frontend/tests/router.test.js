@@ -18,7 +18,7 @@ describe('router guard for student only pages', () => {
 
     it('sends signed-out visitors to the landing page', async () => {
         getCurrentUser.mockResolvedValue(null);
-        await router.push('/testing');
+        await router.push('/testing/test-1');
         expect(router.currentRoute.value.name).toBe('landingPage');
     });
 
@@ -39,7 +39,7 @@ describe('router guard for student only pages', () => {
 
     it('lets students open student only pages', async () => {
         getCurrentUser.mockResolvedValue({ accountType: 'student' });
-        await router.push('/testing');
+        await router.push('/testing/test-1');
         expect(router.currentRoute.value.name).toBe('testing');
     });
 });

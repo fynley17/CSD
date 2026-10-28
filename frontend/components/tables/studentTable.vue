@@ -156,6 +156,7 @@ onMounted(async () => {
         <!-- Table heading -->
         <div class="card-body d-flex flex-wrap justify-content-between align-items-center gap-2">
             <h2 class="h5 fw-bold mb-0">Recent Student Activity</h2>
+            <router-link :to="{ name: 'studentManagement' }" class="small text-dark"> View all students </router-link>
         </div>
 
         <div class="px-3 px-md-4 pb-4">

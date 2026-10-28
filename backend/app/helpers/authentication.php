@@ -91,6 +91,39 @@ class Authentication
     }
 
     /**
+     * Remembers which questions were drawn when the student started a test, so only those get marked.
+     * Kept on the server so the browser can't swap in questions it would rather answer.
+     *
+     * @param string[] $questionIDs
+     */
+    public static function saveTestAttempt(string $testID, array $questionIDs): void
+    {
+        self::startSession();
+        $_SESSION['testAttempts'][$testID] = $questionIDs;
+    }
+
+    /**
+     * Returns the questions drawn when the student last started this test.
+     *
+     * @return string[]|null null if they haven't started it, or it's already been handed in
+     */
+    public static function getTestAttempt(string $testID): ?array
+    {
+        self::startSession();
+
+        return $_SESSION['testAttempts'][$testID] ?? null;
+    }
+
+    /**
+     * Forgets the drawn questions once the test is handed in, so the same attempt can't be marked twice.
+     */
+    public static function clearTestAttempt(string $testID): void
+    {
+        self::startSession();
+        unset($_SESSION['testAttempts'][$testID]);
+    }
+
+    /**
      * Returns the ID of whoever is logged in, read from the session on the server.
      * Nothing comes in from the page, the browser only sends its session cookie, so controllers
      * should use this to find the current user rather than trusting a userID sent in a request.
