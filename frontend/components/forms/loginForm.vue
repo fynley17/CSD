@@ -79,7 +79,7 @@ export default {
     <div class="card surfaceCard loginForm">
         <div class="card-body p-4 p-md-5">
             <!-- logo and slogan on wider screens, hidden on phones as loginPage.vue shows them under the form -->
-            <div class="d-none d-md-block text-center mb-4">
+            <div class="d-none d-md-block text-center mb-5">
                 <img src="../../assets/images/logoTransparent.png" alt="RevisionHub" class="loginBrandLogo" />
                 <p class="loginBrandSlogan mb-0">Learn - Practise - Progress</p>
             </div>
