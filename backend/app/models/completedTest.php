@@ -15,6 +15,8 @@ class CompletedTest extends Model
 
     /**
      * Marks the student's answers, saves the attempt and adds the points to their total.
+     * Once the student has full marks on the test, retakes are still marked and saved but
+     * earn no points, so a test can't be retaken over and over to climb the leaderboard.
      *
      * @param string[] $questionIDs the questions drawn for this attempt when it started, in the order
      *                              they were asked. Only these are marked, whatever the browser sends.
@@ -26,9 +28,12 @@ class CompletedTest extends Model
     public static function submit(string $userID, string $testID, array $questionIDs, array $submittedAnswers): ?array
     {
         // reuse the cohort check so a student can't submit a test they couldn't open
-        if (!Test::isAvailableToStudent($testID, $userID)) {
+        $test = Test::findForStudent($testID, $userID);
+        if ($test === null) {
             return null;
         }
+        // checked when the test is handed in, so full marks in another tab also counts
+        $earnsPoints = $test['earnsPoints'];
 
         $questions = Test::getQuestions($testID, true, $questionIDs);
         if (count($questions) === 0) {
@@ -62,6 +67,11 @@ class CompletedTest extends Model
                 $correctCount++;
             } else {
                 $pointsAwarded = self::POINTS_INCORRECT;
+            }
+
+            // a practice retake is still marked right or wrong, it just doesn't score
+            if (!$earnsPoints) {
+                $pointsAwarded = 0;
             }
 
             $pointsEarned += $pointsAwarded;
@@ -136,6 +146,7 @@ class CompletedTest extends Model
             'correctCount' => $correctCount,
             'pointsEarned' => $pointsEarned,
             'percentageCorrect' => $percentageCorrect,
+            'earnsPoints' => $earnsPoints,
             'questions' => $markedQuestions,
         ];
     }

@@ -116,35 +116,9 @@ class TestController extends Controller
         ) {
             Authentication::endSession();
             $this->jsonResponse(['error' => 'Your session has ended. Go to the login page to continue'], 401);
-
-            if (
-                $user === null
-                || !$user->isActive()
-                || $user->getAccountType() !== 'student'
-            ) {
-                Authentication::endSession();
-                $this->jsonResponse(
-                    ['error' => 'Your session has ended. Go to the login page to continue'],
-                    401
-                );
-                return;
-            }
-
-            // Delegate the actual filtering to the model.
-            $this->jsonResponse(Test::getAvailableForStudents($userID));
-        } catch (\Throwable $e) {
-            // Log the exception and return a generic error to the client.
-            error_log(sprintf(
-                'Loading available tests failed (%s): %s',
-                get_class($e),
-                $e->getMessage()
-            ));
-
-            $this->jsonResponse(
-                ['error' => 'Unable to load tests. Please try again later.'],
-                500
-            );
         }
+
+        return $userID;
     }
 
     /**
@@ -173,8 +147,6 @@ class TestController extends Controller
                 500
             );
         }
-
-        return $userID;
     }
 
     /**
