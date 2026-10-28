@@ -87,15 +87,49 @@ class Authentication
     }
 
     /**
+     * Remembers which questions were drawn when the student started a test, so only those get marked.
+     * Kept on the server so the browser can't swap in questions it would rather answer.
+     *
+     * @param string[] $questionIDs
+     */
+    public static function saveTestAttempt(string $testID, array $questionIDs): void
+    {
+        (new self())->startSession();
+        $_SESSION['testAttempts'][$testID] = $questionIDs;
+    }
+
+    /**
+     * Returns the questions drawn when the student last started this test.
+     *
+     * @return string[]|null null if they haven't started it, or it's already been handed in
+     */
+    public static function getTestAttempt(string $testID): ?array
+    {
+        (new self())->startSession();
+
+        return $_SESSION['testAttempts'][$testID] ?? null;
+    }
+
+    /**
+     * Forgets the drawn questions once the test is handed in, so the same attempt can't be marked twice.
+     */
+    public static function clearTestAttempt(string $testID): void
+    {
+        (new self())->startSession();
+        unset($_SESSION['testAttempts'][$testID]);
+    }
+
+    /**
      * Returns the ID of whoever is logged in, read from the session on the server.
      * Nothing comes in from the page, the browser only sends its session cookie, so controllers
      * should use this to find the current user, a userID sent in a request could be faked.
      *
      * @return string|null null if nobody is logged in
      */
-    public function getLoggedInUserID(): ?string
+    public static function getLoggedInUserID(): ?string
     {
-        $this->startSession();
+        $authentication = new self();
+        $authentication->startSession();
 
         // no user ID in the session means nobody's logged in
         if (!isset($_SESSION['userID'])) {
@@ -109,13 +143,16 @@ class Authentication
      * Stops the request unless someone is logged in with one of these account types.
      * e.g. requireRole(['admin']) or requireRole(['lecturer', 'admin'])
      */
-    public function requireRole(array $allowedRoles): void
+    public static function requireRole(array $allowedRoles): void
     {
-        $this->startSession();
+        $authentication = new self();
+        $authentication->startSession();
+
+        // 401 = not logged in
 
         // 401 = not logged in
         if (!isset($_SESSION['userID'])) {
-            $this->stop(401, 'Your session has ended. Go to the login page to continue');
+            $authentication->stop(401, 'Your session has ended. Go to the login page to continue');
         }
 
         // the session only knows what the account was like at login, so the database is checked every time
@@ -124,19 +161,19 @@ class Authentication
             $user = User::findById($_SESSION['userID']);
         } catch (\Throwable $e) {
             error_log('Checking the logged in account failed: ' . $e->getMessage());
-            $this->stop(500, 'Something went wrong. Try again later');
+            $authentication->stop(500, 'Something went wrong. Try again later');
         }
 
         // deleted or disabled since they logged in, so they're logged out straight away
         if ($user === null || !$user->isActive()) {
-            $this->endSession();
-            $this->stop(401, 'Your session has ended. Go to the login page to continue');
+            $authentication->endSession();
+            $authentication->stop(401, 'Your session has ended. Go to the login page to continue');
         }
 
         // 403 = logged in, but the wrong account type for this page
         // true makes in_array check the type as well, so only an exact match gets through
         if (!in_array($user->getAccountType(), $allowedRoles, true)) {
-            $this->stop(403, 'You do not have permission to view this page');
+            $authentication->stop(403, 'You do not have permission to view this page');
         }
     }
 
@@ -206,9 +243,10 @@ class Authentication
     /**
      * Logs the user out, empties the session and deletes the cookie.
      */
-    public function endSession(): void
+    public static function endSession(): void
     {
-        $this->startSession();
+        $authentication = new self();
+        $authentication->startSession();
         $_SESSION = [];
 
         // tell the browser to delete the cookie by giving it a date in the past
