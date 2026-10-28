@@ -112,8 +112,7 @@ class AuthController extends Controller
 
     /**
      * GET /api/current-user, tells the page who's logged in so the header can change by account type
-     * nobody logged in is a normal answer to that question, so it comes back as a 200 with loggedIn false
-     * a 401 would show in red in the browser console on every logged out page, and Lighthouse counts those
+     * logged out = 200 with loggedIn false, a 401 here would be a console error on every page
      */
     public function currentUser(): void
     {
@@ -163,9 +162,7 @@ class AuthController extends Controller
     }
 
     /**
-     * Reads the username and password the page sent
-     * the login form sends them as JSON inside the request, so they never show up in the URL,
-     * the browser history or the server logs
+     * Reads the username and password from the JSON body (keeps them out of the URL and logs)
      *
      * @return array|null null if either one is missing or blank
      */
@@ -180,18 +177,15 @@ class AuthController extends Controller
     }
 
     /**
-     * Checks the login details are both there and are text, and tidies up the username
-     * this runs before the database is touched, so bad input never reaches a query
-     * it's public and static so a unit test can hand it made up input and check what comes back
+     * Checks both login details are there and are text, and trims the username
+     * public static so the unit tests can pass in made up input
      *
      * @param mixed $data whatever the page sent, after it's been turned from JSON into PHP
      * @return array|null the cleaned username and password, or null if either one is missing or blank
      */
     public static function checkLoginDetails(mixed $data): ?array
     {
-        // check again here as well as on the page, page checks can be skipped
-        // e.g. someone sending a request straight to /api/login without using the form
-        // the page should always send JSON, if it didn't there's nothing to check
+        // checked again here, anyone can skip the form and call /api/login directly
         if (!is_array($data)) {
             return null;
         }

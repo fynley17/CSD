@@ -5,8 +5,7 @@ require_once __DIR__ . '/../vendor/autoload.php';
 use App\Router;
 use App\Helpers\Authentication;
 
-// PHP adds an X-Powered-By line to every reply saying it's PHP and the exact version, i.e. PHP/8.4.27
-// that tells attackers which known weaknesses to look up, so the line's taken off before anything is sent
+// remove X-Powered-By, it tells attackers the exact PHP version
 header_remove('X-Powered-By');
 
 // Load the routes, including account registration and cohort lookup.

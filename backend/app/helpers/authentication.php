@@ -13,8 +13,7 @@ use App\Models\User;
  */
 class Authentication
 {
-    // the login cookie gets our own name, PHP's default name PHPSESSID tells anyone that the site
-    // is built with PHP, which helps them work out which attacks to try
+    // Own cookie name, PHPSESSID would reveal that it's PHP
     private const COOKIE_NAME = 'RevisionHub';
 
     // on the live site (secure connection enabled) the name also starts with __Host-
@@ -23,8 +22,8 @@ class Authentication
     // can't slip its own fake login cookie into the browser
     private const SECURE_COOKIE_NAME = '__Host-RevisionHub';
 
-    // people get logged out after 30 minutes of doing nothing, OWASP suggests 15 to 30 for a low risk site like ours
-    // public so the tests can use it, the Vue pop-up has its own copy of the 30 minutes in idleTimer.js
+    // 30 min idle logout, OWASP says 15 to 30 for a low risk site
+    // public for the tests, idleTimer.js has the same number
     public const IDLE_TIMEOUT_SECONDS = 30 * 60;
 
     // true on the live site's secure connection (https), the cookie's name and settings depend on it
@@ -214,9 +213,8 @@ class Authentication
     }
 
     /**
-     * True if the code the page sent matches the one saved in the session.
-     * Kept apart from requireCsrfToken() so it can be tested without a real request.
-     * static (no object needed to use it) as it only compares the two codes it's given, so the tests can check it
+     * True if the code the page sent matches the one in the session
+     * static as it only compares the two codes it's given, the tests call it directly
      */
     public static function isValidCsrfToken(string $sessionToken, string $sentToken): bool
     {
@@ -279,9 +277,7 @@ class Authentication
         // it also prevents links from another site from logging the user in to this site
         ini_set('session.use_strict_mode', '1');
 
-        // PHP has its own clean-up that runs on about 1 in 100 requests, it deletes any session file
-        // nobody has touched for 24 minutes (PHP's default), so someone idle for 25 minutes could lose
-        // their login before our 30 are up, this line tells the clean-up to wait the full 30 instead
+        // PHP's clean-up deletes sessions after 24 mins by default, this stretches it to our 30
         ini_set('session.gc_maxlifetime', (string) self::IDLE_TIMEOUT_SECONDS);
 
         // browsers refuse __Host- cookies on a normal connection, so on localhost it's just 'RevisionHub'
@@ -299,7 +295,7 @@ class Authentication
             // SameSite controls if the cookie gets sent when a request comes from another site
             // Lax is only sent when someone clicks a normal link to us, never with another site's forms (stops CSRF)
             'samesite' => 'Lax',
-            // on https (Plesk) the cookie only travels over a secure connection
+            // https only on Plesk
             'secure' => $this->isHttps,
         ]);
 
@@ -310,8 +306,7 @@ class Authentication
         // 'nocache' is already PHP's default, it's written out here so it's clear where those lines come from
         session_cache_limiter('nocache');
 
-        // starts the session, this is also the line that sends Set-Cookie, handing the browser
-        // the login cookie with the name and settings above
+        // starts the session and sends the cookie with the settings above
         session_start();
 
         $this->checkIdleTimeout();
@@ -338,9 +333,9 @@ class Authentication
     }
 
     /**
-     * Sends an error back as JSON and stops, so nothing else in the request runs.
-     * Same job as the controllers' jsonResponse(), this class isn't a controller so it has its own
-     * returns never (it always ends the request, so nothing after a stop() call ever runs)
+     * Sends a JSON error and ends the request
+     * like jsonResponse() in the controllers, this class isn't a controller so it has its own
+     * never = always ends the request
      */
     private function stop(int $status, string $message): never
     {

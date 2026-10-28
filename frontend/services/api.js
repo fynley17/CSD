@@ -52,9 +52,8 @@ api.interceptors.response.use(
     async (error) => {
         const request = error.config;
 
-        // a 403 on a request that changes data may mean the saved code is out of date, i.e. the session was reset
-        // so it fetches a new code and sends the same request once more, a real refusal (i.e. a disabled account)
-        // just gets the same 403 back the second time and that goes on to whoever asked
+        // a 403 might just be an old code (session reset), so get a new one and try once more
+        // an actual refusal 403s again and goes back to the page
         if (error.response?.status === 403 && request && request.method !== 'get' && !request.hasRetried) {
             request.hasRetried = true;
             csrfToken = null;
