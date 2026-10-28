@@ -6,8 +6,10 @@
 --   student1  student in the Sample Cohort, can see and take both tests
 --   lecturer  lecturer who set the tests
 --
--- Each test has a bigger pool of questions than it asks, so every attempt draws a
--- different random set: Web Development Basics asks 5 of 10, Databases Quiz asks 4 of 8.
+-- Each test draws its questions at random from every question in its subject, and each
+-- subject has a bigger pool than its test asks, so every attempt gets a different set:
+-- Web Development Basics asks 5 of the 10 Web Applications questions, Databases Quiz asks
+-- 4 of the 8 Databases questions.
 
 START TRANSACTION;
 
@@ -45,10 +47,12 @@ INSERT IGNORE INTO `Students` (`userID`, `firstName`, `lastName`, `cohortID`) VA
   ('5eed0002-0000-4000-8000-000000000002', 'Sample', 'Student', '5eed0001-0000-4000-8000-000000000001');
 
 INSERT IGNORE INTO `Subjects` (`subjectID`, `subjectName`, `cohortID`, `isActive`) VALUES
-  ('5eed0003-0000-4000-8000-000000000001', 'Web Applications', '5eed0001-0000-4000-8000-000000000001', 1);
+  ('5eed0003-0000-4000-8000-000000000001', 'Web Applications', '5eed0001-0000-4000-8000-000000000001', 1),
+  ('5eed0003-0000-4000-8000-000000000002', 'Databases', '5eed0001-0000-4000-8000-000000000001', 1);
 
 INSERT IGNORE INTO `LecturerSubjects` (`lecturerID`, `subjectID`) VALUES
-  ('5eed0002-0000-4000-8000-000000000001', '5eed0003-0000-4000-8000-000000000001');
+  ('5eed0002-0000-4000-8000-000000000001', '5eed0003-0000-4000-8000-000000000001'),
+  ('5eed0002-0000-4000-8000-000000000001', '5eed0003-0000-4000-8000-000000000002');
 
 INSERT IGNORE INTO `Tests`
   (`testID`, `testName`, `subjectID`, `testDescription`, `timeLimit`, `dueDate`, `questionCount`, `createdBy`)
@@ -66,7 +70,7 @@ VALUES
   (
     '5eed0004-0000-4000-8000-000000000002',
     'Databases Quiz',
-    '5eed0003-0000-4000-8000-000000000001',
+    '5eed0003-0000-4000-8000-000000000002',
     'SQL queries and relational design.',
     NULL,
     NULL,
@@ -128,42 +132,42 @@ INSERT IGNORE INTO `Questions` (`questionID`, `subjectID`, `question`) VALUES
   ),
   (
     '5eed0005-0000-4000-8000-000000000011',
-    '5eed0003-0000-4000-8000-000000000001',
+    '5eed0003-0000-4000-8000-000000000002',
     'Which SQL statement reads data from a table?'
   ),
   (
     '5eed0005-0000-4000-8000-000000000012',
-    '5eed0003-0000-4000-8000-000000000001',
+    '5eed0003-0000-4000-8000-000000000002',
     'What does a primary key do?'
   ),
   (
     '5eed0005-0000-4000-8000-000000000013',
-    '5eed0003-0000-4000-8000-000000000001',
+    '5eed0003-0000-4000-8000-000000000002',
     'Which clause filters rows in a query?'
   ),
   (
     '5eed0005-0000-4000-8000-000000000014',
-    '5eed0003-0000-4000-8000-000000000001',
+    '5eed0003-0000-4000-8000-000000000002',
     'Which join returns only rows that match in both tables?'
   ),
   (
     '5eed0005-0000-4000-8000-000000000015',
-    '5eed0003-0000-4000-8000-000000000001',
+    '5eed0003-0000-4000-8000-000000000002',
     'What does a foreign key reference?'
   ),
   (
     '5eed0005-0000-4000-8000-000000000016',
-    '5eed0003-0000-4000-8000-000000000001',
+    '5eed0003-0000-4000-8000-000000000002',
     'Which function counts the rows in a result?'
   ),
   (
     '5eed0005-0000-4000-8000-000000000017',
-    '5eed0003-0000-4000-8000-000000000001',
+    '5eed0003-0000-4000-8000-000000000002',
     'Which statement removes rows from a table?'
   ),
   (
     '5eed0005-0000-4000-8000-000000000018',
-    '5eed0003-0000-4000-8000-000000000001',
+    '5eed0003-0000-4000-8000-000000000002',
     'What does SQL stand for?'
   );
 
@@ -601,25 +605,5 @@ INSERT IGNORE INTO `Answers` (`answerID`, `questionID`, `answerText`, `isCorrect
     'Server Query List',
     0
   );
--- the question pool for each test
-INSERT IGNORE INTO `TestQuestions` (`testID`, `questionID`, `questionOrder`) VALUES
-  ('5eed0004-0000-4000-8000-000000000001', '5eed0005-0000-4000-8000-000000000001', 1),
-  ('5eed0004-0000-4000-8000-000000000001', '5eed0005-0000-4000-8000-000000000002', 2),
-  ('5eed0004-0000-4000-8000-000000000001', '5eed0005-0000-4000-8000-000000000003', 3),
-  ('5eed0004-0000-4000-8000-000000000001', '5eed0005-0000-4000-8000-000000000004', 4),
-  ('5eed0004-0000-4000-8000-000000000001', '5eed0005-0000-4000-8000-000000000005', 5),
-  ('5eed0004-0000-4000-8000-000000000001', '5eed0005-0000-4000-8000-000000000006', 6),
-  ('5eed0004-0000-4000-8000-000000000001', '5eed0005-0000-4000-8000-000000000007', 7),
-  ('5eed0004-0000-4000-8000-000000000001', '5eed0005-0000-4000-8000-000000000008', 8),
-  ('5eed0004-0000-4000-8000-000000000001', '5eed0005-0000-4000-8000-000000000009', 9),
-  ('5eed0004-0000-4000-8000-000000000001', '5eed0005-0000-4000-8000-000000000010', 10),
-  ('5eed0004-0000-4000-8000-000000000002', '5eed0005-0000-4000-8000-000000000011', 1),
-  ('5eed0004-0000-4000-8000-000000000002', '5eed0005-0000-4000-8000-000000000012', 2),
-  ('5eed0004-0000-4000-8000-000000000002', '5eed0005-0000-4000-8000-000000000013', 3),
-  ('5eed0004-0000-4000-8000-000000000002', '5eed0005-0000-4000-8000-000000000014', 4),
-  ('5eed0004-0000-4000-8000-000000000002', '5eed0005-0000-4000-8000-000000000015', 5),
-  ('5eed0004-0000-4000-8000-000000000002', '5eed0005-0000-4000-8000-000000000016', 6),
-  ('5eed0004-0000-4000-8000-000000000002', '5eed0005-0000-4000-8000-000000000017', 7),
-  ('5eed0004-0000-4000-8000-000000000002', '5eed0005-0000-4000-8000-000000000018', 8);
 
 COMMIT;

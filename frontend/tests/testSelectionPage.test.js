@@ -13,6 +13,8 @@ vi.mock('../services/testService', () => ({
 const push = vi.fn();
 vi.mock('vue-router', () => ({
     useRouter: () => ({ push }),
+}));
+
 vi.mock('../services/resultService', () => ({
     getCompletedTests: vi.fn(),
 }));
@@ -94,6 +96,8 @@ describe('TestSelectionPage', () => {
         await wrapper.get('.testCardStartButton').trigger('click');
 
         expect(push).toHaveBeenCalledWith({ name: 'testing', params: { testID: 'test-1' } });
+    });
+
     it('renders the completed tests below the tests to complete', async () => {
         getAvailableTests.mockResolvedValue([test]);
         getCompletedTests.mockResolvedValue([completedTest]);

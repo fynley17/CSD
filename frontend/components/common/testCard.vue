@@ -30,7 +30,15 @@
                 </div>
             </dl>
 
-            <button type="button" class="btn testCardStartButton" @click="$emit('start', test)">Start Test</button>
+            <!-- full marks already earned, the test can still be taken for practice -->
+            <p v-if="test.earnsPoints === false" class="testCardPracticeNote">
+                <i class="bi bi-trophy-fill" aria-hidden="true"></i>
+                Full marks achieved. Retakes are practice and don't earn points.
+            </p>
+
+            <button type="button" class="btn testCardStartButton mt-auto" @click="$emit('start', test)">
+                Start Test
+            </button>
         </div>
     </article>
 </template>
@@ -119,6 +127,20 @@ const dueDate = computed(() => {
     margin: 0;
     font-weight: 600;
     text-align: right;
+}
+
+/* Success colours from main.css, the trophy icon and text say it without colour. */
+.testCardPracticeNote {
+    display: flex;
+    align-items: center;
+    gap: var(--spaceSm);
+    margin: 0 0 var(--spaceMd);
+    padding: var(--spaceSm) var(--spaceMd);
+    border-radius: var(--radiusSm);
+    background: var(--colorSuccessLight);
+    color: var(--colorSuccess);
+    font-size: var(--fontSizeSmall);
+    font-weight: 600;
 }
 
 /* Brand coloured start button with a comfortable touch target. */

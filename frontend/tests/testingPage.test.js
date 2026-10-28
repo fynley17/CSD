@@ -160,7 +160,7 @@ describe('TestingPage', () => {
         expect(wrongQuestion.get('.reviewAnswerWrong').text()).toContain('Your answer');
     });
 
-    it('tells the student a full marks test is complete and removed from their tests', async () => {
+    it('tells the student a full marks test can be practised without earning more points', async () => {
         const fullMarks = structuredClone(result);
         fullMarks.correctCount = 2;
         fullMarks.questions[1].isCorrect = true;
@@ -172,7 +172,29 @@ describe('TestingPage', () => {
         await wrapper.findAll('.answerButton')[0].trigger('click');
         await flushPromises();
 
-        expect(wrapper.get('.fullMarksNote').text()).toContain('removed from your tests');
+        expect(wrapper.get('.fullMarksNote').text()).toContain("retakes won't earn points");
+    });
+
+    it('marks a retake after full marks as practice, before and after the test', async () => {
+        startTestAttempt.mockResolvedValue({ ...test, earnsPoints: false });
+        const practice = structuredClone(result);
+        practice.earnsPoints = false;
+        practice.pointsEarned = 0;
+        practice.questions.forEach((question) => {
+            question.pointsAwarded = 0;
+        });
+        submitTest.mockResolvedValue(practice);
+        const wrapper = await mountPage();
+
+        expect(wrapper.get('.fullMarksNote').text()).toContain("won't earn points");
+
+        await wrapper.get('.testingPrimaryButton').trigger('click');
+        await wrapper.findAll('.answerButton')[0].trigger('click');
+        await wrapper.findAll('.answerButton')[1].trigger('click');
+        await flushPromises();
+
+        expect(wrapper.get('.fullMarksNote').text()).toContain('no points were added');
+        expect(wrapper.text()).toContain('0 PTS');
     });
 
     it('hands the test in when the timer runs out, unanswered questions as null', async () => {

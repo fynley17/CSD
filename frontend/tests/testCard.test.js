@@ -46,6 +46,20 @@ describe('TestCard', () => {
         expect(details).toEqual(['Questions', 'Subject', 'Set by']);
     });
 
+    it('only shows the practice note once the student has full marks', () => {
+        expect(
+            mount(TestCard, { props: { test: baseTest } })
+                .find('.testCardPracticeNote')
+                .exists(),
+        ).toBe(false);
+
+        const wrapper = mount(TestCard, { props: { test: { ...baseTest, earnsPoints: false } } });
+
+        expect(wrapper.get('.testCardPracticeNote').text()).toContain("don't earn points");
+        // it can still be started
+        expect(wrapper.find('.testCardStartButton').exists()).toBe(true);
+    });
+
     it('emits the selected test when Start test is clicked', async () => {
         const wrapper = mount(TestCard, { props: { test: baseTest } });
 

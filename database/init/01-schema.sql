@@ -58,15 +58,6 @@ CREATE TABLE `Questions` (
   `percentageCorrect` int(3) NOT NULL DEFAULT 0 COMMENT 'Percentage correct'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE `TestQuestions` (
-  `testID` uuid NOT NULL,
-  `questionID` uuid NOT NULL,
-  `questionOrder` int unsigned NOT NULL,
-  PRIMARY KEY (`testID`,`questionID`),
-  UNIQUE KEY `uq_test_questions_order` (`testID`,`questionOrder`),
-  KEY `idx_test_questions_question` (`questionID`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
 CREATE TABLE `StudentAnswers` (
   `completedID` uuid NOT NULL,
   `questionID` uuid NOT NULL,
@@ -97,9 +88,8 @@ CREATE TABLE `Tests` (
   `testDescription` varchar(100) DEFAULT NULL,
   `timeLimit` int(3) DEFAULT NULL COMMENT 'Minutes; NULL = untimed',
   `dueDate` date DEFAULT NULL,
-  `questionCount` int(3) DEFAULT NULL COMMENT
-    'Questions drawn at random from the TestQuestions pool per attempt; '
-    'NULL = all',
+  `questionCount` int(3) NOT NULL DEFAULT 10
+    COMMENT 'Questions drawn at random per attempt from the subject''s question pool',
   `createdBy` uuid NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -216,12 +206,6 @@ ALTER TABLE `Students`
 
 ALTER TABLE `Subjects`
   ADD CONSTRAINT `fk_subjects_cohort` FOREIGN KEY (`cohortID`) REFERENCES `Cohorts` (`cohortID`) ON UPDATE CASCADE;
-
-ALTER TABLE `TestQuestions`
-  ADD CONSTRAINT `fk_test_questions_test` FOREIGN KEY (`testID`)
-    REFERENCES `Tests` (`testID`) ON DELETE CASCADE ON UPDATE CASCADE,
-  ADD CONSTRAINT `fk_test_questions_question` FOREIGN KEY (`questionID`)
-    REFERENCES `Questions` (`questionID`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 ALTER TABLE `Tests`
   ADD CONSTRAINT `fk_tests_creator` FOREIGN KEY (`createdBy`) REFERENCES `Lecturer` (`userID`) ON UPDATE CASCADE,

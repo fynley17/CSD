@@ -33,6 +33,12 @@
                 <template v-if="hasTimeLimit">When the time runs out the test is handed in automatically.</template>
             </p>
 
+            <!-- the backend still marks a retake after full marks, it just doesn't award points -->
+            <p v-if="isPracticeAttempt" class="fullMarksNote">
+                <i class="bi bi-trophy-fill" aria-hidden="true"></i>
+                You already have full marks on this test. You can practise it again, but it won't earn points.
+            </p>
+
             <div class="introActions">
                 <RouterLink :to="{ name: 'testSelection' }" class="btn testingSecondaryButton">Back</RouterLink>
                 <button type="button" class="btn testingPrimaryButton" @click="startTest">Start Test</button>
@@ -63,10 +69,14 @@
                 <span>({{ formatPercentage(result.percentageCorrect) }})</span>
             </p>
 
-            <!-- full marks finishes the test, the backend stops it being taken again -->
-            <p v-if="hasFullMarks" class="fullMarksNote">
+            <!-- after full marks the test can still be retaken, but only the first full marks earns points -->
+            <p v-if="result.earnsPoints === false" class="fullMarksNote">
                 <i class="bi bi-trophy-fill" aria-hidden="true"></i>
-                Full marks! This test is complete and has been removed from your tests.
+                Practice attempt. You already have full marks on this test, so no points were added.
+            </p>
+            <p v-else-if="hasFullMarks" class="fullMarksNote">
+                <i class="bi bi-trophy-fill" aria-hidden="true"></i>
+                Full marks! You can keep practising this test, but retakes won't earn points.
             </p>
 
             <dl class="introDetails">
@@ -236,6 +246,8 @@ const formattedTime = computed(() => {
 });
 
 const hasFullMarks = computed(() => result.value !== null && result.value.correctCount === result.value.questionCount);
+// false only once the student has full marks, older responses without the field still earn points
+const isPracticeAttempt = computed(() => test.value?.earnsPoints === false);
 
 // The most questions answered correctly in a row.
 const bestStreak = computed(() => {

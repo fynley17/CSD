@@ -16,17 +16,19 @@ cards. The email verification migration adds `Users.isEmailVerified` and the
 `EmailVerifications` table used by the registration verification email; existing
 accounts stay verified. The cohorts migration adds `Cohorts.isActive` and widens
 `Cohorts.cohortName` to 50 characters, for databases created before CTS-158;
-existing cohorts stay active. The test question count migration adds the optional
-`Tests.questionCount` column, the number of questions each attempt draws at
-random from the questions assigned to the test in `TestQuestions` (NULL asks
-them all). Do not run migrations through the init directory; init scripts run only
+existing cohorts stay active. The test question count migration adds
+`Tests.questionCount`, the number of questions each attempt draws. The subject
+question pool migration then removes `TestQuestions`: each attempt now draws
+`questionCount` questions at random from every question in the test's subject
+(`Questions.subjectID`), and tests with no count set are given the default of 10.
+Which questions an attempt was given is still recorded in `StudentAnswers`. Do not run migrations through the init directory; init scripts run only
 for a new volume.
 
 ## Sample data
 
 `database/seeds/sample-tests.sql` adds a sample cohort, a student (`student1`), a
-lecturer (`lecturer`), a subject and two tests with question pools, so the full
-student test flow can be tried locally. Both accounts use the password
+lecturer (`lecturer`), two subjects with question pools and a test in each, so
+the full student test flow can be tried locally. Both accounts use the password
 `Revision1!`. Run it after the migrations, through phpMyAdmin or with:
 
 ```sh
