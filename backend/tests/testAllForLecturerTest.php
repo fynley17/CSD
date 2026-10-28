@@ -29,15 +29,16 @@ final class TestAllForLecturerTest extends TestCase
                 testID TEXT PRIMARY KEY,
                 testName TEXT NOT NULL,
                 subjectID TEXT NOT NULL,
+                questionCount INTEGER NOT NULL DEFAULT 10,
                 timeLimit INTEGER NULL
             )'
         );
 
-        // Store the question assignments used to calculate each test's count.
+        // Each subject's questions are the pool its tests draw from.
         $this->db->exec(
-            'CREATE TABLE TestQuestions (
-                testID TEXT NOT NULL,
-                questionID TEXT NOT NULL
+            'CREATE TABLE Questions (
+                questionID TEXT PRIMARY KEY,
+                subjectID TEXT NOT NULL
             )'
         );
 
@@ -62,18 +63,19 @@ final class TestAllForLecturerTest extends TestCase
                 ('subject-2', 'Science')"
         );
 
-        // Arrange: create one test with questions and one without questions.
+        // Arrange: create one test whose subject has questions and one whose subject has none.
         $this->db->exec(
-            "INSERT INTO Tests (testID, testName, subjectID, timeLimit) VALUES
-                ('test-1', 'Algebra Test', 'subject-1', 30),
-                ('test-2', 'Science Test', 'subject-2', NULL)"
+            "INSERT INTO Tests (testID, testName, subjectID, questionCount, timeLimit) VALUES
+                ('test-1', 'Algebra Test', 'subject-1', 2, 30),
+                ('test-2', 'Science Test', 'subject-2', 5, NULL)"
         );
 
-        // Arrange: assign two questions to the algebra test.
+        // Arrange: give the maths subject a pool of three questions.
         $this->db->exec(
-            "INSERT INTO TestQuestions (testID, questionID) VALUES
-                ('test-1', 'question-1'),
-                ('test-1', 'question-2')"
+            "INSERT INTO Questions (questionID, subjectID) VALUES
+                ('question-1', 'subject-1'),
+                ('question-2', 'subject-1'),
+                ('question-3', 'subject-1')"
         );
 
         // Act: retrieve all tests using the real Test model.
@@ -86,7 +88,7 @@ final class TestAllForLecturerTest extends TestCase
             array_column($tests, 'testName')
         );
 
-        // Assert: the first test has the correct subject and question count.
+        // Assert: the first test has the correct subject and asks 2 of its 3 pool questions.
         self::assertSame('Mathematics', $tests[0]['subjectName']);
         self::assertSame(2, $tests[0]['questionCount']);
         self::assertSame(30, $tests[0]['timeLimit']);
