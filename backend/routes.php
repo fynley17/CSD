@@ -59,6 +59,13 @@ $router->addRoute('POST', '/^\/api\/tests\/([0-9a-zA-Z-]+)\/complete$/', [new Te
 // Provide the tests the authenticated student has already completed.
 $router->addRoute('GET', '/^\/api\/tests\/completed$/', [new ResultController(), 'getCompletedTests']);
 
+// Provide one completed test with its questions and answers, used for the PDF export.
+$router->addRoute(
+    'GET',
+    '/^\/api\/tests\/completed\/([0-9a-zA-Z-]+)$/',
+    [new ResultController(), 'getCompletedTestReview']
+);
+
 // Email verification, used by the check your email and verify email pages.
 $router->addRoute('POST', '/^\/api\/verify-email$/', [new VerificationController(), 'verifyEmail']);
 $router->addRoute('GET', '/^\/api\/pending-verification$/', [new VerificationController(), 'getPendingVerification']);
