@@ -160,7 +160,7 @@ async function exportResults() {
 
 .completedTestExportError {
     max-width: 12rem;
-    font-size: 0.875rem;
+    font-size: var(--fontSizeSmall);
     text-align: right;
 }
 
