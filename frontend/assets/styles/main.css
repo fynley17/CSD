@@ -779,6 +779,13 @@ main.appMainFullScreen {
     margin: 0 auto;
 }
 
+/* a bit bigger once it's inside the card on tablets and up, phones keep the smaller size */
+@media (min-width: 768px) {
+    .loginBrandLogo {
+        max-width: 240px;
+    }
+}
+
 /* slogan in the heading font and brand blue, same as the page headings */
 .loginBrandSlogan {
     margin-top: var(--spaceSm);
