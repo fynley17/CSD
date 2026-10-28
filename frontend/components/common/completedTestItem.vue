@@ -28,13 +28,32 @@
                 </dl>
             </div>
 
-            <p class="completedTestPercentage mb-0">{{ percentage }}</p>
+            <div class="completedTestActions">
+                <p class="completedTestPercentage mb-0">{{ percentage }}</p>
+
+                <button
+                    type="button"
+                    class="btn btn-outline-secondary btn-sm completedTestExport"
+                    :disabled="isExporting"
+                    :aria-label="`Export ${result.testName} results as PDF`"
+                    @click="exportResults"
+                >
+                    <i class="bi bi-file-earmark-arrow-down" aria-hidden="true"></i>
+                    {{ isExporting ? 'Exporting...' : 'Export PDF' }}
+                </button>
+
+                <p v-if="exportError" class="completedTestExportError text-danger mb-0" role="alert">
+                    {{ exportError }}
+                </p>
+            </div>
         </div>
     </article>
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
+import { getCompletedTestReview } from '../../services/resultService';
+import { exportTestPdf } from '../../utils/exportTestPdf';
 
 // The item summarises one finished test, with the score shown on the right so
 // students can scan their results quickly.
@@ -71,6 +90,23 @@ const completedDate = computed(() => {
 
     return new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' }).format(date);
 });
+
+const isExporting = ref(false);
+const exportError = ref('');
+
+// Loads the full attempt only when asked, so the list doesn't fetch every question up front.
+async function exportResults() {
+    isExporting.value = true;
+    exportError.value = '';
+
+    try {
+        await exportTestPdf(await getCompletedTestReview(props.result.completedID));
+    } catch (error) {
+        exportError.value = error.response?.data?.error || 'Unable to export this test. Please try again later.';
+    } finally {
+        isExporting.value = false;
+    }
+}
 </script>
 
 <style scoped>
@@ -111,6 +147,21 @@ const completedDate = computed(() => {
 .completedTestDetails dd {
     margin: 0;
     font-weight: 400;
+}
+
+/* Score and export button stacked on the right of the card. */
+.completedTestActions {
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    align-items: flex-end;
+    gap: var(--spaceXs);
+}
+
+.completedTestExportError {
+    max-width: 12rem;
+    font-size: 0.875rem;
+    text-align: right;
 }
 
 .completedTestPercentage {
