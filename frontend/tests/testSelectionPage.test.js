@@ -88,6 +88,20 @@ describe('TestSelectionPage', () => {
         expect(wrapper.get('[role="alert"]').text()).toBe('Unable to load tests.');
     });
 
+    it('deals the cards across three columns so each stacks under the one above it', async () => {
+        getAvailableTests.mockResolvedValue(
+            ['a', 'b', 'c', 'd'].map((id) => ({ ...test, testID: id, testName: `Test ${id}` })),
+        );
+
+        const wrapper = mount(TestSelectionPage);
+        await flushPromises();
+
+        const columns = wrapper
+            .findAll('.testCardColumn')
+            .map((column) => column.findAll('.testCardTitle').map((title) => title.text()));
+        expect(columns).toEqual([['Test a', 'Test d'], ['Test b'], ['Test c']]);
+    });
+
     it('opens the testing page for the test whose Start button was clicked', async () => {
         getAvailableTests.mockResolvedValue([test]);
 
