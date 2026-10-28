@@ -1,5 +1,20 @@
 <script setup>
+import { computed, ref } from 'vue';
 import TestManagementTable from '../components/tables/testManagementTable.vue';
+
+const testManagementTable = ref(null);
+const subjectFilter = ref('');
+const searchTerm = ref('');
+
+const subjects = computed(() => testManagementTable.value?.subjects ?? []);
+
+const filterBySubject = () => {
+    testManagementTable.value?.filterBySubject(subjectFilter.value);
+};
+
+const searchTests = () => {
+    testManagementTable.value?.searchTests(searchTerm.value);
+};
 </script>
 
 <template>
@@ -11,35 +26,33 @@ import TestManagementTable from '../components/tables/testManagementTable.vue';
             </div>
         </div>
 
+        <!-- Toolbar containing the subject filter and search input. -->
         <div class="tableToolbar">
-            <label>
+            <label class="subjectFilter">
+                <span class="visuallyHidden">Filter tests by subject</span>
+                <select v-model="subjectFilter" @change="filterBySubject">
+                    <option value="">All subjects</option>
+                    <option v-for="subject in subjects" :key="subject" :value="subject">
+                        {{ subject }}
+                    </option>
+                </select>
+            </label>
+
+            <label class="testSearch">
                 <span class="visuallyHidden">Search tests</span>
-                <input type="search" placeholder="Search Tests..." />
+                <input v-model="searchTerm" type="search" placeholder="Search tests..." @input="searchTests" />
             </label>
-
-            <label>
-                <span class="visuallyHidden">Filter tests by status</span>
-                <select>
-                    <option value="">Status</option>
-                    <option value="active">Active</option>
-                    <option value="draft">Finished</option>
-                </select>
-            </label>
-
-            <label>
-                <span class="visuallyHidden">Sort tests</span>
-                <select>
-                    <option value="">Sort by</option>
-                    <option value="nameAsc">Name (A-Z)</option>
-                    <option value="nameDesc">Name (Z-A)</option>
-                    <option value="subject">Subject</option>
-                </select>
-            </label>
-
-            <button type="button" class="primaryButton"><span aria-hidden="true">＋</span> Create New Test</button>
         </div>
 
-        <TestManagementTable />
+        <!-- Display the test management table and its pagination. -->
+        <div class="tableSection">
+            <TestManagementTable ref="testManagementTable" />
+
+            <!-- Keep the create button below the entire table. -->
+            <div class="tableFooter">
+                <button type="button" class="primaryButton"><span aria-hidden="true">＋</span> Create New Test</button>
+            </div>
+        </div>
     </main>
 </template>
 
@@ -75,15 +88,26 @@ import TestManagementTable from '../components/tables/testManagementTable.vue';
 }
 
 .tableToolbar {
-    display: grid;
-    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 1fr) auto;
+    display: flex;
     align-items: center;
+    justify-content: space-between;
     gap: var(--spaceLg);
     margin-bottom: var(--spaceMd);
 }
 
-.tableToolbar label {
+.subjectFilter,
+.testSearch {
+    flex: 1;
     min-width: 0;
+}
+
+.subjectFilter {
+    max-width: 405px;
+}
+
+.testSearch {
+    max-width: 320px;
+    margin-left: auto;
 }
 
 .tableToolbar input,
@@ -97,6 +121,16 @@ import TestManagementTable from '../components/tables/testManagementTable.vue';
     background: var(--colorSurface);
     color: var(--colorText);
     font: inherit;
+}
+
+.tableSection {
+    width: 100%;
+}
+
+.tableFooter {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: var(--spaceMd);
 }
 
 .primaryButton,
@@ -154,8 +188,18 @@ select:focus-visible {
     }
 
     .tableToolbar {
-        grid-template-columns: 1fr;
+        flex-direction: column;
+        align-items: stretch;
         gap: var(--spaceMd);
+    }
+
+    .subjectFilter,
+    .testSearch {
+        max-width: none;
+    }
+
+    .tableFooter .primaryButton {
+        width: 100%;
     }
 }
 </style>
