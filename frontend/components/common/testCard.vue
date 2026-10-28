@@ -30,19 +30,24 @@
                 </div>
             </dl>
 
-            <div class="testCardActions mt-auto">
-                <button type="button" class="btn testCardDetailsButton" @click="$emit('details', test)">Details</button>
-                <button type="button" class="btn testCardStartButton" @click="$emit('start', test)">Start test</button>
-            </div>
+            <!-- full marks already earned, the test can still be taken for practice -->
+            <p v-if="test.earnsPoints === false" class="testCardPracticeNote">
+                <i class="bi bi-trophy-fill" aria-hidden="true"></i>
+                Full marks achieved. Retakes are practice and don't earn points.
+            </p>
+
+            <button type="button" class="btn testCardStartButton mt-auto" @click="$emit('start', test)">
+                Start Test
+            </button>
         </div>
     </article>
 </template>
 
 <script setup>
 import { computed } from 'vue';
+import { formatTimeLimit } from '../../utils/formatTimeLimit';
 
 // The card shows the key information a student needs to decide whether to
-// view details or begin the assessment.
 const props = defineProps({
     // Keep the prop contract strict so the component gets the expected data
     // shape.
@@ -56,7 +61,7 @@ const props = defineProps({
     },
 });
 
-defineEmits(['details', 'start']);
+defineEmits(['start']);
 
 // Only show the time limit when it is a positive value.
 const hasTimeLimit = computed(() => Number.isInteger(props.test.timeLimit) && props.test.timeLimit > 0);
@@ -70,21 +75,7 @@ const questionCount = computed(() =>
 const setBy = computed(() => props.test.createdByName || props.test.setBy || 'Not available');
 
 // Convert minutes into a readable string such as "1 hour 30 minutes".
-const timeLimit = computed(() => {
-    const minutes = props.test.timeLimit;
-    const hours = Math.floor(minutes / 60);
-    const remainingMinutes = minutes % 60;
-    const parts = [];
-
-    if (hours > 0) {
-        parts.push(`${hours} ${hours === 1 ? 'hour' : 'hours'}`);
-    }
-    if (remainingMinutes > 0) {
-        parts.push(`${remainingMinutes} ${remainingMinutes === 1 ? 'minute' : 'minutes'}`);
-    }
-
-    return parts.join(' ');
-});
+const timeLimit = computed(() => formatTimeLimit(props.test.timeLimit));
 
 // Format the date for display when it is valid; otherwise hide it.
 const dueDate = computed(() => {
@@ -138,31 +129,23 @@ const dueDate = computed(() => {
     text-align: right;
 }
 
-/* Keep the actions side by side with a comfortable touch target. */
-.testCardActions {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
+/* Success colours from main.css, the trophy icon and text say it without colour. */
+.testCardPracticeNote {
+    display: flex;
+    align-items: center;
     gap: var(--spaceSm);
+    margin: 0 0 var(--spaceMd);
+    padding: var(--spaceSm) var(--spaceMd);
+    border-radius: var(--radiusSm);
+    background: var(--colorSuccessLight);
+    color: var(--colorSuccess);
+    font-size: var(--fontSizeSmall);
+    font-weight: 600;
 }
 
-.testCardDetailsButton,
+/* Brand coloured start button with a comfortable touch target. */
 .testCardStartButton {
     min-height: var(--minTouchTarget);
-}
-
-.testCardDetailsButton {
-    border-color: var(--colorDivider);
-    background: var(--colorDisabled);
-    color: var(--colorText);
-}
-
-.testCardDetailsButton:hover {
-    border-color: var(--colorDivider);
-    background: var(--colorDivider);
-    color: var(--colorText);
-}
-
-.testCardStartButton {
     border-color: var(--colorBrand);
     background: var(--colorBrand);
     color: var(--colorSurface);

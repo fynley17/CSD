@@ -30,6 +30,10 @@ import StudentResults from '../views/studentResults.vue';
 import StudentManagement from '../views/studentManagement.vue';
 import TestManagement from '../views/testManagement.vue';
 import QuestionManagement from '../views/questionManagement.vue';
+// administrator pages, only admins get in
+import LecturerManagement from '../views/lecturerManagement.vue';
+import SubjectManagement from '../views/subjectManagement.vue';
+import CohortManagement from '../views/cohortManagement.vue';
 
 // Define the application routes
 const routes = [
@@ -98,7 +102,8 @@ const routes = [
         meta: { title: 'Test Selection | RevisionHub', requiredRoles: ['student'], studentOnly: true },
     },
     {
-        path: '/testing',
+        // testID is the test the student picked on the test selection page
+        path: '/testing/:testID',
         name: 'testing',
         component: TestingPage,
         // hideLayout tells app.vue to drop the navbar and footer so the test fills the screen
@@ -120,19 +125,37 @@ const routes = [
         path: '/student-management',
         name: 'studentManagement',
         component: StudentManagement,
-        meta: { title: 'Student Management | RevisionHub', requiredRoles: ['lecturer'] },
+        meta: { title: 'Student Management | RevisionHub', requiredRoles: ['lecturer', 'admin'] },
     },
     {
         path: '/test-management',
         name: 'testManagement',
         component: TestManagement,
-        meta: { title: 'Test Management | RevisionHub', requiredRoles: ['lecturer'] },
+        meta: { title: 'Test Management | RevisionHub', requiredRoles: ['lecturer', 'admin'] },
     },
     {
         path: '/question-management',
         name: 'questionManagement',
         component: QuestionManagement,
-        meta: { title: 'Question Management | RevisionHub', requiredRoles: ['lecturer'] },
+        meta: { title: 'Question Management | RevisionHub', requiredRoles: ['lecturer', 'admin'] },
+    },
+    {
+        path: '/lecturer-management',
+        name: 'lecturerManagement',
+        component: LecturerManagement,
+        meta: { title: 'Lecturer Management | RevisionHub', requiredRoles: ['admin'] },
+    },
+    {
+        path: '/subject-management',
+        name: 'subjectManagement',
+        component: SubjectManagement,
+        meta: { title: 'Subject Management | RevisionHub', requiredRoles: ['admin'] },
+    },
+    {
+        path: '/cohort-management',
+        name: 'cohortManagement',
+        component: CohortManagement,
+        meta: { title: 'Cohort Management | RevisionHub', requiredRoles: ['admin'] },
     },
     // Send mistyped or retired URLs back to the public landing page.
     {
@@ -192,7 +215,7 @@ router.beforeEach(async (to) => {
 
     // logged in but the wrong account type for a non-student protected page
     if (to.meta.requiredRoles && !to.meta.requiredRoles.includes(user.accountType)) {
-        return { name: 'landingPage' };
+        return { name: dashboardRoutes[user.accountType] || 'landingPage' };
     }
 
     return true;
