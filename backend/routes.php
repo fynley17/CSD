@@ -46,6 +46,9 @@ $router->addRoute('POST', '/^\\/api\\/register$/', [new StudentController(), 're
 $router->addRoute('GET', '/^\\/api\\/cohorts$/', [new CohortController(), 'getAllCohorts']);
 // Provide tests with assigned questions to authenticated students.
 $router->addRoute('GET', '/^\\/api\\/tests$/', [new TestController(), 'getAvailableTests']);
+// Start a test (draws its questions at random from the pool), then mark and save the finished attempt.
+$router->addRoute('POST', '/^\\/api\\/tests\\/([0-9a-zA-Z-]+)\\/start$/', [new TestController(), 'startTest']);
+$router->addRoute('POST', '/^\\/api\\/tests\\/([0-9a-zA-Z-]+)\\/complete$/', [new TestController(), 'submitTest']);
 // Provide the tests the authenticated student has already completed.
 $router->addRoute('GET', '/^\\/api\\/tests\\/completed$/', [new ResultController(), 'getCompletedTests']);
 

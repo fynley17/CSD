@@ -98,7 +98,8 @@ const routes = [
         meta: { title: 'Test Selection | RevisionHub', requiredRoles: ['student'], studentOnly: true },
     },
     {
-        path: '/testing',
+        // testID is the test the student picked on the test selection page
+        path: '/testing/:testID',
         name: 'testing',
         component: TestingPage,
         // hideLayout tells app.vue to drop the navbar and footer so the test fills the screen

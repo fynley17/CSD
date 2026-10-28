@@ -22,9 +22,10 @@
         "app/controllers/authController.php",
         "app/controllers/lecturerController.php",
         "app/helpers/mailer.php",
-        "app/controllers/authController.php",
         "app/controllers/verificationController.php",
-        "app/models/emailVerification.php"
+        "app/models/emailVerification.php",
+        "app/controllers/testController.php",
+        "app/models/completedTest.php"
     ],
     "psr-4": {
         "App\\": "app/"

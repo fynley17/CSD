@@ -10,6 +10,11 @@ vi.mock('../services/testService', () => ({
     getAvailableTests: vi.fn(),
 }));
 
+const push = vi.fn();
+vi.mock('vue-router', () => ({
+    useRouter: () => ({ push }),
+}));
+
 vi.mock('../services/resultService', () => ({
     getCompletedTests: vi.fn(),
 }));
@@ -81,6 +86,30 @@ describe('TestSelectionPage', () => {
         await flushPromises();
 
         expect(wrapper.get('[role="alert"]').text()).toBe('Unable to load tests.');
+    });
+
+    it('deals the cards across three columns so each stacks under the one above it', async () => {
+        getAvailableTests.mockResolvedValue(
+            ['a', 'b', 'c', 'd'].map((id) => ({ ...test, testID: id, testName: `Test ${id}` })),
+        );
+
+        const wrapper = mount(TestSelectionPage);
+        await flushPromises();
+
+        const columns = wrapper
+            .findAll('.testCardColumn')
+            .map((column) => column.findAll('.testCardTitle').map((title) => title.text()));
+        expect(columns).toEqual([['Test a', 'Test d'], ['Test b'], ['Test c']]);
+    });
+
+    it('opens the testing page for the test whose Start button was clicked', async () => {
+        getAvailableTests.mockResolvedValue([test]);
+
+        const wrapper = mount(TestSelectionPage);
+        await flushPromises();
+        await wrapper.get('.testCardStartButton').trigger('click');
+
+        expect(push).toHaveBeenCalledWith({ name: 'testing', params: { testID: 'test-1' } });
     });
 
     it('renders the completed tests below the tests to complete', async () => {
