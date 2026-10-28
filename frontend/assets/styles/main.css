@@ -28,6 +28,11 @@
     --colorWarningLight: #fef3c7;
     --colorInfoLight: #dbeafe;
 
+    /* Leaderboard trophies for the top three, all at least 3:1 against white */
+    --colorRankGold: #a16207;
+    --colorRankSilver: #6b7280;
+    --colorRankBronze: #9a3412;
+
     /* Typography */
     --fontHeading: 'Merriweather', Georgia, serif;
     --fontBody: 'Open Sans', Arial, sans-serif;

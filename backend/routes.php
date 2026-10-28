@@ -4,6 +4,7 @@ use App\Router;
 use App\Controllers\StudentController;
 use App\Controllers\CohortController;
 use App\Controllers\AuthController;
+use App\Controllers\LeaderboardController;
 use App\Controllers\LecturerController;
 use App\Controllers\ResultController;
 use App\Controllers\TestController;
@@ -57,6 +58,13 @@ $router->addRoute('POST', '/^\/api\/tests\/([0-9a-zA-Z-]+)\/complete$/', [new Te
 
 // Provide the tests the authenticated student has already completed.
 $router->addRoute('GET', '/^\/api\/tests\/completed$/', [new ResultController(), 'getCompletedTests']);
+
+// Top students in the student's cohort, overall or for one subject (/api/leaderboard/<subjectID>).
+$router->addRoute(
+    'GET',
+    '/^\/api\/leaderboard(?:\/([0-9a-zA-Z-]+))?$/',
+    [new LeaderboardController(), 'getLeaderboard']
+);
 
 // Email verification, used by the check your email and verify email pages.
 $router->addRoute('POST', '/^\/api\/verify-email$/', [new VerificationController(), 'verifyEmail']);
