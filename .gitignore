@@ -22,3 +22,7 @@ dist/
 backend/.phpunit.cache/
 .phpunit.result.cache
 backend/.phpunit.result.cache
+
+# Playwright results
+playwright-report/
+test-results/
