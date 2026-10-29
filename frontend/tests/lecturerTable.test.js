@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 // Tests for the recent lecturers table on the admin dashboard
-// covers lecturers coming back, none at all, still loading, and the request failing
+// covers lecturers coming back, none at all, still loading, the request failing, and HTML in a name
 // laid out Arrange (what PHP sends back), Act (mount the table), Assert (check what's on screen)
 import { flushPromises, mount } from '@vue/test-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -82,7 +82,7 @@ describe('LecturerTable', () => {
     });
 
     /**
-     * Before PHP answers there's a loading row (boundary)
+     * Before PHP answers there's a loading message and no table yet (boundary)
      */
     it('says it is loading before PHP answers', () => {
         // Arrange
@@ -93,7 +93,8 @@ describe('LecturerTable', () => {
         const table = openTable();
 
         // Assert
-        expect(rowText(table)).toEqual([['Loading lecturers']]);
+        expect(table.get('[role="status"]').text()).toBe('Loading lecturers');
+        expect(table.find('table').exists()).toBe(false);
     });
 
     /**
@@ -110,5 +111,29 @@ describe('LecturerTable', () => {
         // Assert
         expect(table.get('[role="alert"]').text()).toBe('There is a problem: Unable to load the lecturers');
         expect(table.find('table').exists()).toBe(false);
+    });
+
+    /**
+     * A name with HTML in it shows as plain text, so it can't add anything to the page (error)
+     */
+    it('shows HTML in a name as text', async () => {
+        // Arrange
+        vi.mocked(getRecentLecturers).mockResolvedValue([
+            {
+                name: '<img src=x id=injected>',
+                staffID: 'ws000101',
+                email: 'ws000101@example.test',
+                isEnabled: true,
+                lastLogin: null,
+            },
+        ]);
+
+        // Act
+        const table = openTable();
+        await flushPromises();
+
+        // Assert
+        expect(table.find('#injected').exists()).toBe(false);
+        expect(rowText(table)[0][0]).toBe('<img src=x id=injected>');
     });
 });
