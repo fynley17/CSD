@@ -39,12 +39,12 @@ $router->addRoute('POST', '/^\/api\/change-email$/', [new VerificationController
 
 // one AuthController shared by login, logout, the session check and the secret code
 $authController = new AuthController();
-$router->addRoute('POST', '/^\\/api\\/login$/', [$authController, 'login']);
-$router->addRoute('POST', '/^\\/api\\/logout$/', [$authController, 'logout']);
-$router->addRoute('GET', '/^\\/api\\/current-user$/', [$authController, 'currentUser']);
+$router->addRoute('POST', '/^\/api\/login$/', [new AuthController(), 'login']);
+$router->addRoute('POST', '/^\/api\/logout$/', [new AuthController(), 'logout']);
+$router->addRoute('GET', '/^\/api\/current-user$/', [new AuthController(), 'currentUser']);
 // gives the page its secret code, it sends that back with anything that changes data i.e. login or register
 // other websites can't read our replies, so they can't get the code to fake a request as a logged in user
-$router->addRoute('GET', '/^\\/api\\/csrf-token$/', [$authController, 'csrfToken']);
+$router->addRoute('GET', '/^\/api\/csrf-token$/', [new AuthController(), 'csrfToken']);
 
 // Lecturer dashboard summary.
 $router->addRoute(
