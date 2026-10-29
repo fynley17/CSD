@@ -29,7 +29,9 @@
             "app/controllers/testController.php",
             "app/models/question.php",
             "app/controllers/questionController.php",
-            "app/models/completedTest.php"
+            "app/models/completedTest.php",
+            "app/models/leaderboard.php",
+            "app/controllers/leaderboardController.php"
         ],
         "psr-4": {
             "App\\": "app/"
