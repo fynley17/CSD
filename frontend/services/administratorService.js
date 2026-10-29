@@ -1,4 +1,5 @@
-// asks PHP for what the admin pages show, every request goes through api.js so it reaches the backend the same way
+// asks PHP for what the admin pages show, every request goes through api.js
+// so it uses the same address and login cookie
 import api from './api';
 
 /**
