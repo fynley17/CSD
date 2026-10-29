@@ -107,6 +107,7 @@ CREATE TABLE `Users` (
   `lastLogin` datetime DEFAULT NULL,
   `failedAttempts` tinyint(2) NOT NULL DEFAULT 0,
   `lockedUntil` datetime DEFAULT NULL,
+  `lastFailedAt` datetime DEFAULT NULL COMMENT 'Time of the last wrong password, older than 15 minutes stops counting',
   `mfaSecret` varchar(64) DEFAULT NULL COMMENT 'One-time-password secret (store encrypted)'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 

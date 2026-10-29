@@ -7,6 +7,9 @@ RUN apt-get update \
 
 RUN docker-php-ext-install pdo_mysql
 
+# hides the PHP version on every reply
+RUN echo "expose_php = Off" > /usr/local/etc/php/conf.d/zz-hide-php.ini
+
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 WORKDIR /var/www/html

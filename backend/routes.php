@@ -12,34 +12,6 @@ use App\Controllers\VerificationController;
 use App\Controllers\AdministratorController;
 use App\Controllers\QuestionController;
 
-$origin = $_SERVER['HTTP_ORIGIN'] ?? '';
-$allowedOrigins = [
-    'http://localhost:5173',
-    'http://127.0.0.1:5173',
-    'http://localhost:5174',
-    'http://127.0.0.1:5174',
-];
-
-if (
-    $origin !== ''
-    && (
-        in_array($origin, $allowedOrigins, true)
-        || preg_match('/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/', $origin)
-    )
-) {
-    header('Access-Control-Allow-Origin: ' . $origin);
-} else {
-    header('Access-Control-Allow-Origin: *');
-}
-
-header('Access-Control-Allow-Methods: GET, POST, PATCH, DELETE, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, Authorization');
-
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    http_response_code(204);
-    exit;
-}
-
 $router = new Router();
 
 $router->addRoute('GET', '/^\/api\/students$/', [new StudentController(), 'getAllStudents']);
@@ -87,10 +59,14 @@ $router->addRoute('GET', '/^\/api\/pending-verification$/', [new VerificationCon
 $router->addRoute('POST', '/^\/api\/resend-verification$/', [new VerificationController(), 'resendVerification']);
 $router->addRoute('POST', '/^\/api\/change-email$/', [new VerificationController(), 'changeEmail']);
 
-// Login, logout and session check.
+// one AuthController shared by login, logout, the session check and the secret code
+$authController = new AuthController();
 $router->addRoute('POST', '/^\/api\/login$/', [new AuthController(), 'login']);
 $router->addRoute('POST', '/^\/api\/logout$/', [new AuthController(), 'logout']);
 $router->addRoute('GET', '/^\/api\/current-user$/', [new AuthController(), 'currentUser']);
+// gives the page its secret code, it sends that back with anything that changes data i.e. login or register
+// other websites can't read our replies, so they can't get the code to fake a request as a logged in user
+$router->addRoute('GET', '/^\/api\/csrf-token$/', [new AuthController(), 'csrfToken']);
 
 // Lecturer dashboard summary.
 $router->addRoute(

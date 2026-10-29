@@ -1,6 +1,7 @@
 // Auth service, every call the frontend makes to the login backend goes through here
 // pages just call login() or getCurrentUser() and don't need to know the backend addresses
 import api from './api';
+import { startIdleTimer, stopIdleTimer } from './idleTimer';
 
 /**
  * Sends the username and password to POST /api/login
@@ -11,6 +12,8 @@ import api from './api';
 export async function login(username, password) {
     // axios turns this object into JSON before sending it
     const response = await api.post('/login', { username, password });
+    // logged in, so the 30 minute countdown starts
+    startIdleTimer();
     return response.data;
 }
 
@@ -19,22 +22,25 @@ export async function login(username, password) {
  */
 export async function logout() {
     await api.post('/logout');
+    // signed out, so there's nothing left to count down
+    stopIdleTimer();
 }
 
 /**
  * Asks GET /api/current-user who's logged in, router.js uses this before showing a private page
+ * if PHP can't be reached axios throws an error, and whoever called this deals with it
  * @returns {Promise<object|null>} username and account type, or null if nobody is logged in
  */
 export async function getCurrentUser() {
-    try {
-        const response = await api.get('/current-user');
-        return response.data;
-    } catch (error) {
-        // PHP sends 401 when nobody's logged in, that's a normal answer so give back null
-        // anything else is an issue, like PHP not running, so pass the error on
-        if (error.response?.status === 401) {
-            return null;
-        }
-        throw error;
+    const response = await api.get('/current-user');
+
+    // PHP says loggedIn false when nobody's logged in, the pages treat null as logged out
+    if (!response.data.loggedIn) {
+        stopIdleTimer();
+        return null;
     }
+
+    // still logged in, so the countdown runs, this is also what starts it again after a page refresh
+    startIdleTimer();
+    return response.data;
 }
