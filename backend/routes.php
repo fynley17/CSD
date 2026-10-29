@@ -59,7 +59,7 @@ $router->addRoute('GET', '/^\/api\/pending-verification$/', [new VerificationCon
 $router->addRoute('POST', '/^\/api\/resend-verification$/', [new VerificationController(), 'resendVerification']);
 $router->addRoute('POST', '/^\/api\/change-email$/', [new VerificationController(), 'changeEmail']);
 
-// Login, logout, session check and the anti-CSRF code.
+// Login, logout, session check and the anti-CSRF code
 $router->addRoute('POST', '/^\/api\/login$/', [new AuthController(), 'login']);
 $router->addRoute('POST', '/^\/api\/logout$/', [new AuthController(), 'logout']);
 $router->addRoute('GET', '/^\/api\/current-user$/', [new AuthController(), 'currentUser']);
@@ -92,6 +92,7 @@ $router->addRoute(
     '/^\\/api\\/lecturer\\/questions$/',
     [new QuestionController(), 'getAllForLecturer']
 );
+
 // the lecturers in the admin dashboard table, admins only
 $router->addRoute(
     'GET',

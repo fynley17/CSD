@@ -49,7 +49,7 @@ class Administrator extends Lecturer
      */
     public static function getRecentLecturers(int $limit = 5): array
     {
-        // only lecturer accounts ,like the cards - and someone who's never logged in goes to the bottom
+        // only lecturer accounts, same as the cards. Anyone who's never logged in goes to the bottom
         // the staff ID is the username, that's what lecturers log in with
         $sql = "
             SELECT Lecturer.firstName, Lecturer.lastName, Users.username, Users.email, Users.isEnabled, Users.lastLogin
