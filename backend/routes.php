@@ -9,6 +9,7 @@ use App\Controllers\LecturerController;
 use App\Controllers\ResultController;
 use App\Controllers\TestController;
 use App\Controllers\VerificationController;
+use App\Controllers\AdministratorController;
 use App\Controllers\QuestionController;
 
 $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
@@ -71,6 +72,13 @@ $router->addRoute(
     'GET',
     '/^\/api\/tests\/completed\/([0-9a-zA-Z-]+)$/',
     [new ResultController(), 'getCompletedTestReview']
+);
+
+// totals for the admin dashboard cards, admins only
+$router->addRoute(
+    'GET',
+    '/^\\/api\\/admin\\/dashboard-summary$/',
+    [new AdministratorController(), 'getDashboardSummary']
 );
 
 // Email verification, used by the check your email and verify email pages.
