@@ -1,4 +1,3 @@
-
 <?php
 
 use App\Router;
@@ -59,6 +58,13 @@ $router->addRoute('POST', '/^\/api\/tests\/([0-9a-zA-Z-]+)\/complete$/', [new Te
 
 // Provide the tests the authenticated student has already completed.
 $router->addRoute('GET', '/^\/api\/tests\/completed$/', [new ResultController(), 'getCompletedTests']);
+
+// Provide one completed test with its questions and answers, used for the PDF export.
+$router->addRoute(
+    'GET',
+    '/^\/api\/tests\/completed\/([0-9a-zA-Z-]+)$/',
+    [new ResultController(), 'getCompletedTestReview']
+);
 
 // totals for the admin dashboard cards, admins only
 $router->addRoute(
