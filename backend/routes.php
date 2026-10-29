@@ -64,6 +64,8 @@ $router->addRoute(
     'GET',
     '/^\/api\/leaderboard(?:\/([0-9a-zA-Z-]+))?$/',
     [new LeaderboardController(), 'getLeaderboard']
+);
+
 // Provide one completed test with its questions and answers, used for the PDF export.
 $router->addRoute(
     'GET',
