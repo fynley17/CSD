@@ -774,6 +774,33 @@ main.appMainFullScreen {
     color: var(--colorPrimary);
 }
 
+/* Logo and slogan in the login card, or under it on phones
+   the picture has a see-through background so it sits straight on the page */
+.loginBrandLogo {
+    display: block;
+    width: 100%;
+    max-width: 200px;
+    height: auto;
+    margin: 0 auto;
+}
+
+/* a bit bigger once it's inside the card on tablets and up, phones keep the smaller size */
+@media (min-width: 768px) {
+    .loginBrandLogo {
+        max-width: 240px;
+    }
+}
+
+/* slogan in the heading font and brand blue, same as the page headings */
+.loginBrandSlogan {
+    margin-top: var(--spaceSm);
+    color: var(--colorBrand);
+    font-family: var(--fontHeading);
+    font-size: var(--fontSizeH3);
+    font-weight: 700;
+    text-align: center;
+}
+
 /* Login form, Bootstrap's form classes themed with the tokens above
    everything starts with .loginForm so it only styles the login card and the registration form keeps its own look
    the check your email and verify email cards also use .loginForm, so their boxes and messages match login
