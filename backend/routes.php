@@ -64,6 +64,11 @@ $router->addRoute(
     'GET',
     '/^\/api\/leaderboard(?:\/([0-9a-zA-Z-]+))?$/',
     [new LeaderboardController(), 'getLeaderboard']
+// Provide one completed test with its questions and answers, used for the PDF export.
+$router->addRoute(
+    'GET',
+    '/^\/api\/tests\/completed\/([0-9a-zA-Z-]+)$/',
+    [new ResultController(), 'getCompletedTestReview']
 );
 
 // Email verification, used by the check your email and verify email pages.
