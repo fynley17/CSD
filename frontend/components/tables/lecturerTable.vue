@@ -1,7 +1,7 @@
 <!-- Recent lecturers on the admin dashboard, newest login first, set up like the lecturer dashboard table -->
 <template>
     <div class="card border-0 rounded-0 h-100">
-        <div class="card-body d-flex flex-wrap justify-content-between align-items-center gap-2">
+        <div class="card-body flex-grow-0 d-flex flex-wrap justify-content-between align-items-center gap-2">
             <h2 class="h5 fw-bold mb-0">Recent Lecturer Activity</h2>
             <router-link to="/lecturer-management" class="small text-dark">View all lecturers</router-link>
         </div>
