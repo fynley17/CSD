@@ -35,7 +35,25 @@ final class ResultModelTest extends TestCase
         );
 
         $this->db->exec(
-            "INSERT INTO Subjects VALUES ('subject-1', 'Web Apps');
+            'CREATE TABLE Students (
+                userID TEXT PRIMARY KEY,
+                firstName TEXT NOT NULL,
+                lastName TEXT NOT NULL,
+                points INTEGER NOT NULL DEFAULT 0
+            )'
+        );
+        $this->db->exec('CREATE TABLE Users (userID TEXT PRIMARY KEY, username TEXT NOT NULL)');
+
+        $this->db->exec(
+            "INSERT INTO Students VALUES
+                ('student-user-1', 'Ada', 'Lovelace', 250),
+                ('student-user-2', 'Alan', 'Turing', 300),
+                ('student-user-3', 'Grace', 'Hopper', 40);
+             INSERT INTO Users VALUES
+                ('student-user-1', 'ws000001'),
+                ('student-user-2', 'ws000002'),
+                ('student-user-3', 'ws000003');
+             INSERT INTO Subjects VALUES ('subject-1', 'Web Apps');
              INSERT INTO Tests VALUES
                 ('test-1', 'Web Apps Test', 'Review web apps', 'subject-1'),
                 ('test-2', 'Untitled Test', NULL, 'subject-1');
@@ -97,5 +115,57 @@ final class ResultModelTest extends TestCase
         $results = Result::getCompletedForStudent('student-user-2');
 
         self::assertSame(['completed-3'], array_column($results, 'completedID'));
+    }
+
+    public function testSummaryOnlyCountsTheStudentsOwnAttempts(): void
+    {
+        self::assertSame(
+            [
+                'studentName' => 'Ada Lovelace',
+                'studentNumber' => 'ws000001',
+                'totalPoints' => 250,
+                'averageScore' => 60.3,
+                'testsCompleted' => 2,
+            ],
+            Result::getSummaryForStudent('student-user-1')
+        );
+        self::assertSame(
+            [
+                'studentName' => 'Alan Turing',
+                'studentNumber' => 'ws000002',
+                'totalPoints' => 300,
+                'averageScore' => 100.0,
+                'testsCompleted' => 1,
+            ],
+            Result::getSummaryForStudent('student-user-2')
+        );
+    }
+
+    public function testSummaryHasNoAverageBeforeAnyTestIsCompleted(): void
+    {
+        self::assertSame(
+            [
+                'studentName' => 'Grace Hopper',
+                'studentNumber' => 'ws000003',
+                'totalPoints' => 40,
+                'averageScore' => null,
+                'testsCompleted' => 0,
+            ],
+            Result::getSummaryForStudent('student-user-3')
+        );
+    }
+
+    public function testSummaryIsEmptyForAnUnknownStudent(): void
+    {
+        self::assertSame(
+            [
+                'studentName' => '',
+                'studentNumber' => '',
+                'totalPoints' => 0,
+                'averageScore' => null,
+                'testsCompleted' => 0,
+            ],
+            Result::getSummaryForStudent('missing-user')
+        );
     }
 }

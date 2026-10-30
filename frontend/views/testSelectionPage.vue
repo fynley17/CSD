@@ -22,11 +22,7 @@
             <p v-else-if="completedLoadError" class="alert alert-danger" role="alert">{{ completedLoadError }}</p>
             <p v-else-if="completedTests.length === 0" class="text-secondary">You have not completed any tests yet.</p>
 
-            <ul v-else class="completedTestList list-unstyled mt-4 mb-0">
-                <li v-for="result in completedTests" :key="result.completedID">
-                    <CompletedTestItem :result="result" />
-                </li>
-            </ul>
+            <CompletedTestList v-else :tests="completedTests" />
         </section>
     </main>
 </template>
@@ -34,7 +30,7 @@
 <script setup>
 import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
-import CompletedTestItem from '../components/common/completedTestItem.vue';
+import CompletedTestList from '../components/common/completedTestList.vue';
 import TestCard from '../components/common/testCard.vue';
 import { getCompletedTests } from '../services/resultService';
 import { getAvailableTests } from '../services/testService';
@@ -134,11 +130,5 @@ onUnmounted(() => {
     display: flex;
     flex-direction: column;
     gap: var(--spaceLg);
-}
-
-/* Stack completed tests in a single list beneath the cards. */
-.completedTestList {
-    display: grid;
-    gap: var(--spaceMd);
 }
 </style>

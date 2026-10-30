@@ -125,6 +125,19 @@ describe('TestSelectionPage', () => {
         expect(wrapper.get('.completedTestPercentage').text()).toBe('80%');
     });
 
+    it('pages the completed tests, 5 at a time', async () => {
+        getAvailableTests.mockResolvedValue([]);
+        getCompletedTests.mockResolvedValue(
+            Array.from({ length: 6 }, (_, index) => ({ ...completedTest, completedID: `completed-${index}` })),
+        );
+
+        const wrapper = mount(TestSelectionPage);
+        await flushPromises();
+
+        expect(wrapper.findAll('.completedTestItem')).toHaveLength(5);
+        expect(wrapper.text()).toContain('Showing 1 to 5 of 6 tests');
+    });
+
     it('shows an empty state when no tests have been completed', async () => {
         getAvailableTests.mockResolvedValue([test]);
 

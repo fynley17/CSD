@@ -45,6 +45,59 @@ class Result extends Model
     }
 
     /**
+     * Returns the student's details and totals for the top of their results page.
+     *
+     * totalPoints is the running total on Students, the same number the leaderboard uses.
+     * Every attempt counts towards testsCompleted and averageScore, so they match the completed tests list.
+     *
+     * @return array{
+     *     studentName: string,
+     *     studentNumber: string,
+     *     totalPoints: int,
+     *     averageScore: float|null,
+     *     testsCompleted: int
+     * }
+     *               averageScore is null until the student has completed a test
+     */
+    public static function getSummaryForStudent(string $userID): array
+    {
+        $stmt = self::getDB()->prepare(
+            "SELECT
+                st.firstName,
+                st.lastName,
+                u.username,
+                st.points,
+                COUNT(ct.completedID) AS testsCompleted,
+                AVG(ct.percentageCorrect) AS averageScore
+            FROM Students AS st
+            INNER JOIN Users AS u ON u.userID = st.userID
+            LEFT JOIN CompletedTests AS ct ON ct.userID = st.userID
+            WHERE st.userID = ?
+            GROUP BY st.userID, st.firstName, st.lastName, u.username, st.points"
+        );
+        $stmt->execute([$userID]);
+        $summary = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+        if ($summary === false) {
+            return [
+                'studentName' => '',
+                'studentNumber' => '',
+                'totalPoints' => 0,
+                'averageScore' => null,
+                'testsCompleted' => 0,
+            ];
+        }
+
+        return [
+            'studentName' => trim($summary['firstName'] . ' ' . $summary['lastName']),
+            'studentNumber' => $summary['username'],
+            'totalPoints' => (int) $summary['points'],
+            'averageScore' => $summary['averageScore'] === null ? null : round((float) $summary['averageScore'], 1),
+            'testsCompleted' => (int) $summary['testsCompleted'],
+        ];
+    }
+
+    /**
      * Returns one completed attempt with every question, the answer the student picked
      * and the correct answer, used to export the attempt as a PDF.
      *

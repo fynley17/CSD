@@ -1350,6 +1350,14 @@ main.appMainFullScreen {
     color: var(--colorText);
 }
 
+/* large number on the results summary cards */
+.statValue {
+    color: var(--colorText);
+    font-size: var(--fontSizeStat);
+    font-weight: 700;
+    line-height: 1.2;
+}
+
 /* Responsive layouts */
 @media (max-width: 991.98px) {
     .whyRevisionHubCards {
