@@ -142,6 +142,9 @@ class QuestionController extends Controller
                 'message' => 'Question deleted successfully.'
             ]);
 
+        } catch (\InvalidArgumentException $e) {
+            // Return a clear validation message if historical answers exist.
+            $this->jsonResponse(['error' => $e->getMessage()], 400);
         } catch (\Throwable $e) {
             error_log(
                 'Deleting question failed: ' . $e->getMessage()

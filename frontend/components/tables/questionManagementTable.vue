@@ -27,6 +27,21 @@ const dataTable = ref(null);
 // Store the unique subjects used to populate the subject dropdown.
 const subjects = ref([]);
 
+// Escape HTML characters before displaying database values in DataTables.
+const escapeHtml = (value) => {
+    return String(value ?? '').replace(/[&<>"']/g, (character) => {
+        const htmlCharacters = {
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#039;',
+        };
+
+        return htmlCharacters[character];
+    });
+};
+
 // Define the columns displayed in the question management table.
 const columns = [
     {
@@ -35,13 +50,36 @@ const columns = [
     },
     {
         data: 'answers',
+
+        // Display the four answer texts from the answer objects.
+        // Keep the original answer IDs available in the question data.
         title: 'Answers',
         defaultContent: '',
+        render: (answers, type) => {
+            if (!Array.isArray(answers)) {
+                return '';
+            }
+
+            const answerTexts = answers.map((answer) => answer.answerText);
+
+            if (type !== 'display') {
+                return answerTexts.join(' | ');
+            }
+
+            return answerTexts.map((answer) => escapeHtml(answer)).join(' | ');
+        },
     },
     {
         data: 'correctAnswer',
         title: 'Correct Answer',
         defaultContent: '',
+        render: (value, type) => {
+            if (value === null || value === undefined) {
+                return '';
+            }
+
+            return type === 'display' ? escapeHtml(value) : value;
+        },
     },
     {
         data: 'subjectName',
@@ -78,12 +116,15 @@ const columns = [
                 return '';
             }
 
+            // Escape the question ID before placing it in HTML attributes.
+            const questionID = escapeHtml(row.questionID);
+
             return `
                 <button
                     type="button"
                     class="btn btn-sm tableEditButton tableActionButton me-2"
                     data-action="edit"
-                    data-question-id="${row.questionID}"
+                    data-question-id="${questionID}"
                     aria-label="Edit question"
                 >
                     Edit
@@ -92,7 +133,7 @@ const columns = [
                     type="button"
                     class="btn btn-sm tableDeleteButton tableActionButton"
                     data-action="delete"
-                    data-question-id="${row.questionID}"
+                    data-question-id="${questionID}"
                     aria-label="Delete question"
                 >
                     Delete
@@ -162,8 +203,10 @@ const searchQuestions = async (searchTerm) => {
     }
 };
 
-// Expose the subject list and filtering functions to the parent view.
+// Expose the subject list, question data and filtering functions
+// to the parent question management view.
 defineExpose({
+    questions,
     subjects,
     filterBySubject,
     searchQuestions,

@@ -21,74 +21,71 @@ class Question extends Model
         return $stmt->fetchAll(\PDO::FETCH_ASSOC);
     }
 
+    /**
+     * Returns all questions, their answers and subject details
+     * for the lecturer question management page.
+     */
     public static function getAllForLecturer(): array
     {
         $db = self::getDB();
 
-        // Use aggregation syntax supported by the active database.
-        if ($db->getAttribute(\PDO::ATTR_DRIVER_NAME) === 'sqlite') {
-            $answerSql = "
-                SELECT
-                    questionID,
-                    GROUP_CONCAT(answerText, ' | ') AS answers,
-                    GROUP_CONCAT(
-                        CASE
-                            WHEN isCorrect = 1 THEN answerText
-                            ELSE NULL
-                        END,
-                        ' | '
-                    ) AS correctAnswer
-                FROM (
-                    SELECT questionID, answerText, isCorrect
-                    FROM Answers
-                    ORDER BY questionID, answerText
-                ) AS ordered_answers
-                GROUP BY questionID
-            ";
-        } else {
-            $answerSql = "
-                SELECT
-                    questionID,
-                    GROUP_CONCAT(
-                        answerText
-                        ORDER BY answerText
-                        SEPARATOR ' | '
-                    ) AS answers,
-                    GROUP_CONCAT(
-                        CASE
-                            WHEN isCorrect = 1 THEN answerText
-                            ELSE NULL
-                        END
-                        ORDER BY answerText
-                        SEPARATOR ' | '
-                    ) AS correctAnswer
-                FROM Answers
-                GROUP BY questionID
-            ";
-        }
-
+        // Retrieve questions and their associated subject details.
         $sql = "
             SELECT
                 q.questionID,
                 q.question,
-                COALESCE(a.answers, '') AS answers,
-                COALESCE(a.correctAnswer, '') AS correctAnswer,
+                q.subjectID,
                 s.subjectName,
                 q.percentageCorrect
             FROM Questions AS q
             INNER JOIN Subjects AS s
                 ON s.subjectID = q.subjectID
-            LEFT JOIN (
-                {$answerSql}
-            ) AS a
-                ON a.questionID = q.questionID
             ORDER BY q.question
         ";
 
         $stmt = $db->query($sql);
         $questions = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
+        // Prepare a query to retrieve individual answers for each question.
+        $answerStmt = $db->prepare(
+            'SELECT answerID, answerText, isCorrect
+             FROM Answers
+             WHERE questionID = ?
+             ORDER BY answerText'
+        );
+
+        // Attach the individual answer records to each question.
         foreach ($questions as &$question) {
+            $answerStmt->execute([$question['questionID']]);
+
+            $answers = $answerStmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            // Convert the correct-answer value into a boolean for Vue.
+            foreach ($answers as &$answer) {
+                $answer['isCorrect'] = (bool) $answer['isCorrect'];
+            }
+
+            unset($answer);
+
+            $question['answers'] = $answers;
+
+            // Preserve the existing table display fields.
+            $question['correctAnswer'] = implode(
+                ' | ',
+                array_column(
+                    array_filter(
+                        $answers,
+                        fn ($answer) => $answer['isCorrect']
+                    ),
+                    'answerText'
+                )
+            );
+
+            $question['answersText'] = implode(
+                ' | ',
+                array_column($answers, 'answerText')
+            );
+
             $question['percentageCorrect'] =
                 (int) $question['percentageCorrect'];
         }
@@ -107,6 +104,7 @@ class Question extends Model
         array $answers
     ): string {
         self::validateQuestionData($question, $answers);
+        self::validateSubject($subjectID);
 
         $db = self::getDB();
         $questionID = self::newUuid();
@@ -114,12 +112,19 @@ class Question extends Model
         $db->beginTransaction();
 
         try {
+            // Insert the new question.
             $stmt = $db->prepare(
                 'INSERT INTO Questions (questionID, subjectID, question)
                  VALUES (?, ?, ?)'
             );
-            $stmt->execute([$questionID, $subjectID, trim($question)]);
 
+            $stmt->execute([
+                $questionID,
+                $subjectID,
+                trim($question)
+            ]);
+
+            // Insert the four associated answer options.
             self::saveAnswers($db, $questionID, $answers);
 
             $db->commit();
@@ -132,7 +137,10 @@ class Question extends Model
     }
 
     /**
-     * Updates a question and replaces its answer options.
+     * Updates a question and its answer options.
+     *
+     * Questions used in completed tests cannot be edited,
+     * protecting historical student answers and results.
      */
     public static function update(
         string $questionID,
@@ -141,53 +149,103 @@ class Question extends Model
         array $answers
     ): bool {
         self::validateQuestionData($question, $answers);
+        self::validateSubject($subjectID);
 
         $db = self::getDB();
 
         $db->beginTransaction();
 
         try {
+            // Check whether the question exists and lock it during the update.
+            $stmt = $db->prepare(
+                'SELECT questionID
+                 FROM Questions
+                 WHERE questionID = ?
+                 FOR UPDATE'
+            );
+
+            $stmt->execute([$questionID]);
+
+            if ($stmt->fetchColumn() === false) {
+                $db->rollBack();
+                return false;
+            }
+
+            // Prevent editing questions with historical student answers.
+            if (self::hasHistoricalAnswers($db, $questionID)) {
+                throw new \InvalidArgumentException(
+                    'This question cannot be edited because it has already been used in a completed test.'
+                );
+            }
+
+            // Update the question details.
             $stmt = $db->prepare(
                 'UPDATE Questions
-                 SET subjectID = ?, question = ?, percentageCorrect = 0
+                 SET subjectID = ?, question = ?
                  WHERE questionID = ?'
             );
+
             $stmt->execute([
                 $subjectID,
                 trim($question),
                 $questionID
             ]);
 
-            if ($stmt->rowCount() === 0) {
-                $check = $db->prepare(
-                    'SELECT questionID FROM Questions WHERE questionID = ?'
-                );
-                $check->execute([$questionID]);
-
-                if ($check->fetchColumn() === false) {
-                    $db->rollBack();
-                    return false;
-                }
-            }
-
+            // Retrieve the existing answer records.
             $stmt = $db->prepare(
-                'DELETE FROM Answers WHERE questionID = ?'
+                'SELECT answerID
+                 FROM Answers
+                 WHERE questionID = ?
+                 ORDER BY answerText'
             );
+
             $stmt->execute([$questionID]);
 
-            self::saveAnswers($db, $questionID, $answers);
+            $existingAnswers = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            if (count($existingAnswers) !== 4) {
+                throw new \RuntimeException(
+                    'The question does not have exactly four existing answers.'
+                );
+            }
+
+            // Update the existing answer records instead of deleting them.
+            // This preserves answer IDs and their database relationships.
+            $updateAnswer = $db->prepare(
+                'UPDATE Answers
+                 SET answerText = ?, isCorrect = ?
+                 WHERE answerID = ? AND questionID = ?'
+            );
+
+            foreach ($answers as $index => $answer) {
+                $updateAnswer->execute([
+                    trim($answer['answerText']),
+                    filter_var(
+                        $answer['isCorrect'],
+                        FILTER_VALIDATE_BOOLEAN
+                    ) ? 1 : 0,
+                    $existingAnswers[$index]['answerID'],
+                    $questionID
+                ]);
+            }
 
             $db->commit();
 
             return true;
         } catch (\Throwable $e) {
-            $db->rollBack();
+            if ($db->inTransaction()) {
+                $db->rollBack();
+            }
+
             throw $e;
         }
     }
 
     /**
      * Deletes a question and its answer options.
+     *
+     * Questions used in completed tests cannot be deleted,
+     * protecting historical student answers and results.
      */
     public static function delete(string $questionID): bool
     {
@@ -196,14 +254,42 @@ class Question extends Model
         $db->beginTransaction();
 
         try {
+            // Check whether the question exists and lock it during deletion.
             $stmt = $db->prepare(
-                'DELETE FROM Answers WHERE questionID = ?'
+                'SELECT questionID
+                 FROM Questions
+                 WHERE questionID = ?
+                 FOR UPDATE'
             );
+
             $stmt->execute([$questionID]);
 
+            if ($stmt->fetchColumn() === false) {
+                $db->rollBack();
+                return false;
+            }
+
+            // Prevent deletion if students have historical answers.
+            if (self::hasHistoricalAnswers($db, $questionID)) {
+                throw new \InvalidArgumentException(
+                    'This question cannot be deleted because it has already been used in a completed test.'
+                );
+            }
+
+            // Delete the answer options first.
             $stmt = $db->prepare(
-                'DELETE FROM Questions WHERE questionID = ?'
+                'DELETE FROM Answers
+                 WHERE questionID = ?'
             );
+
+            $stmt->execute([$questionID]);
+
+            // Delete the question after its answer options.
+            $stmt = $db->prepare(
+                'DELETE FROM Questions
+                 WHERE questionID = ?'
+            );
+
             $stmt->execute([$questionID]);
 
             $deleted = $stmt->rowCount() > 0;
@@ -212,8 +298,51 @@ class Question extends Model
 
             return $deleted;
         } catch (\Throwable $e) {
-            $db->rollBack();
+            if ($db->inTransaction()) {
+                $db->rollBack();
+            }
+
             throw $e;
+        }
+    }
+
+    /**
+     * Checks whether a question has historical student answers.
+     */
+    private static function hasHistoricalAnswers(
+        \PDO $db,
+        string $questionID
+    ): bool {
+        $stmt = $db->prepare(
+            'SELECT 1
+             FROM StudentAnswers
+             WHERE questionID = ?
+             LIMIT 1'
+        );
+
+        $stmt->execute([$questionID]);
+
+        return $stmt->fetchColumn() !== false;
+    }
+
+    /**
+     * Validates that the selected subject exists and is active.
+     */
+    private static function validateSubject(string $subjectID): void
+    {
+        $stmt = self::getDB()->prepare(
+            'SELECT subjectID
+             FROM Subjects
+             WHERE subjectID = ?
+             AND isActive = 1'
+        );
+
+        $stmt->execute([$subjectID]);
+
+        if ($stmt->fetchColumn() === false) {
+            throw new \InvalidArgumentException(
+                'The selected subject is invalid or inactive.'
+            );
         }
     }
 
@@ -293,7 +422,10 @@ class Question extends Model
                 self::newUuid(),
                 $questionID,
                 trim($answer['answerText']),
-                filter_var($answer['isCorrect'], FILTER_VALIDATE_BOOLEAN) ? 1 : 0
+                filter_var(
+                    $answer['isCorrect'],
+                    FILTER_VALIDATE_BOOLEAN
+                ) ? 1 : 0
             ]);
         }
     }
