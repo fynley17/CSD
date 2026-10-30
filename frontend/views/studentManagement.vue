@@ -73,6 +73,11 @@ const searchStudents = () => {
         <div class="tableSection">
             <StudentManagementTable ref="studentManagementTable" />
         </div>
+
+        <!-- Display the Add Student button underneath the table. -->
+        <div class="tableActions">
+            <button type="button" class="addStudentButton">+ Add New Student</button>
+        </div>
     </main>
 </template>
 
@@ -153,6 +158,31 @@ const searchStudents = () => {
 .secondaryButton:hover {
     background: var(--colorPrimary);
     color: var(--colorSurface);
+}
+
+/* Position the Add Student button at the bottom-right of the table. */
+.tableActions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: var(--spaceMd);
+}
+
+/* Style the Add Student button to match Create New Test. */
+.addStudentButton {
+    min-height: 44px;
+    padding: var(--spaceSm) var(--spaceLg);
+    border: 1px solid var(--colorPrimary);
+    border-radius: var(--radiusSm);
+    background: var(--colorPrimary);
+    color: var(--colorSurface);
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.addStudentButton:hover {
+    background: var(--colorPrimaryHover);
+    border-color: var(--colorPrimaryHover);
 }
 
 /* Make keyboard focus visible on buttons and form controls. */
