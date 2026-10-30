@@ -59,13 +59,10 @@ $router->addRoute('GET', '/^\/api\/pending-verification$/', [new VerificationCon
 $router->addRoute('POST', '/^\/api\/resend-verification$/', [new VerificationController(), 'resendVerification']);
 $router->addRoute('POST', '/^\/api\/change-email$/', [new VerificationController(), 'changeEmail']);
 
-// one AuthController shared by login, logout, the session check and the secret code
-$authController = new AuthController();
+// Login, logout, session check and the anti-CSRF code
 $router->addRoute('POST', '/^\/api\/login$/', [new AuthController(), 'login']);
 $router->addRoute('POST', '/^\/api\/logout$/', [new AuthController(), 'logout']);
 $router->addRoute('GET', '/^\/api\/current-user$/', [new AuthController(), 'currentUser']);
-// gives the page its secret code, it sends that back with anything that changes data i.e. login or register
-// other websites can't read our replies, so they can't get the code to fake a request as a logged in user
 $router->addRoute('GET', '/^\/api\/csrf-token$/', [new AuthController(), 'csrfToken']);
 
 // Lecturer dashboard summary.
@@ -94,6 +91,13 @@ $router->addRoute(
     'GET',
     '/^\\/api\\/lecturer\\/questions$/',
     [new QuestionController(), 'getAllForLecturer']
+);
+
+// the lecturers in the admin dashboard table, admins only
+$router->addRoute(
+    'GET',
+    '/^\\/api\\/admin\\/recent-lecturers$/',
+    [new AdministratorController(), 'getRecentLecturers']
 );
 
 return $router;

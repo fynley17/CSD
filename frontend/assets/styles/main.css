@@ -1315,6 +1315,41 @@ main.appMainFullScreen {
     color: var(--colorTextSecondary);
 }
 
+/* status pill for the admin tables, a dot then the word Active or Disabled */
+.statusPill {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spaceXs);
+    padding: var(--spaceXs) var(--spaceSm);
+    border-radius: var(--radiusPill);
+    font-size: var(--fontSizeSmall);
+    font-weight: 600;
+}
+
+/* the dot is drawn in the same colour as the word */
+.statusPill::before {
+    width: var(--spaceSm);
+    height: var(--spaceSm);
+    border-radius: var(--radiusPill);
+    background-color: currentColor;
+    content: '';
+}
+
+.statusActive {
+    background-color: var(--colorSuccessLight);
+    color: var(--colorText);
+}
+
+/* the dot stays green, the word is dark */
+.statusActive::before {
+    background-color: var(--colorSuccess);
+}
+
+.statusDisabled {
+    background-color: var(--colorDisabled);
+    color: var(--colorText);
+}
+
 /* Responsive layouts */
 @media (max-width: 991.98px) {
     .whyRevisionHubCards {

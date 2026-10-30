@@ -22,6 +22,9 @@ function cardValues(page) {
     return page.findAll('.card p').map((value) => value.text());
 }
 
+// the lecturer table has its own tests, here it's just an empty stand-in so only the cards get checked
+const withoutTable = { global: { stubs: { LecturerTable: true } } };
+
 describe('AdministratorDashboard loading and failure states', () => {
     // clears the pretend answer before each test, so one test can't change the next one
     beforeEach(() => {
@@ -37,7 +40,7 @@ describe('AdministratorDashboard loading and failure states', () => {
         vi.mocked(getDashboardSummary).mockReturnValue(new Promise(() => {}));
 
         // Act
-        const page = mount(AdministratorDashboard);
+        const page = mount(AdministratorDashboard, withoutTable);
         await flushPromises();
 
         // Assert
@@ -54,7 +57,7 @@ describe('AdministratorDashboard loading and failure states', () => {
         vi.mocked(getDashboardSummary).mockRejectedValue(new Error('Network Error'));
 
         // Act
-        const page = mount(AdministratorDashboard);
+        const page = mount(AdministratorDashboard, withoutTable);
         await flushPromises();
 
         // Assert
