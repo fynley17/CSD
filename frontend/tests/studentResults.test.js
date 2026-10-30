@@ -92,6 +92,26 @@ describe('studentResults', () => {
         expect(data.datasets[0].data.map((point) => point.y)).toEqual([60, 50, 80]);
     });
 
+    it('pages the completed tests but still graphs all of them', async () => {
+        const tests = Array.from({ length: 7 }, (_, index) => ({
+            completedID: index,
+            testName: `Test ${index}`,
+            testDescription: 'Review',
+            subjectName: 'Maths',
+            completedDate: '2026-10-20 09:00:00',
+            questionCount: 10,
+            pointsEarned: 30,
+            percentageCorrect: 50,
+        }));
+        getCompletedTests.mockResolvedValue(tests);
+
+        const wrapper = mount(StudentResults);
+        await flushPromises();
+
+        expect(wrapper.findAll('.completedTestItem')).toHaveLength(5);
+        expect(wrapper.findComponent({ name: 'Line' }).props().data.datasets[0].data).toHaveLength(7);
+    });
+
     it('hides the graph when the completed tests fail to load', async () => {
         getCompletedTests.mockRejectedValue(new Error('Network error'));
 

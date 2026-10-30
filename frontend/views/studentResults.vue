@@ -1,6 +1,6 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue';
-import CompletedTestItem from '../components/common/completedTestItem.vue';
+import CompletedTestList from '../components/common/completedTestList.vue';
 import PointsLineChart from '../components/common/pointsLineChart.vue';
 import { getCompletedTests, getResultsSummary } from '../services/resultService';
 
@@ -123,18 +123,6 @@ onMounted(() => Promise.all([loadSummary(), loadCompletedTests()]));
         <p v-else-if="completedLoadError" class="alert alert-danger" role="alert">{{ completedLoadError }}</p>
         <p v-else-if="completedTests.length === 0" class="text-secondary">You have not completed any tests yet.</p>
 
-        <ul v-else class="completedTestList list-unstyled mt-4 mb-0">
-            <li v-for="result in completedTests" :key="result.completedID">
-                <CompletedTestItem :result="result" />
-            </li>
-        </ul>
+        <CompletedTestList v-else :tests="completedTests" />
     </section>
 </template>
-
-<style scoped>
-/* Stack completed tests in a single list beneath the cards. */
-.completedTestList {
-    display: grid;
-    gap: var(--spaceMd);
-}
-</style>
