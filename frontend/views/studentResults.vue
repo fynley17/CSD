@@ -1,6 +1,8 @@
 <script setup>
-// import studentPointsTable from '@/components/studentPointsTablevue';
+import { onMounted, ref } from 'vue';
+import CompletedTestItem from '../components/common/completedTestItem.vue';
 import PointsLineChart from '../components/common/pointsLineChart.vue';
+import { getCompletedTests } from '../services/resultService';
 
 const studentName = 'John Doe';
 const studentNumber = 'WS381211';
@@ -34,6 +36,23 @@ const pointsHistory = [
     { date: '2026-10-23', testName: 'Test 9', totalPoints: 76 },
     { date: '2026-10-28', testName: 'Test 10', totalPoints: 85 },
 ];
+
+const completedTests = ref([]);
+const isLoadingCompleted = ref(true);
+const completedLoadError = ref('');
+
+async function loadCompletedTests() {
+    try {
+        completedTests.value = await getCompletedTests();
+    } catch (error) {
+        completedLoadError.value =
+            error.response?.data?.error || 'Unable to load completed tests. Please try again later.';
+    } finally {
+        isLoadingCompleted.value = false;
+    }
+}
+
+onMounted(loadCompletedTests);
 </script>
 
 <template>
@@ -72,4 +91,26 @@ const pointsHistory = [
     <section class="container pb-4" aria-label="Points over time">
         <PointsLineChart :points="pointsHistory" />
     </section>
+
+    <section class="container pb-4" aria-labelledby="completedTestsHeading">
+        <h2 id="completedTestsHeading">Completed tests</h2>
+
+        <p v-if="isLoadingCompleted" class="text-secondary" role="status">Loading completed tests...</p>
+        <p v-else-if="completedLoadError" class="alert alert-danger" role="alert">{{ completedLoadError }}</p>
+        <p v-else-if="completedTests.length === 0" class="text-secondary">You have not completed any tests yet.</p>
+
+        <ul v-else class="completedTestList list-unstyled mt-4 mb-0">
+            <li v-for="result in completedTests" :key="result.completedID">
+                <CompletedTestItem :result="result" />
+            </li>
+        </ul>
+    </section>
 </template>
+
+<style scoped>
+/* Stack completed tests in a single list beneath the cards. */
+.completedTestList {
+    display: grid;
+    gap: var(--spaceMd);
+}
+</style>
