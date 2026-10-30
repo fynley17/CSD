@@ -101,8 +101,14 @@ final class QuestionAllForLecturerTest extends TestCase
         self::assertSame('Science', $questions[1]['subjectName']);
 
         // Assert: the answer options are included.
-        self::assertStringContainsString('4', $questions[0]['answers']);
-        self::assertStringContainsString('Mars', $questions[1]['answers']);
+        self::assertContains(
+            '4',
+            array_column($questions[0]['answers'], 'answerText')
+        );
+        self::assertContains(
+            'Mars',
+            array_column($questions[1]['answers'], 'answerText')
+        );
 
         // Assert: the correct answers are returned.
         self::assertSame('4', $questions[0]['correctAnswer']);
