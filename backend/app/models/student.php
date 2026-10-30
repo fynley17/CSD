@@ -18,7 +18,16 @@ class Student extends User
                     ELSE 'Active'
                 END AS status,
                 u.lastLogin,
-                c.cohortName AS cohort
+                c.cohortName AS cohort,
+                (
+                    SELECT GROUP_CONCAT(
+                        DISTINCT sub.subjectName
+                        ORDER BY sub.subjectName
+                        SEPARATOR ', '
+                    )
+                    FROM Subjects AS sub
+                    WHERE sub.cohortID = s.cohortID
+                ) AS subjects
             FROM Students AS s
             INNER JOIN Users AS u ON u.userID = s.userID
             LEFT JOIN Cohorts AS c ON c.cohortID = s.cohortID
