@@ -4,10 +4,54 @@ namespace App\Models;
 
 class Student extends User
 {
-    public static function getAll()
+    public static function getAll(): array
     {
-        $stmt = self::getDB()->prepare("SELECT * FROM Students");
+        $db = self::getDB();
+
+        $subjectSql = $db->getAttribute(\PDO::ATTR_DRIVER_NAME) === 'sqlite'
+            ? "
+                SELECT GROUP_CONCAT(subjectName, ', ')
+                FROM (
+                    SELECT DISTINCT sub.subjectName
+                    FROM Subjects AS sub
+                    WHERE sub.cohortID = s.cohortID
+                    ORDER BY sub.subjectName
+                )
+            "
+            : "
+                SELECT GROUP_CONCAT(
+                    DISTINCT sub.subjectName
+                    ORDER BY sub.subjectName
+                    SEPARATOR ', '
+                )
+                FROM Subjects AS sub
+                WHERE sub.cohortID = s.cohortID
+            ";
+
+        $sql = "
+            SELECT
+                s.userID,
+                TRIM(COALESCE(s.firstName, '') || ' ' || COALESCE(s.lastName, '')) AS name,
+                u.username AS studentNumber,
+                u.email,
+                CASE
+                    WHEN u.isEnabled = 0 THEN 'Disabled'
+                    WHEN u.approvalStatus = 'pending' THEN 'Pending'
+                    ELSE 'Active'
+                END AS status,
+                u.lastLogin,
+                c.cohortName AS cohort,
+                ($subjectSql) AS subjects
+            FROM Students AS s
+            INNER JOIN Users AS u ON u.userID = s.userID
+            LEFT JOIN Cohorts AS c ON c.cohortID = s.cohortID
+            WHERE u.accountType = 'student'
+            ORDER BY s.lastName ASC, s.firstName ASC
+        ";
+
+        $stmt = $db->prepare($sql);
         $stmt->execute();
+
         return $stmt->fetchAll(\PDO::FETCH_ASSOC);
     }
 
