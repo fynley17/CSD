@@ -1,5 +1,26 @@
 <script setup>
+import { computed, ref } from 'vue';
 import StudentManagementTable from '../components/tables/studentManagementTable.vue';
+
+const studentManagementTable = ref(null);
+
+const cohortFilter = ref('');
+const statusFilter = ref('');
+const searchTerm = ref('');
+
+const cohorts = computed(() => studentManagementTable.value?.cohorts ?? []);
+
+const filterByCohort = () => {
+    studentManagementTable.value?.filterByCohort(cohortFilter.value);
+};
+
+const filterByStatus = () => {
+    studentManagementTable.value?.filterByStatus(statusFilter.value);
+};
+
+const searchStudents = () => {
+    studentManagementTable.value?.searchStudents(searchTerm.value);
+};
 </script>
 
 <template>
@@ -14,35 +35,35 @@ import StudentManagementTable from '../components/tables/studentManagementTable.
         </div>
 
         <div class="tableToolbar">
-            <label class="searchField">
-                <span class="visuallyHidden">Search students</span>
-                <input type="search" placeholder="Search Students..." />
+            <label class="studentFilter">
+                <span class="visuallyHidden">Filter students by cohort</span>
+                <select v-model="cohortFilter" @change="filterByCohort">
+                    <option value="">All cohorts</option>
+                    <option v-for="cohort in cohorts" :key="cohort" :value="cohort">
+                        {{ cohort }}
+                    </option>
+                </select>
             </label>
 
-            <label>
+            <label class="studentFilter">
                 <span class="visuallyHidden">Filter students by status</span>
-                <select>
-                    <option value="">Status</option>
-                    <option value="active">Active</option>
-                    <option value="pending">Pending</option>
-                    <option value="disabled">Disabled</option>
+                <select v-model="statusFilter" @change="filterByStatus">
+                    <option value="">All statuses</option>
+                    <option value="Active">Active</option>
+                    <option value="Pending">Pending</option>
+                    <option value="Disabled">Disabled</option>
                 </select>
             </label>
 
-            <label>
-                <span class="visuallyHidden">Sort students</span>
-                <select>
-                    <option value="">Sort by</option>
-                    <option value="nameAsc">Name (A-Z)</option>
-                    <option value="nameDesc">Name (Z-A)</option>
-                    <option value="lastLogin">Last Login</option>
-                </select>
+            <label class="studentSearch">
+                <span class="visuallyHidden">Search students</span>
+                <input v-model="searchTerm" type="search" placeholder="Search students..." @input="searchStudents" />
             </label>
-
-            <button type="button" class="primaryButton"><span aria-hidden="true">＋</span> Add Student</button>
         </div>
 
-        <StudentManagementTable />
+        <div class="tableSection">
+            <StudentManagementTable ref="studentManagementTable" />
+        </div>
     </main>
 </template>
 
@@ -79,7 +100,7 @@ import StudentManagementTable from '../components/tables/studentManagementTable.
 
 .tableToolbar {
     display: grid;
-    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 1fr) auto;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) minmax(0, 1.3fr);
     align-items: center;
     gap: var(--spaceLg);
     margin-bottom: var(--spaceMd);
@@ -102,29 +123,21 @@ import StudentManagementTable from '../components/tables/studentManagementTable.
     font: inherit;
 }
 
-.primaryButton,
 .secondaryButton {
     min-height: 44px;
     padding: var(--spaceSm) var(--spaceMd);
     border: 1px solid var(--colorPrimary);
     border-radius: var(--radiusSm);
+    background: var(--colorSurface);
+    color: var(--colorPrimary);
     font: inherit;
     font-weight: 600;
     cursor: pointer;
 }
 
-.primaryButton {
+.secondaryButton:hover {
     background: var(--colorPrimary);
     color: var(--colorSurface);
-}
-
-.primaryButton:hover {
-    background: var(--colorPrimaryHover);
-}
-
-.secondaryButton {
-    background: var(--colorSurface);
-    color: var(--colorPrimary);
 }
 
 button:focus-visible,
@@ -143,6 +156,13 @@ select:focus-visible {
     clip-path: inset(50%);
     white-space: nowrap;
     border: 0;
+}
+
+@media (max-width: 900px) {
+    .tableToolbar {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: var(--spaceMd);
+    }
 }
 
 @media (max-width: 639px) {

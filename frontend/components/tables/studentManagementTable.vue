@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, ref } from 'vue';
+import { onMounted, ref, nextTick } from 'vue';
 import DataTable from 'datatables.net-vue3';
 import DataTablesCore from 'datatables.net-bs5';
 import 'datatables.net-bs5/css/dataTables.bootstrap5.css';
@@ -9,17 +9,39 @@ DataTable.use(DataTablesCore);
 
 // Store the students returned by the backend.
 const students = ref([]);
-
-// Track loading and error states.
 const loading = ref(true);
 const errorMessage = ref('');
+
+// Store the DataTables component reference.
+const dataTable = ref(null);
+
+// Store the available cohorts.
+const cohorts = ref([]);
 
 // Define the columns displayed in the student management table.
 const columns = [
     { data: 'name', title: 'Name' },
     { data: 'studentNumber', title: 'Student Number' },
     { data: 'email', title: 'Email' },
-    { data: 'status', title: 'Status' },
+    {
+        data: 'status',
+        title: 'Status',
+        render: (value, type) => {
+            if (type !== 'display') {
+                return value;
+            }
+
+            const statusClasses = {
+                Active: 'studentStatusActive',
+                Pending: 'studentStatusPending',
+                Disabled: 'studentStatusDisabled',
+            };
+
+            const statusClass = statusClasses[value] || '';
+
+            return `<span class="studentStatusBadge ${statusClass}">${value}</span>`;
+        },
+    },
     {
         data: 'lastLogin',
         title: 'Last Login',
@@ -144,10 +166,60 @@ const tableOptions = {
     },
 };
 
-// Fetch students from the API when the component loads.
+// Apply the cohort filter.
+const filterByCohort = async (cohort) => {
+    await nextTick();
+
+    const tableApi = dataTable.value?.dt;
+
+    if (tableApi) {
+        const searchValue = cohort ? `^${cohort.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$` : '';
+
+        tableApi.column(5).search(searchValue, true, false).draw();
+    }
+};
+
+// Apply the status filter.
+const filterByStatus = async (status) => {
+    await nextTick();
+
+    const tableApi = dataTable.value?.dt;
+
+    if (tableApi) {
+        const searchValue = status ? `^${status}$` : '';
+
+        tableApi.column(3).search(searchValue, true, false).draw();
+    }
+};
+
+// Apply global search while preserving the individual filters.
+const searchStudents = async (searchTerm) => {
+    await nextTick();
+
+    const tableApi = dataTable.value?.dt;
+
+    if (tableApi) {
+        tableApi.search(searchTerm).draw();
+    }
+};
+
+// Expose filter options and methods to the parent view.
+defineExpose({
+    cohorts,
+    filterByCohort,
+    filterByStatus,
+    searchStudents,
+});
+
+// Fetch students when the component is mounted.
 onMounted(async () => {
     try {
         students.value = await getLecturerStudents();
+
+        // Build a unique list of cohorts.
+        cohorts.value = [...new Set(students.value.map((student) => student.cohort).filter(Boolean))].sort((a, b) =>
+            a.localeCompare(b),
+        );
     } catch {
         errorMessage.value = 'Unable to load students. Please try again later.';
     } finally {
@@ -166,6 +238,7 @@ onMounted(async () => {
 
         <div v-else class="tableResponsive">
             <DataTable
+                ref="dataTable"
                 :columns="columns"
                 :data="students"
                 :options="tableOptions"
@@ -176,14 +249,12 @@ onMounted(async () => {
 </template>
 
 <style>
-/* Keep the table within its parent. */
 .studentTableWrapper {
     width: 100%;
     min-width: 0;
     max-width: 100%;
 }
 
-/* Allow horizontal scrolling on smaller screens. */
 .studentTableWrapper .tableResponsive {
     display: block;
     width: 100%;
@@ -193,26 +264,46 @@ onMounted(async () => {
     overscroll-behavior-x: contain;
 }
 
-/* Maintain a readable table width. */
 .studentTableWrapper .tableResponsive table {
     width: 100%;
     min-width: 1000px;
     margin-bottom: 0;
 }
 
-/* Keep headings and cell values on one line. */
 .studentTableWrapper .tableResponsive th,
 .studentTableWrapper .tableResponsive td {
     white-space: nowrap;
     vertical-align: middle;
 }
 
-/* Provide enough space for the action buttons. */
 .studentTableWrapper .tableResponsive td:last-child {
     min-width: 330px;
 }
 
-/* Shared styling for action buttons. */
+.studentStatusBadge {
+    display: inline-block;
+    padding: var(--spaceXs) var(--spaceSm);
+    border-radius: var(--radiusSm);
+    font-size: var(--fontSizeSmall);
+    font-weight: 700;
+    line-height: 1.4;
+}
+
+.studentStatusActive {
+    color: var(--colorSurface);
+    background-color: var(--colorSuccess);
+}
+
+.studentStatusPending {
+    color: var(--colorSurface);
+    background-color: var(--colorWarning);
+}
+
+.studentStatusDisabled {
+    color: var(--colorSurface);
+    background-color: var(--colorTextSecondary);
+}
+
 .tableActionButton {
     min-height: 36px;
     padding: var(--spaceXs) var(--spaceSm);
@@ -221,7 +312,6 @@ onMounted(async () => {
     font-weight: 600;
 }
 
-/* Edit button. */
 .tableEditButton {
     color: var(--colorPrimary);
     background-color: var(--colorSurface);
@@ -234,7 +324,6 @@ onMounted(async () => {
     border-color: var(--colorPrimaryHover);
 }
 
-/* Approve and Enable buttons. */
 .tableApproveButton,
 .tableEnableButton {
     color: var(--colorSurface);
@@ -248,7 +337,6 @@ onMounted(async () => {
     border-color: var(--colorSuccessHover);
 }
 
-/* Disable button. */
 .tableDisableButton {
     color: var(--colorWarning);
     background-color: var(--colorSurface);
@@ -260,7 +348,6 @@ onMounted(async () => {
     background-color: var(--colorWarning);
 }
 
-/* Delete and Decline buttons. */
 .tableDeleteButton {
     color: var(--colorSurface);
     background-color: var(--colorError);
@@ -272,7 +359,6 @@ onMounted(async () => {
     border-color: var(--colorErrorHover);
 }
 
-/* Accessible keyboard focus. */
 .tableActionButton:focus-visible {
     outline: 3px solid var(--colorFocus);
     outline-offset: 2px;
