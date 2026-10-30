@@ -114,4 +114,10 @@ $router->addRoute(
     [new QuestionController(), 'deleteQuestion']
 );
 
+$router->addRoute(
+    'GET',
+    '/^\/api\/lecturer\/subjects$/',
+    [new QuestionController(), 'getActiveSubjects']
+);
+
 return $router;

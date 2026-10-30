@@ -27,6 +27,28 @@ class QuestionController extends Controller
     }
 
     /**
+     * Returns all active subjects for the lecturer question form.
+     */
+    public function getActiveSubjects(): void
+    {
+        Authentication::requireRole(['lecturer']);
+
+        try {
+            $subjects = Question::getActiveSubjects();
+            $this->jsonResponse($subjects);
+        } catch (\Throwable $e) {
+            error_log(
+                'Loading lecturer subjects failed: ' . $e->getMessage()
+            );
+
+            $this->jsonResponse(
+                ['error' => 'Unable to load subjects. Please try again later.'],
+                500
+            );
+        }
+    }
+
+    /**
      * Creates a new question and its answer options.
      */
     public function createQuestion(): void
@@ -80,6 +102,7 @@ class QuestionController extends Controller
 
             if (!$updated) {
                 $this->jsonResponse(['error' => 'Question not found.'], 404);
+                return;
             }
 
             $this->jsonResponse([
@@ -112,6 +135,7 @@ class QuestionController extends Controller
 
             if (!$deleted) {
                 $this->jsonResponse(['error' => 'Question not found.'], 404);
+                return;
             }
 
             $this->jsonResponse([

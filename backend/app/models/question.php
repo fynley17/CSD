@@ -4,6 +4,23 @@ namespace App\Models;
 
 class Question extends Model
 {
+    /**
+     * Returns all active subjects for the lecturer question form.
+     */
+    public static function getActiveSubjects(): array
+    {
+        $stmt = self::getDB()->prepare(
+            'SELECT subjectID, subjectName
+             FROM Subjects
+             WHERE isActive = 1
+             ORDER BY subjectName'
+        );
+
+        $stmt->execute();
+
+        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+    }
+
     public static function getAllForLecturer(): array
     {
         $db = self::getDB();
