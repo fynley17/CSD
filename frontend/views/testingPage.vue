@@ -2,10 +2,12 @@
     <!-- Loading the test, or it couldn't be loaded -->
     <section v-if="phase === 'loading' || phase === 'loadError'" class="testingScreen">
         <div class="testingPanel text-center">
-            <p v-if="phase === 'loading'" class="text-secondary mb-0" role="status">Loading test...</p>
+            <p v-if="phase === 'loading'" class="text-secondary mb-0" role="status">
+                {{ isViewingAnswers ? 'Loading your answers...' : 'Loading test...' }}
+            </p>
             <template v-else>
                 <p class="alert alert-danger" role="alert">{{ loadError }}</p>
-                <RouterLink :to="{ name: 'testSelection' }" class="btn testingPrimaryButton">Back to tests</RouterLink>
+                <RouterLink :to="backLocation" class="btn testingPrimaryButton">{{ backLabel }}</RouterLink>
             </template>
         </div>
     </section>
@@ -84,13 +86,14 @@
                     <dt>Points earned</dt>
                     <dd>{{ result.pointsEarned > 0 ? '+' : '' }}{{ result.pointsEarned }} PTS</dd>
                 </div>
-                <div>
+                <!-- a saved attempt isn't stored in the order it was asked, so its streak can't be worked out -->
+                <div v-if="!isViewingAnswers">
                     <dt>Best streak</dt>
                     <dd>x{{ bestStreak }}</dd>
                 </div>
             </dl>
 
-            <RouterLink :to="{ name: 'testSelection' }" class="btn testingPrimaryButton">Back to tests</RouterLink>
+            <RouterLink :to="backLocation" class="btn testingPrimaryButton">{{ backLabel }}</RouterLink>
         </div>
 
         <h2 class="reviewTitle">Question review</h2>
@@ -198,10 +201,21 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
+import { getCompletedTestReview } from '../services/resultService';
 import { startTestAttempt, submitTest } from '../services/testService';
 import { formatTimeLimit } from '../utils/formatTimeLimit';
 
 const route = useRoute();
+
+// The View Answers button opens this page with a completedID, which shows that saved attempt's
+// results screen instead of starting a new test.
+const isViewingAnswers = computed(() => route.params.completedID !== undefined);
+const backLabel = computed(() => (isViewingAnswers.value ? 'Back' : 'Back to tests'));
+// Back to whichever page had the View Answers button, or the tests if this was opened from a link.
+const backLocation = computed(() => {
+    const previousPage = isViewingAnswers.value ? window.history.state?.back : null;
+    return previousPage ?? { name: 'testSelection' };
+});
 
 // Each answer position keeps the same colour and shape so students can
 // recognise options without relying on colour alone.
@@ -386,9 +400,29 @@ async function finishTest() {
     }
 }
 
+// Shows a saved attempt on the results screen, the backend only returns the student's own attempts.
+async function loadCompletedAttempt() {
+    try {
+        const attempt = await getCompletedTestReview(route.params.completedID);
+        test.value = { testName: attempt.testName, subjectName: attempt.subjectName };
+        result.value = attempt;
+        phase.value = 'results';
+        await nextTick();
+        resultsHeading.value?.focus();
+    } catch (error) {
+        loadError.value = error.response?.data?.error || 'Unable to load your answers. Please try again later.';
+        phase.value = 'loadError';
+    }
+}
+
 // The Start Test button on the test card brings the student here, so the questions
 // for this attempt are drawn from the pool as soon as the page opens.
 onMounted(async () => {
+    if (isViewingAnswers.value) {
+        await loadCompletedAttempt();
+        return;
+    }
+
     try {
         const loadedTest = await startTestAttempt(route.params.testID);
         loadedTest.questions = loadedTest.questions.map((question) => ({

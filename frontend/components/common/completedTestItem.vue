@@ -1,6 +1,6 @@
 <template>
     <article class="card completedTestItem">
-        <div class="card-body d-flex align-items-center gap-3 p-4">
+        <div class="card-body d-flex flex-wrap flex-sm-nowrap align-items-center gap-3 p-4">
             <div class="completedTestInfo flex-grow-1">
                 <h3 class="completedTestTitle mb-1">{{ result.testName }}</h3>
 
@@ -28,19 +28,30 @@
                 </dl>
             </div>
 
-            <div class="completedTestActions">
+            <div class="completedTestActions ms-auto">
                 <p class="completedTestPercentage mb-0">{{ percentage }}</p>
 
-                <button
-                    type="button"
-                    class="btn btn-outline-secondary btn-sm completedTestExport"
-                    :disabled="isExporting"
-                    :aria-label="`Export ${result.testName} results as PDF`"
-                    @click="exportResults"
-                >
-                    <i class="bi bi-file-earmark-arrow-down" aria-hidden="true"></i>
-                    {{ isExporting ? 'Exporting...' : 'Export PDF' }}
-                </button>
+                <div class="d-flex gap-2">
+                    <button
+                        type="button"
+                        class="btn btn-outline-secondary btn-sm completedTestExport"
+                        :disabled="isExporting"
+                        :aria-label="`Export ${result.testName} results as PDF`"
+                        @click="exportResults"
+                    >
+                        <i class="bi bi-file-earmark-arrow-down" aria-hidden="true"></i>
+                        {{ isExporting ? 'Exporting...' : 'Export PDF' }}
+                    </button>
+
+                    <RouterLink
+                        :to="{ name: 'testAnswers', params: { completedID: result.completedID } }"
+                        class="btn btn-sm completedTestViewAnswers"
+                        :aria-label="`View answers for ${result.testName}`"
+                    >
+                        <i class="bi bi-eye" aria-hidden="true"></i>
+                        View Answers
+                    </RouterLink>
+                </div>
 
                 <p v-if="exportError" class="completedTestExportError text-danger mb-0" role="alert">
                     {{ exportError }}
@@ -149,13 +160,26 @@ async function exportResults() {
     font-weight: 400;
 }
 
-/* Score and export button stacked on the right of the card. */
+/* Score above the buttons on the right of the card, they drop under the details on phones. */
 .completedTestActions {
     display: flex;
     flex-direction: column;
     flex-shrink: 0;
     align-items: flex-end;
     gap: var(--spaceXs);
+}
+
+/* The main action on the card, matches the test card's Start Test button. */
+.completedTestViewAnswers {
+    border-color: var(--colorBrand);
+    background: var(--colorBrand);
+    color: var(--colorSurface);
+}
+
+.completedTestViewAnswers:hover {
+    border-color: var(--colorPrimaryHover);
+    background: var(--colorPrimaryHover);
+    color: var(--colorSurface);
 }
 
 .completedTestExportError {
