@@ -2,22 +2,28 @@
 import { computed, ref } from 'vue';
 import StudentManagementTable from '../components/tables/studentManagementTable.vue';
 
+// Reference the student table component so the parent view can access its filters.
 const studentManagementTable = ref(null);
 
+// Store the selected cohort, status and search term.
 const cohortFilter = ref('');
 const statusFilter = ref('');
 const searchTerm = ref('');
 
+// Retrieve the available cohort options from the student table component.
 const cohorts = computed(() => studentManagementTable.value?.cohorts ?? []);
 
+// Pass the selected cohort to the student table filter.
 const filterByCohort = () => {
     studentManagementTable.value?.filterByCohort(cohortFilter.value);
 };
 
+// Pass the selected account status to the student table filter.
 const filterByStatus = () => {
     studentManagementTable.value?.filterByStatus(statusFilter.value);
 };
 
+// Pass the search term to the student table's global search.
 const searchStudents = () => {
     studentManagementTable.value?.searchStudents(searchTerm.value);
 };
@@ -25,6 +31,7 @@ const searchStudents = () => {
 
 <template>
     <main class="studentManagement">
+        <!-- Display the page title, description and Student Applications button. -->
         <div class="pageHeading">
             <div>
                 <h1>Student Management</h1>
@@ -34,6 +41,7 @@ const searchStudents = () => {
             <button type="button" class="secondaryButton">Student Applications</button>
         </div>
 
+        <!-- Provide independent filters for cohort, account status and student search. -->
         <div class="tableToolbar">
             <label class="studentFilter">
                 <span class="visuallyHidden">Filter students by cohort</span>
@@ -61,6 +69,7 @@ const searchStudents = () => {
             </label>
         </div>
 
+        <!-- Display the student table and its records. -->
         <div class="tableSection">
             <StudentManagementTable ref="studentManagementTable" />
         </div>
@@ -68,6 +77,7 @@ const searchStudents = () => {
 </template>
 
 <style scoped>
+/* Set the main page width, spacing and default typography. */
 .studentManagement {
     max-width: var(--contentMaxWidth);
     min-height: 100%;
@@ -77,6 +87,7 @@ const searchStudents = () => {
     font-family: var(--fontBody);
 }
 
+/* Arrange the page heading and applications button. */
 .pageHeading {
     display: flex;
     align-items: center;
@@ -98,6 +109,7 @@ const searchStudents = () => {
     font-size: var(--fontSizeSmall);
 }
 
+/* Position the cohort filter, status filter and search field in one row. */
 .tableToolbar {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr)) minmax(0, 1.3fr);
@@ -110,6 +122,7 @@ const searchStudents = () => {
     min-width: 0;
 }
 
+/* Apply consistent styling to the filter dropdowns and search input. */
 .tableToolbar input,
 .tableToolbar select {
     width: 100%;
@@ -123,6 +136,7 @@ const searchStudents = () => {
     font: inherit;
 }
 
+/* Style the Student Applications button. */
 .secondaryButton {
     min-height: 44px;
     padding: var(--spaceSm) var(--spaceMd);
@@ -135,11 +149,13 @@ const searchStudents = () => {
     cursor: pointer;
 }
 
+/* Change the button colours when hovered over. */
 .secondaryButton:hover {
     background: var(--colorPrimary);
     color: var(--colorSurface);
 }
 
+/* Make keyboard focus visible on buttons and form controls. */
 button:focus-visible,
 input:focus-visible,
 select:focus-visible {
@@ -147,6 +163,7 @@ select:focus-visible {
     outline-offset: 2px;
 }
 
+/* Hide labels visually while keeping them available to screen readers. */
 .visuallyHidden {
     position: absolute;
     width: 1px;
@@ -158,6 +175,7 @@ select:focus-visible {
     border: 0;
 }
 
+/* Adjust the filter layout for medium-sized screens. */
 @media (max-width: 900px) {
     .tableToolbar {
         grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -165,6 +183,7 @@ select:focus-visible {
     }
 }
 
+/* Stack the heading and filters vertically on smaller screens. */
 @media (max-width: 639px) {
     .studentManagement {
         padding: var(--spaceLg) var(--spaceMd);
