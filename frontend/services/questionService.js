@@ -23,3 +23,9 @@ export async function deleteQuestion(questionID) {
     const response = await api.delete(`/lecturer/questions/${encodeURIComponent(questionID)}`);
     return response.data;
 }
+
+// Fetch all active subjects for the question form.
+export async function getActiveSubjects() {
+    const response = await api.get('/lecturer/subjects');
+    return response.data;
+}

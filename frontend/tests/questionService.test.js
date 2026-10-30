@@ -2,7 +2,13 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 import api from '../services/api';
 
-import { getLecturerQuestions, createQuestion, updateQuestion, deleteQuestion } from '../services/questionService';
+import {
+    getLecturerQuestions,
+    getActiveSubjects,
+    createQuestion,
+    updateQuestion,
+    deleteQuestion,
+} from '../services/questionService';
 
 vi.mock('../services/api', () => ({
     default: {
@@ -29,6 +35,22 @@ describe('questionService', () => {
         // Assert
         expect(api.get).toHaveBeenCalledWith('/lecturer/questions');
         expect(result).toEqual(questions);
+    });
+
+    it('fetches all active subjects', async () => {
+        // Arrange
+        const subjects = [
+            { subjectID: 'subject-123', subjectName: 'Mathematics' },
+            { subjectID: 'subject-456', subjectName: 'Science' },
+        ];
+        api.get.mockResolvedValue({ data: subjects });
+
+        // Act
+        const result = await getActiveSubjects();
+
+        // Assert
+        expect(api.get).toHaveBeenCalledWith('/lecturer/subjects');
+        expect(result).toEqual(subjects);
     });
 
     it('creates a question', async () => {
