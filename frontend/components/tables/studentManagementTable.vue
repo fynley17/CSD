@@ -354,7 +354,11 @@ onMounted(async () => {
     border: 1px solid var(--colorSuccess);
 }
 
-.tableApproveButton:hover,
+.tableApproveButton:hover {
+    background-color: var(--colorSuccess);
+    border-color: var(--colorSuccess);
+}
+
 .tableEnableButton:hover {
     background-color: var(--colorSuccessHover);
     border-color: var(--colorSuccessHover);

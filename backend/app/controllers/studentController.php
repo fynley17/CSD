@@ -11,6 +11,8 @@ class StudentController extends Controller
 {
     public function getAllStudents(): void
     {
+        Authentication::requireRole(['lecturer']);
+
         $students = Student::getAll();
         $this->jsonResponse($students);
     }
