@@ -1,45 +1,51 @@
 <script setup>
-import { onMounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import CompletedTestItem from '../components/common/completedTestItem.vue';
 import PointsLineChart from '../components/common/pointsLineChart.vue';
-import { getCompletedTests } from '../services/resultService';
+import { getCompletedTests, getResultsSummary } from '../services/resultService';
 
-const studentName = 'John Doe';
-const studentNumber = 'WS381211';
-const resultsError = '';
-const testsCompleted = 10;
-const summaryCards = [
-    {
-        title: 'Total Points',
-        value: 85,
-    },
-    {
-        title: 'Average Score',
-        value: '85%',
-        subtitle: 'Based on ' + testsCompleted + ' tests',
-    },
-    {
-        title: 'Tests Completed',
-        value: testsCompleted,
-    },
-];
-// placeholder data until the results API is connected, the last total matches the Total Points card
-const pointsHistory = [
-    { date: '2026-09-02', testName: 'Test 1', totalPoints: 8 },
-    { date: '2026-09-09', testName: 'Test 2', totalPoints: 15 },
-    { date: '2026-09-14', testName: 'Test 3', totalPoints: 24 },
-    { date: '2026-09-23', testName: 'Test 4', totalPoints: 30 },
-    { date: '2026-09-30', testName: 'Test 5', totalPoints: 39 },
-    { date: '2026-10-05', testName: 'Test 6', totalPoints: 47 },
-    { date: '2026-10-12', testName: 'Test 7', totalPoints: 55 },
-    { date: '2026-10-16', testName: 'Test 8', totalPoints: 62 },
-    { date: '2026-10-23', testName: 'Test 9', totalPoints: 76 },
-    { date: '2026-10-28', testName: 'Test 10', totalPoints: 85 },
-];
+const resultsError = ref('');
+const summary = ref(null);
+
+// Shows a dash while loading or if the summary can't be loaded, so a made up 0 is never shown.
+const summaryCards = computed(() => {
+    if (summary.value === null) {
+        return [
+            { title: 'Total Points', value: '–' },
+            { title: 'Average Score', value: '–' },
+            { title: 'Tests Completed', value: '–' },
+        ];
+    }
+
+    const { totalPoints, averageScore, testsCompleted } = summary.value;
+
+    return [
+        { title: 'Total Points', value: totalPoints },
+        {
+            title: 'Average Score',
+            value: averageScore === null ? 'N/A' : `${averageScore}%`,
+            subtitle:
+                testsCompleted === 0
+                    ? 'No tests completed yet'
+                    : `Based on ${testsCompleted} ${testsCompleted === 1 ? 'test' : 'tests'}`,
+        },
+        { title: 'Tests Completed', value: testsCompleted },
+    ];
+});
 
 const completedTests = ref([]);
 const isLoadingCompleted = ref(true);
 const completedLoadError = ref('');
+
+// The list is newest first, the graph adds the points up from the oldest test.
+const pointsHistory = computed(() => {
+    let totalPoints = 0;
+
+    return [...completedTests.value].reverse().map((result) => {
+        totalPoints += result.pointsEarned;
+        return { date: result.completedDate.slice(0, 10), testName: result.testName, totalPoints };
+    });
+});
 
 async function loadCompletedTests() {
     try {
@@ -52,7 +58,17 @@ async function loadCompletedTests() {
     }
 }
 
-onMounted(loadCompletedTests);
+async function loadSummary() {
+    try {
+        summary.value = await getResultsSummary();
+    } catch (error) {
+        resultsError.value =
+            error.response?.data?.error || 'Unable to load your results summary. Please try again later.';
+    }
+}
+
+// Load both side by side so a failure in one does not hide the other.
+onMounted(() => Promise.all([loadSummary(), loadCompletedTests()]));
 </script>
 
 <template>
@@ -62,18 +78,19 @@ onMounted(loadCompletedTests);
                 <h1>Results</h1>
                 <p class="hintText mb-0">Here's an overview of your test performance.</p>
             </div>
-            <div class="col-auto">
-                <p class="fw-bold mb-0 mt-3">Student: {{ studentName }}</p>
-                <p class="hintText mt-0 p-0">Student Number: {{ studentNumber }}</p>
+            <div v-if="summary" class="col-auto">
+                <p class="fw-bold mb-0 mt-3">Student: {{ summary.studentName }}</p>
+                <p class="hintText mt-0 p-0">Student Number: {{ summary.studentNumber }}</p>
             </div>
         </div>
     </section>
-    <p v-if="resultsError" class="alert alert-danger mb-4" role="alert">
-        {{ resultsError }}
-    </p>
 
     <!-- student information cards -->
     <section class="container py-4" aria-label="Student summary">
+        <p v-if="resultsError" class="alert alert-danger mb-4" role="alert">
+            {{ resultsError }}
+        </p>
+
         <div class="row g-4">
             <div v-for="card in summaryCards" :key="card.title" class="col-12 col-md-4">
                 <div class="card surfaceCard shadow-none h-100">
@@ -88,7 +105,7 @@ onMounted(loadCompletedTests);
     </section>
 
     <!-- points over time graph -->
-    <section class="container pb-4" aria-label="Points over time">
+    <section v-if="!isLoadingCompleted && !completedLoadError" class="container pb-4" aria-label="Points over time">
         <PointsLineChart :points="pointsHistory" />
     </section>
 
