@@ -1337,7 +1337,12 @@ main.appMainFullScreen {
 
 .statusActive {
     background-color: var(--colorSuccessLight);
-    color: var(--colorSuccess);
+    color: var(--colorText);
+}
+
+/* the dot stays green, the word is dark */
+.statusActive::before {
+    background-color: var(--colorSuccess);
 }
 
 .statusDisabled {
