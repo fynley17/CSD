@@ -7,6 +7,13 @@ import { getCompletedTests, getResultsSummary } from '../services/resultService'
 const resultsError = ref('');
 const summary = ref(null);
 
+// Capitalises the start of each word and each part of a hyphenated name, the other letters are
+// left alone so names like McDonald stay as they were entered.
+const studentName = computed(() =>
+    summary.value.studentName.replace(/(^|[\s-])(\p{L})/gu, (_, before, letter) => before + letter.toUpperCase()),
+);
+const studentNumber = computed(() => summary.value.studentNumber.toUpperCase());
+
 // Shows a dash while loading or if the summary can't be loaded, so a made up 0 is never shown.
 const summaryCards = computed(() => {
     if (summary.value === null) {
@@ -43,7 +50,7 @@ const pointsHistory = computed(() => {
 
     return [...completedTests.value].reverse().map((result) => {
         totalPoints += result.pointsEarned;
-        return { date: result.completedDate.slice(0, 10), testName: result.testName, totalPoints };
+        return { date: result.completedDate, testName: result.testName, totalPoints };
     });
 });
 
@@ -79,8 +86,8 @@ onMounted(() => Promise.all([loadSummary(), loadCompletedTests()]));
                 <p class="hintText mb-0">Here's an overview of your test performance.</p>
             </div>
             <div v-if="summary" class="col-auto">
-                <p class="fw-bold mb-0 mt-3">Student: {{ summary.studentName }}</p>
-                <p class="hintText mt-0 p-0">Student Number: {{ summary.studentNumber }}</p>
+                <p class="fw-bold mb-0 mt-3">Student: {{ studentName }}</p>
+                <p class="hintText mt-0 p-0">Student Number: {{ studentNumber }}</p>
             </div>
         </div>
     </section>

@@ -48,8 +48,23 @@ describe('studentResults', () => {
         await flushPromises();
 
         expect(wrapper.text()).toContain('Student: Ada Lovelace');
-        expect(wrapper.text()).toContain('Student Number: ws000001');
+        expect(wrapper.text()).toContain('Student Number: WS000001');
         expect(wrapper.text()).not.toContain('John Doe');
+    });
+
+    it('capitalises each part of the name, including after a hyphen', async () => {
+        getResultsSummary.mockResolvedValue({
+            studentName: 'mary-jane mcDonald smith-jones',
+            studentNumber: 'ws000001',
+            totalPoints: 0,
+            averageScore: null,
+            testsCompleted: 0,
+        });
+
+        const wrapper = mount(StudentResults);
+        await flushPromises();
+
+        expect(wrapper.text()).toContain('Student: Mary-Jane McDonald Smith-Jones');
     });
 
     it('adds the points up from the oldest test for the graph', async () => {
@@ -74,8 +89,7 @@ describe('studentResults', () => {
         await flushPromises();
         const { data } = wrapper.findComponent({ name: 'Line' }).props();
 
-        expect(data.datasets[0].data).toEqual([60, 50, 80]);
-        expect(data.labels).toEqual(['1 Oct', '10 Oct', '20 Oct']);
+        expect(data.datasets[0].data.map((point) => point.y)).toEqual([60, 50, 80]);
     });
 
     it('hides the graph when the completed tests fail to load', async () => {

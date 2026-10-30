@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { mount } from '@vue/test-utils';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import PointsLineChart from '../components/common/pointsLineChart.vue';
 
 // jsdom has no canvas to draw on, so these check what's handed to the chart
@@ -9,33 +9,101 @@ vi.mock('vue-chartjs', () => ({
     Line: { name: 'Line', props: ['data', 'options'], template: '<canvas />' },
 }));
 
+// the totals run on from before each time period, so filtering must not restart them
 const points = [
-    { date: '2026-09-02', testName: 'Test 1', totalPoints: 8 },
-    { date: '2026-09-09', testName: 'Test 2', totalPoints: 15 },
-    { date: '2026-09-14', testName: 'Test 3', totalPoints: 85 },
+    { date: '2025-06-01 09:00:00', testName: 'Old test', totalPoints: 700 },
+    { date: '2026-08-20 09:00:00', testName: 'Summer test', totalPoints: 730 },
+    { date: '2026-10-10 09:00:00', testName: 'Month test', totalPoints: 760 },
+    { date: '2026-10-28 09:00:00', testName: 'Week test', totalPoints: 800 },
 ];
 
+function chartValues(wrapper) {
+    return wrapper
+        .findComponent({ name: 'Line' })
+        .props()
+        .data.datasets[0].data.map((point) => point.y);
+}
+
+function selectRange(wrapper, label) {
+    return wrapper
+        .findAll('button')
+        .find((button) => button.text() === label)
+        .trigger('click');
+}
+
 describe('pointsLineChart', () => {
-    it('shows a message instead of a graph when there are no tests', () => {
+    beforeEach(() => {
+        vi.useFakeTimers({ toFake: ['Date'] });
+        vi.setSystemTime(new Date('2026-10-30T12:00:00'));
+    });
+
+    afterEach(() => {
+        vi.useRealTimers();
+    });
+
+    it('shows a message and no time buttons when there are no tests', () => {
         const wrapper = mount(PointsLineChart, { props: { points: [] } });
 
         expect(wrapper.findComponent({ name: 'Line' }).exists()).toBe(false);
+        expect(wrapper.find('button').exists()).toBe(false);
         expect(wrapper.text()).toContain('Complete a test');
     });
 
-    it('passes the dates and running totals to the chart', () => {
+    it('starts on all time with every test', () => {
         const wrapper = mount(PointsLineChart, { props: { points } });
-        const { data } = wrapper.findComponent({ name: 'Line' }).props();
+        const { options } = wrapper.findComponent({ name: 'Line' }).props();
 
-        expect(data.labels).toEqual(['2 Sept', '9 Sept', '14 Sept']);
-        expect(data.datasets[0].data).toEqual([8, 15, 85]);
+        expect(chartValues(wrapper)).toEqual([700, 730, 760, 800]);
+        expect(options.scales.x.min).toBeUndefined();
+        expect(options.scales.y.beginAtZero).toBe(true);
+        expect(wrapper.find('button[aria-pressed="true"]').text()).toBe('All time');
     });
 
-    it('shows the test name and points in the tooltip', () => {
+    it.each([
+        ['Week', [800]],
+        ['Month', [760, 800]],
+        ['3 months', [730, 760, 800]],
+        ['Year', [730, 760, 800]],
+        ['All time', [700, 730, 760, 800]],
+    ])('%s only shows its tests and keeps their running totals', async (label, expected) => {
         const wrapper = mount(PointsLineChart, { props: { points } });
+
+        await selectRange(wrapper, label);
+
+        expect(chartValues(wrapper)).toEqual(expected);
+        expect(wrapper.find('button[aria-pressed="true"]').text()).toBe(label);
+    });
+
+    it('sets the axis to the whole period and stops forcing it to start at zero', async () => {
+        const wrapper = mount(PointsLineChart, { props: { points } });
+
+        await selectRange(wrapper, 'Week');
+        const { options } = wrapper.findComponent({ name: 'Line' }).props();
+
+        expect(options.scales.x.min).toBe(new Date('2026-10-23T12:00:00').getTime());
+        expect(options.scales.x.max).toBe(new Date('2026-10-30T12:00:00').getTime());
+        expect(options.scales.y.beginAtZero).toBe(false);
+    });
+
+    it('says so when a period has no tests, and can go back to the graph', async () => {
+        const wrapper = mount(PointsLineChart, { props: { points: [points[0]] } });
+
+        await selectRange(wrapper, 'Week');
+        expect(wrapper.findComponent({ name: 'Line' }).exists()).toBe(false);
+        expect(wrapper.text()).toContain('No tests in the last week.');
+
+        await selectRange(wrapper, 'All time');
+        expect(chartValues(wrapper)).toEqual([700]);
+    });
+
+    it('shows the test name, points and date in the tooltip for the selected period', async () => {
+        const wrapper = mount(PointsLineChart, { props: { points } });
+
+        await selectRange(wrapper, 'Month');
         const { callbacks } = wrapper.findComponent({ name: 'Line' }).props().options.plugins.tooltip;
 
-        expect(callbacks.title([{ dataIndex: 1 }])).toBe('Test 2');
-        expect(callbacks.label({ parsed: { y: 15 } })).toBe('15 points');
+        expect(callbacks.title([{ dataIndex: 1 }])).toBe('Week test');
+        expect(callbacks.label({ parsed: { y: 800 } })).toBe('800 points');
+        expect(callbacks.afterLabel({ dataIndex: 1 })).toBe('28 Oct 2026');
     });
 });
