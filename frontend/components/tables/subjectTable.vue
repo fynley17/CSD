@@ -49,8 +49,8 @@ DataTable.use(DataTablesCore);
 const columns = [
     { data: 'subjectName', title: 'Subject', render: DataTablesCore.render.text() },
     // Cohort and Tests hidden under 576px so it fits on a phone
-    { data: 'cohortName', title: 'Cohort', render: DataTablesCore.render.text(), className: 'd-none d-sm-table-cell' },
-    { data: 'testCount', title: 'Tests', className: 'd-none d-sm-table-cell' },
+    { data: 'cohortName', title: 'Cohort', render: DataTablesCore.render.text() },
+    { data: 'testCount', title: 'Tests' },
     {
         data: 'lecturerNames',
         title: 'Lecturer',
