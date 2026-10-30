@@ -411,20 +411,35 @@ onBeforeUnmount(() => {
 .modalOverlay {
     position: fixed;
     z-index: 1000;
-    inset: 0;
+    inset: 64px 0 0;
     display: flex;
     align-items: center;
     justify-content: center;
     padding: var(--spaceLg);
+    box-sizing: border-box;
     overflow-y: auto;
+    background: transparent;
+}
+
+.modalOverlay::before {
+    position: fixed;
+    z-index: 0;
+    inset: 0;
     background: var(--colorText);
+    opacity: 0.72;
+    backdrop-filter: blur(6px);
+    content: '';
+    pointer-events: none;
 }
 
 .modalContent {
+    position: relative;
+    z-index: 1;
     width: 100%;
     max-width: 650px;
-    max-height: 90vh;
+    max-height: calc(100vh - 2 * var(--space2xl));
     padding: var(--spaceXl);
+    box-sizing: border-box;
     overflow-y: auto;
     border-radius: var(--radiusMd);
     background: var(--colorSurface);
@@ -434,7 +449,7 @@ onBeforeUnmount(() => {
 .deleteModal h2 {
     margin-top: 0;
     font-family: var(--fontHeading);
-    color: var(--colorText);
+    color: var(--colorBrand);
 }
 
 .deleteModal > p {
@@ -467,16 +482,41 @@ onBeforeUnmount(() => {
     cursor: pointer;
 }
 
-.cancelButton {
-    border: 1px solid var(--colorBorder);
+/* Delete modal Cancel button. */
+.deleteModal .cancelButton {
+    border: 1px solid var(--colorBorderInput);
     background: var(--colorSurface);
+    color: var(--colorTextSecondary);
+}
+
+.deleteModal .cancelButton:hover:not(:disabled) {
+    background: var(--colorBorderInput);
+    border-color: var(--colorBorderInput);
     color: var(--colorText);
 }
 
+/* Confirm Delete button. */
 .deleteConfirmButton {
     border: 1px solid var(--colorError);
     background: var(--colorError);
     color: var(--colorSurface);
+}
+
+.deleteConfirmButton:hover:not(:disabled) {
+    filter: brightness(0.9);
+}
+
+/* Question displayed in the delete confirmation. */
+.deleteModal .questionToDelete {
+    margin: var(--spaceMd) 0;
+    padding: var(--spaceLg);
+    border: 1px solid var(--colorBorder);
+    border-radius: var(--radiusSm);
+    background: var(--colorSurface);
+    color: var(--colorText);
+    font-size: var(--fontSizeH3);
+    font-weight: 600;
+    line-height: 1.5;
 }
 
 button:focus-visible,

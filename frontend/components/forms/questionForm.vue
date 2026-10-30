@@ -270,7 +270,7 @@ const cancelForm = () => {
 .formHeading h2 {
     margin: 0 0 var(--spaceXs);
     font-family: var(--fontHeading);
-    color: var(--colorText);
+    color: var(--colorBrand);
 }
 
 .formHeading p,
@@ -304,7 +304,7 @@ const cancelForm = () => {
     width: 100%;
     min-height: 42px;
     padding: var(--spaceSm);
-    border: 1px solid var(--colorBorder);
+    border: 1px solid var(--colorBorderInput);
     border-radius: var(--radiusSm);
     background-color: var(--colorSurface);
     color: var(--colorText);
@@ -314,6 +314,7 @@ const cancelForm = () => {
 
 /* Allow the question textarea to be resized vertically. */
 .questionForm textarea {
+    min-height: 120px;
     resize: vertical;
 }
 
@@ -324,9 +325,16 @@ const cancelForm = () => {
 }
 
 /* Highlight focused form fields. */
+.questionForm select:hover,
+.questionForm textarea:hover,
+.questionForm input[type='text']:hover {
+    border-color: var(--colorPrimary);
+}
+
 .questionForm select:focus,
 .questionForm textarea:focus,
 .questionForm input[type='text']:focus {
+    border-color: var(--colorPrimary);
     outline: 2px solid var(--colorFocus);
     outline-offset: 2px;
 }
@@ -338,7 +346,7 @@ const cancelForm = () => {
 
 .answersHeading h3 {
     margin: 0 0 var(--spaceXs);
-    color: var(--colorText);
+    color: var(--colorBrand);
     font-family: var(--fontHeading);
 }
 
@@ -394,9 +402,14 @@ const cancelForm = () => {
 
 /* Cancel button. */
 .cancelButton {
-    color: var(--colorText);
+    color: var(--colorTextSecondary);
     background-color: var(--colorSurface);
-    border: 1px solid var(--colorBorder);
+    border: 1px solid var(--colorBorderInput);
+}
+
+.cancelButton:hover:not(:disabled) {
+    background-color: var(--colorBorderInput);
+    border-color: var(--colorBorderInput);
 }
 
 /* Primary submit button. */
