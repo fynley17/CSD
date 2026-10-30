@@ -327,7 +327,7 @@ onBeforeUnmount(() => {
     width: max-content;
     max-width: min(450px, calc(100vw - 2 * var(--spaceLg)));
     padding: var(--spaceMd) var(--spaceLg);
-    border: 1px solid var(--colorBorder);
+    border: 2px solid var(--colorPrimary);
     border-radius: var(--radiusSm);
     background: var(--colorSurface);
     color: var(--colorText);
