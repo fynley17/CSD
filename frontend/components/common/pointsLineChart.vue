@@ -2,6 +2,7 @@
 import { computed, ref } from 'vue';
 import { Chart, LinearScale, LineElement, PointElement, TimeScale, Tooltip } from 'chart.js';
 import 'chartjs-adapter-date-fns';
+import { endOfDay, startOfDay, subDays, subMonths } from 'date-fns';
 import { Line } from 'vue-chartjs';
 
 Chart.register(LinearScale, LineElement, PointElement, TimeScale, Tooltip);
@@ -14,17 +15,39 @@ const props = defineProps({
     },
 });
 
-// calendar dates rather than a number of hours, so the clocks changing can't move the start of a period
-const daysBefore = (date, days) => new Date(date).setDate(date.getDate() - days);
-const monthsBefore = (date, months) => new Date(date).setMonth(date.getMonth() - months);
-
-// startOf is left out for All time, so the graph uses every test
+// Each period starts at midnight, and its labels fall on clean dates like the start of each week or month.
+// startOf is left out for All time, so the graph uses every test and Chart.js picks the labels to fit.
 const timeRanges = [
-    { id: 'week', label: 'Week', emptyText: 'week', startOf: (now) => daysBefore(now, 7) },
-    { id: 'month', label: 'Month', emptyText: 'month', startOf: (now) => monthsBefore(now, 1) },
-    { id: 'threeMonths', label: '3 months', emptyText: '3 months', startOf: (now) => monthsBefore(now, 3) },
-    { id: 'year', label: 'Year', emptyText: 'year', startOf: (now) => monthsBefore(now, 12) },
-    { id: 'allTime', label: 'All time' },
+    {
+        id: 'week',
+        label: 'Week',
+        emptyText: 'week',
+        startOf: (now) => subDays(now, 6),
+        axisTime: { unit: 'day' },
+    },
+    {
+        id: 'month',
+        label: 'Month',
+        emptyText: 'month',
+        startOf: (now) => subMonths(now, 1),
+        axisTime: { unit: 'week' },
+    },
+    {
+        id: 'threeMonths',
+        label: '3 months',
+        emptyText: '3 months',
+        startOf: (now) => subMonths(now, 3),
+        axisTime: { unit: 'week' },
+        axisStep: 2,
+    },
+    {
+        id: 'year',
+        label: 'Year',
+        emptyText: 'year',
+        startOf: (now) => subMonths(now, 12),
+        axisTime: { unit: 'month' },
+    },
+    { id: 'allTime', label: 'All time', axisTime: { minUnit: 'day' } },
 ];
 
 const selectedRange = ref(timeRanges[timeRanges.length - 1]);
@@ -39,7 +62,13 @@ const toTime = (date) => new Date(date.replace(' ', 'T')).getTime();
 
 const visibleRange = computed(() => {
     const now = new Date();
-    return selectedRange.value.startOf ? { min: selectedRange.value.startOf(now), max: now.getTime() } : {};
+    if (!selectedRange.value.startOf) {
+        return {};
+    }
+    return {
+        min: startOfDay(selectedRange.value.startOf(now)).getTime(),
+        max: endOfDay(now).getTime(),
+    };
 });
 
 // totalPoints is worked out before this filter, so each dot keeps the student's real running total
@@ -81,10 +110,22 @@ const chartOptions = computed(() => ({
             type: 'time',
             ...visibleRange.value,
             time: {
-                displayFormats: { hour: 'HH:mm', day: 'd MMM', week: 'd MMM', month: 'MMM yyyy', quarter: 'MMM yyyy' },
+                ...selectedRange.value.axisTime,
+                // weeks start on a Monday, as they do on a UK calendar
+                isoWeekday: true,
+                displayFormats: {
+                    day: selectedRange.value.id === 'week' ? 'EEE d' : 'd MMM',
+                    week: 'd MMM',
+                    month: 'MMM',
+                },
             },
             grid: { display: false },
-            ticks: { color: token('--colorTextSecondary'), autoSkipPadding: 16, maxRotation: 0 },
+            ticks: {
+                color: token('--colorTextSecondary'),
+                autoSkipPadding: 16,
+                maxRotation: 0,
+                stepSize: selectedRange.value.axisStep,
+            },
         },
         y: {
             // a shorter period follows the line, otherwise a small rise on a big total would look flat

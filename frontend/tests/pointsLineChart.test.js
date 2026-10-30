@@ -74,15 +74,47 @@ describe('pointsLineChart', () => {
         expect(wrapper.find('button[aria-pressed="true"]').text()).toBe(label);
     });
 
-    it('sets the axis to the whole period and stops forcing it to start at zero', async () => {
+    it('stops forcing the y axis to start at zero on a shorter period', async () => {
         const wrapper = mount(PointsLineChart, { props: { points } });
 
         await selectRange(wrapper, 'Week');
-        const { options } = wrapper.findComponent({ name: 'Line' }).props();
+        const { y } = wrapper.findComponent({ name: 'Line' }).props().options.scales;
 
-        expect(options.scales.x.min).toBe(new Date('2026-10-23T12:00:00').getTime());
-        expect(options.scales.x.max).toBe(new Date('2026-10-30T12:00:00').getTime());
-        expect(options.scales.y.beginAtZero).toBe(false);
+        expect(y.beginAtZero).toBe(false);
+    });
+
+    it.each([
+        ['Week', '2026-10-24', 'day', undefined],
+        ['Month', '2026-09-30', 'week', undefined],
+        ['3 months', '2026-07-30', 'week', 2],
+        ['Year', '2025-10-30', 'month', undefined],
+    ])('sets the x axis to whole days and clean labels for %s', async (label, start, unit, stepSize) => {
+        const wrapper = mount(PointsLineChart, { props: { points } });
+
+        await selectRange(wrapper, label);
+        const { x } = wrapper.findComponent({ name: 'Line' }).props().options.scales;
+
+        expect(x.min).toBe(new Date(`${start}T00:00:00`).getTime());
+        expect(x.max).toBe(new Date('2026-10-30T23:59:59.999').getTime());
+        expect(x.time.unit).toBe(unit);
+        expect(x.ticks.stepSize).toBe(stepSize);
+    });
+
+    it('keeps a month ago in the right month at the end of a long month', async () => {
+        vi.setSystemTime(new Date('2026-10-31T12:00:00'));
+        const wrapper = mount(PointsLineChart, { props: { points } });
+
+        await selectRange(wrapper, 'Month');
+        const { x } = wrapper.findComponent({ name: 'Line' }).props().options.scales;
+
+        expect(x.min).toBe(new Date('2026-09-30T00:00:00').getTime());
+    });
+
+    it('never labels all time in hours', () => {
+        const wrapper = mount(PointsLineChart, { props: { points } });
+        const { x } = wrapper.findComponent({ name: 'Line' }).props().options.scales;
+
+        expect(x.time.minUnit).toBe('day');
     });
 
     it('says so when a period has no tests, and can go back to the graph', async () => {
