@@ -1345,7 +1345,8 @@ main.appMainFullScreen {
     background-color: var(--colorSuccess);
 }
 
-.statusDisabled {
+.statusDisabled,
+.statusArchived {
     background-color: var(--colorDisabled);
     color: var(--colorText);
 }
