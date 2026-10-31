@@ -1359,8 +1359,7 @@ main.appMainFullScreen {
 /* dt-layout-table is the row DataTables puts the table in, it's their name so it can't be camelCase */
 /* stylelint-disable-next-line selector-class-pattern */
 .adminTable .dt-layout-table {
-    overflow-x: auto;
-    overflow-y: hidden;
+    overflow: auto hidden;
 }
 
 /* Responsive layouts */
