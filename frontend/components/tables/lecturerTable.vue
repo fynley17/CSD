@@ -94,6 +94,13 @@ const tableOptions = {
     pageLength: 5,
     lengthChange: false,
     order: [[4, 'desc']],
+    // on phones the table scrolls sideways, so keyboard users need to be able to focus it and use the arrow keys
+    initComplete() {
+        const scroller = this.api().table().container().querySelector('.dt-layout-table');
+        scroller.setAttribute('tabindex', '0');
+        scroller.setAttribute('role', 'region');
+        scroller.setAttribute('aria-label', 'Lecturers table');
+    },
     language: {
         emptyTable: 'No lecturers to show yet',
         zeroRecords: 'No lecturers match your search',

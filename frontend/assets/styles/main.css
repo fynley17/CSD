@@ -1360,6 +1360,7 @@ main.appMainFullScreen {
 /* stylelint-disable-next-line selector-class-pattern */
 .adminTable .dt-layout-table {
     overflow-x: auto;
+    overflow-y: hidden;
 }
 
 /* Responsive layouts */
