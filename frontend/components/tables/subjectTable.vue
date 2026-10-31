@@ -13,7 +13,7 @@
                 <strong>There is a problem:</strong> {{ loadError }}
             </div>
 
-            <div v-else class="table-responsive">
+            <div v-else class="adminTable">
                 <DataTable
                     :columns="columns"
                     :data="subjects"

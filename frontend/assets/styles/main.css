@@ -1351,6 +1351,17 @@ main.appMainFullScreen {
     color: var(--colorText);
 }
 
+/* admin dashboard tables, only the table scrolls sideways, the search box and page buttons stay put */
+.adminTable .row {
+    --bs-gutter-x: 0;
+}
+
+/* dt-layout-table is the row DataTables puts the table in, it's their name so it can't be camelCase */
+/* stylelint-disable-next-line selector-class-pattern */
+.adminTable .dt-layout-table {
+    overflow-x: auto;
+}
+
 /* Responsive layouts */
 @media (max-width: 991.98px) {
     .whyRevisionHubCards {
