@@ -1,7 +1,7 @@
 <!-- Recent lecturers on the admin dashboard, newest login first, set up like the lecturer dashboard table -->
 <template>
     <div class="card border-0 rounded-0 h-100">
-        <div class="card-body d-flex flex-wrap justify-content-between align-items-center gap-2">
+        <div class="card-body flex-grow-0 d-flex flex-wrap justify-content-between align-items-center gap-2">
             <h2 class="h5 fw-bold mb-0">Recent Lecturer Activity</h2>
             <router-link to="/lecturer-management" class="small text-dark">View all lecturers</router-link>
         </div>
@@ -13,7 +13,7 @@
                 <strong>There is a problem:</strong> {{ loadError }}
             </div>
 
-            <div v-else class="table-responsive">
+            <div v-else class="adminTable">
                 <DataTable
                     :columns="columns"
                     :data="lecturers"
@@ -94,6 +94,13 @@ const tableOptions = {
     pageLength: 5,
     lengthChange: false,
     order: [[4, 'desc']],
+    // on phones the table scrolls sideways, so keyboard users need to be able to focus it and use the arrow keys
+    initComplete() {
+        const scroller = this.api().table().container().querySelector('.dt-layout-table');
+        scroller.setAttribute('tabindex', '0');
+        scroller.setAttribute('role', 'region');
+        scroller.setAttribute('aria-label', 'Lecturers table');
+    },
     language: {
         emptyTable: 'No lecturers to show yet',
         zeroRecords: 'No lecturers match your search',

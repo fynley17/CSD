@@ -11,6 +11,7 @@ use App\Controllers\TestController;
 use App\Controllers\VerificationController;
 use App\Controllers\AdministratorController;
 use App\Controllers\QuestionController;
+use App\Controllers\SubjectController;
 
 $router = new Router();
 
@@ -99,5 +100,8 @@ $router->addRoute(
     '/^\\/api\\/admin\\/recent-lecturers$/',
     [new AdministratorController(), 'getRecentLecturers']
 );
+
+// every subject for the admin dashboard table, admins only
+$router->addRoute('GET', '/^\/api\/subjects$/', [new SubjectController(), 'getAllSubjects']);
 
 return $router;
