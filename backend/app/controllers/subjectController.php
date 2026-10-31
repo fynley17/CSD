@@ -6,22 +6,22 @@ use App\Helpers\Authentication;
 use App\Models\Subject;
 
 /**
- * Handles requests for subjects. Only admins can use these.
+ * Handles the subject requests, admins only
  */
 class SubjectController extends Controller
 {
     /**
-     * Loads every subject for the subjects table on the admin dashboard.
+     * Sends every subject to the subjects table on the admin dashboard
      */
     public function getAllSubjects(): void
     {
-        // Only admins can see the subjects list.
+        // 401 if not logged in, 403 if not an admin
         Authentication::requireRole(['admin']);
 
         try {
             $this->jsonResponse(Subject::getAll());
         } catch (\Throwable $e) {
-            // Log the error and send a general message back to the browser.
+            // real error goes in the log, the browser just gets a plain message
             error_log('Loading the subjects failed: ' . $e->getMessage());
             $this->jsonResponse(['error' => 'Unable to load the subjects'], 500);
         }

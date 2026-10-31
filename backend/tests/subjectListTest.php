@@ -5,15 +5,16 @@ use App\Models\Subject;
 use PHPUnit\Framework\TestCase;
 
 /**
- * Tests for Subject::getAll(), which loads the subjects table on the admin dashboard
- * Each test uses its own database in memory, the real database isn't used
+ * Tests for Subject::getAll(), what the admin dashboard subjects table gets
+ * Each test has its own database in memory, the real one is never touched
+ * Laid out Arrange, Act, Assert
  */
 final class SubjectListTest extends TestCase
 {
     private PDO $db;
 
     /**
-     * Create the tables the query uses, with the columns it needs
+     * Empty tables with just the columns the query reads
      */
     protected function setUp(): void
     {
@@ -33,13 +34,13 @@ final class SubjectListTest extends TestCase
 
         $this->db->exec("INSERT INTO Cohorts (cohortID, cohortName) VALUES ('cohort-1', 'Test Cohort')");
 
-        // Point the models at the test database.
+        // swap Model's database connection for the test one
         $dbProperty = new ReflectionProperty(Model::class, 'db');
         $dbProperty->setValue(null, $this->db);
     }
 
     /**
-     * Clear the test database connection after each test
+     * Clears the test connection after each test
      */
     protected function tearDown(): void
     {
@@ -48,7 +49,7 @@ final class SubjectListTest extends TestCase
     }
 
     /**
-     * Normal: a subject comes back with its cohort, test count, lecturer and status
+     * A subject comes back with its cohort, test count, lecturer and status (normal)
      */
     public function testReturnsTheSubjectWithItsCohortCountAndLecturer(): void
     {
@@ -75,7 +76,7 @@ final class SubjectListTest extends TestCase
     }
 
     /**
-     * Boundary: a subject with no tests has a test count of 0
+     * New subject with no tests shows 0, not null (boundary)
      */
     public function testCountsZeroForASubjectWithNoTests(): void
     {
@@ -90,7 +91,7 @@ final class SubjectListTest extends TestCase
     }
 
     /**
-     * Boundary: a subject with two lecturers is one row, with both names sorted by surname
+     * Two lecturers on one subject is still one row, names A to Z by surname (boundary)
      */
     public function testListsEveryLecturerOnASubjectInOneRow(): void
     {
@@ -108,7 +109,7 @@ final class SubjectListTest extends TestCase
     }
 
     /**
-     * Boundary: a subject with no lecturer has null for lecturerNames
+     * No lecturer assigned gives null, so the table can say Not assigned (boundary)
      */
     public function testHasNoLecturerNamesWhenNobodyIsAssigned(): void
     {
@@ -123,7 +124,7 @@ final class SubjectListTest extends TestCase
     }
 
     /**
-     * Boundary: archived subjects come after active ones, and each group is sorted by name
+     * Archived subjects go after the active ones, each group A to Z (boundary)
      */
     public function testListsActiveSubjectsBeforeArchivedOnes(): void
     {
@@ -144,7 +145,7 @@ final class SubjectListTest extends TestCase
     }
 
     /**
-     * Error: if the query fails, getAll() throws so the controller can send back an error
+     * Query fails (Cohorts table gone) so it throws, then the controller sends a 500 (error)
      */
     public function testThrowsWhenTheDatabaseCannotBeRead(): void
     {
@@ -157,11 +158,11 @@ final class SubjectListTest extends TestCase
         Subject::getAll();
 
         // Assert
-        // expectException() fails the test if nothing is thrown
+        // expectException() above fails the test if nothing's thrown
     }
 
     /**
-     * Add a subject to Test Cohort with the given number of tests
+     * Adds a subject to Test Cohort with however many tests
      */
     private function addSubject(string $subjectID, string $subjectName, int $isActive, int $tests): void
     {
@@ -177,7 +178,7 @@ final class SubjectListTest extends TestCase
     }
 
     /**
-     * Add a lecturer and link them to the given subjects
+     * Adds a lecturer and links them to their subjects
      *
      * @param array<int, string> $subjectIDs
      */

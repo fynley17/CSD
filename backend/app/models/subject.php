@@ -3,22 +3,21 @@
 namespace App\Models;
 
 /**
- * A subject a cohort studies, for example Databases. Tests and questions belong to a subject.
- * A subject can have multiple lecturers, and each lecturer can be assigned to multiple subjects.
- * Subjects are archived (isActive = 0) instead of deleted, so old results still have a subject.
+ * A subject a cohort studies, e.g. Databases. Tests and questions belong to a subject
+ * Subjects only get archived (isActive = 0), never deleted, old results keep their subject
  */
 class Subject extends Model
 {
     /**
-     * Returns every subject with its cohort, test count and lecturers, for the admin dashboard.
-     * Active subjects come first, then archived ones, each sorted by name.
-     * lecturerNames is null if no lecturer is assigned to the subject.
+     * Every subject with its cohort, test count and lecturers, for the admin dashboard table
+     * Active ones first, then archived, both A to Z
+     * lecturerNames is null if nobody teaches it
      *
      * @return array<int, array<string, mixed>>
      */
     public static function getAll(): array
     {
-        // Count each subject's tests.
+        // test count per subject
         $sql = "
             SELECT Subjects.subjectID, Subjects.subjectName, Cohorts.cohortName, Subjects.isActive,
                 (SELECT COUNT(*) FROM Tests WHERE Tests.subjectID = Subjects.subjectID) AS testCount
@@ -47,8 +46,8 @@ class Subject extends Model
     }
 
     /**
-     * Returns the lecturers for each subject as one string, for example "Alex Adams, Zoe Younger".
-     * This is a separate query so a subject with two lecturers is still one row in the table.
+     * Lecturers on each subject joined into one string, i.e. "Alex Adams, Zoe Younger"
+     * Separate query so a subject with 2 lecturers still shows as one row in the table
      *
      * @return array<string, string> subjectID => names
      */
