@@ -1,7 +1,10 @@
 <!-- Subjects table on the admin dashboard, works the same as the lecturer table -->
 <template>
     <div class="card border-0 rounded-0 h-100">
-        <div class="card-body flex-grow-0 d-flex flex-wrap justify-content-between align-items-center gap-2">
+        <div
+            v-if="!manage"
+            class="card-body flex-grow-0 d-flex flex-wrap justify-content-between align-items-center gap-2"
+        >
             <h2 class="h5 fw-bold mb-0">Subjects</h2>
             <router-link to="/subject-management" class="small text-dark">View all subjects</router-link>
         </div>
@@ -15,8 +18,8 @@
 
             <div v-else class="adminTable">
                 <DataTable
-                    :columns="columns"
-                    :data="subjects"
+                    :columns="tableColumns"
+                    :data="shownSubjects"
                     :options="tableOptions"
                     class="table table-sm table-striped table-hover align-middle mb-0"
                 >
@@ -29,6 +32,26 @@
                         <span class="statusPill" :class="props.cellData ? 'statusActive' : 'statusArchived'">
                             {{ props.cellData ? 'Active' : 'Archived' }}
                         </span>
+                    </template>
+
+                    <!-- aria-label has the subject name so a screen reader knows which row its for -->
+                    <template #actions="props">
+                        <button
+                            type="button"
+                            class="btn btn-sm btn-outline-primary me-1"
+                            :aria-label="'Edit ' + props.rowData.subjectName"
+                            @click="$emit('edit', props.rowData)"
+                        >
+                            Edit
+                        </button>
+                        <button
+                            type="button"
+                            class="btn btn-sm btn-outline-secondary"
+                            :aria-label="(props.rowData.isActive ? 'Archive ' : 'Restore ') + props.rowData.subjectName"
+                            @click="$emit('toggle', props.rowData)"
+                        >
+                            {{ props.rowData.isActive ? 'Archive' : 'Restore' }}
+                        </button>
                     </template>
                 </DataTable>
             </div>
@@ -48,7 +71,6 @@ DataTable.use(DataTablesCore);
 // defaultContent shows when a subject has no lecturer
 const columns = [
     { data: 'subjectName', title: 'Subject', render: DataTablesCore.render.text() },
-    // Cohort and Tests hidden under 576px so it fits on a phone
     { data: 'cohortName', title: 'Cohort', render: DataTablesCore.render.text() },
     { data: 'testCount', title: 'Tests' },
     {
@@ -59,6 +81,9 @@ const columns = [
     },
     { data: 'isActive', title: 'Status', render: '#status' },
 ];
+
+// buttons for this one are down in the #actions slot
+const actionColumn = { data: null, title: 'Actions', orderable: false, render: '#actions' };
 
 // 5 a page like the lecturer table. Empty order keeps PHP's order (active first)
 const tableOptions = {
@@ -86,30 +111,74 @@ export default {
     components: {
         DataTable,
     },
+    props: {
+        // manage page turns this on, gets the Actions column and loses the dashboard heading
+        manage: {
+            type: Boolean,
+            default: false,
+        },
+        // all / active / archived from the dropdown
+        statusFilter: {
+            type: String,
+            default: 'all',
+        },
+    },
+    emits: ['edit', 'toggle'],
 
     data() {
         return {
             subjects: [],
             isLoading: true,
             loadError: '',
-            columns,
             tableOptions,
         };
     },
 
+    computed: {
+        /**
+         * Only the manage page gets the Actions column
+         */
+        tableColumns() {
+            return this.manage ? columns.concat(actionColumn) : columns;
+        },
+
+        /**
+         * Status dropdown filter. Search box is done by the table itself
+         */
+        shownSubjects() {
+            if (this.statusFilter === 'active') {
+                return this.subjects.filter((subject) => subject.isActive);
+            }
+            if (this.statusFilter === 'archived') {
+                return this.subjects.filter((subject) => !subject.isActive);
+            }
+            return this.subjects;
+        },
+    },
+
     /**
-     * Loads the subjects when the dashboard opens
+     * Load them as soon as the table shows up
      */
-    async mounted() {
-        try {
-            this.subjects = await getSubjects();
-        } catch (error) {
-            // PHP's message if it sent one, otherwise a plain one
-            this.loadError = error.response?.data?.error || 'Unable to load the subjects';
-        } finally {
-            // hides Loading whether it worked or not
-            this.isLoading = false;
-        }
+    mounted() {
+        this.loadSubjects();
+    },
+
+    methods: {
+        /**
+         * Asks php for the subjects, page calls it again after a save or archive so the rows are fresh
+         */
+        async loadSubjects() {
+            try {
+                this.subjects = await getSubjects();
+                this.loadError = '';
+            } catch (error) {
+                // PHP's message if it sent one, otherwise a plain one
+                this.loadError = error.response?.data?.error || 'Unable to load the subjects';
+            } finally {
+                // hides Loading whether it worked or not
+                this.isLoading = false;
+            }
+        },
     },
 };
 </script>
