@@ -2,12 +2,14 @@
 <script>
 import SubjectForm from '../components/forms/subjectForm.vue';
 import SubjectTable from '../components/tables/subjectTable.vue';
+import PopupDialog from '../components/common/popupDialog.vue';
 import { setSubjectActive } from '../services/subjectService';
 
 export default {
     components: {
         SubjectForm,
         SubjectTable,
+        PopupDialog,
     },
 
     data() {
@@ -21,6 +23,8 @@ export default {
             isUndoing: false,
             // timer that hides the undo button after a while
             undoTimer: null,
+            // the row the confirm box is asking about
+            confirmSubject: null,
         };
     },
 
@@ -53,10 +57,17 @@ export default {
         },
 
         /**
-         * Archive / Restore button, flips whatever it is now
+         * Archive / Restore button, opens the confirm box first
          */
         toggleSubject(subject) {
-            this.setStatus(subject, !subject.isActive, true);
+            this.confirmSubject = subject;
+            this.$refs.confirmDialog.open();
+        },
+
+        // the Archive / Restore button inside the confirm box
+        confirmChange() {
+            this.$refs.confirmDialog.close();
+            this.setStatus(this.confirmSubject, !this.confirmSubject.isActive, true);
         },
 
         /**
@@ -141,6 +152,23 @@ export default {
 
         <!-- manage switches on the Actions column, statusFilter is the dropdown above -->
         <SubjectTable ref="table" manage :statusFilter="statusFilter" @edit="editSubject" @toggle="toggleSubject" />
+        <!-- confirm box for Archive / Restore, flowchart has a Confirm change? step -->
+        <PopupDialog ref="confirmDialog" :title="confirmSubject?.isActive ? 'Archive subject' : 'Restore subject'">
+            <p v-if="confirmSubject?.isActive" class="mb-0">
+                Archive "{{ confirmSubject.subjectName }}"? It is hidden from new tests and past results are kept
+            </p>
+            <p v-else-if="confirmSubject" class="mb-0">
+                Restore "{{ confirmSubject.subjectName }}"? It can be used for new tests again
+            </p>
+            <template #buttons>
+                <button type="button" class="btn btn-outline-primary flex-fill" @click="$refs.confirmDialog.close()">
+                    Cancel
+                </button>
+                <button type="button" class="btn btn-primary flex-fill" @click="confirmChange">
+                    {{ confirmSubject?.isActive ? 'Archive' : 'Restore' }}
+                </button>
+            </template>
+        </PopupDialog>
         <SubjectForm ref="form" @saved="saved" />
     </section>
 </template>
