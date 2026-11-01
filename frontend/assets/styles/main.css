@@ -1529,7 +1529,8 @@ main.appMainFullScreen {
     --bs-btn-hover-border-color: var(--colorPrimary);
     --bs-btn-active-bg: var(--colorPrimary);
     --bs-btn-active-border-color: var(--colorPrimary);
-    /* disabled = house style grey, not bootstrap's see-through version */
+
+    /* disabled = house style grey, not bootstrap's see through version */
     --bs-btn-disabled-bg: var(--colorDisabled);
     --bs-btn-disabled-border-color: var(--colorDisabled);
     --bs-btn-disabled-color: var(--colorTextSecondary);
