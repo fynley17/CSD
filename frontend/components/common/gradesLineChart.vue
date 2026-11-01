@@ -8,8 +8,8 @@ import { Line } from 'vue-chartjs';
 Chart.register(LinearScale, LineElement, PointElement, TimeScale, Tooltip);
 
 const props = defineProps({
-    // oldest first, each one is { date: 'YYYY-MM-DD HH:MM:SS', testName, totalPoints }
-    points: {
+    // oldest first, each one is { date: 'YYYY-MM-DD HH:MM:SS', testName, percentage }
+    grades: {
         type: Array,
         required: true,
     },
@@ -71,21 +71,22 @@ const visibleRange = computed(() => {
     };
 });
 
-// totalPoints is worked out before this filter, so each dot keeps the student's real running total
-const visiblePoints = computed(() => {
+const visibleGrades = computed(() => {
     const { min } = visibleRange.value;
-    return props.points.filter((point) => min === undefined || toTime(point.date) >= min);
+    return props.grades.filter((grade) => min === undefined || toTime(grade.date) >= min);
 });
 
 const chartData = computed(() => ({
     datasets: [
         {
-            data: visiblePoints.value.map((point) => ({ x: toTime(point.date), y: point.totalPoints })),
+            data: visibleGrades.value.map((grade) => ({ x: toTime(grade.date), y: grade.percentage })),
             borderColor: token('--colorPrimary'),
             backgroundColor: token('--colorPrimary'),
             borderWidth: 2,
             pointRadius: 4,
             pointHoverRadius: 6,
+            // a dot at 0% or 100% sits on the edge of the graph, so it would otherwise be cut in half
+            clip: false,
         },
     ],
 }));
@@ -99,9 +100,9 @@ const chartOptions = computed(() => ({
         tooltip: {
             displayColors: false,
             callbacks: {
-                title: (items) => visiblePoints.value[items[0].dataIndex].testName,
-                label: (item) => `${item.parsed.y} points`,
-                afterLabel: (item) => dateFormat.format(toTime(visiblePoints.value[item.dataIndex].date)),
+                title: (items) => visibleGrades.value[items[0].dataIndex].testName,
+                label: (item) => `${item.parsed.y}%`,
+                afterLabel: (item) => dateFormat.format(toTime(visibleGrades.value[item.dataIndex].date)),
             },
         },
     },
@@ -128,20 +129,25 @@ const chartOptions = computed(() => ({
             },
         },
         y: {
-            // a shorter period follows the line, otherwise a small rise on a big total would look flat
-            beginAtZero: !selectedRange.value.startOf,
+            // always the full scale, so a grade sits at the same height on every time period
+            min: 0,
+            max: 100,
             grid: { color: token('--colorDisabled') },
-            ticks: { color: token('--colorTextSecondary') },
+            ticks: {
+                color: token('--colorTextSecondary'),
+                stepSize: 20,
+                callback: (value) => `${value}%`,
+            },
         },
     },
 }));
 
 const chartSummary = computed(() => {
-    const latest = visiblePoints.value[visiblePoints.value.length - 1];
-    const testCount = visiblePoints.value.length;
+    const latest = visibleGrades.value[visibleGrades.value.length - 1];
+    const testCount = visibleGrades.value.length;
     return (
-        `Line chart of total points over ${testCount} ${testCount === 1 ? 'test' : 'tests'}, ` +
-        `reaching ${latest.totalPoints} points.`
+        `Line chart of grades over ${testCount} ${testCount === 1 ? 'test' : 'tests'}, ` +
+        `most recently ${latest.percentage}%.`
     );
 });
 </script>
@@ -151,11 +157,11 @@ const chartSummary = computed(() => {
         <div class="card-body">
             <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3">
                 <div>
-                    <h2 class="mb-1">Points over time</h2>
-                    <p class="hintText mb-0">Your total points after each completed test.</p>
+                    <h2 class="mb-1">Grades over time</h2>
+                    <p class="hintText mb-0">Your grade for each completed test.</p>
                 </div>
 
-                <div v-if="points.length > 0" class="btn-group btn-group-sm" role="group" aria-label="Time period">
+                <div v-if="grades.length > 0" class="btn-group btn-group-sm" role="group" aria-label="Time period">
                     <button
                         v-for="range in timeRanges"
                         :key="range.id"
@@ -170,13 +176,13 @@ const chartSummary = computed(() => {
                 </div>
             </div>
 
-            <p v-if="points.length === 0" class="hintText mb-0">Complete a test to see your points here.</p>
-            <p v-else-if="visiblePoints.length === 0" class="hintText mb-0" role="status">
+            <p v-if="grades.length === 0" class="hintText mb-0">Complete a test to see your grades here.</p>
+            <p v-else-if="visibleGrades.length === 0" class="hintText mb-0" role="status">
                 No tests in the last {{ selectedRange.emptyText }}.
             </p>
 
             <!-- Chart.js sizes itself to this box, so the height is set here -->
-            <div v-else class="pointsChart">
+            <div v-else class="gradesChart">
                 <Line :data="chartData" :options="chartOptions" :aria-label="chartSummary" />
             </div>
         </div>
@@ -184,7 +190,7 @@ const chartSummary = computed(() => {
 </template>
 
 <style scoped>
-.pointsChart {
+.gradesChart {
     position: relative;
     height: 280px;
 }

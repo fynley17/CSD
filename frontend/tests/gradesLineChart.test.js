@@ -2,19 +2,18 @@
 
 import { mount } from '@vue/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import PointsLineChart from '../components/common/pointsLineChart.vue';
+import GradesLineChart from '../components/common/gradesLineChart.vue';
 
 // jsdom has no canvas to draw on, so these check what's handed to the chart
 vi.mock('vue-chartjs', () => ({
     Line: { name: 'Line', props: ['data', 'options'], template: '<canvas />' },
 }));
 
-// the totals run on from before each time period, so filtering must not restart them
-const points = [
-    { date: '2025-06-01 09:00:00', testName: 'Old test', totalPoints: 700 },
-    { date: '2026-08-20 09:00:00', testName: 'Summer test', totalPoints: 730 },
-    { date: '2026-10-10 09:00:00', testName: 'Month test', totalPoints: 760 },
-    { date: '2026-10-28 09:00:00', testName: 'Week test', totalPoints: 800 },
+const grades = [
+    { date: '2025-06-01 09:00:00', testName: 'Old test', percentage: 40 },
+    { date: '2026-08-20 09:00:00', testName: 'Summer test', percentage: 65.5 },
+    { date: '2026-10-10 09:00:00', testName: 'Month test', percentage: 50 },
+    { date: '2026-10-28 09:00:00', testName: 'Week test', percentage: 90 },
 ];
 
 function chartValues(wrapper) {
@@ -31,7 +30,7 @@ function selectRange(wrapper, label) {
         .trigger('click');
 }
 
-describe('pointsLineChart', () => {
+describe('gradesLineChart', () => {
     beforeEach(() => {
         vi.useFakeTimers({ toFake: ['Date'] });
         vi.setSystemTime(new Date('2026-10-30T12:00:00'));
@@ -42,7 +41,7 @@ describe('pointsLineChart', () => {
     });
 
     it('shows a message and no time buttons when there are no tests', () => {
-        const wrapper = mount(PointsLineChart, { props: { points: [] } });
+        const wrapper = mount(GradesLineChart, { props: { grades: [] } });
 
         expect(wrapper.findComponent({ name: 'Line' }).exists()).toBe(false);
         expect(wrapper.find('button').exists()).toBe(false);
@@ -50,23 +49,22 @@ describe('pointsLineChart', () => {
     });
 
     it('starts on all time with every test', () => {
-        const wrapper = mount(PointsLineChart, { props: { points } });
+        const wrapper = mount(GradesLineChart, { props: { grades } });
         const { options } = wrapper.findComponent({ name: 'Line' }).props();
 
-        expect(chartValues(wrapper)).toEqual([700, 730, 760, 800]);
+        expect(chartValues(wrapper)).toEqual([40, 65.5, 50, 90]);
         expect(options.scales.x.min).toBeUndefined();
-        expect(options.scales.y.beginAtZero).toBe(true);
         expect(wrapper.find('button[aria-pressed="true"]').text()).toBe('All time');
     });
 
     it.each([
-        ['Week', [800]],
-        ['Month', [760, 800]],
-        ['3 months', [730, 760, 800]],
-        ['Year', [730, 760, 800]],
-        ['All time', [700, 730, 760, 800]],
-    ])('%s only shows its tests and keeps their running totals', async (label, expected) => {
-        const wrapper = mount(PointsLineChart, { props: { points } });
+        ['Week', [90]],
+        ['Month', [50, 90]],
+        ['3 months', [65.5, 50, 90]],
+        ['Year', [65.5, 50, 90]],
+        ['All time', [40, 65.5, 50, 90]],
+    ])('%s only shows its tests', async (label, expected) => {
+        const wrapper = mount(GradesLineChart, { props: { grades } });
 
         await selectRange(wrapper, label);
 
@@ -74,13 +72,15 @@ describe('pointsLineChart', () => {
         expect(wrapper.find('button[aria-pressed="true"]').text()).toBe(label);
     });
 
-    it('stops forcing the y axis to start at zero on a shorter period', async () => {
-        const wrapper = mount(PointsLineChart, { props: { points } });
+    it.each(['Week', 'All time'])('keeps the y axis at 0 to 100%% on %s', async (label) => {
+        const wrapper = mount(GradesLineChart, { props: { grades } });
 
-        await selectRange(wrapper, 'Week');
+        await selectRange(wrapper, label);
         const { y } = wrapper.findComponent({ name: 'Line' }).props().options.scales;
 
-        expect(y.beginAtZero).toBe(false);
+        expect(y.min).toBe(0);
+        expect(y.max).toBe(100);
+        expect(y.ticks.callback(80)).toBe('80%');
     });
 
     it.each([
@@ -89,7 +89,7 @@ describe('pointsLineChart', () => {
         ['3 months', '2026-07-30', 'week', 2],
         ['Year', '2025-10-30', 'month', undefined],
     ])('sets the x axis to whole days and clean labels for %s', async (label, start, unit, stepSize) => {
-        const wrapper = mount(PointsLineChart, { props: { points } });
+        const wrapper = mount(GradesLineChart, { props: { grades } });
 
         await selectRange(wrapper, label);
         const { x } = wrapper.findComponent({ name: 'Line' }).props().options.scales;
@@ -102,7 +102,7 @@ describe('pointsLineChart', () => {
 
     it('keeps a month ago in the right month at the end of a long month', async () => {
         vi.setSystemTime(new Date('2026-10-31T12:00:00'));
-        const wrapper = mount(PointsLineChart, { props: { points } });
+        const wrapper = mount(GradesLineChart, { props: { grades } });
 
         await selectRange(wrapper, 'Month');
         const { x } = wrapper.findComponent({ name: 'Line' }).props().options.scales;
@@ -111,31 +111,31 @@ describe('pointsLineChart', () => {
     });
 
     it('never labels all time in hours', () => {
-        const wrapper = mount(PointsLineChart, { props: { points } });
+        const wrapper = mount(GradesLineChart, { props: { grades } });
         const { x } = wrapper.findComponent({ name: 'Line' }).props().options.scales;
 
         expect(x.time.minUnit).toBe('day');
     });
 
     it('says so when a period has no tests, and can go back to the graph', async () => {
-        const wrapper = mount(PointsLineChart, { props: { points: [points[0]] } });
+        const wrapper = mount(GradesLineChart, { props: { grades: [grades[0]] } });
 
         await selectRange(wrapper, 'Week');
         expect(wrapper.findComponent({ name: 'Line' }).exists()).toBe(false);
         expect(wrapper.text()).toContain('No tests in the last week.');
 
         await selectRange(wrapper, 'All time');
-        expect(chartValues(wrapper)).toEqual([700]);
+        expect(chartValues(wrapper)).toEqual([40]);
     });
 
-    it('shows the test name, points and date in the tooltip for the selected period', async () => {
-        const wrapper = mount(PointsLineChart, { props: { points } });
+    it('shows the test name, grade and date in the tooltip for the selected period', async () => {
+        const wrapper = mount(GradesLineChart, { props: { grades } });
 
         await selectRange(wrapper, 'Month');
         const { callbacks } = wrapper.findComponent({ name: 'Line' }).props().options.plugins.tooltip;
 
         expect(callbacks.title([{ dataIndex: 1 }])).toBe('Week test');
-        expect(callbacks.label({ parsed: { y: 800 } })).toBe('800 points');
+        expect(callbacks.label({ parsed: { y: 90 } })).toBe('90%');
         expect(callbacks.afterLabel({ dataIndex: 1 })).toBe('28 Oct 2026');
     });
 });

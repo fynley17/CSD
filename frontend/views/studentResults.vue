@@ -1,7 +1,7 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue';
 import CompletedTestList from '../components/common/completedTestList.vue';
-import PointsLineChart from '../components/common/pointsLineChart.vue';
+import GradesLineChart from '../components/common/gradesLineChart.vue';
 import { getCompletedTests, getResultsSummary } from '../services/resultService';
 
 const resultsError = ref('');
@@ -44,15 +44,14 @@ const completedTests = ref([]);
 const isLoadingCompleted = ref(true);
 const completedLoadError = ref('');
 
-// The list is newest first, the graph adds the points up from the oldest test.
-const pointsHistory = computed(() => {
-    let totalPoints = 0;
-
-    return [...completedTests.value].reverse().map((result) => {
-        totalPoints += result.pointsEarned;
-        return { date: result.completedDate, testName: result.testName, totalPoints };
-    });
-});
+// The list is newest first, the graph runs from the oldest test.
+const gradeHistory = computed(() =>
+    [...completedTests.value].reverse().map((result) => ({
+        date: result.completedDate,
+        testName: result.testName,
+        percentage: result.percentageCorrect,
+    })),
+);
 
 async function loadCompletedTests() {
     try {
@@ -111,17 +110,17 @@ onMounted(() => Promise.all([loadSummary(), loadCompletedTests()]));
         </div>
     </section>
 
-    <!-- points over time graph -->
-    <section v-if="!isLoadingCompleted && !completedLoadError" class="container pb-4" aria-label="Points over time">
-        <PointsLineChart :points="pointsHistory" />
+    <!-- grades over time graph -->
+    <section v-if="!isLoadingCompleted && !completedLoadError" class="container pb-4" aria-label="Grades over time">
+        <GradesLineChart :grades="gradeHistory" />
     </section>
 
     <section class="container pb-4" aria-labelledby="completedTestsHeading">
         <h2 id="completedTestsHeading">Completed tests</h2>
 
-        <p v-if="isLoadingCompleted" class="text-secondary" role="status">Loading completed tests...</p>
+        <p v-if="isLoadingCompleted" class="hintText" role="status">Loading completed tests...</p>
         <p v-else-if="completedLoadError" class="alert alert-danger" role="alert">{{ completedLoadError }}</p>
-        <p v-else-if="completedTests.length === 0" class="text-secondary">You have not completed any tests yet.</p>
+        <p v-else-if="completedTests.length === 0" class="hintText">You have not completed any tests yet.</p>
 
         <CompletedTestList v-else :tests="completedTests" />
     </section>

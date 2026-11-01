@@ -67,21 +67,21 @@ describe('studentResults', () => {
         expect(wrapper.text()).toContain('Student: Mary-Jane McDonald Smith-Jones');
     });
 
-    it('adds the points up from the oldest test for the graph', async () => {
-        const completed = (completedID, completedDate, pointsEarned) => ({
+    it('graphs the grade for each test from the oldest', async () => {
+        const completed = (completedID, completedDate, percentageCorrect) => ({
             completedID,
             testName: `Test ${completedID}`,
             testDescription: 'Review',
             subjectName: 'Maths',
             completedDate,
             questionCount: 10,
-            pointsEarned,
-            percentageCorrect: 50,
+            pointsEarned: 30,
+            percentageCorrect,
         });
         // the API sends the newest first
         getCompletedTests.mockResolvedValue([
-            completed(3, '2026-10-20 09:00:00', 30),
-            completed(2, '2026-10-10 09:00:00', -10),
+            completed(3, '2026-10-20 09:00:00', 80),
+            completed(2, '2026-10-10 09:00:00', 45.5),
             completed(1, '2026-10-01 09:00:00', 60),
         ]);
 
@@ -89,7 +89,7 @@ describe('studentResults', () => {
         await flushPromises();
         const { data } = wrapper.findComponent({ name: 'Line' }).props();
 
-        expect(data.datasets[0].data.map((point) => point.y)).toEqual([60, 50, 80]);
+        expect(data.datasets[0].data.map((point) => point.y)).toEqual([60, 45.5, 80]);
     });
 
     it('pages the completed tests but still graphs all of them', async () => {
@@ -118,7 +118,7 @@ describe('studentResults', () => {
         const wrapper = mount(StudentResults);
         await flushPromises();
 
-        expect(wrapper.text()).not.toContain('Points over time');
+        expect(wrapper.text()).not.toContain('Grades over time');
     });
 
     it('shows N/A for the average before any test is completed', async () => {
