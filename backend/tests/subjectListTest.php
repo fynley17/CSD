@@ -64,9 +64,12 @@ final class SubjectListTest extends TestCase
         $this->assertSame(
             [
                 [
+                    'subjectID' => 'subject-1',
                     'subjectName' => 'Test Databases',
+                    'cohortID' => 'cohort-1',
                     'cohortName' => 'Test Cohort',
                     'testCount' => 2,
+                    'lecturerIDs' => ['lecturer-1'],
                     'lecturerNames' => 'Sample Lecturer',
                     'isActive' => true,
                 ],
