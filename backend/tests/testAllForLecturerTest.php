@@ -22,12 +22,14 @@ final class TestAllForLecturerTest extends TestCase
             )'
         );
 
-        // Create the minimum Tests table structure required by the query.
+        // Create the Tests table with all fields used by the lecturer query.
         $this->db->exec(
             'CREATE TABLE Tests (
                 testID TEXT PRIMARY KEY,
                 testName TEXT NOT NULL,
                 subjectID TEXT NOT NULL,
+                testDescription TEXT NULL,
+                dueDate TEXT NULL,
                 questionCount INTEGER NOT NULL DEFAULT 10,
                 timeLimit INTEGER NULL
             )'
@@ -64,7 +66,13 @@ final class TestAllForLecturerTest extends TestCase
 
         // Arrange: create one test whose subject has questions and one whose subject has none.
         $this->db->exec(
-            "INSERT INTO Tests (testID, testName, subjectID, questionCount, timeLimit) VALUES
+            "INSERT INTO Tests (
+                testID,
+                testName,
+                subjectID,
+                questionCount,
+                timeLimit
+            ) VALUES
                 ('test-1', 'Algebra Test', 'subject-1', 2, 30),
                 ('test-2', 'Science Test', 'subject-2', 5, NULL)"
         );
