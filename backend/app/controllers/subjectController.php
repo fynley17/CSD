@@ -28,6 +28,21 @@ class SubjectController extends Controller
     }
 
     /**
+     * Lecturers for the pick list on the subject form
+     */
+    public function getLecturerOptions(): void
+    {
+        Authentication::requireRole(['admin']);
+
+        try {
+            $this->jsonResponse(Subject::getLecturerOptions());
+        } catch (\Throwable $e) {
+            error_log('Loading the lecturer options failed: ' . $e->getMessage());
+            $this->jsonResponse(['error' => 'Unable to load the lecturers'], 500);
+        }
+    }
+
+    /**
      * Adds a new subject, it starts off active
      */
     public function createSubject(): void

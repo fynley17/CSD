@@ -104,6 +104,8 @@ $router->addRoute(
 // every subject for the admin dashboard table, admins only
 $router->addRoute('GET', '/^\/api\/subjects$/', [new SubjectController(), 'getAllSubjects']);
 
+// lecturers for the pick list on the subject form, admins only
+$router->addRoute('GET', '/^\/api\/subjects\/lecturers$/', [new SubjectController(), 'getLecturerOptions']);
 
 // add a subject, admins only
 $router->addRoute('POST', '/^\/api\/subjects$/', [new SubjectController(), 'createSubject']);

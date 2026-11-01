@@ -26,6 +26,9 @@ final class SubjectSaveTest extends TestCase
             . 'cohortID TEXT NOT NULL, isActive INTEGER NOT NULL)'
         );
         $this->db->exec('CREATE TABLE LecturerSubjects (lecturerID TEXT NOT NULL, subjectID TEXT NOT NULL)');
+        $this->db->exec(
+            'CREATE TABLE Lecturer (userID TEXT PRIMARY KEY, firstName TEXT NOT NULL, lastName TEXT NOT NULL)'
+        );
 
         // swap Model's database connection for the test one
         $dbProperty = new ReflectionProperty(Model::class, 'db');
@@ -106,5 +109,27 @@ final class SubjectSaveTest extends TestCase
 
         $this->assertTrue(Subject::setActive('subject-1', true));
         $this->assertSame(1, (int) $this->db->query('SELECT isActive FROM Subjects')->fetchColumn());
+    }
+
+    /**
+     * The form's pick list has every lecturer, surname A to Z (normal)
+     */
+    public function testListsTheLecturersForTheForm(): void
+    {
+        // Arrange
+        $this->db->exec("INSERT INTO Lecturer VALUES ('lecturer-1', 'Zoe', 'Younger')");
+        $this->db->exec("INSERT INTO Lecturer VALUES ('lecturer-2', 'Alex', 'Adams')");
+
+        // Act
+        $options = Subject::getLecturerOptions();
+
+        // Assert
+        $this->assertSame(
+            [
+                ['lecturerID' => 'lecturer-2', 'name' => 'Alex Adams'],
+                ['lecturerID' => 'lecturer-1', 'name' => 'Zoe Younger'],
+            ],
+            $options
+        );
     }
 }

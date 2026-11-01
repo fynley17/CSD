@@ -52,6 +52,24 @@ class Subject extends Model
     }
 
     /**
+     * Lecturers for the pick list on the subject form
+     */
+    public static function getLecturerOptions(): array
+    {
+        $stmt = self::getDB()->prepare('SELECT userID, firstName, lastName FROM Lecturer ORDER BY lastName, firstName');
+        $stmt->execute();
+
+        $options = [];
+        foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+            $options[] = [
+                'lecturerID' => $row['userID'],
+                'name' => $row['firstName'] . ' ' . $row['lastName'],
+            ];
+        }
+        return $options;
+    }
+
+    /**
      * Lecturers on each subject joined into one string, i.e. "Alex Adams, Zoe Younger"
      * Separate query so a subject with 2 lecturers still shows as one row in the table
      * The IDs go with the names so the edit form can tick the right lecturers
