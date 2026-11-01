@@ -17,6 +17,8 @@ export default {
             errorMessage: '',
             // the row that was just archived or restored, so Undo knows what to put back
             undoSubject: null,
+            // true while undo is waiting on php, shows the spinner
+            isUndoing: false,
         };
     },
 
@@ -51,10 +53,12 @@ export default {
         },
 
         /**
-         * Undo in the green box, puts it back how the row was before
+         * Undo in the green box. Button greys out with a spinner till php answers
          */
-        undo() {
-            this.setStatus(this.undoSubject, this.undoSubject.isActive, false);
+        async undo() {
+            this.isUndoing = true;
+            await this.setStatus(this.undoSubject, this.undoSubject.isActive, false);
+            this.isUndoing = false;
         },
 
         /**
@@ -62,19 +66,17 @@ export default {
          * canUndo is false when it was an undo, otherwise you could undo the undo forever
          */
         async setStatus(subject, makeActive, canUndo) {
-            // clear the old boxes first or the last message hangs around
-            this.message = '';
             this.errorMessage = '';
-            this.undoSubject = null;
 
             try {
                 await setSubjectActive(subject.subjectID, makeActive);
                 this.message = makeActive ? 'Subject restored' : 'Subject archived';
-                if (canUndo) {
-                    this.undoSubject = subject;
-                }
+                this.undoSubject = canUndo ? subject : null;
                 this.$refs.table.loadSubjects();
             } catch (error) {
+                // green box goes so it doesnt look like it worked
+                this.message = '';
+                this.undoSubject = null;
                 this.errorMessage = error.response?.data?.error || 'Unable to update the subject';
             }
         },
@@ -98,10 +100,12 @@ export default {
                 v-if="undoSubject"
                 type="button"
                 class="btn btn-sm btn-outline-primary"
-                :aria-label="'Undo for ' + undoSubject.subjectName"
+                :aria-label="isUndoing ? 'Undoing' : 'Undo for ' + undoSubject.subjectName"
+                :disabled="isUndoing"
                 @click="undo"
             >
-                Undo
+                <span v-if="isUndoing" class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>
+                {{ isUndoing ? 'Undoing' : 'Undo' }}
             </button>
         </div>
         <div v-if="errorMessage" class="alert alert-danger" role="alert">
