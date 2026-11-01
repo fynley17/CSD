@@ -19,18 +19,18 @@ class TestController extends Controller
         $userID = $this->requireActiveStudent();
 
         try {
-            // Delegate the actual filtering to the model.
             $this->jsonResponse(Test::getAvailableForStudents($userID));
         } catch (\Throwable $e) {
-            // Log the exception and return a generic error to the client.
             $this->logError('Loading available tests', $e);
-            $this->jsonResponse(['error' => 'Unable to load tests. Please try again later.'], 500);
+            $this->jsonResponse(
+                ['error' => 'Unable to load tests. Please try again later.'],
+                500
+            );
         }
     }
 
     /**
-     * Starts an attempt: draws the test's questions at random from its pool and sends them
-     * to the testing page, without the correct answers. Starting again draws a new set.
+     * Starts a test attempt.
      */
     public function startTest(string $testID): void
     {
@@ -38,24 +38,29 @@ class TestController extends Controller
 
         try {
             $test = Test::getForStudent($testID, $userID);
+
             if ($test === null) {
                 $this->jsonResponse(['error' => self::TEST_NOT_FOUND], 404);
+                return;
             }
 
-            // remember the drawn questions so the submission is marked against this set
-            Authentication::saveTestAttempt($testID, array_column($test['questions'], 'questionID'));
+            Authentication::saveTestAttempt(
+                $testID,
+                array_column($test['questions'], 'questionID')
+            );
 
             $this->jsonResponse($test);
         } catch (\Throwable $e) {
             $this->logError('Loading a test', $e);
-            $this->jsonResponse(['error' => 'Unable to load this test. Please try again later.'], 500);
+            $this->jsonResponse(
+                ['error' => 'Unable to load this test. Please try again later.'],
+                500
+            );
         }
     }
 
     /**
-     * Marks the student's answers, saves the attempt and returns the results with the correct answers.
-     * Only the questions drawn when the test was started are marked.
-     * Expects {"answers": {"<questionID>": "<answerID>" or null}}.
+     * Marks and saves a student's completed test.
      */
     public function submitTest(string $testID): void
     {
@@ -63,18 +68,31 @@ class TestController extends Controller
 
         try {
             $data = json_decode(file_get_contents('php://input'), true);
+
             if (!is_array($data) || !isset($data['answers']) || !is_array($data['answers'])) {
-                throw new \InvalidArgumentException('Your answers could not be read. Please try again.');
+                throw new \InvalidArgumentException(
+                    'Your answers could not be read. Please try again.'
+                );
             }
 
             $questionIDs = Authentication::getTestAttempt($testID);
+
             if ($questionIDs === null) {
-                throw new \InvalidArgumentException('This attempt could not be found. Please start the test again.');
+                throw new \InvalidArgumentException(
+                    'This attempt could not be found. Please start the test again.'
+                );
             }
 
-            $result = CompletedTest::submit($userID, $testID, $questionIDs, $data['answers']);
+            $result = CompletedTest::submit(
+                $userID,
+                $testID,
+                $questionIDs,
+                $data['answers']
+            );
+
             if ($result === null) {
                 $this->jsonResponse(['error' => self::TEST_NOT_FOUND], 404);
+                return;
             }
 
             Authentication::clearTestAttempt($testID);
@@ -84,41 +102,11 @@ class TestController extends Controller
             $this->jsonResponse(['error' => $e->getMessage()], 400);
         } catch (\Throwable $e) {
             $this->logError('Saving a completed test', $e);
-            $this->jsonResponse(['error' => 'Unable to save your test. Please try again.'], 500);
+            $this->jsonResponse(
+                ['error' => 'Unable to save your test. Please try again.'],
+                500
+            );
         }
-    }
-
-    /**
-     * Stops the request unless a student is logged in and their account is still active.
-     *
-     * @return string the logged in student's user ID
-     */
-    private function requireActiveStudent(): string
-    {
-        // Ensure the caller is a student before returning any test data.
-        Authentication::requireRole(['student']);
-
-        $userID = null;
-        $user = null;
-        try {
-            // Check the current session and confirm the account is still active.
-            $userID = Authentication::getLoggedInUserID();
-            $user = $userID === null ? null : User::findById($userID);
-        } catch (\Throwable $e) {
-            $this->logError('Checking the student session', $e);
-            $this->jsonResponse(['error' => 'Something went wrong. Please try again later.'], 500);
-        }
-
-        if (
-            $user === null
-            || !$user->isActive()
-            || $user->getAccountType() !== 'student'
-        ) {
-            Authentication::endSession();
-            $this->jsonResponse(['error' => 'Your session has ended. Go to the login page to continue'], 401);
-        }
-
-        return $userID;
     }
 
     /**
@@ -126,22 +114,12 @@ class TestController extends Controller
      */
     public function getAllForLecturer(): void
     {
-        // Ensure only lecturers can access the dashboard test list.
         Authentication::requireRole(['lecturer']);
 
         try {
-            // Retrieve all tests with their subject and question count.
-            $tests = Test::getAllForLecturer();
-
-            $this->jsonResponse($tests);
+            $this->jsonResponse(Test::getAllForLecturer());
         } catch (\Throwable $e) {
-            // Log the exception and return a generic error to the client.
-            error_log(sprintf(
-                'Loading lecturer tests failed (%s): %s',
-                get_class($e),
-                $e->getMessage()
-            ));
-
+            $this->logError('Loading lecturer tests', $e);
             $this->jsonResponse(
                 ['error' => 'Unable to load tests. Please try again later.'],
                 500
@@ -150,10 +128,246 @@ class TestController extends Controller
     }
 
     /**
-     * Logs the real error for developers, the browser only gets a generic message.
+     * Returns all active subjects for the lecturer test form.
+     */
+    public function getActiveSubjects(): void
+    {
+        Authentication::requireRole(['lecturer']);
+
+        try {
+            $this->jsonResponse(Test::getActiveSubjects());
+        } catch (\Throwable $e) {
+            $this->logError('Loading lecturer subjects', $e);
+            $this->jsonResponse(
+                ['error' => 'Unable to load subjects. Please try again later.'],
+                500
+            );
+        }
+    }
+
+    /**
+     * Creates a new test.
+     */
+    public function createTest(): void
+    {
+        Authentication::requireRole(['lecturer']);
+
+        try {
+            $data = $this->getTestRequestData();
+            $userID = Authentication::getLoggedInUserID();
+
+            if ($userID === null) {
+                $this->jsonResponse(['error' => 'Your session has ended.'], 401);
+                return;
+            }
+
+            $testID = Test::create(
+                $data['testName'],
+                $data['subjectID'],
+                $data['testDescription'],
+                $data['timeLimit'],
+                $data['dueDate'],
+                $data['questionCount'],
+                $userID
+            );
+
+            $this->jsonResponse([
+                'message' => 'Test created successfully.',
+                'testID' => $testID
+            ], 201);
+        } catch (\InvalidArgumentException $e) {
+            $this->jsonResponse(['error' => $e->getMessage()], 400);
+        } catch (\Throwable $e) {
+            $this->logError('Creating test', $e);
+            $this->jsonResponse(
+                ['error' => 'Unable to create test. Please try again later.'],
+                500
+            );
+        }
+    }
+
+    /**
+     * Updates an existing test.
+     */
+    public function updateTest(string $testID): void
+    {
+        Authentication::requireRole(['lecturer']);
+
+        try {
+            $data = $this->getTestRequestData();
+
+            $updated = Test::update(
+                $testID,
+                $data['testName'],
+                $data['subjectID'],
+                $data['testDescription'],
+                $data['timeLimit'],
+                $data['dueDate'],
+                $data['questionCount']
+            );
+
+            if (!$updated) {
+                $this->jsonResponse(['error' => 'Test not found.'], 404);
+                return;
+            }
+
+            $this->jsonResponse([
+                'message' => 'Test updated successfully.'
+            ]);
+        } catch (\InvalidArgumentException $e) {
+            $this->jsonResponse(['error' => $e->getMessage()], 400);
+        } catch (\Throwable $e) {
+            $this->logError('Updating test', $e);
+            $this->jsonResponse(
+                ['error' => 'Unable to update test. Please try again later.'],
+                500
+            );
+        }
+    }
+
+    /**
+     * Deletes an existing test.
+     */
+    public function deleteTest(string $testID): void
+    {
+        Authentication::requireRole(['lecturer']);
+
+        try {
+            $deleted = Test::delete($testID);
+
+            if (!$deleted) {
+                $this->jsonResponse(['error' => 'Test not found.'], 404);
+                return;
+            }
+
+            $this->jsonResponse([
+                'message' => 'Test deleted successfully.'
+            ]);
+        } catch (\InvalidArgumentException $e) {
+            $this->jsonResponse(['error' => $e->getMessage()], 400);
+        } catch (\Throwable $e) {
+            $this->logError('Deleting test', $e);
+            $this->jsonResponse(
+                ['error' => 'Unable to delete test. Please try again later.'],
+                500
+            );
+        }
+    }
+
+    /**
+     * Reads and validates the incoming test request.
+     */
+    private function getTestRequestData(): array
+    {
+        $data = json_decode(file_get_contents('php://input'), true);
+
+        if (!is_array($data)) {
+            throw new \InvalidArgumentException('Invalid request data.');
+        }
+
+        if (
+            !isset($data['testName'])
+            || !is_string($data['testName'])
+            || trim($data['testName']) === ''
+        ) {
+            throw new \InvalidArgumentException('Test name cannot be empty.');
+        }
+
+        if (
+            !isset($data['subjectID'])
+            || !is_string($data['subjectID'])
+            || trim($data['subjectID']) === ''
+        ) {
+            throw new \InvalidArgumentException('A valid subject must be selected.');
+        }
+
+        $timeLimit = $data['timeLimit'] ?? null;
+
+        if ($timeLimit !== null && filter_var($timeLimit, FILTER_VALIDATE_INT) === false) {
+            throw new \InvalidArgumentException('Please provide a valid time limit.');
+        }
+
+        $questionCount = filter_var(
+            $data['questionCount'] ?? null,
+            FILTER_VALIDATE_INT
+        );
+
+        if ($questionCount === false) {
+            throw new \InvalidArgumentException('Please provide a valid question count.');
+        }
+
+        $dueDate = $data['dueDate'] ?? null;
+
+        if ($dueDate === '') {
+            $dueDate = null;
+        }
+
+        if ($dueDate !== null && !is_string($dueDate)) {
+            throw new \InvalidArgumentException('Please provide a valid due date.');
+        }
+
+        $description = $data['testDescription'] ?? null;
+
+        if ($description !== null && !is_string($description)) {
+            throw new \InvalidArgumentException('Please provide a valid description.');
+        }
+
+        return [
+            'testName' => $data['testName'],
+            'subjectID' => $data['subjectID'],
+            'testDescription' => $description,
+            'timeLimit' => $timeLimit === null ? null : (int) $timeLimit,
+            'dueDate' => $dueDate,
+            'questionCount' => $questionCount
+        ];
+    }
+
+    /**
+     * Stops the request unless an active student is logged in.
+     */
+    private function requireActiveStudent(): string
+    {
+        Authentication::requireRole(['student']);
+
+        $userID = null;
+        $user = null;
+
+        try {
+            $userID = Authentication::getLoggedInUserID();
+            $user = $userID === null ? null : User::findById($userID);
+        } catch (\Throwable $e) {
+            $this->logError('Checking the student session', $e);
+            $this->jsonResponse(
+                ['error' => 'Something went wrong. Please try again later.'],
+                500
+            );
+        }
+
+        if (
+            $user === null
+            || !$user->isActive()
+            || $user->getAccountType() !== 'student'
+        ) {
+            Authentication::endSession();
+            $this->jsonResponse(
+                ['error' => 'Your session has ended. Go to the login page to continue'],
+                401
+            );
+        }
+
+        return $userID;
+    }
+
+    /**
+     * Logs errors without exposing internal details to the browser.
      */
     private function logError(string $action, \Throwable $e): void
     {
-        error_log(sprintf('%s failed (%s): %s', $action, get_class($e), $e->getMessage()));
+        error_log(sprintf(
+            '%s failed (%s): %s',
+            $action,
+            get_class($e),
+            $e->getMessage()
+        ));
     }
 }
