@@ -110,6 +110,13 @@ const routes = [
         meta: { title: 'Test | RevisionHub', requiredRoles: ['student'], studentOnly: true, hideLayout: true },
     },
     {
+        // completedID is the attempt the student picked with the View Answers button
+        path: '/testing/answers/:completedID',
+        name: 'testAnswers',
+        component: TestingPage,
+        meta: { title: 'Test Answers | RevisionHub', requiredRoles: ['student'], studentOnly: true, hideLayout: true },
+    },
+    {
         path: '/leaderboard',
         name: 'leaderboard',
         component: Leaderboard,

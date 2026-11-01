@@ -9,34 +9,65 @@ final class StudentRegistrationTest extends TestCase
     // Keep server-side registration validation covered independently of browser validation.
     public function testNameValidation(): void
     {
-        self::assertTrue(Student::names('Fyn Geary'));
-        self::assertFalse(Student::names('A'));
-        self::assertFalse(Student::names('<script>alert(1)</script>'));
-        self::assertFalse(Student::names(['Fyn']));
+        // Arrange: nothing to set up, the input is passed straight in
+
+        // Act
+        $validName = Student::names('Fyn Geary');
+        $tooShort = Student::names('A');
+        $hasCode = Student::names('<script>alert(1)</script>');
+        $notText = Student::names(['Fyn']);
+
+        // Assert
+        self::assertTrue($validName);
+        self::assertFalse($tooShort);
+        self::assertFalse($hasCode);
+        self::assertFalse($notText);
     }
 
     public function testStudentNumberValidation(): void
     {
-        self::assertTrue(Student::validUsername('ws381211'));
-        self::assertFalse(Student::validUsername('ws38121'));
-        self::assertFalse(Student::validUsername('ws381211 '));
-        self::assertFalse(Student::validUsername(['ws381211']));
+        // Arrange: nothing to set up, the input is passed straight in
+
+        // Act
+        $validNumber = Student::validUsername('ws381211');
+        $tooShort = Student::validUsername('ws38121');
+        $trailingSpace = Student::validUsername('ws381211 ');
+        $notText = Student::validUsername(['ws381211']);
+
+        // Assert
+        self::assertTrue($validNumber);
+        self::assertFalse($tooShort);
+        self::assertFalse($trailingSpace);
+        self::assertFalse($notText);
     }
 
     public function testPasswordValidation(): void
     {
-        self::assertTrue(Student::validPassword('Febmar17!'));
-        self::assertFalse(Student::validPassword('febmar17'));
-        self::assertFalse(Student::validPassword('Febmar!!'));
-        self::assertFalse(Student::validPassword(['Febmar17!']));
+        // Arrange: nothing to set up, the input is passed straight in
+
+        // Act
+        $validPassword = Student::validPassword('Febmar17!');
+        $noUppercaseOrSymbol = Student::validPassword('febmar17');
+        $noNumber = Student::validPassword('Febmar!!');
+        $notText = Student::validPassword(['Febmar17!']);
+
+        // Assert
+        self::assertTrue($validPassword);
+        self::assertFalse($noUppercaseOrSymbol);
+        self::assertFalse($noNumber);
+        self::assertFalse($notText);
     }
 
     #[DataProvider('invalidRegistrationCases')]
     public function testRegistrationRejectsInvalidInput(array $data, string $expectedMessage): void
     {
+        // Arrange: $data and $expectedMessage come from invalidRegistrationCases()
+
+        // Assert: PHPUnit has to be told which exception to expect before the Act
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage($expectedMessage);
 
+        // Act
         Student::register($data);
     }
 

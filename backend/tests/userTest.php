@@ -252,10 +252,14 @@ final class UserTest extends TestCase
      */
     public function testAccountTypesInheritFromUser(): void
     {
-        // Arrange and Act, making each account type is the thing being tested
+        // Arrange
+        $lecturerRow = $this->makeRow(['accountType' => 'lecturer']);
+        $adminRow = $this->makeRow(['accountType' => 'admin']);
+
+        // Act
         $student = $this->makeUser();
-        $lecturer = new Lecturer($this->makeRow(['accountType' => 'lecturer']));
-        $admin = new Administrator($this->makeRow(['accountType' => 'admin']));
+        $lecturer = new Lecturer($lecturerRow);
+        $admin = new Administrator($adminRow);
 
         // Assert
         self::assertInstanceOf(User::class, $student);

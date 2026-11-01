@@ -196,8 +196,10 @@ a {
     color: var(--colorPrimary);
 }
 
+/* .btn is listed because Bootstrap's .btn:focus-visible removes the outline otherwise */
 a:focus-visible,
-button:focus-visible {
+button:focus-visible,
+.btn:focus-visible {
     outline: 3px solid var(--colorFocus);
     outline-offset: 2px;
 }
@@ -1360,6 +1362,14 @@ main.appMainFullScreen {
 /* stylelint-disable-next-line selector-class-pattern */
 .adminTable .dt-layout-table {
     overflow: auto hidden;
+}
+
+/* large number on the results summary cards */
+.statValue {
+    color: var(--colorText);
+    font-size: var(--fontSizeStat);
+    font-weight: 700;
+    line-height: 1.2;
 }
 
 /* Responsive layouts */
