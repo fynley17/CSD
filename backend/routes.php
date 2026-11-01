@@ -104,4 +104,18 @@ $router->addRoute(
 // every subject for the admin dashboard table, admins only
 $router->addRoute('GET', '/^\/api\/subjects$/', [new SubjectController(), 'getAllSubjects']);
 
+
+// add a subject, admins only
+$router->addRoute('POST', '/^\/api\/subjects$/', [new SubjectController(), 'createSubject']);
+
+// edit a subject, admins only
+$router->addRoute('PUT', '/^\/api\/subjects\/([0-9a-zA-Z-]+)$/', [new SubjectController(), 'updateSubject']);
+
+// archive or restore a subject, admins only
+$router->addRoute(
+    'PATCH',
+    '/^\/api\/subjects\/([0-9a-zA-Z-]+)\/active$/',
+    [new SubjectController(), 'setSubjectActive']
+);
+
 return $router;
