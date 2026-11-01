@@ -1500,14 +1500,8 @@ main.appMainFullScreen {
     }
 }
 
-/* subject management page, house style buttons (slate blue, 44px high, 36px inside the table) */
-.subjectManagement [class~='btn'] {
-    min-height: 44px;
-    border-radius: var(--radiusSm);
-    font-weight: 600;
-}
-
-.subjectManagement [class~='btn-primary'] {
+/* house style buttons, slate blue (secondary = slate blue outline on white) */
+[class~='btn-primary'] {
     --bs-btn-bg: var(--colorPrimary);
     --bs-btn-border-color: var(--colorPrimary);
     --bs-btn-hover-bg: var(--colorPrimaryHover);
@@ -1518,7 +1512,7 @@ main.appMainFullScreen {
     --bs-btn-disabled-border-color: var(--colorPrimary);
 }
 
-.subjectManagement [class~='btn-outline-primary'] {
+[class~='btn-outline-primary'] {
     --bs-btn-color: var(--colorPrimary);
     --bs-btn-border-color: var(--colorPrimary);
     --bs-btn-hover-bg: var(--colorPrimary);
@@ -1527,7 +1521,13 @@ main.appMainFullScreen {
     --bs-btn-active-border-color: var(--colorPrimary);
 }
 
-/* needs to stay below the first rule or the 44px wins */
-.subjectManagement .adminTable [class~='btn'] {
+/* size and shape for the admin management pages, 44px high or 36px inside a table */
+.adminPage [class~='btn'] {
+    min-height: 44px;
+    border-radius: var(--radiusSm);
+    font-weight: 600;
+}
+
+.adminPage .adminTable [class~='btn'] {
     min-height: 36px;
 }
