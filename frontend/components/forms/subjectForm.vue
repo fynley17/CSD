@@ -74,7 +74,7 @@ export default {
                     await updateSubject(this.subjectID, this.form);
                 }
                 this.$refs.dialog.close();
-                this.$emit('saved');
+                this.$emit('saved', this.subjectID === null ? 'Subject added' : 'Changes saved');
             } catch (error) {
                 // message from PHP if there is one (like name already used in that cohort) or a generic one
                 this.errorMessage = error.response?.data?.error || 'Unable to save the subject';

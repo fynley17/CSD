@@ -49,10 +49,10 @@ export default {
         /**
          * Form says saved when it worked, so refresh the table and show the green box
          */
-        saved() {
+        saved(message) {
             this.errorMessage = '';
             this.undoSubject = null;
-            this.message = 'Subject saved';
+            this.message = message;
             this.$refs.table.loadSubjects();
         },
 
