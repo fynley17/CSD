@@ -15,8 +15,13 @@ final class AuthControllerTest extends TestCase
      */
     public function testAcceptsUsernameAndPassword(): void
     {
-        $details = AuthController::checkLoginDetails(['username' => 'stu01', 'password' => 'Test1234!']);
+        // Arrange
+        $data = ['username' => 'stu01', 'password' => 'Test1234!'];
 
+        // Act
+        $details = AuthController::checkLoginDetails($data);
+
+        // Assert
         self::assertSame(['username' => 'stu01', 'password' => 'Test1234!'], $details);
     }
 
@@ -26,8 +31,13 @@ final class AuthControllerTest extends TestCase
      */
     public function testTrimsSpacesOffUsername(): void
     {
-        $details = AuthController::checkLoginDetails(['username' => '  stu01 ', 'password' => 'Test1234!']);
+        // Arrange
+        $data = ['username' => '  stu01 ', 'password' => 'Test1234!'];
 
+        // Act
+        $details = AuthController::checkLoginDetails($data);
+
+        // Assert
         self::assertSame('stu01', $details['username']);
     }
 
@@ -37,8 +47,13 @@ final class AuthControllerTest extends TestCase
      */
     public function testKeepsSpacesInPassword(): void
     {
-        $details = AuthController::checkLoginDetails(['username' => 'stu01', 'password' => ' Test 1234! ']);
+        // Arrange
+        $data = ['username' => 'stu01', 'password' => ' Test 1234! '];
 
+        // Act
+        $details = AuthController::checkLoginDetails($data);
+
+        // Assert
         self::assertSame(' Test 1234! ', $details['password']);
     }
 
@@ -51,7 +66,13 @@ final class AuthControllerTest extends TestCase
     #[DataProvider('badLoginDetails')]
     public function testRejectsBadLoginDetails(mixed $data): void
     {
-        self::assertNull(AuthController::checkLoginDetails($data));
+        // Arrange: $data comes from badLoginDetails()
+
+        // Act
+        $details = AuthController::checkLoginDetails($data);
+
+        // Assert
+        self::assertNull($details);
     }
 
     /**

@@ -32,6 +32,9 @@ $router->addRoute('POST', '/^\/api\/tests\/([0-9a-zA-Z-]+)\/complete$/', [new Te
 // Provide the tests the authenticated student has already completed.
 $router->addRoute('GET', '/^\/api\/tests\/completed$/', [new ResultController(), 'getCompletedTests']);
 
+// Provide the details and totals for the top of the authenticated student's results page.
+$router->addRoute('GET', '/^\/api\/results\/summary$/', [new ResultController(), 'getResultsSummary']);
+
 // Top students in the student's cohort, overall or for one subject (/api/leaderboard/<subjectID>).
 $router->addRoute(
     'GET',

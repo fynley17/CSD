@@ -33,12 +33,16 @@ describe('LeaderboardTable', () => {
     });
 
     it('loads the overall leaderboard and lists the cohort subjects in the filter', async () => {
+        // Arrange
         getLeaderboard.mockResolvedValue(overall);
 
+        // Act
         const wrapper = mount(LeaderboardTable);
-        expect(wrapper.get('[role="status"]').text()).toBe('Loading leaderboard...');
+        const textWhileLoading = wrapper.get('[role="status"]').text();
         await flushPromises();
 
+        // Assert
+        expect(textWhileLoading).toBe('Loading leaderboard...');
         expect(getLeaderboard).toHaveBeenCalledWith('');
         expect(wrapper.findAll('option').map((option) => option.text())).toEqual([
             'Overall',
@@ -54,11 +58,14 @@ describe('LeaderboardTable', () => {
     });
 
     it('highlights the logged in student', async () => {
+        // Arrange
         getLeaderboard.mockResolvedValue(overall);
 
+        // Act
         const wrapper = mount(LeaderboardTable);
         await flushPromises();
 
+        // Assert
         const rows = wrapper.findAll('tbody tr');
         expect(rows[1].classes()).toContain('leaderboardCurrentStudent');
         expect(rows[1].text()).toContain('You');
@@ -66,14 +73,17 @@ describe('LeaderboardTable', () => {
     });
 
     it('reloads the table for the chosen subject', async () => {
+        // Arrange
         getLeaderboard.mockResolvedValueOnce(overall).mockResolvedValueOnce(webApps);
 
         const wrapper = mount(LeaderboardTable);
         await flushPromises();
 
+        // Act
         await wrapper.get('select').setValue('web');
         await flushPromises();
 
+        // Assert
         expect(getLeaderboard).toHaveBeenLastCalledWith('web');
         expect(wrapper.text()).toContain('Ranked by points earned on Web Apps tests.');
         expect(wrapper.findAll('tbody tr')).toHaveLength(1);
@@ -81,6 +91,7 @@ describe('LeaderboardTable', () => {
     });
 
     it('ignores a slow response for a subject the student has moved away from', async () => {
+        // Arrange
         let resolveWebApps;
         getLeaderboard
             .mockResolvedValueOnce(overall)
@@ -98,29 +109,37 @@ describe('LeaderboardTable', () => {
         await wrapper.get('select').setValue('');
         await flushPromises();
 
+        // Act
         resolveWebApps(webApps);
         await flushPromises();
 
+        // Assert
         expect(wrapper.get('tbody').text()).toContain('Sam G.');
         expect(wrapper.get('tbody').text()).not.toContain('Jo W.');
     });
 
     it('shows a message when nobody has points yet', async () => {
+        // Arrange
         getLeaderboard.mockResolvedValue({ subjects, students: [] });
 
+        // Act
         const wrapper = mount(LeaderboardTable);
         await flushPromises();
 
+        // Assert
         expect(wrapper.find('table').exists()).toBe(false);
         expect(wrapper.text()).toContain('No one has completed a test here yet.');
     });
 
     it('shows the error from the API when loading fails', async () => {
+        // Arrange
         getLeaderboard.mockRejectedValue({ response: { data: { error: 'This subject is not available.' } } });
 
+        // Act
         const wrapper = mount(LeaderboardTable);
         await flushPromises();
 
+        // Assert
         expect(wrapper.get('[role="alert"]').text()).toBe('This subject is not available.');
     });
 });
