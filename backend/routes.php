@@ -1,3 +1,4 @@
+
 <?php
 
 use App\Router;
@@ -32,7 +33,7 @@ $router->addRoute('POST', '/^\/api\/tests\/([0-9a-zA-Z-]+)\/complete$/', [new Te
 // Provide the tests the authenticated student has already completed.
 $router->addRoute('GET', '/^\/api\/tests\/completed$/', [new ResultController(), 'getCompletedTests']);
 
-// Top students in the student's cohort, overall or for one subject (/api/leaderboard/<subjectID>).
+// Top students in the student's cohort, overall or for one subject.
 $router->addRoute(
     'GET',
     '/^\/api\/leaderboard(?:\/([0-9a-zA-Z-]+))?$/',
@@ -46,10 +47,10 @@ $router->addRoute(
     [new ResultController(), 'getCompletedTestReview']
 );
 
-// totals for the admin dashboard cards, admins only
+// Totals for the admin dashboard cards, admins only.
 $router->addRoute(
     'GET',
-    '/^\\/api\\/admin\\/dashboard-summary$/',
+    '/^\/api\/admin\/dashboard-summary$/',
     [new AdministratorController(), 'getDashboardSummary']
 );
 
@@ -59,13 +60,14 @@ $router->addRoute('GET', '/^\/api\/pending-verification$/', [new VerificationCon
 $router->addRoute('POST', '/^\/api\/resend-verification$/', [new VerificationController(), 'resendVerification']);
 $router->addRoute('POST', '/^\/api\/change-email$/', [new VerificationController(), 'changeEmail']);
 
-// one AuthController shared by login, logout, the session check and the secret code
+// One AuthController shared by login, logout, the session check and the secret code.
 $authController = new AuthController();
+
 $router->addRoute('POST', '/^\/api\/login$/', [new AuthController(), 'login']);
 $router->addRoute('POST', '/^\/api\/logout$/', [new AuthController(), 'logout']);
 $router->addRoute('GET', '/^\/api\/current-user$/', [new AuthController(), 'currentUser']);
-// gives the page its secret code, it sends that back with anything that changes data i.e. login or register
-// other websites can't read our replies, so they can't get the code to fake a request as a logged in user
+
+// Gives the page its secret code for requests that change data.
 $router->addRoute('GET', '/^\/api\/csrf-token$/', [new AuthController(), 'csrfToken']);
 
 // Lecturer dashboard summary.
@@ -87,6 +89,25 @@ $router->addRoute(
     'GET',
     '/^\/api\/lecturer\/tests$/',
     [new TestController(), 'getAllForLecturer']
+);
+
+// Test management routes for lecturers.
+$router->addRoute(
+    'POST',
+    '/^\/api\/lecturer\/tests$/',
+    [new TestController(), 'createTest']
+);
+
+$router->addRoute(
+    'PUT',
+    '/^\/api\/lecturer\/tests\/([0-9a-zA-Z-]+)$/',
+    [new TestController(), 'updateTest']
+);
+
+$router->addRoute(
+    'DELETE',
+    '/^\/api\/lecturer\/tests\/([0-9a-zA-Z-]+)$/',
+    [new TestController(), 'deleteTest']
 );
 
 // Question management routes for lecturers.
@@ -114,6 +135,7 @@ $router->addRoute(
     [new QuestionController(), 'deleteQuestion']
 );
 
+// Active subjects shared by Question Management and Test Management.
 $router->addRoute(
     'GET',
     '/^\/api\/lecturer\/subjects$/',
