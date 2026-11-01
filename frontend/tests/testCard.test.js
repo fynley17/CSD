@@ -17,8 +17,12 @@ const baseTest = {
 
 describe('TestCard', () => {
     it('displays the test information in the requested order', () => {
+        // Arrange: baseTest is the test to show
+
+        // Act
         const wrapper = mount(TestCard, { props: { test: baseTest } });
 
+        // Assert
         expect(wrapper.get('h2').text()).toBe(baseTest.testName);
         expect(wrapper.get('.testCardDescription').text()).toBe(baseTest.testDescription);
 
@@ -36,35 +40,40 @@ describe('TestCard', () => {
     });
 
     it('omits the optional time limit and due date when absent', () => {
-        const wrapper = mount(TestCard, {
-            props: {
-                test: { ...baseTest, timeLimit: null, dueDate: null },
-            },
-        });
+        // Arrange
+        const test = { ...baseTest, timeLimit: null, dueDate: null };
 
+        // Act
+        const wrapper = mount(TestCard, { props: { test } });
+
+        // Assert
         const details = wrapper.findAll('.testCardDetails dt').map((element) => element.text());
         expect(details).toEqual(['Questions', 'Subject', 'Set by']);
     });
 
     it('only shows the practice note once the student has full marks', () => {
-        expect(
-            mount(TestCard, { props: { test: baseTest } })
-                .find('.testCardPracticeNote')
-                .exists(),
-        ).toBe(false);
+        // Arrange
+        const practiceTest = { ...baseTest, earnsPoints: false };
 
-        const wrapper = mount(TestCard, { props: { test: { ...baseTest, earnsPoints: false } } });
+        // Act
+        const normalCard = mount(TestCard, { props: { test: baseTest } });
+        const practiceCard = mount(TestCard, { props: { test: practiceTest } });
 
-        expect(wrapper.get('.testCardPracticeNote').text()).toContain("don't earn points");
+        // Assert
+        expect(normalCard.find('.testCardPracticeNote').exists()).toBe(false);
+        expect(practiceCard.get('.testCardPracticeNote').text()).toContain("don't earn points");
         // it can still be started
-        expect(wrapper.find('.testCardStartButton').exists()).toBe(true);
+        expect(practiceCard.find('.testCardStartButton').exists()).toBe(true);
     });
 
     it('emits the selected test when Start test is clicked', async () => {
+        // Arrange
         const wrapper = mount(TestCard, { props: { test: baseTest } });
 
+        // Act
         await wrapper.get('.testCardStartButton').trigger('click');
 
+        // Assert
         expect(wrapper.emitted('start')).toEqual([[baseTest]]);
     });
 });

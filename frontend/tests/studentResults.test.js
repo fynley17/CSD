@@ -34,25 +34,34 @@ describe('studentResults', () => {
     }
 
     it('fills the cards with the totals from the server', async () => {
-        const wrapper = mount(StudentResults);
-        expect(cardText(wrapper)).toEqual(['–', '–', '–']);
+        // Arrange: beforeEach sets the summary from the server
 
+        // Act
+        const wrapper = mount(StudentResults);
+        const cardsWhileLoading = cardText(wrapper);
         await flushPromises();
 
+        // Assert
+        expect(cardsWhileLoading).toEqual(['–', '–', '–']);
         expect(cardText(wrapper)).toEqual(['800', '44.2%', '11']);
         expect(wrapper.text()).toContain('Based on 11 tests');
     });
 
     it('shows the logged in student instead of placeholder details', async () => {
+        // Arrange: beforeEach sets the logged in student
+
+        // Act
         const wrapper = mount(StudentResults);
         await flushPromises();
 
+        // Assert
         expect(wrapper.text()).toContain('Student: Ada Lovelace');
         expect(wrapper.text()).toContain('Student Number: WS000001');
         expect(wrapper.text()).not.toContain('John Doe');
     });
 
     it('capitalises each part of the name, including after a hyphen', async () => {
+        // Arrange
         getResultsSummary.mockResolvedValue({
             studentName: 'mary-jane mcDonald smith-jones',
             studentNumber: 'ws000001',
@@ -61,13 +70,16 @@ describe('studentResults', () => {
             testsCompleted: 0,
         });
 
+        // Act
         const wrapper = mount(StudentResults);
         await flushPromises();
 
+        // Assert
         expect(wrapper.text()).toContain('Student: Mary-Jane McDonald Smith-Jones');
     });
 
     it('graphs the grade for each test from the oldest', async () => {
+        // Arrange
         const completed = (completedID, completedDate, percentageCorrect) => ({
             completedID,
             testName: `Test ${completedID}`,
@@ -85,14 +97,17 @@ describe('studentResults', () => {
             completed(1, '2026-10-01 09:00:00', 60),
         ]);
 
+        // Act
         const wrapper = mount(StudentResults);
         await flushPromises();
         const { data } = wrapper.findComponent({ name: 'Line' }).props();
 
+        // Assert
         expect(data.datasets[0].data.map((point) => point.y)).toEqual([60, 45.5, 80]);
     });
 
     it('pages the completed tests but still graphs all of them', async () => {
+        // Arrange
         const tests = Array.from({ length: 7 }, (_, index) => ({
             completedID: index,
             testName: `Test ${index}`,
@@ -105,23 +120,29 @@ describe('studentResults', () => {
         }));
         getCompletedTests.mockResolvedValue(tests);
 
+        // Act
         const wrapper = mount(StudentResults);
         await flushPromises();
 
+        // Assert
         expect(wrapper.findAll('.completedTestItem')).toHaveLength(5);
         expect(wrapper.findComponent({ name: 'Line' }).props().data.datasets[0].data).toHaveLength(7);
     });
 
     it('hides the graph when the completed tests fail to load', async () => {
+        // Arrange
         getCompletedTests.mockRejectedValue(new Error('Network error'));
 
+        // Act
         const wrapper = mount(StudentResults);
         await flushPromises();
 
+        // Assert
         expect(wrapper.text()).not.toContain('Grades over time');
     });
 
     it('shows N/A for the average before any test is completed', async () => {
+        // Arrange
         getResultsSummary.mockResolvedValue({
             studentName: 'Ada Lovelace',
             studentNumber: 'ws000001',
@@ -130,25 +151,31 @@ describe('studentResults', () => {
             testsCompleted: 0,
         });
 
+        // Act
         const wrapper = mount(StudentResults);
         await flushPromises();
 
+        // Assert
         expect(cardText(wrapper)).toEqual(['0', 'N/A', '0']);
         expect(wrapper.text()).toContain('No tests completed yet');
     });
 
     it('keeps the dashes and the completed tests when the summary fails to load', async () => {
+        // Arrange
         getResultsSummary.mockRejectedValue({ response: { data: { error: 'Summary unavailable' } } });
 
+        // Act
         const wrapper = mount(StudentResults);
         await flushPromises();
 
+        // Assert
         expect(wrapper.find('[role="alert"]').text()).toBe('Summary unavailable');
         expect(cardText(wrapper)).toEqual(['–', '–', '–']);
         expect(wrapper.text()).toContain('You have not completed any tests yet.');
     });
 
     it('lists the completed tests once they have loaded', async () => {
+        // Arrange
         getCompletedTests.mockResolvedValue([
             {
                 completedID: 1,
@@ -162,30 +189,38 @@ describe('studentResults', () => {
             },
         ]);
 
+        // Act
         const wrapper = mount(StudentResults);
-        expect(wrapper.text()).toContain('Loading completed tests...');
-
+        const textWhileLoading = wrapper.text();
         await flushPromises();
 
+        // Assert
+        expect(textWhileLoading).toContain('Loading completed tests...');
         expect(wrapper.find('.completedTestList').text()).toContain('Algebra Basics');
         expect(wrapper.text()).not.toContain('Loading completed tests...');
     });
 
     it('shows a message when no tests have been completed', async () => {
+        // Arrange
         getCompletedTests.mockResolvedValue([]);
 
+        // Act
         const wrapper = mount(StudentResults);
         await flushPromises();
 
+        // Assert
         expect(wrapper.text()).toContain('You have not completed any tests yet.');
     });
 
     it('shows the error from the server when the list fails to load', async () => {
+        // Arrange
         getCompletedTests.mockRejectedValue({ response: { data: { error: 'Results unavailable' } } });
 
+        // Act
         const wrapper = mount(StudentResults);
         await flushPromises();
 
+        // Assert
         expect(wrapper.find('[role="alert"]').text()).toBe('Results unavailable');
     });
 });

@@ -15,26 +15,41 @@ describe('testService', () => {
     });
 
     it('requests the tests endpoint and returns its response data', async () => {
+        // Arrange
         const tests = [{ testID: 'test-1', testName: 'Web Apps Fundamentals' }];
         api.get.mockResolvedValue({ data: tests });
 
-        await expect(getAvailableTests()).resolves.toEqual(tests);
+        // Act
+        const response = await getAvailableTests();
+
+        // Assert
+        expect(response).toEqual(tests);
         expect(api.get).toHaveBeenCalledWith('/tests');
     });
 
     it('starts an attempt at one test by its ID', async () => {
+        // Arrange
         const test = { testID: 'test-1', questions: [] };
         api.post.mockResolvedValue({ data: test });
 
-        await expect(startTestAttempt('test-1')).resolves.toEqual(test);
+        // Act
+        const response = await startTestAttempt('test-1');
+
+        // Assert
+        expect(response).toEqual(test);
         expect(api.post).toHaveBeenCalledWith('/tests/test-1/start');
     });
 
     it('posts the chosen answers and returns the marked test', async () => {
+        // Arrange
         const result = { correctCount: 1, questions: [] };
         api.post.mockResolvedValue({ data: result });
 
-        await expect(submitTest('test-1', { 'question-1': 'answer-1' })).resolves.toEqual(result);
+        // Act
+        const response = await submitTest('test-1', { 'question-1': 'answer-1' });
+
+        // Assert
+        expect(response).toEqual(result);
         expect(api.post).toHaveBeenCalledWith('/tests/test-1/complete', {
             answers: { 'question-1': 'answer-1' },
         });

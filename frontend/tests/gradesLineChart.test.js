@@ -41,17 +41,26 @@ describe('gradesLineChart', () => {
     });
 
     it('shows a message and no time buttons when there are no tests', () => {
-        const wrapper = mount(GradesLineChart, { props: { grades: [] } });
+        // Arrange
+        const noGrades = [];
 
+        // Act
+        const wrapper = mount(GradesLineChart, { props: { grades: noGrades } });
+
+        // Assert
         expect(wrapper.findComponent({ name: 'Line' }).exists()).toBe(false);
         expect(wrapper.find('button').exists()).toBe(false);
         expect(wrapper.text()).toContain('Complete a test');
     });
 
     it('starts on all time with every test', () => {
+        // Arrange: grades holds the four completed tests
+
+        // Act
         const wrapper = mount(GradesLineChart, { props: { grades } });
         const { options } = wrapper.findComponent({ name: 'Line' }).props();
 
+        // Assert
         expect(chartValues(wrapper)).toEqual([40, 65.5, 50, 90]);
         expect(options.scales.x.min).toBeUndefined();
         expect(wrapper.find('button[aria-pressed="true"]').text()).toBe('All time');
@@ -64,20 +73,26 @@ describe('gradesLineChart', () => {
         ['Year', [65.5, 50, 90]],
         ['All time', [40, 65.5, 50, 90]],
     ])('%s only shows its tests', async (label, expected) => {
+        // Arrange
         const wrapper = mount(GradesLineChart, { props: { grades } });
 
+        // Act
         await selectRange(wrapper, label);
 
+        // Assert
         expect(chartValues(wrapper)).toEqual(expected);
         expect(wrapper.find('button[aria-pressed="true"]').text()).toBe(label);
     });
 
     it.each(['Week', 'All time'])('keeps the y axis at 0 to 100%% on %s', async (label) => {
+        // Arrange
         const wrapper = mount(GradesLineChart, { props: { grades } });
 
+        // Act
         await selectRange(wrapper, label);
         const { y } = wrapper.findComponent({ name: 'Line' }).props().options.scales;
 
+        // Assert
         expect(y.min).toBe(0);
         expect(y.max).toBe(100);
         expect(y.ticks.callback(80)).toBe('80%');
@@ -89,11 +104,14 @@ describe('gradesLineChart', () => {
         ['3 months', '2026-07-30', 'week', 2],
         ['Year', '2025-10-30', 'month', undefined],
     ])('sets the x axis to whole days and clean labels for %s', async (label, start, unit, stepSize) => {
+        // Arrange
         const wrapper = mount(GradesLineChart, { props: { grades } });
 
+        // Act
         await selectRange(wrapper, label);
         const { x } = wrapper.findComponent({ name: 'Line' }).props().options.scales;
 
+        // Assert
         expect(x.min).toBe(new Date(`${start}T00:00:00`).getTime());
         expect(x.max).toBe(new Date('2026-10-30T23:59:59.999').getTime());
         expect(x.time.unit).toBe(unit);
@@ -101,51 +119,70 @@ describe('gradesLineChart', () => {
     });
 
     it('keeps a month ago in the right month at the end of a long month', async () => {
+        // Arrange
         vi.setSystemTime(new Date('2026-10-31T12:00:00'));
         const wrapper = mount(GradesLineChart, { props: { grades } });
 
+        // Act
         await selectRange(wrapper, 'Month');
         const { x } = wrapper.findComponent({ name: 'Line' }).props().options.scales;
 
+        // Assert
         expect(x.min).toBe(new Date('2026-09-30T00:00:00').getTime());
     });
 
     it('never labels all time in hours', () => {
+        // Arrange: grades holds the four completed tests
+
+        // Act
         const wrapper = mount(GradesLineChart, { props: { grades } });
         const { x } = wrapper.findComponent({ name: 'Line' }).props().options.scales;
 
+        // Assert
         expect(x.time.minUnit).toBe('day');
     });
 
     it.each(['Week', 'Month', '3 months', 'Year', 'All time'])(
         'has the year in the x axis labels for %s',
         async (label) => {
+            // Arrange
             const wrapper = mount(GradesLineChart, { props: { grades } });
 
+            // Act
             await selectRange(wrapper, label);
             const { displayFormats } = wrapper.findComponent({ name: 'Line' }).props().options.scales.x.time;
 
+            // Assert
             expect(Object.values(displayFormats).every((format) => format.includes('yyyy'))).toBe(true);
         },
     );
 
     it('says so when a period has no tests, and can go back to the graph', async () => {
+        // Arrange
         const wrapper = mount(GradesLineChart, { props: { grades: [grades[0]] } });
 
+        // Act
         await selectRange(wrapper, 'Week');
-        expect(wrapper.findComponent({ name: 'Line' }).exists()).toBe(false);
-        expect(wrapper.text()).toContain('No tests in the last week.');
+        const hasChartOnWeek = wrapper.findComponent({ name: 'Line' }).exists();
+        const textOnWeek = wrapper.text();
 
         await selectRange(wrapper, 'All time');
+
+        // Assert
+        expect(hasChartOnWeek).toBe(false);
+        expect(textOnWeek).toContain('No tests in the last week.');
         expect(chartValues(wrapper)).toEqual([40]);
     });
 
     it('shows the test name, grade and date in the tooltip for the selected period', async () => {
+        // Arrange
         const wrapper = mount(GradesLineChart, { props: { grades } });
 
+        // Act
         await selectRange(wrapper, 'Month');
         const { callbacks } = wrapper.findComponent({ name: 'Line' }).props().options.plugins.tooltip;
 
+        // Assert
         expect(callbacks.title([{ dataIndex: 1 }])).toBe('Week test');
         expect(callbacks.label({ parsed: { y: 90 } })).toBe('90%');
         expect(callbacks.afterLabel({ dataIndex: 1 })).toBe('28 Oct 2026');

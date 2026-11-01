@@ -75,8 +75,12 @@ final class ResultModelTest extends TestCase
 
     public function testReturnsCompletedTestFieldsNewestFirst(): void
     {
+        // Arrange: setUp() has filled the tables
+
+        // Act
         $results = Result::getCompletedForStudent('student-user-1');
 
+        // Assert
         self::assertSame(['completed-2', 'completed-1'], array_column($results, 'completedID'));
         self::assertSame(
             [
@@ -103,8 +107,12 @@ final class ResultModelTest extends TestCase
 
     public function testUsesFallbackDescriptionAndKeepsNegativePoints(): void
     {
+        // Arrange: setUp() has filled the tables
+
+        // Act
         $results = Result::getCompletedForStudent('student-user-1');
 
+        // Assert
         self::assertSame('No description provided.', $results[0]['testDescription']);
         self::assertSame(-10, $results[0]['pointsEarned']);
         self::assertSame(40.5, $results[0]['percentageCorrect']);
@@ -112,13 +120,24 @@ final class ResultModelTest extends TestCase
 
     public function testReturnsOnlyTheLoggedInStudentsResults(): void
     {
+        // Arrange: setUp() has filled the tables
+
+        // Act
         $results = Result::getCompletedForStudent('student-user-2');
 
+        // Assert
         self::assertSame(['completed-3'], array_column($results, 'completedID'));
     }
 
     public function testSummaryOnlyCountsTheStudentsOwnAttempts(): void
     {
+        // Arrange: setUp() has filled the tables
+
+        // Act
+        $adaSummary = Result::getSummaryForStudent('student-user-1');
+        $alanSummary = Result::getSummaryForStudent('student-user-2');
+
+        // Assert
         self::assertSame(
             [
                 'studentName' => 'Ada Lovelace',
@@ -127,7 +146,7 @@ final class ResultModelTest extends TestCase
                 'averageScore' => 60.3,
                 'testsCompleted' => 2,
             ],
-            Result::getSummaryForStudent('student-user-1')
+            $adaSummary
         );
         self::assertSame(
             [
@@ -137,12 +156,18 @@ final class ResultModelTest extends TestCase
                 'averageScore' => 100.0,
                 'testsCompleted' => 1,
             ],
-            Result::getSummaryForStudent('student-user-2')
+            $alanSummary
         );
     }
 
     public function testSummaryHasNoAverageBeforeAnyTestIsCompleted(): void
     {
+        // Arrange: setUp() has given student-user-3 no completed tests
+
+        // Act
+        $summary = Result::getSummaryForStudent('student-user-3');
+
+        // Assert
         self::assertSame(
             [
                 'studentName' => 'Grace Hopper',
@@ -151,12 +176,18 @@ final class ResultModelTest extends TestCase
                 'averageScore' => null,
                 'testsCompleted' => 0,
             ],
-            Result::getSummaryForStudent('student-user-3')
+            $summary
         );
     }
 
     public function testSummaryIsEmptyForAnUnknownStudent(): void
     {
+        // Arrange: setUp() has not added missing-user
+
+        // Act
+        $summary = Result::getSummaryForStudent('missing-user');
+
+        // Assert
         self::assertSame(
             [
                 'studentName' => '',
@@ -165,7 +196,7 @@ final class ResultModelTest extends TestCase
                 'averageScore' => null,
                 'testsCompleted' => 0,
             ],
-            Result::getSummaryForStudent('missing-user')
+            $summary
         );
     }
 }

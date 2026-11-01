@@ -15,8 +15,12 @@ final class EmailVerificationTest extends TestCase
      */
     public function testMadeTokenIsValid(): void
     {
+        // Arrange: nothing to set up, the code is made from scratch
+
+        // Act
         $token = EmailVerification::makeToken();
 
+        // Assert
         self::assertMatchesRegularExpression('/^[0-9a-f]{64}$/', $token);
         self::assertTrue(EmailVerification::isValidToken($token));
     }
@@ -26,7 +30,14 @@ final class EmailVerificationTest extends TestCase
      */
     public function testTokensAreDifferentEachTime(): void
     {
-        self::assertNotSame(EmailVerification::makeToken(), EmailVerification::makeToken());
+        // Arrange: nothing to set up, the codes are made from scratch
+
+        // Act
+        $first = EmailVerification::makeToken();
+        $second = EmailVerification::makeToken();
+
+        // Assert
+        self::assertNotSame($first, $second);
     }
 
     /**
@@ -34,9 +45,13 @@ final class EmailVerificationTest extends TestCase
      */
     public function testHashIsNotTheToken(): void
     {
+        // Arrange
         $token = EmailVerification::makeToken();
+
+        // Act
         $hash = EmailVerification::hashToken($token);
 
+        // Assert
         self::assertNotSame($token, $hash);
         self::assertSame(64, strlen($hash));
         self::assertSame($hash, EmailVerification::hashToken($token));
@@ -47,12 +62,23 @@ final class EmailVerificationTest extends TestCase
      */
     public function testRejectsBadTokens(): void
     {
-        self::assertFalse(EmailVerification::isValidToken(str_repeat('a', 63)));
-        self::assertFalse(EmailVerification::isValidToken(str_repeat('a', 65)));
-        self::assertFalse(EmailVerification::isValidToken(str_repeat('g', 64)));
-        self::assertFalse(EmailVerification::isValidToken(str_repeat('a', 64) . "\n"));
-        self::assertFalse(EmailVerification::isValidToken(['token']));
-        self::assertFalse(EmailVerification::isValidToken(null));
+        // Arrange
+        $badTokens = [
+            'too short' => str_repeat('a', 63),
+            'too long' => str_repeat('a', 65),
+            'not hex' => str_repeat('g', 64),
+            'trailing new line' => str_repeat('a', 64) . "\n",
+            'a list' => ['token'],
+            'nothing' => null,
+        ];
+
+        // Act
+        $results = array_map(fn (mixed $token) => EmailVerification::isValidToken($token), $badTokens);
+
+        // Assert
+        foreach ($results as $label => $isValid) {
+            self::assertFalse($isValid, $label);
+        }
     }
 
     /**
@@ -60,11 +86,19 @@ final class EmailVerificationTest extends TestCase
      */
     public function testControllerChecksToken(): void
     {
+        // Arrange
         $token = EmailVerification::makeToken();
 
-        self::assertSame($token, VerificationController::checkToken(['token' => $token]));
-        self::assertNull(VerificationController::checkToken(['token' => "' OR 1=1 --"]));
-        self::assertNull(VerificationController::checkToken([]));
-        self::assertNull(VerificationController::checkToken('not an array'));
+        // Act
+        $goodToken = VerificationController::checkToken(['token' => $token]);
+        $wrongShape = VerificationController::checkToken(['token' => "' OR 1=1 --"]);
+        $noToken = VerificationController::checkToken([]);
+        $notAnArray = VerificationController::checkToken('not an array');
+
+        // Assert
+        self::assertSame($token, $goodToken);
+        self::assertNull($wrongShape);
+        self::assertNull($noToken);
+        self::assertNull($notAnArray);
     }
 }

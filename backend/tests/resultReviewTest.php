@@ -89,8 +89,12 @@ final class ResultReviewTest extends TestCase
 
     public function testReturnsTheAttemptWithTheStudentsName(): void
     {
+        // Arrange: setUp() has filled the tables
+
+        // Act
         $review = Result::getReviewForStudent('completed-1', 'student-1');
 
+        // Assert
         self::assertSame('Web Apps Test', $review['testName']);
         self::assertSame('Web Apps', $review['subjectName']);
         self::assertSame('Ada Lovelace', $review['studentName']);
@@ -102,8 +106,12 @@ final class ResultReviewTest extends TestCase
 
     public function testReturnsOnlyTheQuestionsAskedWithTheirMarking(): void
     {
+        // Arrange: setUp() has filled the tables
+
+        // Act
         $questions = Result::getReviewForStudent('completed-1', 'student-1')['questions'];
 
+        // Assert
         self::assertSame(['question-2', 'question-1', 'question-3'], array_column($questions, 'questionID'));
         self::assertSame([true, false, false], array_column($questions, 'isCorrect'));
         self::assertSame(['b1', 'a2', null], array_column($questions, 'selectedAnswerID'));
@@ -119,7 +127,14 @@ final class ResultReviewTest extends TestCase
 
     public function testDoesNotReturnAnotherStudentsAttempt(): void
     {
-        self::assertNull(Result::getReviewForStudent('completed-1', 'student-2'));
-        self::assertNull(Result::getReviewForStudent('missing', 'student-1'));
+        // Arrange: setUp() gives completed-1 to student-1 and has no attempt called missing
+
+        // Act
+        $anotherStudentsAttempt = Result::getReviewForStudent('completed-1', 'student-2');
+        $missingAttempt = Result::getReviewForStudent('missing', 'student-1');
+
+        // Assert
+        self::assertNull($anotherStudentsAttempt);
+        self::assertNull($missingAttempt);
     }
 }
