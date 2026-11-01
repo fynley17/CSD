@@ -19,7 +19,14 @@ export default {
             undoSubject: null,
             // true while undo is waiting on php, shows the spinner
             isUndoing: false,
+            // timer that hides the undo button after a while
+            undoTimer: null,
         };
+    },
+
+    // stop the timer if you leave the page before it finishes
+    beforeUnmount() {
+        clearTimeout(this.undoTimer);
     },
 
     methods: {
@@ -70,9 +77,17 @@ export default {
 
             try {
                 await setSubjectActive(subject.subjectID, makeActive);
-                this.message = makeActive ? 'Subject restored' : 'Subject archived';
+                this.message = `Subject "${subject.subjectName}" ${makeActive ? 'restored' : 'archived'}`;
                 this.undoSubject = canUndo ? subject : null;
                 this.$refs.table.loadSubjects();
+
+                // undo only stays for 30 seconds, a new click restarts the clock
+                clearTimeout(this.undoTimer);
+                if (canUndo) {
+                    this.undoTimer = setTimeout(() => {
+                        this.undoSubject = null;
+                    }, 30000);
+                }
             } catch (error) {
                 // green box goes so it doesnt look like it worked
                 this.message = '';
