@@ -1499,3 +1499,35 @@ main.appMainFullScreen {
         height: 160px;
     }
 }
+
+/* subject management page, house style buttons (slate blue, 44px high, 36px inside the table) */
+.subjectManagement [class~='btn'] {
+    min-height: 44px;
+    border-radius: var(--radiusSm);
+    font-weight: 600;
+}
+
+.subjectManagement [class~='btn-primary'] {
+    --bs-btn-bg: var(--colorPrimary);
+    --bs-btn-border-color: var(--colorPrimary);
+    --bs-btn-hover-bg: var(--colorPrimaryHover);
+    --bs-btn-hover-border-color: var(--colorPrimaryHover);
+    --bs-btn-active-bg: var(--colorPrimaryHover);
+    --bs-btn-active-border-color: var(--colorPrimaryHover);
+    --bs-btn-disabled-bg: var(--colorPrimary);
+    --bs-btn-disabled-border-color: var(--colorPrimary);
+}
+
+.subjectManagement [class~='btn-outline-primary'] {
+    --bs-btn-color: var(--colorPrimary);
+    --bs-btn-border-color: var(--colorPrimary);
+    --bs-btn-hover-bg: var(--colorPrimary);
+    --bs-btn-hover-border-color: var(--colorPrimary);
+    --bs-btn-active-bg: var(--colorPrimary);
+    --bs-btn-active-border-color: var(--colorPrimary);
+}
+
+/* needs to stay below the first rule or the 44px wins */
+.subjectManagement .adminTable [class~='btn'] {
+    min-height: 36px;
+}

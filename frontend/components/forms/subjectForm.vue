@@ -129,7 +129,7 @@ export default {
         <!-- save sits down in the footer, form="subjectForm" links it back to the form above -->
         <template #buttons>
             <button type="submit" form="subjectForm" class="btn btn-primary" :disabled="isSaving">Save subject</button>
-            <button type="button" class="btn btn-outline-secondary" @click="$refs.dialog.close()">Cancel</button>
+            <button type="button" class="btn btn-outline-primary" @click="$refs.dialog.close()">Cancel</button>
         </template>
     </PopupDialog>
 </template>

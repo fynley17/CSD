@@ -63,7 +63,7 @@ export default {
 </script>
 
 <template>
-    <section class="container py-4">
+    <section class="container py-4 subjectManagement">
         <h1>Subject Management</h1>
         <p>Create, edit and archive subjects. Subjects are never deleted</p>
 

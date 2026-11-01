@@ -46,7 +46,7 @@
                         </button>
                         <button
                             type="button"
-                            class="btn btn-sm btn-outline-secondary"
+                            class="btn btn-sm btn-outline-primary"
                             :aria-label="(props.rowData.isActive ? 'Archive ' : 'Restore ') + props.rowData.subjectName"
                             @click="$emit('toggle', props.rowData)"
                         >
