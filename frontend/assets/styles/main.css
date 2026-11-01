@@ -196,8 +196,10 @@ a {
     color: var(--colorPrimary);
 }
 
+/* .btn is listed because Bootstrap's .btn:focus-visible removes the outline otherwise */
 a:focus-visible,
-button:focus-visible {
+button:focus-visible,
+.btn:focus-visible {
     outline: 3px solid var(--colorFocus);
     outline-offset: 2px;
 }

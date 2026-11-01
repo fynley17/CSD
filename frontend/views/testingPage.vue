@@ -543,7 +543,8 @@ onBeforeUnmount(stopTimer);
     color: var(--colorSurface);
 }
 
-.testingPrimaryButton:hover {
+.testingPrimaryButton:hover,
+.testingPrimaryButton:focus-visible {
     border-color: var(--colorPrimaryHover);
     background: var(--colorPrimaryHover);
     color: var(--colorSurface);
@@ -555,7 +556,8 @@ onBeforeUnmount(stopTimer);
     color: var(--colorText);
 }
 
-.testingSecondaryButton:hover {
+.testingSecondaryButton:hover,
+.testingSecondaryButton:focus-visible {
     background: var(--colorSurfaceAlt);
 }
 

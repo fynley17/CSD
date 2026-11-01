@@ -176,7 +176,8 @@ async function exportResults() {
     color: var(--colorSurface);
 }
 
-.completedTestViewAnswers:hover {
+.completedTestViewAnswers:hover,
+.completedTestViewAnswers:focus-visible {
     border-color: var(--colorPrimaryHover);
     background: var(--colorPrimaryHover);
     color: var(--colorSurface);
