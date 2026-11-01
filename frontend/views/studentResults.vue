@@ -173,6 +173,7 @@ onMounted(() => Promise.all([loadSummary(), loadCompletedTests()]));
     --bs-btn-active-border-color: var(--colorTextSecondary);
     --bs-btn-disabled-color: var(--colorTextSecondary);
     --bs-btn-disabled-border-color: var(--colorTextSecondary);
+
     display: inline-flex;
     min-height: var(--minTouchTarget);
     align-items: center;
