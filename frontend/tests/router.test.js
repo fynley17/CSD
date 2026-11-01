@@ -132,5 +132,8 @@ describe('router guard for student only pages', () => {
         getCurrentUser.mockResolvedValue({ accountType: 'student' });
         await router.push('/testing/test-1');
         expect(router.currentRoute.value.name).toBe('testing');
+
+        await router.push('/testing/answers/completed-1');
+        expect(router.currentRoute.value.name).toBe('testAnswers');
     });
 });

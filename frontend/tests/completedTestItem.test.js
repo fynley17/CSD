@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { flushPromises, mount } from '@vue/test-utils';
+import { flushPromises, mount, RouterLinkStub } from '@vue/test-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import CompletedTestItem from '../components/common/completedTestItem.vue';
 import { getCompletedTestReview } from '../services/resultService';
@@ -29,6 +29,17 @@ const baseResult = {
 describe('CompletedTestItem', () => {
     beforeEach(() => {
         vi.clearAllMocks();
+    });
+
+    it('links to the answers for that attempt', () => {
+        const wrapper = mount(CompletedTestItem, {
+            props: { result: baseResult },
+            global: { stubs: { RouterLink: RouterLinkStub } },
+        });
+        const link = wrapper.getComponent(RouterLinkStub);
+
+        expect(link.props('to')).toEqual({ name: 'testAnswers', params: { completedID: 'completed-1' } });
+        expect(link.text()).toBe('View Answers');
     });
 
     it('displays the completed test information and percentage', () => {

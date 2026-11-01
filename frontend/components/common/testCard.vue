@@ -151,7 +151,8 @@ const dueDate = computed(() => {
     color: var(--colorSurface);
 }
 
-.testCardStartButton:hover {
+.testCardStartButton:hover,
+.testCardStartButton:focus-visible {
     border-color: var(--colorPrimaryHover);
     background: var(--colorPrimaryHover);
     color: var(--colorSurface);

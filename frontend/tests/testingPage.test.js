@@ -3,7 +3,14 @@
 import { flushPromises, mount, RouterLinkStub } from '@vue/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import TestingPage from '../views/testingPage.vue';
+import { getCompletedTestReview } from '../services/resultService';
 import { startTestAttempt, submitTest } from '../services/testService';
+
+const route = vi.hoisted(() => ({ params: { testID: 'test-1' } }));
+
+vi.mock('../services/resultService', () => ({
+    getCompletedTestReview: vi.fn(),
+}));
 
 vi.mock('../services/testService', () => ({
     startTestAttempt: vi.fn(),
@@ -11,7 +18,7 @@ vi.mock('../services/testService', () => ({
 }));
 
 vi.mock('vue-router', () => ({
-    useRoute: () => ({ params: { testID: 'test-1' } }),
+    useRoute: () => route,
 }));
 
 const test = {
@@ -235,5 +242,112 @@ describe('TestingPage', () => {
         const wrapper = await mountPage();
 
         expect(wrapper.get('[role="alert"]').text()).toBe('This test is not available.');
+    });
+
+    describe('viewing the answers of a completed test', () => {
+        const attempt = {
+            completedID: 'completed-1',
+            testName: 'Web Apps basics',
+            subjectName: 'Web Apps',
+            questionCount: 2,
+            correctCount: 1,
+            pointsEarned: 20,
+            percentageCorrect: 50,
+            questions: [
+                {
+                    questionID: 'question-1',
+                    question: 'What is not a framework for JS?',
+                    selectedAnswerID: 'a1',
+                    isCorrect: true,
+                    answers: [
+                        { answerID: 'a1', answerText: 'Django', isCorrect: true },
+                        { answerID: 'a2', answerText: 'Vue', isCorrect: false },
+                    ],
+                },
+                {
+                    questionID: 'question-2',
+                    question: 'Which is a CSS unit?',
+                    selectedAnswerID: 'b2',
+                    isCorrect: false,
+                    answers: [
+                        { answerID: 'b1', answerText: 'rem', isCorrect: true },
+                        { answerID: 'b2', answerText: 'kg', isCorrect: false },
+                    ],
+                },
+            ],
+        };
+
+        function mountAnswers() {
+            return mount(TestingPage, { global: { stubs: { RouterLink: RouterLinkStub } } });
+        }
+
+        beforeEach(() => {
+            route.params = { completedID: 'completed-1' };
+            startTestAttempt.mockClear();
+            getCompletedTestReview.mockReset();
+        });
+
+        afterEach(() => {
+            route.params = { testID: 'test-1' };
+            window.history.replaceState({}, '');
+        });
+
+        it('shows the results screen for that attempt without starting a test', async () => {
+            getCompletedTestReview.mockResolvedValue(attempt);
+
+            const wrapper = mountAnswers();
+            await flushPromises();
+
+            expect(getCompletedTestReview).toHaveBeenCalledWith('completed-1');
+            expect(startTestAttempt).not.toHaveBeenCalled();
+            expect(wrapper.text()).toContain('Web Apps basics results');
+            expect(wrapper.get('.resultsMark').text()).toContain('1/2');
+            expect(wrapper.text()).toContain('+20 PTS');
+            expect(wrapper.findAll('.reviewQuestion')).toHaveLength(2);
+            expect(wrapper.find('.reviewAnswerWrong').text()).toContain('Your answer');
+            expect(wrapper.find('.reviewQuestionWrong .reviewAnswerCorrect').text()).toContain('Correct answer');
+        });
+
+        it('leaves out the best streak, as the order the questions were asked in is not saved', async () => {
+            getCompletedTestReview.mockResolvedValue(attempt);
+
+            const wrapper = mountAnswers();
+            await flushPromises();
+
+            expect(wrapper.text()).not.toContain('Best streak');
+        });
+
+        it('goes back to the page the student came from', async () => {
+            window.history.replaceState({ back: '/student-results' }, '');
+            getCompletedTestReview.mockResolvedValue(attempt);
+
+            const wrapper = mountAnswers();
+            await flushPromises();
+            const back = wrapper.findComponent(RouterLinkStub);
+
+            expect(back.props('to')).toBe('/student-results');
+            expect(back.text()).toBe('Back');
+        });
+
+        it('goes back to the tests when there is no previous page', async () => {
+            getCompletedTestReview.mockResolvedValue(attempt);
+
+            const wrapper = mountAnswers();
+            await flushPromises();
+
+            expect(wrapper.findComponent(RouterLinkStub).props('to')).toEqual({ name: 'testSelection' });
+        });
+
+        it('shows the error when the attempt cannot be loaded', async () => {
+            getCompletedTestReview.mockRejectedValue({
+                response: { data: { error: 'This completed test could not be found.' } },
+            });
+
+            const wrapper = mountAnswers();
+            await flushPromises();
+
+            expect(wrapper.get('[role="alert"]').text()).toBe('This completed test could not be found.');
+            expect(wrapper.find('.reviewQuestion').exists()).toBe(false);
+        });
     });
 });
