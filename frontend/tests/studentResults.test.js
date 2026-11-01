@@ -4,6 +4,11 @@ import { flushPromises, mount } from '@vue/test-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import StudentResults from '../views/studentResults.vue';
 import { getCompletedTests, getResultsSummary } from '../services/resultService';
+import { exportResultsReport } from '../utils/exportResultsReport';
+
+vi.mock('../utils/exportResultsReport', () => ({
+    exportResultsReport: vi.fn(),
+}));
 
 vi.mock('../services/resultService', () => ({
     getCompletedTests: vi.fn(),
@@ -222,5 +227,79 @@ describe('studentResults', () => {
 
         // Assert
         expect(wrapper.find('[role="alert"]').text()).toBe('Results unavailable');
+    });
+
+    describe('export all test data', () => {
+        const completedTest = {
+            completedID: 1,
+            testID: 'test-1',
+            testName: 'Algebra Basics',
+            testDescription: 'Linear equations',
+            subjectName: 'Maths',
+            completedDate: '2026-10-28 09:00:00',
+            questionCount: 10,
+            pointsEarned: 9,
+            percentageCorrect: 90,
+        };
+
+        it('hands the student details and every completed test to the report', async () => {
+            // Arrange
+            getCompletedTests.mockResolvedValue([completedTest]);
+            const wrapper = mount(StudentResults);
+            await flushPromises();
+
+            // Act
+            await wrapper.get('.exportAllButton').trigger('click');
+            await flushPromises();
+
+            // Assert
+            expect(exportResultsReport).toHaveBeenCalledWith(
+                expect.objectContaining({ studentName: 'Ada Lovelace', studentNumber: 'WS000001', totalPoints: 800 }),
+                [completedTest],
+            );
+        });
+
+        it('has no button when there are no tests to export', async () => {
+            // Arrange
+            getCompletedTests.mockResolvedValue([]);
+
+            // Act
+            const wrapper = mount(StudentResults);
+            await flushPromises();
+
+            // Assert
+            expect(wrapper.find('.exportAllButton').exists()).toBe(false);
+        });
+
+        it('has no button when the summary the report needs fails to load', async () => {
+            // Arrange
+            getCompletedTests.mockResolvedValue([completedTest]);
+            getResultsSummary.mockRejectedValue(new Error('Network error'));
+
+            // Act
+            const wrapper = mount(StudentResults);
+            await flushPromises();
+
+            // Assert
+            expect(wrapper.find('.exportAllButton').exists()).toBe(false);
+        });
+
+        it('shows an error when the export fails', async () => {
+            // Arrange
+            getCompletedTests.mockResolvedValue([completedTest]);
+            exportResultsReport.mockRejectedValueOnce(new Error('Could not load jsPDF'));
+            const wrapper = mount(StudentResults);
+            await flushPromises();
+
+            // Act
+            await wrapper.get('.exportAllButton').trigger('click');
+            await flushPromises();
+
+            // Assert
+            expect(wrapper.get('[role="alert"]').text()).toBe(
+                'Unable to export your test data. Please try again later.',
+            );
+            expect(wrapper.get('.exportAllButton').attributes('disabled')).toBeUndefined();
+        });
     });
 });

@@ -3,6 +3,7 @@ import { computed, onMounted, ref } from 'vue';
 import CompletedTestList from '../components/common/completedTestList.vue';
 import GradesLineChart from '../components/common/gradesLineChart.vue';
 import { getCompletedTests, getResultsSummary } from '../services/resultService';
+import { exportResultsReport } from '../utils/exportResultsReport';
 
 const resultsError = ref('');
 const summary = ref(null);
@@ -52,6 +53,26 @@ const gradeHistory = computed(() =>
         percentage: result.percentageCorrect,
     })),
 );
+
+const isExporting = ref(false);
+const exportError = ref('');
+
+// Everything in the report is already on this page, so nothing else needs loading.
+async function exportAllResults() {
+    isExporting.value = true;
+    exportError.value = '';
+
+    try {
+        await exportResultsReport(
+            { ...summary.value, studentName: studentName.value, studentNumber: studentNumber.value },
+            completedTests.value,
+        );
+    } catch {
+        exportError.value = 'Unable to export your test data. Please try again later.';
+    } finally {
+        isExporting.value = false;
+    }
+}
 
 async function loadCompletedTests() {
     try {
@@ -116,7 +137,22 @@ onMounted(() => Promise.all([loadSummary(), loadCompletedTests()]));
     </section>
 
     <section class="container pb-4" aria-labelledby="completedTestsHeading">
-        <h2 id="completedTestsHeading">Completed tests</h2>
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+            <h2 id="completedTestsHeading" class="mb-0">Completed tests</h2>
+
+            <button
+                v-if="summary && completedTests.length > 0"
+                type="button"
+                class="btn btn-outline-secondary btn-sm exportAllButton"
+                :disabled="isExporting"
+                @click="exportAllResults"
+            >
+                <i class="bi bi-file-earmark-arrow-down" aria-hidden="true"></i>
+                {{ isExporting ? 'Exporting...' : 'Export all test data' }}
+            </button>
+        </div>
+
+        <p v-if="exportError" class="alert alert-danger mt-3 mb-0" role="alert">{{ exportError }}</p>
 
         <p v-if="isLoadingCompleted" class="hintText" role="status">Loading completed tests...</p>
         <p v-else-if="completedLoadError" class="alert alert-danger" role="alert">{{ completedLoadError }}</p>
@@ -125,3 +161,21 @@ onMounted(() => Promise.all([loadSummary(), loadCompletedTests()]));
         <CompletedTestList v-else :tests="completedTests" />
     </section>
 </template>
+
+<style scoped>
+/* Bootstrap's grey only reaches 4.3:1 on the page background, this one is over 6:1. Big enough to tap on a phone. */
+.exportAllButton {
+    --bs-btn-color: var(--colorTextSecondary);
+    --bs-btn-border-color: var(--colorTextSecondary);
+    --bs-btn-hover-bg: var(--colorTextSecondary);
+    --bs-btn-hover-border-color: var(--colorTextSecondary);
+    --bs-btn-active-bg: var(--colorTextSecondary);
+    --bs-btn-active-border-color: var(--colorTextSecondary);
+    --bs-btn-disabled-color: var(--colorTextSecondary);
+    --bs-btn-disabled-border-color: var(--colorTextSecondary);
+    display: inline-flex;
+    min-height: var(--minTouchTarget);
+    align-items: center;
+    gap: var(--spaceXs);
+}
+</style>
