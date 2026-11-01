@@ -1,11 +1,11 @@
 // Page layout in millimetres, A4 portrait.
-const MARGIN = 16;
-const FOOTER_SPACE = 20;
+export const MARGIN = 16;
+export const FOOTER_SPACE = 20;
 const POINTS_TO_MM = 0.3528;
 const LINE_HEIGHT_FACTOR = 1.3;
 
 // The same colours as main.css, so the export looks like the rest of RevisionHub.
-const COLOURS = {
+export const COLOURS = {
     brand: '#1e3a8a',
     highlight: '#93c5fd',
     infoLight: '#dbeafe',
@@ -24,7 +24,7 @@ const COLOURS = {
 };
 
 // Characters Windows and macOS won't allow in a file name.
-const UNSAFE_FILE_CHARACTERS = /[\\/:*?"<>|]/g;
+export const UNSAFE_FILE_CHARACTERS = /[\\/:*?"<>|]/g;
 
 // "Web Apps Test - Ada Lovelace.pdf", the test and the student who completed it.
 export function pdfFileName(review) {
@@ -62,7 +62,7 @@ function answerStyle(question, answer) {
     return { label: '', colour: COLOURS.text, background: COLOURS.surface };
 }
 
-function formatPercentage(value) {
+export function formatPercentage(value) {
     return `${Number.isInteger(value) ? value : value.toFixed(1)}%`;
 }
 
@@ -70,7 +70,7 @@ function formatPoints(value) {
     return `${value > 0 ? '+' : ''}${value} PTS`;
 }
 
-function formatDate(value) {
+export function formatDate(value) {
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) {
         return value;
@@ -78,17 +78,8 @@ function formatDate(value) {
     return new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(date);
 }
 
-// Draws the results PDF: a header, the mark, then a card per question with the
-// student's answer and the correct answer. JsPDF is passed in so the layout can be
-// built without downloading the library up front.
-export function buildTestPdf(JsPDF, review) {
-    const doc = new JsPDF({ unit: 'mm', format: 'a4' });
-    const pageWidth = doc.internal.pageSize.getWidth();
-    const pageHeight = doc.internal.pageSize.getHeight();
-    const contentWidth = pageWidth - MARGIN * 2;
-    const contentBottom = pageHeight - FOOTER_SPACE;
-    let y = 0;
-
+// The text helpers both PDFs draw with, sizes are in points and positions in millimetres.
+export function pdfTools(doc) {
     function setFont(size, style = 'normal', colour = COLOURS.text) {
         doc.setFont('helvetica', style);
         doc.setFontSize(size);
@@ -110,6 +101,50 @@ export function buildTestPdf(JsPDF, review) {
         setFont(size, style, colour);
         doc.text(lines, x, top, { baseline: 'top', lineHeightFactor: LINE_HEIGHT_FACTOR, align });
     }
+
+    return { setFont, wrap, drawLines };
+}
+
+// Footer on every page, added last so the page count is known.
+export function drawFooters(doc, text) {
+    const { setFont, drawLines } = pdfTools(doc);
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const contentWidth = pageWidth - MARGIN * 2;
+    const pageCount = doc.getNumberOfPages();
+
+    for (let page = 1; page <= pageCount; page++) {
+        doc.setPage(page);
+        doc.setDrawColor(COLOURS.divider);
+        doc.setLineWidth(0.2);
+        doc.line(MARGIN, pageHeight - 13, pageWidth - MARGIN, pageHeight - 13);
+        setFont(8);
+        const footer = doc.splitTextToSize(text, contentWidth - 30);
+        drawLines(footer[0], MARGIN, pageHeight - 10, 8, 'normal', COLOURS.secondary);
+        drawLines(
+            `Page ${page} of ${pageCount}`,
+            pageWidth - MARGIN,
+            pageHeight - 10,
+            8,
+            'normal',
+            COLOURS.secondary,
+            'right',
+        );
+    }
+}
+
+// Draws the results PDF: a header, the mark, then a card per question with the
+// student's answer and the correct answer. JsPDF is passed in so the layout can be
+// built without downloading the library up front.
+export function buildTestPdf(JsPDF, review) {
+    const doc = new JsPDF({ unit: 'mm', format: 'a4' });
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const contentWidth = pageWidth - MARGIN * 2;
+    const contentBottom = pageHeight - FOOTER_SPACE;
+    let y = 0;
+
+    const { setFont, wrap, drawLines } = pdfTools(doc);
 
     // Starts a new page when the next block won't fit, unless the page is still empty.
     function ensureSpace(height) {
@@ -234,29 +269,7 @@ export function buildTestPdf(JsPDF, review) {
         y += cardHeight + 5;
     });
 
-    // Footer on every page, added last so the page count is known.
-    const pageCount = doc.getNumberOfPages();
-    for (let page = 1; page <= pageCount; page++) {
-        doc.setPage(page);
-        doc.setDrawColor(COLOURS.divider);
-        doc.setLineWidth(0.2);
-        doc.line(MARGIN, pageHeight - 13, pageWidth - MARGIN, pageHeight - 13);
-        setFont(8);
-        const footer = doc.splitTextToSize(
-            `RevisionHub  |  ${review.testName}  |  ${review.studentName}`,
-            contentWidth - 30,
-        );
-        drawLines(footer[0], MARGIN, pageHeight - 10, 8, 'normal', COLOURS.secondary);
-        drawLines(
-            `Page ${page} of ${pageCount}`,
-            pageWidth - MARGIN,
-            pageHeight - 10,
-            8,
-            'normal',
-            COLOURS.secondary,
-            'right',
-        );
-    }
+    drawFooters(doc, `RevisionHub  |  ${review.testName}  |  ${review.studentName}`);
 
     return doc;
 }

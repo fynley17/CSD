@@ -84,8 +84,12 @@ final class TestModelTest extends TestCase
 
     public function testReturnsCardFieldsAndHowManyQuestionsAnAttemptAsks(): void
     {
+        // Arrange: setUp() has filled the tables
+
+        // Act
         $tests = Test::getAvailableForStudents('student-user-1');
 
+        // Assert
         self::assertCount(2, $tests);
         self::assertSame(
             [
@@ -113,9 +117,13 @@ final class TestModelTest extends TestCase
 
     public function testUsesCardFallbacksForMissingOptionalValues(): void
     {
+        // Arrange: setUp() has filled the tables
+
+        // Act
         $tests = Test::getAvailableForStudents('student-user-1');
         $untimedTest = $tests[1];
 
+        // Assert
         self::assertSame('No description provided.', $untimedTest['testDescription']);
         self::assertNull($untimedTest['timeLimit']);
         self::assertNull($untimedTest['dueDate']);
@@ -125,32 +133,42 @@ final class TestModelTest extends TestCase
 
     public function testQuestionCountIsHowManyQuestionsEachAttemptDraws(): void
     {
+        // Arrange
         // a set count is shown, but never more than the pool holds
         $this->db->exec("UPDATE Tests SET questionCount = 1 WHERE testID = 'test-with-questions'");
         $this->db->exec("UPDATE Tests SET questionCount = 4 WHERE testID = 'untimed-test'");
 
+        // Act
         $tests = Test::getAvailableForStudents('student-user-1');
 
+        // Assert
         self::assertSame([1, 3], array_column($tests, 'questionCount'));
         self::assertArrayNotHasKey('questionsPerAttempt', $tests[0]);
     }
 
     public function testTestsInTheSameSubjectShareItsQuestionPool(): void
     {
+        // Arrange
         // a new question in the subject is added to the pool of every test in that subject
         $this->db->exec("INSERT INTO Questions VALUES ('question-5', 'subject-1')");
         $this->db->exec("UPDATE Tests SET questionCount = 10");
 
+        // Act
         $tests = Test::getAvailableForStudents('student-user-1');
 
+        // Assert
         self::assertSame([4, 4], array_column($tests, 'questionCount'));
     }
 
     public function testDoesNotReturnTestsWhoseSubjectHasNoQuestionsOrAnswerData(): void
     {
+        // Arrange: setUp() has filled the tables
+
+        // Act
         $tests = Test::getAvailableForStudents('student-user-1');
         $testIDs = array_column($tests, 'testID');
 
+        // Assert
         self::assertNotContains('empty-test', $testIDs);
         self::assertNotContains('other-cohort-test', $testIDs);
         self::assertNotContains('answerID', array_keys($tests[0]));
@@ -159,6 +177,7 @@ final class TestModelTest extends TestCase
 
     public function testKeepsFullMarksTestsListedButStopsThemEarningPoints(): void
     {
+        // Arrange
         // a lower score still earns points, full marks stops it earning points for that student only
         $this->db->exec(
             "INSERT INTO CompletedTests VALUES
@@ -168,18 +187,25 @@ final class TestModelTest extends TestCase
                 ('other-cohort-test', 'student-user-1', 100)"
         );
 
+        // Act
         $tests = Test::getAvailableForStudents('student-user-1');
+        $otherStudentsTests = Test::getAvailableForStudents('student-user-2');
 
+        // Assert
         self::assertSame(['test-with-questions', 'untimed-test'], array_column($tests, 'testID'));
         self::assertSame([false, true], array_column($tests, 'earnsPoints'));
-        self::assertSame([true], array_column(Test::getAvailableForStudents('student-user-2'), 'earnsPoints'));
+        self::assertSame([true], array_column($otherStudentsTests, 'earnsPoints'));
     }
 
     public function testReturnsOnlyTestsForTheLoggedInStudentsCohort(): void
     {
+        // Arrange: setUp() has filled the tables
+
+        // Act
         $tests = Test::getAvailableForStudents('student-user-2');
         $testIDs = array_column($tests, 'testID');
 
+        // Assert
         self::assertSame(['other-cohort-test'], $testIDs);
     }
 }
