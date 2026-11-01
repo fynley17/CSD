@@ -114,10 +114,11 @@ const chartOptions = computed(() => ({
                 ...selectedRange.value.axisTime,
                 // weeks start on a Monday, as they do on a UK calendar
                 isoWeekday: true,
+                // every label has the year, so tests from different years can be told apart
                 displayFormats: {
-                    day: selectedRange.value.id === 'week' ? 'EEE d' : 'd MMM',
-                    week: 'd MMM',
-                    month: 'MMM',
+                    day: selectedRange.value.id === 'week' ? 'EEE d MMM yyyy' : 'd MMM yyyy',
+                    week: 'd MMM yyyy',
+                    month: 'MMM yyyy',
                 },
             },
             grid: { display: false },

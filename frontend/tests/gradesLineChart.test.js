@@ -117,6 +117,18 @@ describe('gradesLineChart', () => {
         expect(x.time.minUnit).toBe('day');
     });
 
+    it.each(['Week', 'Month', '3 months', 'Year', 'All time'])(
+        'has the year in the x axis labels for %s',
+        async (label) => {
+            const wrapper = mount(GradesLineChart, { props: { grades } });
+
+            await selectRange(wrapper, label);
+            const { displayFormats } = wrapper.findComponent({ name: 'Line' }).props().options.scales.x.time;
+
+            expect(Object.values(displayFormats).every((format) => format.includes('yyyy'))).toBe(true);
+        },
+    );
+
     it('says so when a period has no tests, and can go back to the graph', async () => {
         const wrapper = mount(GradesLineChart, { props: { grades: [grades[0]] } });
 
