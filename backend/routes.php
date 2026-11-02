@@ -128,6 +128,16 @@ $router->addRoute(
     [new AdministratorController(), 'getRecentLecturers']
 );
 
+// every cohort with its students and subjects for cohort management, admins only
+$router->addRoute('GET', '/^\/api\/admin\/cohorts$/', [new CohortController(), 'getCohortsForManagement']);
+
+// disable or enable a cohort, admins only
+$router->addRoute(
+    'PUT',
+    '/^\/api\/admin\/cohorts\/([0-9a-zA-Z-]+)\/status$/',
+    [new CohortController(), 'updateCohortStatus']
+);
+
 // every subject for the admin dashboard table, admins only
 $router->addRoute('GET', '/^\/api\/subjects$/', [new SubjectController(), 'getAllSubjects']);
 

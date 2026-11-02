@@ -1,5 +1,4 @@
-// Placeholder cohorts for the cohort management page, copied from the wireframe.
-// Swap this for a cohortService call once PHP can send the students and subjects for each cohort.
+// Pretend cohorts for the cohort management tests, copied from the wireframe.
 const SAMPLE_SUBJECTS = [
     { subjectID: 'subject-1', subjectName: 'Web Applications', testCount: 6, lecturerNames: 'Jack Kimmins' },
     { subjectID: 'subject-2', subjectName: 'Databases', testCount: 4, lecturerNames: 'Jason Hill' },

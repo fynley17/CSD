@@ -50,7 +50,7 @@
                         <tr v-for="subject in cohort.subjects" :key="subject.subjectID">
                             <th scope="row">{{ subject.subjectName }}</th>
                             <td>{{ subject.testCount }}</td>
-                            <td>{{ subject.lecturerNames }}</td>
+                            <td>{{ subject.lecturerNames || 'Not assigned' }}</td>
                             <td>
                                 <button
                                     type="button"

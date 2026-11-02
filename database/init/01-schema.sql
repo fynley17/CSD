@@ -19,7 +19,8 @@ CREATE TABLE `Cohorts` (
   -- Cohort IDs are selected by the registration form and stored against each student.
   `cohortID` uuid NOT NULL DEFAULT uuid(),
   `cohortName` varchar(50) NOT NULL,
-  `isActive` tinyint(1) NOT NULL DEFAULT 1 COMMENT '1 = active, 0 = disabled'
+  `isActive` tinyint(1) NOT NULL DEFAULT 1 COMMENT '1 = active, 0 = disabled',
+  `createdDate` date NOT NULL DEFAULT curdate()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE `CompletedTests` (
