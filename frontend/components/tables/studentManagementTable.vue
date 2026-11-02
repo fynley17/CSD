@@ -20,6 +20,8 @@ const loading = ref(true);
 const errorMessage = ref('');
 const actionError = ref('');
 
+const emit = defineEmits(['edit']);
+
 // References used to access the DataTables instance and available cohort options.
 const dataTable = ref(null);
 const tableWrapper = ref(null);
@@ -280,8 +282,16 @@ const handleActionClick = async (event) => {
     const action = button.dataset.action;
     const userID = button.dataset.userId;
 
-    // Edit will be connected when the edit form is implemented.
+    // Find the selected student and pass their details to the parent view.
     if (action === 'edit') {
+        const selectedStudent = students.value.find((student) => String(student.userID) === String(userID));
+
+        if (selectedStudent) {
+            emit('edit', selectedStudent);
+        } else {
+            actionError.value = 'Unable to find the selected student.';
+        }
+
         return;
     }
 

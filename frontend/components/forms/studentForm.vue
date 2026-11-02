@@ -1,10 +1,19 @@
 <script setup>
-import { onMounted, nextTick, ref } from 'vue';
+import { computed, onMounted, nextTick, ref } from 'vue';
 import PopupDialog from '../common/popupDialog.vue';
 import api from '../../services/api';
-import { createStudent } from '../../services/studentService';
+import { createStudent, updateStudent } from '../../services/studentService';
+
+const props = defineProps({
+    student: {
+        type: Object,
+        default: null,
+    },
+});
 
 const emit = defineEmits(['saved', 'close']);
+
+const isEditing = computed(() => Boolean(props.student?.userID));
 
 const dialog = ref(null);
 const cohorts = ref([]);
@@ -12,12 +21,13 @@ const loadingCohorts = ref(false);
 const submitting = ref(false);
 const errorMessage = ref('');
 
+// Populate the form with the selected student's details when editing.
 const form = ref({
-    firstName: '',
-    lastName: '',
-    studentNumber: '',
-    email: '',
-    cohortID: '',
+    firstName: props.student?.firstName ?? '',
+    lastName: props.student?.lastName ?? '',
+    studentNumber: props.student?.studentNumber ?? '',
+    email: props.student?.email ?? '',
+    cohortID: props.student?.cohortID ?? '',
 });
 
 // Load the available cohorts for the lecturer to assign the student to.
@@ -65,7 +75,7 @@ function validateForm() {
     return true;
 }
 
-// Create the student account and notify the parent view when successful.
+// Create a new student or update the selected student's details.
 async function submitStudent() {
     errorMessage.value = '';
 
@@ -84,15 +94,23 @@ async function submitStudent() {
     };
 
     try {
-        const response = await createStudent(studentData);
+        let response;
+
+        if (isEditing.value) {
+            response = await updateStudent(props.student.userID, studentData);
+        } else {
+            response = await createStudent(studentData);
+        }
 
         emit('saved', response);
         dialog.value?.close();
     } catch (error) {
+        const action = isEditing.value ? 'update' : 'create';
+
         errorMessage.value =
             error.response?.data?.error ??
             error.response?.data?.message ??
-            'Unable to create the student account. Please check the details and try again.';
+            `Unable to ${action} the student account. Please try again.`;
     } finally {
         submitting.value = false;
     }
@@ -107,7 +125,7 @@ onMounted(async () => {
 </script>
 
 <template>
-    <PopupDialog ref="dialog" title="Add New Student" @close="emit('close')">
+    <PopupDialog ref="dialog" :title="isEditing ? 'Edit Student' : 'Add New Student'" @close="emit('close')">
         <form id="student-form" class="studentForm" @submit.prevent="submitStudent">
             <div v-if="errorMessage" class="formError" role="alert">
                 {{ errorMessage }}
@@ -167,7 +185,7 @@ onMounted(async () => {
                     placeholder="Enter email address"
                     :disabled="submitting"
                 />
-                <small>The student's login details will be sent to this address.</small>
+                <small>The student's email address is used for their account.</small>
             </div>
 
             <div class="formGroup">
@@ -203,7 +221,15 @@ onMounted(async () => {
                     class="studentCreateButton"
                     :disabled="submitting || loadingCohorts || cohorts.length === 0"
                 >
-                    {{ submitting ? 'Creating...' : 'Create Student' }}
+                    {{
+                        submitting
+                            ? isEditing
+                                ? 'Saving...'
+                                : 'Creating...'
+                            : isEditing
+                              ? 'Save Changes'
+                              : 'Create Student'
+                    }}
                 </button>
             </div>
         </template>
@@ -293,7 +319,7 @@ onMounted(async () => {
     border-color: var(--colorPrimary);
 }
 
-/* Primary create student button. */
+/* Primary create or save button. */
 .studentCreateButton {
     color: var(--colorSurface);
     background: var(--colorPrimary);

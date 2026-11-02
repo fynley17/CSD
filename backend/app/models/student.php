@@ -38,6 +38,9 @@ class Student extends User
         $sql = "
             SELECT
                 s.userID,
+                s.firstName,
+                s.lastName,
+                s.cohortID,
                 $nameSql AS name,
                 u.username AS studentNumber,
                 u.email,

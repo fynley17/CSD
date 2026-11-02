@@ -11,10 +11,11 @@ const cohortFilter = ref('');
 const statusFilter = ref('');
 const searchTerm = ref('');
 
-// Control the Add New Student form.
+// Control the student form and store the student being edited.
 const showStudentForm = ref(false);
+const selectedStudent = ref(null);
 
-// Change this key to reload the student table after a student is created.
+// Change this key to reload the student table after a successful save.
 const tableKey = ref(0);
 
 // Retrieve the available cohort options from the student table component.
@@ -35,17 +36,25 @@ const searchStudents = () => {
     studentManagementTable.value?.searchStudents(searchTerm.value);
 };
 
-// Open the Add New Student form.
+// Open the form in Add mode.
 const openStudentForm = () => {
+    selectedStudent.value = null;
     showStudentForm.value = true;
 };
 
-// Close the Add New Student form.
-const closeStudentForm = () => {
-    showStudentForm.value = false;
+// Open the form in Edit mode with the selected student's details.
+const openEditStudentForm = (student) => {
+    selectedStudent.value = student;
+    showStudentForm.value = true;
 };
 
-// Refresh the table after a student has been created.
+// Close the student form and clear the selected student.
+const closeStudentForm = () => {
+    showStudentForm.value = false;
+    selectedStudent.value = null;
+};
+
+// Refresh the table after a student has been created or updated.
 const handleStudentSaved = () => {
     tableKey.value += 1;
 };
@@ -93,7 +102,7 @@ const handleStudentSaved = () => {
 
         <!-- Display the student table and its records. -->
         <div class="tableSection">
-            <StudentManagementTable :key="tableKey" ref="studentManagementTable" />
+            <StudentManagementTable :key="tableKey" ref="studentManagementTable" @edit="openEditStudentForm" />
         </div>
 
         <!-- Display the Add Student button underneath the table. -->
@@ -101,8 +110,14 @@ const handleStudentSaved = () => {
             <button type="button" class="addStudentButton" @click="openStudentForm">+ Add New Student</button>
         </div>
 
-        <!-- Display the student creation form when requested. -->
-        <StudentForm v-if="showStudentForm" @saved="handleStudentSaved" @close="closeStudentForm" />
+        <!-- Display the student form in Add or Edit mode. -->
+        <StudentForm
+            v-if="showStudentForm"
+            :key="selectedStudent?.userID ?? 'new'"
+            :student="selectedStudent"
+            @saved="handleStudentSaved"
+            @close="closeStudentForm"
+        />
     </main>
 </template>
 
