@@ -6,11 +6,13 @@ import { flushPromises, mount } from '@vue/test-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
     assignSubjects,
+    createCohort,
     deleteCohort,
     getCohorts,
     getUnassignedSubjects,
     removeSubject,
     setCohortActive,
+    updateCohort,
 } from '../services/cohortService';
 import CohortManagement from '../views/cohortManagement.vue';
 import { sampleCohorts } from './sampleCohorts';
@@ -22,6 +24,8 @@ vi.mock('../services/cohortService', () => ({
     assignSubjects: vi.fn(),
     removeSubject: vi.fn(),
     deleteCohort: vi.fn(),
+    createCohort: vi.fn(),
+    updateCohort: vi.fn(),
 }));
 
 /**
@@ -838,5 +842,258 @@ describe('CohortManagement', () => {
         // Assert
         expect(findButton(page, 'Delete DTS 2026').classes()).toContain('tableDeleteButton');
         expect(findButton(page, 'Disable DTS 2026').classes()).toContain('tableDisableButton');
+    });
+
+    /**
+     * The name box in the cohort pop-up and the button that saves it
+     */
+    function cohortForm(page) {
+        return {
+            name: page.get('#cohortName'),
+            form: page.get('#cohortForm'),
+            status: page.get('#cohortStatus'),
+            saveButton: page.get('.cohortDialogButtons .cohortPrimaryButton'),
+        };
+    }
+
+    /**
+     * Create Cohort opens an empty pop-up (normal)
+     */
+    it('opens an empty form to create a cohort', async () => {
+        // Arrange
+        const page = await openPage();
+
+        // Act
+        await page.get('.cohortCreateButton').trigger('click');
+
+        // Assert
+        expect(page.get('.popupTitle').text()).toBe('Create Cohort');
+        expect(cohortForm(page).name.element.value).toBe('');
+        expect(cohortForm(page).saveButton.text()).toBe('Create Cohort');
+    });
+
+    /**
+     * Saving adds the new cohort to the top of the tables and closes the pop-up (normal)
+     */
+    it('creates a cohort and shows it straight away', async () => {
+        // Arrange
+        createCohort.mockResolvedValue({
+            cohortID: 'cohort-new',
+            cohortName: 'New Cohort',
+            createdDate: '2026-11-03',
+            isActive: true,
+            students: [],
+            subjects: [],
+        });
+        const page = await openPage();
+        await page.get('.cohortCreateButton').trigger('click');
+        await cohortForm(page).name.setValue('New Cohort');
+
+        // Act
+        await cohortForm(page).form.trigger('submit');
+        await flushPromises();
+
+        // Assert
+        expect(createCohort).toHaveBeenCalledWith('New Cohort', true);
+        expect(page.find('.popupDialog').exists()).toBe(false);
+        expect(cohortNames(page, 0)[0]).toBe('New Cohort');
+    });
+
+    /**
+     * An empty name is stopped before anything is sent (error)
+     */
+    it('rejects an empty name without calling PHP', async () => {
+        // Arrange
+        const page = await openPage();
+        await page.get('.cohortCreateButton').trigger('click');
+        await cohortForm(page).name.setValue('   ');
+
+        // Act
+        await cohortForm(page).form.trigger('submit');
+        await flushPromises();
+
+        // Assert
+        expect(createCohort).not.toHaveBeenCalled();
+        expect(page.get('.popupDialog [role="alert"]').text()).toContain('Enter a cohort name');
+        expect(cohortForm(page).name.attributes('aria-invalid')).toBe('true');
+    });
+
+    /**
+     * PHP's duplicate message shows and the pop-up stays open to fix it (error)
+     */
+    it('shows the problem when the name is a duplicate', async () => {
+        // Arrange
+        createCohort.mockRejectedValue({ response: { data: { error: 'A cohort with this name already exists' } } });
+        const page = await openPage();
+        await page.get('.cohortCreateButton').trigger('click');
+        await cohortForm(page).name.setValue('DTS 2026');
+
+        // Act
+        await cohortForm(page).form.trigger('submit');
+        await flushPromises();
+
+        // Assert
+        expect(page.get('.popupDialog [role="alert"]').text()).toContain('A cohort with this name already exists');
+        expect(cohortNames(page, 0)).toHaveLength(4);
+    });
+
+    /**
+     * Edit opens the pop-up with the current name filled in (normal)
+     */
+    it('opens the form with the current name to edit a cohort', async () => {
+        // Arrange
+        const page = await openPage();
+
+        // Act
+        await findButton(page, 'Edit DTS 2026').trigger('click');
+
+        // Assert
+        expect(page.get('.popupTitle').text()).toBe('Edit Cohort');
+        expect(cohortForm(page).name.element.value).toBe('DTS 2026');
+        expect(cohortForm(page).saveButton.text()).toBe('Save Changes');
+    });
+
+    /**
+     * Saving updates the name in both tables and closes the pop-up (normal)
+     */
+    it('renames a cohort in both tables', async () => {
+        // Arrange
+        updateCohort.mockResolvedValue({ cohortName: 'DTS 2027', isActive: true });
+        const page = await openPage();
+        await findButton(page, 'Edit DTS 2026').trigger('click');
+        await cohortForm(page).name.setValue('DTS 2027');
+
+        // Act
+        await cohortForm(page).form.trigger('submit');
+        await flushPromises();
+
+        // Assert
+        expect(updateCohort).toHaveBeenCalledWith('cohort-1', 'DTS 2027', true);
+        expect(page.find('.popupDialog').exists()).toBe(false);
+        expect(cohortNames(page, 0)).toContain('DTS 2027');
+        expect(cohortNames(page, 1)).toContain('DTS 2027');
+    });
+
+    /**
+     * Cancel leaves the name as it was (edge)
+     */
+    it('keeps the old name when editing is cancelled', async () => {
+        // Arrange
+        const page = await openPage();
+        await findButton(page, 'Edit DTS 2026').trigger('click');
+        await cohortForm(page).name.setValue('Something Else');
+
+        // Act
+        await page.get('.cohortDialogButtons .cohortSecondaryButton').trigger('click');
+
+        // Assert
+        expect(updateCohort).not.toHaveBeenCalled();
+        expect(page.find('.popupDialog').exists()).toBe(false);
+        expect(cohortNames(page, 0)).toContain('DTS 2026');
+    });
+
+    /**
+     * Opening Create after Edit doesn't carry the old name over (edge)
+     */
+    it('starts the create form empty after editing a cohort', async () => {
+        // Arrange
+        const page = await openPage();
+        await findButton(page, 'Edit DTS 2026').trigger('click');
+        await page.get('.cohortDialogButtons .cohortSecondaryButton').trigger('click');
+
+        // Act
+        await page.get('.cohortCreateButton').trigger('click');
+
+        // Assert
+        expect(cohortForm(page).name.element.value).toBe('');
+    });
+
+    /**
+     * The edit button has the same look as on student management (normal)
+     */
+    it('styles the edit button like the rest of the site', async () => {
+        // Arrange and Act
+        const page = await openPage();
+
+        // Assert
+        expect(findButton(page, 'Edit DTS 2026').classes()).toContain('tableEditButton');
+    });
+
+    /**
+     * A new cohort is enabled unless the admin chooses otherwise (normal)
+     */
+    it('starts the create form as enabled', async () => {
+        // Arrange
+        const page = await openPage();
+
+        // Act
+        await page.get('.cohortCreateButton').trigger('click');
+
+        // Assert
+        expect(cohortForm(page).status.element.value).toBe('enabled');
+        expect(page.find('#cohortStatusNote').exists()).toBe(false);
+    });
+
+    /**
+     * A cohort can be created as disabled, with a note on what that means (normal)
+     */
+    it('creates a disabled cohort', async () => {
+        // Arrange
+        createCohort.mockResolvedValue({
+            cohortID: 'cohort-new',
+            cohortName: 'New Cohort',
+            createdDate: '2026-11-03',
+            isActive: false,
+            students: [],
+            subjects: [],
+        });
+        const page = await openPage();
+        await page.get('.cohortCreateButton').trigger('click');
+        await cohortForm(page).name.setValue('New Cohort');
+        await cohortForm(page).status.setValue('disabled');
+        const note = page.get('#cohortStatusNote').text();
+
+        // Act
+        await cohortForm(page).form.trigger('submit');
+        await flushPromises();
+
+        // Assert
+        expect(note).toContain("can't log in");
+        expect(createCohort).toHaveBeenCalledWith('New Cohort', false);
+        expect(findButton(page, 'Enable New Cohort').text()).toBe('Enable');
+    });
+
+    /**
+     * Editing a disabled cohort shows its current status (edge)
+     */
+    it('shows the current status when editing a disabled cohort', async () => {
+        // Arrange
+        const page = await openPage();
+        await page.findAll('select')[0].setValue('disabled');
+
+        // Act
+        await findButton(page, 'Edit Software Engineering 2024').trigger('click');
+
+        // Assert
+        expect(cohortForm(page).status.element.value).toBe('disabled');
+    });
+
+    /**
+     * Changing the status while editing saves it and updates the table (normal)
+     */
+    it('disables a cohort from the edit form', async () => {
+        // Arrange
+        updateCohort.mockResolvedValue({ cohortName: 'DTS 2026', isActive: false });
+        const page = await openPage();
+        await findButton(page, 'Edit DTS 2026').trigger('click');
+        await cohortForm(page).status.setValue('disabled');
+
+        // Act
+        await cohortForm(page).form.trigger('submit');
+        await flushPromises();
+
+        // Assert
+        expect(updateCohort).toHaveBeenCalledWith('cohort-1', 'DTS 2026', false);
+        expect(findButton(page, 'Enable DTS 2026').text()).toBe('Enable');
     });
 });

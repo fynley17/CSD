@@ -51,3 +51,19 @@ export async function deleteCohort(cohortID) {
     const response = await api.delete(`/admin/cohorts/${encodeURIComponent(cohortID)}`);
     return response.data;
 }
+
+/**
+ * Creates a cohort and gives it back, PHP refuses an empty or duplicate name
+ */
+export async function createCohort(cohortName, isActive) {
+    const response = await api.post('/admin/cohorts', { cohortName, isActive });
+    return response.data;
+}
+
+/**
+ * Saves a cohort's name and status and gives back the updated cohort, PHP refuses an empty or duplicate name
+ */
+export async function updateCohort(cohortID, cohortName, isActive) {
+    const response = await api.put(`/admin/cohorts/${encodeURIComponent(cohortID)}`, { cohortName, isActive });
+    return response.data;
+}

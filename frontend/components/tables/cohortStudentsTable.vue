@@ -1,4 +1,4 @@
-<!-- Students in each cohort. Only Disable, Enable and Delete are connected to PHP so far -->
+<!-- Students in each cohort. Edit, Disable, Enable and Delete are connected to PHP, the student buttons aren't yet -->
 <template>
     <CohortExpandableTable :cohorts="cohorts" label="Students in each cohort" :columnCount="7">
         <template #headings>
@@ -19,26 +19,36 @@
                     {{ cohort.isActive ? 'Active' : 'Disabled' }}
                 </span>
             </td>
-            <td class="cohortActions">
-                <button type="button" class="cohortActionButton" :aria-label="`Edit ${cohort.cohortName}`">Edit</button>
-                <button
-                    type="button"
-                    class="btn btn-sm tableActionButton"
-                    :class="cohort.isActive ? 'tableDisableButton' : 'tableEnableButton'"
-                    :aria-label="`${cohort.isActive ? 'Disable' : 'Enable'} ${cohort.cohortName}`"
-                    @click="emit('toggleStatus', cohort)"
-                >
-                    {{ cohort.isActive ? 'Disable' : 'Enable' }}
-                </button>
-                <!-- always clickable, the pop-up explains why a cohort with students or subjects can't be deleted -->
-                <button
-                    type="button"
-                    class="btn btn-sm tableActionButton tableDeleteButton"
-                    :aria-label="`Delete ${cohort.cohortName}`"
-                    @click="emit('delete', cohort)"
-                >
-                    Delete
-                </button>
+            <td>
+                <!-- in its own div, a flex td stops being a table cell and no longer centres with its row -->
+                <div class="cohortActions">
+                    <button
+                        type="button"
+                        class="btn btn-sm tableActionButton tableEditButton"
+                        :aria-label="`Edit ${cohort.cohortName}`"
+                        @click="emit('edit', cohort)"
+                    >
+                        Edit
+                    </button>
+                    <button
+                        type="button"
+                        class="btn btn-sm tableActionButton"
+                        :class="cohort.isActive ? 'tableDisableButton' : 'tableEnableButton'"
+                        :aria-label="`${cohort.isActive ? 'Disable' : 'Enable'} ${cohort.cohortName}`"
+                        @click="emit('toggleStatus', cohort)"
+                    >
+                        {{ cohort.isActive ? 'Disable' : 'Enable' }}
+                    </button>
+                    <!-- always clickable, the pop-up explains why a cohort with students or subjects can't go -->
+                    <button
+                        type="button"
+                        class="btn btn-sm tableActionButton tableDeleteButton"
+                        :aria-label="`Delete ${cohort.cohortName}`"
+                        @click="emit('delete', cohort)"
+                    >
+                        Delete
+                    </button>
+                </div>
             </td>
         </template>
 
@@ -130,7 +140,7 @@ defineProps({
     },
 });
 
-const emit = defineEmits(['toggleStatus', 'delete']);
+const emit = defineEmits(['edit', 'toggleStatus', 'delete']);
 
 const showAllCohortIDs = ref(new Set());
 

@@ -1517,7 +1517,13 @@ main.appMainFullScreen {
     cursor: not-allowed;
 }
 
-/* assign subjects and remove subject pop-ups */
+/* cohort form, assign subjects and remove subject pop-ups */
+.cohortDialogLabel {
+    display: block;
+    margin-bottom: var(--spaceXs);
+    font-weight: 600;
+}
+
 .cohortDialogSearch {
     width: 100%;
     min-height: var(--minTouchTarget);

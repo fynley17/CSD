@@ -4,11 +4,13 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import api from '../services/api';
 import {
     assignSubjects,
+    createCohort,
     deleteCohort,
     getCohorts,
     getUnassignedSubjects,
     removeSubject,
     setCohortActive,
+    updateCohort,
 } from '../services/cohortService';
 
 // pretend api.js, no PHP needed
@@ -121,6 +123,38 @@ describe('cohortService', () => {
         // Assert
         expect(api.delete).toHaveBeenCalledWith('/admin/cohorts/cohort-1');
         expect(result).toEqual({ message: 'Cohort deleted' });
+    });
+
+    /**
+     * Sends the name and gives back the new cohort (normal)
+     */
+    it('creates a cohort', async () => {
+        // Arrange
+        const cohort = { cohortID: 'cohort-1', cohortName: 'Test Cohort' };
+        vi.mocked(api.post).mockResolvedValue({ data: cohort });
+
+        // Act
+        const result = await createCohort('Test Cohort', true);
+
+        // Assert
+        expect(api.post).toHaveBeenCalledWith('/admin/cohorts', { cohortName: 'Test Cohort', isActive: true });
+        expect(result).toEqual(cohort);
+    });
+
+    /**
+     * Sends the name and status to that cohort's address (normal)
+     */
+    it('saves a cohort name and status', async () => {
+        // Arrange
+        const cohort = { cohortID: 'cohort-1', cohortName: 'New Name' };
+        vi.mocked(api.put).mockResolvedValue({ data: cohort });
+
+        // Act
+        const result = await updateCohort('cohort-1', 'New Name', false);
+
+        // Assert
+        expect(api.put).toHaveBeenCalledWith('/admin/cohorts/cohort-1', { cohortName: 'New Name', isActive: false });
+        expect(result).toEqual(cohort);
     });
 
     /**
