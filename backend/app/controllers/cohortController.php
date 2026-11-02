@@ -105,6 +105,27 @@ class CohortController extends Controller
     }
 
     /**
+     * Deletes a cohort, 409 = it still has students or subjects
+     */
+    public function deleteCohort(string $cohortID): void
+    {
+        Authentication::requireRole(['admin']);
+
+        try {
+            if (!Cohort::delete($cohortID)) {
+                $this->jsonResponse(['error' => 'Cohort not found'], 404);
+            }
+
+            $this->jsonResponse(['message' => 'Cohort deleted']);
+        } catch (\InvalidArgumentException $e) {
+            $this->jsonResponse(['error' => $e->getMessage()], 409);
+        } catch (\Throwable $e) {
+            error_log('Deleting a cohort failed: ' . $e->getMessage());
+            $this->jsonResponse(['error' => 'Unable to delete the cohort'], 500);
+        }
+    }
+
+    /**
      * True for a list of at least one ID, each the same shape the routes accept
      * public and static so a unit test can hand it made up input
      */

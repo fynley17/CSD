@@ -117,6 +117,36 @@ class Cohort extends Model
     }
 
     /**
+     * Deletes a cohort, as long as it has no students or subjects
+     * The check is part of the DELETE, so one can't be added between checking and deleting
+     *
+     * @return bool false if there's no cohort with this ID
+     * @throws \InvalidArgumentException if it still has students or subjects
+     */
+    public static function delete(string $cohortID): bool
+    {
+        $db = self::getDB();
+
+        $stmt = $db->prepare(
+            "DELETE FROM Cohorts WHERE cohortID = ?
+                AND NOT EXISTS (SELECT 1 FROM Students WHERE Students.cohortID = ?)
+                AND NOT EXISTS (SELECT 1 FROM Subjects WHERE Subjects.cohortID = ?)"
+        );
+        $stmt->execute([$cohortID, $cohortID, $cohortID]);
+        if ($stmt->rowCount() === 1) {
+            return true;
+        }
+
+        $stmt = $db->prepare("SELECT 1 FROM Cohorts WHERE cohortID = ? LIMIT 1");
+        $stmt->execute([$cohortID]);
+        if ($stmt->fetchColumn() === false) {
+            return false;
+        }
+
+        throw new \InvalidArgumentException('This cohort still has students or subjects, so it cannot be deleted');
+    }
+
+    /**
      * Adds subjects to a cohort, all of them or none
      * A subject added to a disabled cohort is archived the same way as if it was there when the cohort was disabled
      *

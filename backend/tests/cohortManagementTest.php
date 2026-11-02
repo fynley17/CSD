@@ -517,6 +517,77 @@ final class CohortManagementTest extends TestCase
         $this->assertFalse(CohortController::validSubjectIDs(["subject-1' OR 1=1"]));
     }
 
+    /**
+     * An empty cohort is deleted and the others stay (normal)
+     */
+    public function testDeletesAnEmptyCohort(): void
+    {
+        // Act
+        $result = Cohort::delete('cohort-1');
+
+        // Assert
+        $this->assertTrue($result);
+        $this->assertSame(['Test Alpha'], array_column(Cohort::getAllForManagement(), 'cohortName'));
+    }
+
+    /**
+     * A cohort with a student can't be deleted (error)
+     */
+    public function testCannotDeleteACohortWithStudents(): void
+    {
+        // Arrange
+        $this->addStudent('user-1', 'Sam', 'Inside', 'cohort-1', 1, 'approved', null);
+
+        // Act
+        try {
+            Cohort::delete('cohort-1');
+            $this->fail('Expected the delete to be refused');
+        } catch (InvalidArgumentException) {
+            // Assert
+            $this->assertCount(2, Cohort::getAllForManagement());
+        }
+    }
+
+    /**
+     * A cohort with a subject can't be deleted, even an archived one (error)
+     */
+    public function testCannotDeleteACohortWithSubjects(): void
+    {
+        // Arrange
+        $this->addSubject('subject-1', 'cohort-1', 0);
+
+        // Act
+        try {
+            Cohort::delete('cohort-1');
+            $this->fail('Expected the delete to be refused');
+        } catch (InvalidArgumentException) {
+            // Assert
+            $this->assertCount(2, Cohort::getAllForManagement());
+        }
+    }
+
+    /**
+     * Once its last subject is removed the cohort can be deleted (boundary)
+     */
+    public function testCanDeleteACohortOnceItsSubjectIsRemoved(): void
+    {
+        // Arrange
+        $this->addSubject('subject-1', 'cohort-1', 1);
+        Cohort::removeSubject('cohort-1', 'subject-1');
+
+        // Act and Assert
+        $this->assertTrue(Cohort::delete('cohort-1'));
+    }
+
+    /**
+     * Deleting a cohort that doesn't exist is reported back (error)
+     */
+    public function testDeletingAnUnknownCohortReturnsFalse(): void
+    {
+        // Act and Assert
+        $this->assertFalse(Cohort::delete('cohort-missing'));
+    }
+
     private function subjectCohort(string $subjectID): ?string
     {
         $stmt = $this->db->prepare('SELECT cohortID FROM Subjects WHERE subjectID = ?');
