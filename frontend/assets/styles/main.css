@@ -1489,6 +1489,90 @@ main.appMainFullScreen {
     background: var(--colorPrimaryHover);
 }
 
+.cohortPrimaryButton:disabled,
+.cohortSecondaryButton:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.cohortSecondaryButton {
+    min-height: var(--minTouchTarget);
+    padding: var(--spaceSm) var(--spaceMd);
+    border: 1px solid var(--colorBorderInput);
+    border-radius: var(--radiusSm);
+    background: var(--colorSurface);
+    color: var(--colorText);
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+/* assign subjects and remove subject pop-ups */
+.cohortDialogSearch {
+    width: 100%;
+    min-height: var(--minTouchTarget);
+    padding: var(--spaceSm);
+    border: 1px solid var(--colorBorderInput);
+    border-radius: var(--radiusSm);
+    background: var(--colorSurface);
+    color: var(--colorText);
+}
+
+.cohortDialogTable {
+    width: 100%;
+    margin-top: var(--spaceMd);
+    border: 1px solid var(--colorDivider);
+}
+
+.cohortDialogTable th,
+.cohortDialogTable td {
+    padding: var(--spaceSm) var(--spaceMd);
+    border-bottom: 1px solid var(--colorDivider);
+}
+
+.cohortDialogTable th {
+    background: var(--colorSurfaceAlt);
+}
+
+.cohortDialogCount {
+    text-align: right;
+}
+
+.cohortDialogOption {
+    display: flex;
+    min-height: var(--minTouchTarget);
+    align-items: center;
+    gap: var(--spaceSm);
+}
+
+.cohortDialogNote {
+    margin: var(--spaceSm) 0 0;
+    color: var(--colorTextSecondary);
+    font-size: var(--fontSizeSmall);
+}
+
+.cohortDialogConfirm {
+    text-align: center;
+}
+
+.cohortDialogConfirm h3 {
+    font-size: var(--fontSizeH3);
+    font-weight: 700;
+}
+
+.cohortDialogIcon {
+    display: block;
+    margin-bottom: var(--spaceSm);
+    color: var(--colorTextSecondary);
+    font-size: 3rem;
+}
+
+.cohortDialogButtons {
+    display: flex;
+    width: 100%;
+    justify-content: flex-end;
+    gap: var(--spaceSm);
+}
+
 .cohortTable .cohortDetailsRow > td {
     background: var(--colorSurfaceAlt);
 }

@@ -25,7 +25,8 @@ Which questions an attempt was given is still recorded in `StudentAnswers`. The
 cohort created date migration adds `Cohorts.createdDate`, used by the cohort
 management page; existing cohorts get the date the migration is run. The cohort
 disable tracking migration adds `Users.disabledByCohort` and
-`Subjects.archivedByCohort`, so enabling a cohort only undoes what disabling it changed. Do not run migrations through the init directory; init scripts run only
+`Subjects.archivedByCohort`, so enabling a cohort only undoes what disabling it changed. The subjects optional
+cohort migration lets `Subjects.cohortID` be NULL, for a subject not in a cohort. Do not run migrations through the init directory; init scripts run only
 for a new volume.
 
 ## Sample data

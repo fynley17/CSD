@@ -11,7 +11,7 @@ class Subject extends Model
     /**
      * Every subject with its cohort, test count and lecturers, for the admin dashboard table
      * Active ones first, then archived, both A to Z
-     * lecturerNames is null if nobody teaches it
+     * lecturerNames is null if nobody teaches it, cohortName is null if it isn't in a cohort
      *
      * @return array<int, array<string, mixed>>
      */
@@ -22,7 +22,7 @@ class Subject extends Model
             SELECT Subjects.subjectID, Subjects.subjectName, Cohorts.cohortName, Subjects.isActive,
                 (SELECT COUNT(*) FROM Tests WHERE Tests.subjectID = Subjects.subjectID) AS testCount
             FROM Subjects
-            JOIN Cohorts ON Cohorts.cohortID = Subjects.cohortID
+            LEFT JOIN Cohorts ON Cohorts.cohortID = Subjects.cohortID
             ORDER BY Subjects.isActive DESC, Subjects.subjectName
         ";
 
@@ -40,6 +40,33 @@ class Subject extends Model
                 'lecturerNames' => $lecturerNames[$row['subjectID']] ?? null,
                 'isActive' => (int) $row['isActive'] === 1,
             ];
+        }
+
+        return $subjects;
+    }
+
+    /**
+     * Active subjects that aren't in a cohort, A to Z, for the assign subjects pop-up
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public static function getUnassigned(): array
+    {
+        $sql = "
+            SELECT Subjects.subjectID, Subjects.subjectName,
+                (SELECT COUNT(*) FROM Tests WHERE Tests.subjectID = Subjects.subjectID) AS testCount
+            FROM Subjects
+            WHERE Subjects.cohortID IS NULL AND Subjects.isActive = 1
+            ORDER BY Subjects.subjectName
+        ";
+
+        $stmt = self::getDB()->prepare($sql);
+        $stmt->execute();
+
+        $subjects = [];
+        foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+            $row['testCount'] = (int) $row['testCount'];
+            $subjects[] = $row;
         }
 
         return $subjects;

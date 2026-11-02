@@ -1,8 +1,10 @@
 <?php
 
+use App\Controllers\CohortController;
 use App\Models\Cohort;
 use App\Models\Model;
 use App\Models\Student;
+use App\Models\Subject;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -37,7 +39,7 @@ final class CohortManagementTest extends TestCase
             . 'approvalStatus TEXT NOT NULL)'
         );
         $this->db->exec(
-            'CREATE TABLE Subjects (subjectID TEXT PRIMARY KEY, subjectName TEXT NOT NULL, cohortID TEXT NOT NULL, '
+            'CREATE TABLE Subjects (subjectID TEXT PRIMARY KEY, subjectName TEXT NOT NULL, cohortID TEXT, '
             . 'isActive INTEGER NOT NULL DEFAULT 1, archivedByCohort INTEGER NOT NULL DEFAULT 0)'
         );
         $this->db->exec('CREATE TABLE Tests (testID TEXT PRIMARY KEY, subjectID TEXT NOT NULL)');
@@ -340,6 +342,189 @@ final class CohortManagementTest extends TestCase
         $this->assertSame([['cohortID' => 'cohort-1', 'cohortName' => 'Test Beta']], $cohorts);
     }
 
+    /**
+     * Only active subjects with no cohort can be assigned (normal)
+     */
+    public function testUnassignedListOnlyHasActiveSubjectsWithNoCohort(): void
+    {
+        // Arrange
+        $this->addSubject('subject-free', null, 1);
+        $this->addSubject('subject-archived', null, 0);
+        $this->addSubject('subject-taken', 'cohort-1', 1);
+        $this->db->exec("INSERT INTO Tests (testID, subjectID) VALUES ('test-1', 'subject-free')");
+
+        // Act
+        $subjects = Subject::getUnassigned();
+
+        // Assert
+        $this->assertSame(
+            [['subjectID' => 'subject-free', 'subjectName' => 'Test subject-free', 'testCount' => 1]],
+            $subjects
+        );
+    }
+
+    /**
+     * Assigning moves the subject into the cohort and off the unassigned list (normal)
+     */
+    public function testAssignsSubjectsToACohort(): void
+    {
+        // Arrange
+        $this->addSubject('subject-1', null, 1);
+        $this->addSubject('subject-2', null, 1);
+
+        // Act
+        $result = Cohort::assignSubjects('cohort-1', ['subject-1', 'subject-2']);
+
+        // Assert
+        $this->assertTrue($result);
+        $this->assertSame('cohort-1', $this->subjectCohort('subject-2'));
+        $this->assertSame(1, $this->subjectIsActive('subject-1'));
+        $this->assertSame([], Subject::getUnassigned());
+    }
+
+    /**
+     * A subject in another cohort can't be taken, and nothing else in the request is saved (error)
+     */
+    public function testAssigningASubjectInAnotherCohortChangesNothing(): void
+    {
+        // Arrange
+        $this->addSubject('subject-free', null, 1);
+        $this->addSubject('subject-taken', 'cohort-2', 1);
+
+        // Act
+        try {
+            Cohort::assignSubjects('cohort-1', ['subject-free', 'subject-taken']);
+            $this->fail('Expected the assign to be refused');
+        } catch (InvalidArgumentException) {
+            // Assert
+            $this->assertNull($this->subjectCohort('subject-free'));
+            $this->assertSame('cohort-2', $this->subjectCohort('subject-taken'));
+        }
+    }
+
+    /**
+     * An archived subject can't be assigned (error)
+     */
+    public function testAssigningAnArchivedSubjectIsRefused(): void
+    {
+        // Arrange
+        $this->addSubject('subject-archived', null, 0);
+
+        // Assert
+        $this->expectException(InvalidArgumentException::class);
+
+        // Act
+        Cohort::assignSubjects('cohort-1', ['subject-archived']);
+    }
+
+    /**
+     * Assigning to a cohort that doesn't exist is reported back (error)
+     */
+    public function testAssigningToAnUnknownCohortReturnsFalse(): void
+    {
+        // Arrange
+        $this->addSubject('subject-1', null, 1);
+
+        // Act
+        $result = Cohort::assignSubjects('cohort-missing', ['subject-1']);
+
+        // Assert
+        $this->assertFalse($result);
+        $this->assertNull($this->subjectCohort('subject-1'));
+    }
+
+    /**
+     * A subject added to a disabled cohort is archived, then comes back when the cohort is enabled (edge)
+     */
+    public function testSubjectAssignedToADisabledCohortFollowsTheCohort(): void
+    {
+        // Arrange
+        $this->addSubject('subject-1', null, 1);
+
+        // Act
+        Cohort::assignSubjects('cohort-2', ['subject-1']);
+        $whileDisabled = $this->subjectIsActive('subject-1');
+        Cohort::setActive('cohort-2', true);
+
+        // Assert
+        $this->assertSame(0, $whileDisabled);
+        $this->assertSame(1, $this->subjectIsActive('subject-1'));
+    }
+
+    /**
+     * Removing leaves the subject without a cohort, ready to assign again (normal)
+     */
+    public function testRemovingASubjectMakesItUnassigned(): void
+    {
+        // Arrange
+        $this->addSubject('subject-1', 'cohort-1', 1);
+
+        // Act
+        $result = Cohort::removeSubject('cohort-1', 'subject-1');
+
+        // Assert
+        $this->assertTrue($result);
+        $this->assertNull($this->subjectCohort('subject-1'));
+        $this->assertSame(['subject-1'], array_column(Subject::getUnassigned(), 'subjectID'));
+    }
+
+    /**
+     * A subject can't be removed through a cohort it isn't in (error)
+     */
+    public function testRemovingFromTheWrongCohortChangesNothing(): void
+    {
+        // Arrange
+        $this->addSubject('subject-1', 'cohort-1', 1);
+
+        // Act
+        $result = Cohort::removeSubject('cohort-2', 'subject-1');
+
+        // Assert
+        $this->assertFalse($result);
+        $this->assertSame('cohort-1', $this->subjectCohort('subject-1'));
+    }
+
+    /**
+     * Removing from a disabled cohort undoes its archive, but not an archive from elsewhere (edge)
+     */
+    public function testRemovingOnlyUndoesAnArchiveFromTheCohort(): void
+    {
+        // Arrange
+        $this->addSubject('subject-cohort', 'cohort-1', 1);
+        $this->addSubject('subject-manual', 'cohort-1', 0);
+        Cohort::setActive('cohort-1', false);
+
+        // Act
+        Cohort::removeSubject('cohort-1', 'subject-cohort');
+        Cohort::removeSubject('cohort-1', 'subject-manual');
+
+        // Assert
+        $this->assertSame(1, $this->subjectIsActive('subject-cohort'));
+        $this->assertSame(0, $this->subjectIsActive('subject-manual'));
+    }
+
+    /**
+     * Only a non-empty list of ID shaped strings is accepted (boundary)
+     */
+    public function testValidatesTheListOfSubjectIDs(): void
+    {
+        // Act and Assert
+        $this->assertTrue(CohortController::validSubjectIDs(['subject-1', 'subject-2']));
+        $this->assertFalse(CohortController::validSubjectIDs([]));
+        $this->assertFalse(CohortController::validSubjectIDs('subject-1'));
+        $this->assertFalse(CohortController::validSubjectIDs([1]));
+        $this->assertFalse(CohortController::validSubjectIDs(['id' => 'subject-1']));
+        $this->assertFalse(CohortController::validSubjectIDs(["subject-1' OR 1=1"]));
+    }
+
+    private function subjectCohort(string $subjectID): ?string
+    {
+        $stmt = $this->db->prepare('SELECT cohortID FROM Subjects WHERE subjectID = ?');
+        $stmt->execute([$subjectID]);
+
+        return $stmt->fetchColumn() ?: null;
+    }
+
     private function userIsEnabled(string $userID): int
     {
         $stmt = $this->db->prepare('SELECT isEnabled FROM Users WHERE userID = ?');
@@ -356,7 +541,7 @@ final class CohortManagementTest extends TestCase
         return (int) $stmt->fetchColumn();
     }
 
-    private function addSubject(string $subjectID, string $cohortID, int $isActive): void
+    private function addSubject(string $subjectID, ?string $cohortID, int $isActive): void
     {
         $this->db->prepare(
             'INSERT INTO Subjects (subjectID, subjectName, cohortID, isActive) VALUES (?, ?, ?, ?)'

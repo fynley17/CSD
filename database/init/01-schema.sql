@@ -78,7 +78,7 @@ CREATE TABLE `Students` (
 CREATE TABLE `Subjects` (
   `subjectID` uuid NOT NULL DEFAULT uuid(),
   `subjectName` varchar(100) NOT NULL,
-  `cohortID` uuid NOT NULL,
+  `cohortID` uuid DEFAULT NULL COMMENT 'NULL = not assigned to a cohort',
   `isActive` tinyint(1) NOT NULL DEFAULT 1 COMMENT '1 = active, 0 = archived',
   `archivedByCohort` tinyint(1) NOT NULL DEFAULT 0 COMMENT '1 = archived because its cohort was disabled'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

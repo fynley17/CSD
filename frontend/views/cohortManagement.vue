@@ -50,13 +50,34 @@
             <CohortStudentsTable :cohorts="visibleCohorts" @toggleStatus="toggleStatus" />
 
             <h2>Subjects for each cohort</h2>
-            <CohortSubjectsTable :cohorts="visibleCohorts" />
+            <CohortSubjectsTable
+                :cohorts="visibleCohorts"
+                @assign="assigningCohort = $event"
+                @remove="(cohort, subject) => (removing = { cohort, subject })"
+            />
         </template>
+
+        <AssignSubjectsDialog
+            v-if="assigningCohort"
+            :cohort="assigningCohort"
+            @saved="updateCohort(assigningCohort, $event)"
+            @close="assigningCohort = null"
+        />
+
+        <RemoveSubjectDialog
+            v-if="removing"
+            :cohort="removing.cohort"
+            :subject="removing.subject"
+            @saved="updateCohort(removing.cohort, $event)"
+            @close="removing = null"
+        />
     </section>
 </template>
 
 <script setup>
 import { computed, onMounted, ref } from 'vue';
+import AssignSubjectsDialog from '../components/common/assignSubjectsDialog.vue';
+import RemoveSubjectDialog from '../components/common/removeSubjectDialog.vue';
 import CohortStudentsTable from '../components/tables/cohortStudentsTable.vue';
 import CohortSubjectsTable from '../components/tables/cohortSubjectsTable.vue';
 import { getCohorts, setCohortActive } from '../services/cohortService';
@@ -68,6 +89,9 @@ const saveError = ref('');
 const searchText = ref('');
 const statusFilter = ref('');
 const sortBy = ref('');
+// which pop-up is open, null when it's closed
+const assigningCohort = ref(null);
+const removing = ref(null);
 
 const sorters = {
     nameAsc: (a, b) => a.cohortName.localeCompare(b.cohortName),
@@ -99,6 +123,11 @@ onMounted(async () => {
         isLoading.value = false;
     }
 });
+
+// changed in place rather than replaced, so the table stays on the same page with the same rows open
+function updateCohort(cohort, savedCohort) {
+    Object.assign(cohort, savedCohort);
+}
 
 // the screen only changes once PHP confirms it's saved, so it never shows a status the database doesn't have
 async function toggleStatus(cohort) {
