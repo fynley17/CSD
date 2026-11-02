@@ -1,6 +1,7 @@
 <script setup>
 import { computed, ref } from 'vue';
 import StudentManagementTable from '../components/tables/studentManagementTable.vue';
+import StudentForm from '../components/forms/studentForm.vue';
 
 // Reference the student table component so the parent view can access its filters.
 const studentManagementTable = ref(null);
@@ -9,6 +10,12 @@ const studentManagementTable = ref(null);
 const cohortFilter = ref('');
 const statusFilter = ref('');
 const searchTerm = ref('');
+
+// Control the Add New Student form.
+const showStudentForm = ref(false);
+
+// Change this key to reload the student table after a student is created.
+const tableKey = ref(0);
 
 // Retrieve the available cohort options from the student table component.
 const cohorts = computed(() => studentManagementTable.value?.cohorts ?? []);
@@ -26,6 +33,21 @@ const filterByStatus = () => {
 // Pass the search term to the student table's global search.
 const searchStudents = () => {
     studentManagementTable.value?.searchStudents(searchTerm.value);
+};
+
+// Open the Add New Student form.
+const openStudentForm = () => {
+    showStudentForm.value = true;
+};
+
+// Close the Add New Student form.
+const closeStudentForm = () => {
+    showStudentForm.value = false;
+};
+
+// Refresh the table after a student has been created.
+const handleStudentSaved = () => {
+    tableKey.value += 1;
 };
 </script>
 
@@ -71,13 +93,16 @@ const searchStudents = () => {
 
         <!-- Display the student table and its records. -->
         <div class="tableSection">
-            <StudentManagementTable ref="studentManagementTable" />
+            <StudentManagementTable :key="tableKey" ref="studentManagementTable" />
         </div>
 
         <!-- Display the Add Student button underneath the table. -->
         <div class="tableActions">
-            <button type="button" class="addStudentButton">+ Add New Student</button>
+            <button type="button" class="addStudentButton" @click="openStudentForm">+ Add New Student</button>
         </div>
+
+        <!-- Display the student creation form when requested. -->
+        <StudentForm v-if="showStudentForm" @saved="handleStudentSaved" @close="closeStudentForm" />
     </main>
 </template>
 

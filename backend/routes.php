@@ -17,6 +17,8 @@ $router = new Router();
 
 $router->addRoute('GET', '/^\/api\/students$/', [new StudentController(), 'getAllStudents']);
 
+$router->addRoute('POST', '/^\\/api\\/students$/', [new StudentController(), 'createStudent']);
+
 // Accept student details and the selected cohort from the registration form.
 $router->addRoute('POST', '/^\/api\/register$/', [new StudentController(), 'registerStudent']);
 

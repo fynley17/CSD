@@ -1,0 +1,253 @@
+<script setup>
+import { onMounted, nextTick, ref } from 'vue';
+import PopupDialog from '../common/popupDialog.vue';
+import api from '../../services/api';
+import { createStudent } from '../../services/studentService';
+
+const emit = defineEmits(['saved', 'close']);
+
+const dialog = ref(null);
+const cohorts = ref([]);
+const loadingCohorts = ref(false);
+const submitting = ref(false);
+const errorMessage = ref('');
+
+const form = ref({
+    firstName: '',
+    lastName: '',
+    studentNumber: '',
+    email: '',
+    cohortID: '',
+});
+
+// Load the available cohorts for the lecturer to assign the student to.
+async function loadCohorts() {
+    loadingCohorts.value = true;
+    errorMessage.value = '';
+
+    try {
+        const response = await api.get('/cohorts');
+        cohorts.value = Array.isArray(response.data) ? response.data : (response.data?.cohorts ?? []);
+    } catch {
+        errorMessage.value = 'Unable to load cohorts. Please try again.';
+    } finally {
+        loadingCohorts.value = false;
+    }
+}
+
+// Validate the details before sending them to the backend.
+function validateForm() {
+    if (!form.value.firstName.trim()) {
+        errorMessage.value = "Please enter the student's first name.";
+        return false;
+    }
+
+    if (!form.value.lastName.trim()) {
+        errorMessage.value = "Please enter the student's last name.";
+        return false;
+    }
+
+    if (!/^ws\d{6}$/i.test(form.value.studentNumber.trim())) {
+        errorMessage.value = 'Please enter a valid student number, for example ws123456.';
+        return false;
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.value.email.trim())) {
+        errorMessage.value = 'Please enter a valid email address.';
+        return false;
+    }
+
+    if (!form.value.cohortID) {
+        errorMessage.value = 'Please select a cohort.';
+        return false;
+    }
+
+    return true;
+}
+
+// Create the student account and notify the parent view when successful.
+async function submitStudent() {
+    errorMessage.value = '';
+
+    if (!validateForm()) {
+        return;
+    }
+
+    submitting.value = true;
+
+    const studentData = {
+        firstName: form.value.firstName.trim(),
+        lastName: form.value.lastName.trim(),
+        studentNumber: form.value.studentNumber.trim().toLowerCase(),
+        email: form.value.email.trim().toLowerCase(),
+        cohortID: form.value.cohortID,
+    };
+
+    try {
+        const response = await createStudent(studentData);
+
+        emit('saved', response);
+        dialog.value?.close();
+    } catch (error) {
+        errorMessage.value =
+            error.response?.data?.error ??
+            error.response?.data?.message ??
+            'Unable to create the student account. Please check the details and try again.';
+    } finally {
+        submitting.value = false;
+    }
+}
+
+// Load cohorts and open the dialog when the form is mounted.
+onMounted(async () => {
+    await loadCohorts();
+    await nextTick();
+    dialog.value?.open();
+});
+</script>
+
+<template>
+    <PopupDialog ref="dialog" title="Add New Student" @close="emit('close')">
+        <form id="student-form" class="studentForm" @submit.prevent="submitStudent">
+            <div v-if="errorMessage" class="formError" role="alert">
+                {{ errorMessage }}
+            </div>
+
+            <div class="formGroup">
+                <label for="firstName">First name <span aria-hidden="true">*</span></label>
+                <input
+                    id="firstName"
+                    v-model="form.firstName"
+                    type="text"
+                    maxlength="100"
+                    autocomplete="given-name"
+                    required
+                    placeholder="Enter first name"
+                />
+            </div>
+
+            <div class="formGroup">
+                <label for="lastName">Last name <span aria-hidden="true">*</span></label>
+                <input
+                    id="lastName"
+                    v-model="form.lastName"
+                    type="text"
+                    maxlength="100"
+                    autocomplete="family-name"
+                    required
+                    placeholder="Enter last name"
+                />
+            </div>
+
+            <div class="formGroup">
+                <label for="studentNumber">Student number <span aria-hidden="true">*</span></label>
+                <input
+                    id="studentNumber"
+                    v-model="form.studentNumber"
+                    type="text"
+                    maxlength="8"
+                    required
+                    placeholder="e.g. ws123456"
+                />
+                <small>Enter the student's eight-character student number.</small>
+            </div>
+
+            <div class="formGroup">
+                <label for="studentEmail">Email address <span aria-hidden="true">*</span></label>
+                <input
+                    id="studentEmail"
+                    v-model="form.email"
+                    type="email"
+                    maxlength="255"
+                    autocomplete="email"
+                    required
+                    placeholder="Enter email address"
+                />
+                <small>The student's login details will be sent to this address.</small>
+            </div>
+
+            <div class="formGroup">
+                <label for="cohortID">Cohort <span aria-hidden="true">*</span></label>
+                <select
+                    id="cohortID"
+                    v-model="form.cohortID"
+                    required
+                    :disabled="loadingCohorts || cohorts.length === 0"
+                >
+                    <option value="" disabled>
+                        {{ loadingCohorts ? 'Loading cohorts...' : 'Select a cohort' }}
+                    </option>
+
+                    <option v-for="cohort in cohorts" :key="cohort.cohortID" :value="cohort.cohortID">
+                        {{ cohort.cohortName }}
+                    </option>
+                </select>
+
+                <small v-if="!loadingCohorts && cohorts.length === 0"> No cohorts are currently available. </small>
+            </div>
+        </form>
+
+        <template #buttons>
+            <button type="button" class="secondaryButton" :disabled="submitting" @click="dialog?.close()">
+                Cancel
+            </button>
+
+            <button
+                type="submit"
+                form="student-form"
+                class="primaryButton"
+                :disabled="submitting || loadingCohorts || cohorts.length === 0"
+            >
+                {{ submitting ? 'Creating...' : 'Create Student' }}
+            </button>
+        </template>
+    </PopupDialog>
+</template>
+
+<style scoped>
+.studentForm {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spaceMd);
+}
+
+.studentForm .formGroup {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spaceXs);
+}
+
+.studentForm label {
+    font-weight: 600;
+}
+
+.studentForm input,
+.studentForm select {
+    width: 100%;
+    padding: var(--spaceSm) var(--spaceMd);
+    border: 1px solid var(--colorBorderInput);
+    border-radius: var(--radiusSm);
+    background: var(--colorSurface);
+    color: var(--colorText);
+    font: inherit;
+}
+
+.studentForm input:focus,
+.studentForm select:focus {
+    outline: 3px solid var(--colorFocus);
+    outline-offset: 1px;
+}
+
+.studentForm small {
+    color: var(--colorTextSecondary);
+    font-size: var(--fontSizeSmall);
+}
+
+.studentForm .formError {
+    padding: var(--spaceSm) var(--spaceMd);
+    border: 1px solid var(--colorError);
+    border-radius: var(--radiusSm);
+    color: var(--colorError);
+    background: var(--colorErrorLight);
+}
+</style>

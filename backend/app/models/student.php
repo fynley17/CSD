@@ -62,6 +62,174 @@ class Student extends User
         return $stmt->fetchAll(\PDO::FETCH_ASSOC);
     }
 
+    /**
+     * Creates an active student account on behalf of a lecturer.
+     * Generates a temporary password and stores only its secure hash.
+     *
+     * @return array<string, mixed>
+     */
+    public static function createByLecturer(array $data): array
+    {
+        if (empty($data['firstName']) || !self::names(trim($data['firstName']))) {
+            throw new \InvalidArgumentException('Please enter a valid first name.');
+        }
+
+        if (empty($data['lastName']) || !self::names(trim($data['lastName']))) {
+            throw new \InvalidArgumentException('Please enter a valid last name.');
+        }
+
+        if (empty($data['email']) || !self::validEmail(trim($data['email']))) {
+            throw new \InvalidArgumentException('Please enter a valid email address.');
+        }
+
+        if (
+            empty($data['studentNumber'])
+            || !self::validUsername(strtolower(trim($data['studentNumber'])))
+        ) {
+            throw new \InvalidArgumentException(
+                'Please enter a valid student number, for example ws123456.'
+            );
+        }
+
+        if (empty($data['cohortID']) || !is_string($data['cohortID'])) {
+            throw new \InvalidArgumentException('Please select a cohort.');
+        }
+
+        $firstName = trim($data['firstName']);
+        $lastName = trim($data['lastName']);
+        $email = strtolower(trim($data['email']));
+        $studentNumber = strtolower(trim($data['studentNumber']));
+        $cohortID = trim($data['cohortID']);
+
+        $db = self::getDB();
+
+        // Check whether the email address is already registered.
+        $stmt = $db->prepare(
+            'SELECT 1 FROM Users WHERE email = ? LIMIT 1'
+        );
+        $stmt->execute([$email]);
+
+        if ($stmt->fetchColumn() !== false) {
+            throw new \InvalidArgumentException(
+                'An account with this email address already exists.'
+            );
+        }
+
+        // Check whether the student number is already registered.
+        $stmt = $db->prepare(
+            'SELECT 1 FROM Users WHERE username = ? LIMIT 1'
+        );
+        $stmt->execute([$studentNumber]);
+
+        if ($stmt->fetchColumn() !== false) {
+            throw new \InvalidArgumentException(
+                'An account with this student number already exists.'
+            );
+        }
+
+        // Confirm that the selected cohort exists.
+        $stmt = $db->prepare(
+            'SELECT cohortID FROM Cohorts WHERE cohortID = ? LIMIT 1'
+        );
+        $stmt->execute([$cohortID]);
+
+        if ($stmt->fetchColumn() === false) {
+            throw new \InvalidArgumentException(
+                'The selected cohort could not be found.'
+            );
+        }
+
+        // Generate a random 10-character temporary password.
+        $characters = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%';
+        $temporaryPassword = '';
+
+        for ($i = 0; $i < 10; $i++) {
+            $temporaryPassword .= $characters[
+                random_int(0, strlen($characters) - 1)
+            ];
+        }
+
+        // Hash the password before storing it in the database.
+        $passwordHash = password_hash(
+            $temporaryPassword,
+            PASSWORD_DEFAULT
+        );
+
+        if ($passwordHash === false) {
+            throw new \RuntimeException(
+                'Unable to secure the temporary password.'
+            );
+        }
+
+        // Generate a UUID for the new student.
+        $userID = $db->query('SELECT UUID()')->fetchColumn();
+
+        if (!is_string($userID) || $userID === '') {
+            throw new \RuntimeException('Unable to generate user ID.');
+        }
+
+        // Create the user and student records together.
+        $db->beginTransaction();
+
+        try {
+            // Lecturer-created accounts are immediately active.
+            $stmt = $db->prepare(
+                "INSERT INTO Users (
+                    userID,
+                    username,
+                    email,
+                    password,
+                    accountType,
+                    approvalStatus,
+                    isEnabled,
+                    isEmailVerified
+                ) VALUES (?, ?, ?, ?, 'student', 'approved', 1, 1)"
+            );
+
+            $stmt->execute([
+                $userID,
+                $studentNumber,
+                $email,
+                $passwordHash,
+            ]);
+
+            $stmt = $db->prepare(
+                'INSERT INTO Students (
+                    userID,
+                    firstName,
+                    lastName,
+                    cohortID,
+                    points
+                ) VALUES (?, ?, ?, ?, 0)'
+            );
+
+            $stmt->execute([
+                $userID,
+                $firstName,
+                $lastName,
+                $cohortID,
+            ]);
+
+            $db->commit();
+        } catch (\Throwable $e) {
+            if ($db->inTransaction()) {
+                $db->rollBack();
+            }
+
+            throw $e;
+        }
+
+        return [
+            'success' => true,
+            'userID' => $userID,
+            'username' => $studentNumber,
+            'email' => $email,
+            'firstName' => $firstName,
+            'lastName' => $lastName,
+            'temporaryPassword' => $temporaryPassword,
+        ];
+    }
+
     public static function register($data)
     {
         // Validate every submitted value on the server; browser-side checks are only a convenience.
@@ -69,93 +237,134 @@ class Student extends User
         if (empty($data['firstName']) || !self::names($data['firstName'])) {
             throw new \InvalidArgumentException('Please enter a valid first name.');
         }
+
         if (empty($data['lastName']) || !self::names($data['lastName'])) {
             throw new \InvalidArgumentException('Please enter a valid last name.');
         }
+
         if (empty($data['email']) || !self::validEmail($data['email'])) {
             throw new \InvalidArgumentException('Please enter a valid email address.');
         }
+
         if (empty($data['studentNumber']) || !self::validUsername($data['studentNumber'])) {
-            throw new \InvalidArgumentException('Please enter a valid student number, for example ws123456.');
+            throw new \InvalidArgumentException(
+                'Please enter a valid student number, for example ws123456.'
+            );
         }
+
         if (empty($data['password']) || !self::validPassword($data['password'])) {
             throw new \InvalidArgumentException(
                 'Please use at least 8 characters, including an uppercase letter, a lowercase letter, a number, '
                 . 'and a symbol.'
             );
         }
+
         if (empty($data['confirmPassword']) || $data['password'] !== $data['confirmPassword']) {
             throw new \InvalidArgumentException('Passwords do not match.');
         }
+
         if (empty($data['cohortID'])) {
             throw new \InvalidArgumentException('Please select a cohort.');
         }
+
         if (!is_string($data['cohortID'])) {
             throw new \InvalidArgumentException('Please select a cohort.');
         }
 
-        // assign variables (after validation)
-        $firstName     = $data['firstName'];
-        $lastName      = $data['lastName'];
-        $email         = strtolower($data['email']);
+        // Assign variables after validation.
+        $firstName = $data['firstName'];
+        $lastName = $data['lastName'];
+        $email = strtolower($data['email']);
         $studentNumber = strtolower($data['studentNumber']);
-        $passwordHash  = password_hash($data['password'], PASSWORD_DEFAULT);
-        $cohortID    = $data['cohortID'];
-        $accountType   = 'student';
+        $passwordHash = password_hash($data['password'], PASSWORD_DEFAULT);
+        $cohortID = $data['cohortID'];
+        $accountType = 'student';
         $approvalStatus = 'pending';
-        $points        = 0;
+        $points = 0;
 
         $db = self::getDB();
 
         // Check account uniqueness and confirm the selected cohort before writing.
-        $stmt = $db->prepare("SELECT 1 FROM Users WHERE email = ? LIMIT 1");
+        $stmt = $db->prepare(
+            'SELECT 1 FROM Users WHERE email = ? LIMIT 1'
+        );
         $stmt->execute([$email]);
+
         if ($stmt->fetchColumn() !== false) {
-            throw new \InvalidArgumentException('An account with this email address already exists.');
+            throw new \InvalidArgumentException(
+                'An account with this email address already exists.'
+            );
         }
 
-        $stmt = $db->prepare("SELECT 1 FROM Users WHERE username = ? LIMIT 1");
+        $stmt = $db->prepare(
+            'SELECT 1 FROM Users WHERE username = ? LIMIT 1'
+        );
         $stmt->execute([$studentNumber]);
+
         if ($stmt->fetchColumn() !== false) {
-            throw new \InvalidArgumentException('An account with this student number already exists.');
+            throw new \InvalidArgumentException(
+                'An account with this student number already exists.'
+            );
         }
 
         // The cohort name is also needed for the welcome email.
-        $stmt = $db->prepare("SELECT cohortID, cohortName FROM Cohorts WHERE cohortID = ? LIMIT 1");
+        $stmt = $db->prepare(
+            'SELECT cohortID, cohortName FROM Cohorts WHERE cohortID = ? LIMIT 1'
+        );
         $stmt->execute([$cohortID]);
         $cohort = $stmt->fetch(\PDO::FETCH_ASSOC);
+
         if ($cohort === false) {
             throw new \InvalidArgumentException(
                 'The selected cohort was not found. Please reload the page and select an available cohort.'
             );
         }
+
         $cohortID = $cohort['cohortID'];
 
-        $userID = $db->query("SELECT UUID()")->fetchColumn();
+        $userID = $db->query('SELECT UUID()')->fetchColumn();
+
         if (!is_string($userID) || $userID === '') {
             throw new \RuntimeException('Unable to generate user ID.');
         }
 
         // Keep the user and student records atomic so neither can be created on its own.
         $db->beginTransaction();
+
         try {
             $stmt = $db->prepare(
-                "INSERT INTO Users (userID, email, username, password, accountType, approvalStatus, isEmailVerified) "
-                . "VALUES (?, ?, ?, ?, ?, ?, 0)"
+                'INSERT INTO Users (userID, email, username, password, accountType, approvalStatus, isEmailVerified) '
+                . 'VALUES (?, ?, ?, ?, ?, ?, 0)'
             );
-            $stmt->execute([$userID, $email, $studentNumber, $passwordHash, $accountType, $approvalStatus]);
+
+            $stmt->execute([
+                $userID,
+                $email,
+                $studentNumber,
+                $passwordHash,
+                $accountType,
+                $approvalStatus,
+            ]);
 
             $stmt = $db->prepare(
-                "INSERT INTO Students (userID, firstName, lastName, cohortID, points) "
-                . "VALUES (?, ?, ?, ?, ?)"
+                'INSERT INTO Students (userID, firstName, lastName, cohortID, points) '
+                . 'VALUES (?, ?, ?, ?, ?)'
             );
-            $stmt->execute([$userID, $firstName, $lastName, $cohortID, $points]);
+
+            $stmt->execute([
+                $userID,
+                $firstName,
+                $lastName,
+                $cohortID,
+                $points,
+            ]);
 
             $db->commit();
         } catch (\Throwable $e) {
             if ($db->inTransaction()) {
                 $db->rollBack();
             }
+
             throw $e;
         }
 
@@ -175,12 +384,13 @@ class Student extends User
     public static function findVerificationDetails(string $userID): ?array
     {
         $stmt = self::getDB()->prepare(
-            "SELECT Users.email, Users.isEmailVerified, Students.firstName, Students.lastName, Cohorts.cohortName "
-            . "FROM Users "
-            . "JOIN Students ON Students.userID = Users.userID "
-            . "JOIN Cohorts ON Cohorts.cohortID = Students.cohortID "
-            . "WHERE Users.userID = ?"
+            'SELECT Users.email, Users.isEmailVerified, Students.firstName, Students.lastName, Cohorts.cohortName '
+            . 'FROM Users '
+            . 'JOIN Students ON Students.userID = Users.userID '
+            . 'JOIN Cohorts ON Cohorts.cohortID = Students.cohortID '
+            . 'WHERE Users.userID = ?'
         );
+
         $stmt->execute([$userID]);
         $row = $stmt->fetch(\PDO::FETCH_ASSOC);
 
@@ -189,6 +399,7 @@ class Student extends User
         }
 
         $row['isEmailVerified'] = (bool) $row['isEmailVerified'];
+
         return $row;
     }
 
@@ -200,22 +411,32 @@ class Student extends User
      */
     public static function changeEmail(string $userID, mixed $email): string
     {
-        // a space copied in by accident shouldn't stop the change
+        // A space copied in by accident shouldn't stop the change.
         $email = is_string($email) ? strtolower(trim($email)) : $email;
 
         if (!self::validEmail($email)) {
-            throw new \InvalidArgumentException('Enter an email address in the correct format, like name@example.com');
+            throw new \InvalidArgumentException(
+                'Enter an email address in the correct format, like name@example.com'
+            );
         }
+
         $db = self::getDB();
 
-        // another account already using it, the student's own account is skipped so re-entering it is fine
-        $stmt = $db->prepare("SELECT 1 FROM Users WHERE email = ? AND userID <> ? LIMIT 1");
+        // Another account already using it, the student's own account is skipped so re-entering it is fine.
+        $stmt = $db->prepare(
+            'SELECT 1 FROM Users WHERE email = ? AND userID <> ? LIMIT 1'
+        );
         $stmt->execute([$email, $userID]);
+
         if ($stmt->fetchColumn() !== false) {
-            throw new \InvalidArgumentException('An account with this email address already exists');
+            throw new \InvalidArgumentException(
+                'An account with this email address already exists'
+            );
         }
 
-        $stmt = $db->prepare("UPDATE Users SET email = ? WHERE userID = ? AND isEmailVerified = 0");
+        $stmt = $db->prepare(
+            'UPDATE Users SET email = ? WHERE userID = ? AND isEmailVerified = 0'
+        );
         $stmt->execute([$email, $userID]);
 
         return $email;
@@ -224,12 +445,14 @@ class Student extends User
     // Helpers
     public static function names($name)
     {
-        return is_string($name) && preg_match("/^[a-zA-Z\s'-]{2,50}$/", $name) === 1;
+        return is_string($name)
+            && preg_match("/^[a-zA-Z\s'-]{2,50}$/", $name) === 1;
     }
 
     public static function validUsername($studentNumber)
     {
-        return is_string($studentNumber) && preg_match("/^ws[0-9]{6}$/D", $studentNumber) === 1;
+        return is_string($studentNumber)
+            && preg_match('/^ws[0-9]{6}$/D', $studentNumber) === 1;
     }
 
     public static function validPassword($password)
@@ -279,6 +502,7 @@ class Student extends User
 
     private static function validEmail($email)
     {
-        return is_string($email) && filter_var($email, FILTER_VALIDATE_EMAIL) !== false;
+        return is_string($email)
+            && filter_var($email, FILTER_VALIDATE_EMAIL) !== false;
     }
 }

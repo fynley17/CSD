@@ -14,6 +14,7 @@ class StudentController extends Controller
         Authentication::requireRole(['lecturer', 'admin']);
 
         $students = Student::getAll();
+
         $this->jsonResponse($students);
     }
 
@@ -40,6 +41,69 @@ class StudentController extends Controller
         }
     }
 
+    /**
+     * Creates an active student account on behalf of a lecturer.
+     * Sends the student their temporary login details by email.
+     */
+    public function createStudent(): void
+    {
+        Authentication::requireRole(['lecturer']);
+
+        $authentication = new Authentication();
+        $authentication->requireCsrfToken();
+
+        try {
+            $data = json_decode(file_get_contents('php://input'), true);
+
+            if (!is_array($data)) {
+                throw new \InvalidArgumentException(
+                    'Please check the student details and try again.'
+                );
+            }
+
+            $result = Student::createByLecturer($data);
+
+            $emailSent = Mailer::sendStudentAccountDetails(
+                $result['email'],
+                $result['firstName'],
+                $result['username'],
+                $result['temporaryPassword']
+            );
+
+            $this->jsonResponse([
+                'message' => $emailSent
+                    ? 'Student account created successfully. Login details have been emailed.'
+                    : 'Student account created successfully, but the email could not be sent.',
+                'emailSent' => $emailSent,
+                'student' => [
+                    'userID' => $result['userID'],
+                    'username' => $result['username'],
+                    'email' => $result['email'],
+                    'firstName' => $result['firstName'],
+                    'lastName' => $result['lastName'],
+                ],
+            ], 201);
+        } catch (\InvalidArgumentException $e) {
+            $this->jsonResponse([
+                'error' => $e->getMessage(),
+            ], 400);
+        } catch (\Throwable $e) {
+            error_log(sprintf(
+                'Lecturer student creation failed (%s): %s',
+                get_class($e),
+                $e->getMessage()
+            ));
+
+            $this->jsonResponse([
+                'error' => 'Unable to create the student account. Please try again later.',
+            ], 500);
+        }
+    }
+
+    /**
+     * Handles existing student self-registration.
+     * This workflow is deliberately unchanged.
+     */
     public function registerStudent(): void
     {
         try {
