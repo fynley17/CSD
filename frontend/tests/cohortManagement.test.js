@@ -336,4 +336,90 @@ describe('CohortManagement', () => {
         expect(page.get('[role="alert"]').text()).toContain('Unable to load the cohorts');
         expect(page.find('.cohortTable').exists()).toBe(false);
     });
+
+    /**
+     * The date and time from the database are shown the way the page writes dates (normal)
+     */
+    it('shows the last login as day, month, year and time', async () => {
+        // Arrange
+        const cohorts = structuredClone(sampleCohorts);
+        cohorts[0].students[0].lastLogin = '2026-09-29 09:42:10';
+        getCohorts.mockResolvedValue(cohorts);
+        const page = await openPage();
+
+        // Act
+        await page.findAll('.cohortTable')[0].get('[aria-label="Show details for DTS 2026"]').trigger('click');
+
+        // Assert
+        expect(page.get('.cohortDetailsTable tbody tr').text()).toContain('29/09/2026 09:42');
+    });
+
+    /**
+     * A student who has never logged in says so (boundary)
+     */
+    it('shows Never for a student with no last login', async () => {
+        // Arrange
+        const cohorts = structuredClone(sampleCohorts);
+        cohorts[0].students[0].lastLogin = null;
+        getCohorts.mockResolvedValue(cohorts);
+        const page = await openPage();
+
+        // Act
+        await page.findAll('.cohortTable')[0].get('[aria-label="Show details for DTS 2026"]').trigger('click');
+
+        // Assert
+        expect(page.get('.cohortDetailsTable tbody tr').text()).toContain('Never');
+    });
+
+    /**
+     * Each subject shows its status, and says when it has no lecturer (normal)
+     */
+    it('shows an archived subject with no lecturer', async () => {
+        // Arrange
+        const cohorts = structuredClone(sampleCohorts);
+        cohorts[0].subjects = [
+            { subjectID: 'subject-1', subjectName: 'Test', testCount: 0, lecturerNames: null, isActive: false },
+        ];
+        getCohorts.mockResolvedValue(cohorts);
+        const page = await openPage();
+
+        // Act
+        await page.findAll('.cohortTable')[1].get('[aria-label="Show details for DTS 2026"]').trigger('click');
+
+        // Assert
+        const row = page.get('.cohortDetailsTable tbody tr');
+        expect(row.text()).toContain('Not assigned');
+        expect(row.get('.statusPill').text()).toBe('Archived');
+    });
+
+    /**
+     * The disable button has the same look as on student management (normal)
+     */
+    it('styles the action buttons like the rest of the site', async () => {
+        // Arrange and Act
+        const page = await openPage();
+
+        // Assert
+        expect(findButton(page, 'Disable DTS 2026').classes()).toContain('tableDisableButton');
+    });
+
+    /**
+     * The problem from the last save clears when the next one works (edge)
+     */
+    it('clears the save problem once a later save works', async () => {
+        // Arrange
+        setCohortActive.mockRejectedValueOnce(new Error('Network Error'));
+        const page = await openPage();
+        await findButton(page, 'Disable DTS 2026').trigger('click');
+        await flushPromises();
+        const problem = page.get('[role="alert"]').text();
+
+        // Act
+        await findButton(page, 'Disable DTS 2026').trigger('click');
+        await flushPromises();
+
+        // Assert
+        expect(problem).toContain('Unable to update DTS 2026');
+        expect(page.find('[role="alert"]').exists()).toBe(false);
+    });
 });
