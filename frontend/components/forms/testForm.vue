@@ -31,6 +31,10 @@ const form = ref({
 
 const dialogTitle = computed(() => (isEditing.value ? 'Edit Test' : 'Create Test'));
 
+const selectedSubject = computed(() => subjects.value.find((subject) => subject.subjectID === form.value.subjectID));
+
+const selectedCohortName = computed(() => selectedSubject.value?.cohortName ?? '');
+
 function populateForm() {
     if (!props.test) {
         return;
@@ -176,6 +180,12 @@ onMounted(async () => {
                 </select>
             </div>
 
+            <div v-if="form.subjectID && selectedSubject" class="formGroup cohortDisplay">
+                <label for="cohortName">Cohort</label>
+                <input id="cohortName" :value="selectedCohortName" type="text" readonly aria-readonly="true" />
+                <small>The cohort is determined automatically by the selected subject.</small>
+            </div>
+
             <div class="formGroup">
                 <label for="description">Description</label>
                 <textarea
@@ -267,6 +277,11 @@ onMounted(async () => {
 .formGroup small {
     color: var(--colorTextSecondary);
     font-size: var(--fontSizeSmall);
+}
+
+.cohortDisplay input {
+    background-color: var(--colorSurfaceAlt);
+    cursor: default;
 }
 
 .formRow {

@@ -1,4 +1,3 @@
-
 <?php
 
 use App\Models\Model;
@@ -28,6 +27,14 @@ final class TestManagementModelTest extends TestCase
         );
 
         $this->db->exec(
+            'CREATE TABLE Cohorts (
+                cohortID TEXT PRIMARY KEY,
+                cohortName TEXT NOT NULL,
+                isActive INTEGER NOT NULL DEFAULT 1
+            )'
+        );
+
+        $this->db->exec(
             'CREATE TABLE Subjects (
                 subjectID TEXT PRIMARY KEY,
                 subjectName TEXT NOT NULL,
@@ -42,6 +49,12 @@ final class TestManagementModelTest extends TestCase
                 userID TEXT NOT NULL,
                 percentageCorrect REAL NOT NULL
             )'
+        );
+
+        $this->db->exec(
+            "INSERT INTO Cohorts (cohortID, cohortName, isActive) VALUES
+                ('cohort-1', '2025 Computing', 1),
+                ('cohort-2', '2026 Computing', 1)"
         );
 
         $this->db->exec(
@@ -68,13 +81,20 @@ final class TestManagementModelTest extends TestCase
 
         // Assert
         self::assertCount(2, $subjects);
+
         self::assertSame(
             ['Cyber Security', 'Web Applications'],
             array_column($subjects, 'subjectName')
         );
+
         self::assertSame(
             ['subject-2', 'subject-1'],
             array_column($subjects, 'subjectID')
+        );
+
+        self::assertSame(
+            ['2026 Computing', '2025 Computing'],
+            array_column($subjects, 'cohortName')
         );
     }
 
@@ -205,7 +225,9 @@ final class TestManagementModelTest extends TestCase
         // Assert
         self::assertTrue($updated);
 
-        $stmt = $this->db->prepare('SELECT subjectID FROM Tests WHERE testID = ?');
+        $stmt = $this->db->prepare(
+            'SELECT subjectID FROM Tests WHERE testID = ?'
+        );
         $stmt->execute(['test-1']);
 
         self::assertSame('subject-2', $stmt->fetchColumn());
@@ -295,18 +317,24 @@ final class TestManagementModelTest extends TestCase
         // Assert
         self::assertTrue($deleted);
 
-        $stmt = $this->db->prepare('SELECT COUNT(*) FROM Tests WHERE testID = ?');
+        $stmt = $this->db->prepare(
+            'SELECT COUNT(*) FROM Tests WHERE testID = ?'
+        );
         $stmt->execute(['test-1']);
         self::assertSame(0, (int) $stmt->fetchColumn());
 
-        $stmt = $this->db->prepare('SELECT COUNT(*) FROM CompletedTests WHERE testID = ?');
+        $stmt = $this->db->prepare(
+            'SELECT COUNT(*) FROM CompletedTests WHERE testID = ?'
+        );
         $stmt->execute(['test-1']);
         self::assertSame(0, (int) $stmt->fetchColumn());
 
         // Attempts belonging to other tests must remain untouched.
         self::assertSame(
             1,
-            (int) $this->db->query('SELECT COUNT(*) FROM CompletedTests')->fetchColumn()
+            (int) $this->db->query(
+                'SELECT COUNT(*) FROM CompletedTests'
+            )->fetchColumn()
         );
     }
 
@@ -320,7 +348,9 @@ final class TestManagementModelTest extends TestCase
 
         self::assertSame(
             0,
-            (int) $this->db->query('SELECT COUNT(*) FROM CompletedTests')->fetchColumn()
+            (int) $this->db->query(
+                'SELECT COUNT(*) FROM CompletedTests'
+            )->fetchColumn()
         );
     }
 
@@ -358,12 +388,16 @@ final class TestManagementModelTest extends TestCase
         // Assert: both the test and its completed attempts must be restored.
         self::assertSame(
             1,
-            (int) $this->db->query("SELECT COUNT(*) FROM Tests WHERE testID = 'test-1'")->fetchColumn()
+            (int) $this->db->query(
+                "SELECT COUNT(*) FROM Tests WHERE testID = 'test-1'"
+            )->fetchColumn()
         );
 
         self::assertSame(
             2,
-            (int) $this->db->query("SELECT COUNT(*) FROM CompletedTests WHERE testID = 'test-1'")->fetchColumn()
+            (int) $this->db->query(
+                "SELECT COUNT(*) FROM CompletedTests WHERE testID = 'test-1'"
+            )->fetchColumn()
         );
     }
 
