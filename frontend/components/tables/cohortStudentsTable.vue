@@ -26,6 +26,7 @@
                     class="btn btn-sm tableActionButton"
                     :class="cohort.isActive ? 'tableDisableButton' : 'tableEnableButton'"
                     :aria-label="`${cohort.isActive ? 'Disable' : 'Enable'} ${cohort.cohortName}`"
+                    @click="emit('toggleStatus', cohort)"
                 >
                     {{ cohort.isActive ? 'Disable' : 'Enable' }}
                 </button>
@@ -128,6 +129,8 @@ defineProps({
         required: true,
     },
 });
+
+const emit = defineEmits(['toggleStatus']);
 
 const showAllCohortIDs = ref(new Set());
 

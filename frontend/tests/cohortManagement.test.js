@@ -172,4 +172,68 @@ describe('CohortManagement', () => {
         expect(findButton(page, 'Delete DTS 2026').attributes('disabled')).toBeDefined();
         expect(findButton(page, 'Delete Data Science 2026').attributes('disabled')).toBeUndefined();
     });
+
+    /**
+     * Disabling a cohort updates both tables and offers Enable instead (normal)
+     */
+    it('disables a cohort and swaps the button to Enable', async () => {
+        // Arrange
+        const page = mount(CohortManagement);
+        const firstPills = () => page.findAll('.cohortTable').map((table) => table.get('.statusPill').text());
+
+        // Act
+        await findButton(page, 'Disable DTS 2026').trigger('click');
+
+        // Assert
+        expect(findButton(page, 'Enable DTS 2026').text()).toBe('Enable');
+        expect(findButton(page, 'Enable DTS 2026').classes()).toContain('tableEnableButton');
+        expect(firstPills()).toEqual(['Disabled', 'Disabled']);
+    });
+
+    /**
+     * Enabling a disabled cohort puts it back to active (normal)
+     */
+    it('enables a cohort again', async () => {
+        // Arrange
+        const page = mount(CohortManagement);
+        await findButton(page, 'Disable DTS 2026').trigger('click');
+
+        // Act
+        await findButton(page, 'Enable DTS 2026').trigger('click');
+
+        // Assert
+        expect(findButton(page, 'Disable DTS 2026').classes()).toContain('tableDisableButton');
+    });
+
+    /**
+     * Changing a status doesn't send the user back to the first page (boundary)
+     */
+    it('stays on the same page after disabling a cohort', async () => {
+        // Arrange
+        const page = mount(CohortManagement);
+        await findButton(page, 'Next page').trigger('click');
+        const summary = page.findAll('.cohortPagingSummary')[0].text();
+        const cohortName = cohortNames(page, 0)[0];
+
+        // Act
+        await findButton(page, `Disable ${cohortName}`).trigger('click');
+
+        // Assert
+        expect(page.findAll('.cohortPagingSummary')[0].text()).toBe(summary);
+    });
+
+    /**
+     * A cohort disabled while filtering by Active leaves the list (edge)
+     */
+    it('removes a newly disabled cohort from the active filter', async () => {
+        // Arrange
+        const page = mount(CohortManagement);
+        await page.findAll('select')[0].setValue('active');
+
+        // Act
+        await findButton(page, 'Disable DTS 2026').trigger('click');
+
+        // Assert
+        expect(cohortNames(page, 0)).not.toContain('DTS 2026');
+    });
 });

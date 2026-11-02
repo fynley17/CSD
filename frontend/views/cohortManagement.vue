@@ -36,7 +36,7 @@
         </div>
 
         <h2>Students in each cohort</h2>
-        <CohortStudentsTable :cohorts="visibleCohorts" />
+        <CohortStudentsTable :cohorts="visibleCohorts" @toggleStatus="toggleStatus" />
 
         <h2>Subjects for each cohort</h2>
         <CohortSubjectsTable :cohorts="visibleCohorts" />
@@ -49,6 +49,8 @@ import CohortStudentsTable from '../components/tables/cohortStudentsTable.vue';
 import CohortSubjectsTable from '../components/tables/cohortSubjectsTable.vue';
 import { sampleCohorts } from '../utils/sampleCohorts';
 
+// a copy of the sample data, so changes last until the page is left but don't touch the original
+const allCohorts = ref(sampleCohorts.map((cohort) => ({ ...cohort })));
 const searchText = ref('');
 const statusFilter = ref('');
 const sortBy = ref('');
@@ -64,7 +66,7 @@ const sorters = {
 // the search, filter and sort apply to both tables
 const visibleCohorts = computed(() => {
     const search = searchText.value.trim().toLowerCase();
-    const cohorts = sampleCohorts.filter(
+    const cohorts = allCohorts.value.filter(
         (cohort) =>
             cohort.cohortName.toLowerCase().includes(search) &&
             (statusFilter.value === '' || cohort.isActive === (statusFilter.value === 'active')),
@@ -72,6 +74,10 @@ const visibleCohorts = computed(() => {
 
     return sortBy.value ? cohorts.sort(sorters[sortBy.value]) : cohorts;
 });
+
+function toggleStatus(cohort) {
+    cohort.isActive = !cohort.isActive;
+}
 </script>
 
 <style scoped>
