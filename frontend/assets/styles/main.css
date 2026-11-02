@@ -1354,6 +1354,198 @@ main.appMainFullScreen {
     color: var(--colorText);
 }
 
+.statusPending {
+    background-color: var(--colorWarningLight);
+    color: var(--colorText);
+}
+
+/* the dot is amber, the word stays dark */
+.statusPending::before {
+    background-color: var(--colorWarning);
+}
+
+/* cohort management tables, only the table scrolls sideways on small screens */
+.cohortTableScroller {
+    overflow-x: auto;
+    border: 1px solid var(--colorDivider);
+    background: var(--colorSurface);
+}
+
+.cohortTable,
+.cohortDetailsTable {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+/* the details tables sit inside .cohortTable, so they pick up the same cell spacing */
+.cohortTable th,
+.cohortTable td {
+    padding: var(--spaceSm) var(--spaceMd);
+    border-bottom: 1px solid var(--colorDivider);
+    white-space: nowrap;
+}
+
+.cohortTable thead th {
+    font-weight: 600;
+}
+
+.cohortTable > thead th {
+    background: var(--colorSurfaceAlt);
+}
+
+.cohortTable .cohortNameCell {
+    font-weight: 700;
+}
+
+.cohortTable .cohortDetailsTable tbody th {
+    font-weight: 400;
+}
+
+.cohortTableEmpty,
+.cohortDetailsEmpty {
+    margin: 0;
+    padding: var(--spaceMd);
+    color: var(--colorTextSecondary);
+    text-align: center;
+}
+
+.cohortToggleCell {
+    width: 1%;
+}
+
+.cohortToggle,
+.cohortPageButton {
+    min-width: var(--minTouchTarget);
+    min-height: var(--minTouchTarget);
+    border: 1px solid var(--colorBorderInput);
+    border-radius: var(--radiusSm);
+    background: var(--colorSurface);
+    color: var(--colorText);
+}
+
+.cohortPageButton:disabled {
+    background: var(--colorDisabled);
+    color: var(--colorTextSecondary);
+    cursor: not-allowed;
+}
+
+.cohortToggle:hover,
+.cohortToggle:focus-visible,
+.cohortPageButton:focus-visible,
+.cohortPageButton:hover:not(:disabled) {
+    background: var(--colorPrimaryLight);
+}
+
+/* the current page isn't shown by colour alone, it's also bold and aria-current for screen readers */
+.cohortPageButton.cohortPageButtonCurrent,
+.cohortPageButton.cohortPageButtonCurrent:hover,
+.cohortPageButton.cohortPageButtonCurrent:focus-visible {
+    border-color: var(--colorBrand);
+    background: var(--colorBrand);
+    color: var(--colorSurface);
+    font-weight: 700;
+}
+
+.cohortActions {
+    display: flex;
+    gap: var(--spaceSm);
+}
+
+/* looks like a link, as on the wireframe, with a 44px tall target */
+.cohortActionButton {
+    min-height: var(--minTouchTarget);
+    padding: 0 var(--spaceXs);
+    border: 0;
+    background: none;
+    color: var(--colorPrimary);
+    text-decoration: underline;
+}
+
+.cohortActionButton:hover,
+.cohortActionButton:focus-visible {
+    color: var(--colorPrimaryHover);
+}
+
+.cohortActionButton:disabled {
+    color: var(--colorTextSecondary);
+    cursor: not-allowed;
+}
+
+.cohortPrimaryButton {
+    min-height: var(--minTouchTarget);
+    padding: var(--spaceSm) var(--spaceMd);
+    border: 1px solid var(--colorBrand);
+    border-radius: var(--radiusSm);
+    background: var(--colorBrand);
+    color: var(--colorSurface);
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.cohortPrimaryButton:hover,
+.cohortPrimaryButton:focus-visible {
+    border-color: var(--colorPrimaryHover);
+    background: var(--colorPrimaryHover);
+}
+
+.cohortTable .cohortDetailsRow > td {
+    background: var(--colorSurfaceAlt);
+}
+
+.cohortDetails {
+    border: 1px solid var(--colorDivider);
+    background: var(--colorSurface);
+}
+
+.cohortDetailsHeader,
+.cohortDetailsFooter {
+    display: flex;
+    align-items: center;
+    gap: var(--spaceMd);
+    padding: var(--spaceSm) var(--spaceMd);
+}
+
+.cohortDetailsHeader {
+    justify-content: space-between;
+    border-bottom: 1px solid var(--colorDivider);
+    background: var(--colorSurfaceAlt);
+}
+
+.cohortDetailsHeader h3 {
+    margin: 0;
+    font-family: var(--fontBody);
+    font-size: var(--fontSizeBody);
+    font-weight: 700;
+}
+
+.cohortDetailsFooter {
+    justify-content: flex-end;
+    color: var(--colorTextSecondary);
+}
+
+.cohortPaging {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--spaceSm);
+    margin-top: var(--spaceMd);
+}
+
+.cohortPageList {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spaceSm);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.cohortPagingSummary {
+    margin: 0;
+    color: var(--colorTextSecondary);
+}
+
 /* admin dashboard tables, only the table scrolls sideways, the search box and page buttons stay put */
 .adminTable .row {
     --bs-gutter-x: 0;
