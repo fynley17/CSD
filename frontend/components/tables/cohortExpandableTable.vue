@@ -115,8 +115,8 @@ const props = defineProps({
 });
 
 const page = ref(1);
-// the first cohort starts open, as it does on the wireframe
-const openCohortIDs = ref(new Set(props.cohorts.slice(0, 1).map((cohort) => cohort.cohortID)));
+// every cohort starts closed, the details only show once a row is opened
+const openCohortIDs = ref(new Set());
 
 const pageCount = computed(() => Math.max(1, Math.ceil(props.cohorts.length / PAGE_SIZE)));
 const firstIndex = computed(() => (page.value - 1) * PAGE_SIZE);

@@ -35,6 +35,20 @@ describe('CohortManagement', () => {
     });
 
     /**
+     * Every row starts closed, so no students or subjects show until one is opened (normal)
+     */
+    it('loads with every cohort closed', () => {
+        // Arrange and Act
+        const page = mount(CohortManagement);
+
+        // Assert
+        expect(page.find('.cohortDetailsRow').exists()).toBe(false);
+        const toggles = page.findAll('.cohortToggle');
+        expect(toggles).toHaveLength(8);
+        expect(toggles.every((toggle) => toggle.attributes('aria-expanded') === 'false')).toBe(true);
+    });
+
+    /**
      * The next page button moves on to the rest of the cohorts (normal)
      */
     it('changes page in one table without moving the other', async () => {
@@ -74,6 +88,7 @@ describe('CohortManagement', () => {
     it('previews three students until View all is pressed', async () => {
         // Arrange
         const page = mount(CohortManagement);
+        await page.findAll('button[aria-label="Show details for DTS 2026"]')[0].trigger('click');
         const studentRows = () => page.get('.cohortDetailsTable').findAll('tbody > tr');
         expect(studentRows()).toHaveLength(3);
 
