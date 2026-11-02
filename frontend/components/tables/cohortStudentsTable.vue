@@ -33,7 +33,7 @@
                 <!-- always clickable, the pop-up explains why a cohort with students or subjects can't be deleted -->
                 <button
                     type="button"
-                    class="cohortActionButton"
+                    class="btn btn-sm tableActionButton tableDeleteButton"
                     :aria-label="`Delete ${cohort.cohortName}`"
                     @click="emit('delete', cohort)"
                 >
