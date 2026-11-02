@@ -1,3 +1,4 @@
+
 <?php
 
 use App\Models\Model;
@@ -22,12 +23,14 @@ final class TestAllForLecturerTest extends TestCase
             )'
         );
 
-        // Create the minimum Tests table structure required by the query.
+        // Create the Tests table with all columns required by the model.
         $this->db->exec(
             'CREATE TABLE Tests (
                 testID TEXT PRIMARY KEY,
                 testName TEXT NOT NULL,
                 subjectID TEXT NOT NULL,
+                testDescription TEXT NULL,
+                dueDate TEXT NULL,
                 questionCount INTEGER NOT NULL DEFAULT 10,
                 timeLimit INTEGER NULL
             )'
@@ -62,7 +65,7 @@ final class TestAllForLecturerTest extends TestCase
                 ('subject-2', 'Science')"
         );
 
-        // Arrange: create one test whose subject has questions and one whose subject has none.
+        // Arrange: create two tests.
         $this->db->exec(
             "INSERT INTO Tests (testID, testName, subjectID, questionCount, timeLimit) VALUES
                 ('test-1', 'Algebra Test', 'subject-1', 2, 30),
@@ -87,7 +90,7 @@ final class TestAllForLecturerTest extends TestCase
             array_column($tests, 'testName')
         );
 
-        // Assert: the first test has the correct subject and asks 2 of its 3 pool questions.
+        // Assert: the first test has the correct subject and question count.
         self::assertSame('Mathematics', $tests[0]['subjectName']);
         self::assertSame(2, $tests[0]['questionCount']);
         self::assertSame(30, $tests[0]['timeLimit']);

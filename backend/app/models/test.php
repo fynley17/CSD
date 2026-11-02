@@ -82,9 +82,8 @@ class Test extends Model
     }
 
     /**
-     * Returns all tests for the lecturer dashboard.
-     *
-     * Includes each test's subject, how many questions an attempt asks and its time limit.
+     * Returns all tests for the lecturer/admin management dashboard.
+     * Includes the details needed to populate the edit form.
      */
     public static function getAllForLecturer(): array
     {
@@ -92,8 +91,11 @@ class Test extends Model
             SELECT
                 t.testID,
                 t.testName,
+                t.subjectID,
+                t.testDescription,
+                t.dueDate,
                 s.subjectName,
-                " . self::POOL_SIZE . " AS questionCount,
+                " . self::POOL_SIZE . " AS questionPoolSize,
                 t.questionCount AS questionsPerAttempt,
                 t.timeLimit
             FROM Tests AS t
@@ -104,19 +106,244 @@ class Test extends Model
         $stmt = self::getDB()->query($sql);
         $tests = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
-        // Convert numeric fields to the types expected by the frontend.
         foreach ($tests as &$test) {
-            $test['questionCount'] = self::attemptSize($test['questionsPerAttempt'], (int) $test['questionCount']);
+            $test['questionCount'] = self::attemptSize(
+                $test['questionsPerAttempt'],
+                (int) $test['questionPoolSize']
+            );
             unset($test['questionsPerAttempt']);
 
             $test['timeLimit'] = $test['timeLimit'] === null
                 ? null
                 : (int) $test['timeLimit'];
+            $test['questionPoolSize'] = (int) $test['questionPoolSize'];
         }
-
         unset($test);
 
         return $tests;
+    }
+
+    /**
+     * Returns active subjects available for test creation and editing.
+     */
+    public static function getActiveSubjects(): array
+    {
+        $stmt = self::getDB()->prepare(
+            "SELECT subjectID, subjectName, cohortID
+            FROM Subjects
+            WHERE isActive = 1
+            ORDER BY subjectName"
+        );
+        $stmt->execute();
+
+        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Creates a test. createdBy remains a lecturer ID because the existing
+     * Tests foreign key references Lecturer.userID.
+     */
+    public static function create(
+        string $testName,
+        string $subjectID,
+        ?string $testDescription,
+        ?int $timeLimit,
+        ?string $dueDate,
+        int $questionCount,
+        string $createdBy
+    ): string {
+        self::validateTestData(
+            $testName,
+            $subjectID,
+            $testDescription,
+            $timeLimit,
+            $dueDate,
+            $questionCount
+        );
+
+        $testID = self::newUuid();
+        $stmt = self::getDB()->prepare(
+            "INSERT INTO Tests
+                (testID, testName, subjectID, testDescription, timeLimit, dueDate, questionCount, createdBy)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+        );
+        $stmt->execute([
+            $testID,
+            trim($testName),
+            $subjectID,
+            $testDescription === null || trim($testDescription) === '' ? null : trim($testDescription),
+            $timeLimit,
+            $dueDate === '' ? null : $dueDate,
+            $questionCount,
+            $createdBy
+        ]);
+
+        return $testID;
+    }
+
+    /**
+     * Updates a test. Its subject cannot be changed after attempts exist,
+     * because that would change the question pool represented by old results.
+     */
+    public static function update(
+        string $testID,
+        string $testName,
+        string $subjectID,
+        ?string $testDescription,
+        ?int $timeLimit,
+        ?string $dueDate,
+        int $questionCount
+    ): bool {
+        self::validateTestData(
+            $testName,
+            $subjectID,
+            $testDescription,
+            $timeLimit,
+            $dueDate,
+            $questionCount
+        );
+
+        $db = self::getDB();
+        $existing = $db->prepare("SELECT subjectID FROM Tests WHERE testID = ?");
+        $existing->execute([$testID]);
+        $currentTest = $existing->fetch(\PDO::FETCH_ASSOC);
+
+        if ($currentTest === false) {
+            return false;
+        }
+
+        if ($currentTest['subjectID'] !== $subjectID) {
+            $attempts = $db->prepare(
+                "SELECT COUNT(*) FROM CompletedTests WHERE testID = ?"
+            );
+            $attempts->execute([$testID]);
+
+            if ((int) $attempts->fetchColumn() > 0) {
+                throw new \InvalidArgumentException(
+                    'The subject cannot be changed because students have completed this test.'
+                );
+            }
+        }
+
+        $stmt = $db->prepare(
+            "UPDATE Tests
+            SET testName = ?, subjectID = ?, testDescription = ?,
+                timeLimit = ?, dueDate = ?, questionCount = ?
+            WHERE testID = ?"
+        );
+        $stmt->execute([
+            trim($testName),
+            $subjectID,
+            $testDescription === null || trim($testDescription) === '' ? null : trim($testDescription),
+            $timeLimit,
+            $dueDate === '' ? null : $dueDate,
+            $questionCount,
+            $testID
+        ]);
+
+        // Return true even when the submitted values were unchanged.
+        return true;
+    }
+
+    /**
+     * Deletes a test and its completed attempts in one transaction.
+     */
+    public static function delete(string $testID): bool
+    {
+        $db = self::getDB();
+
+        try {
+            $db->beginTransaction();
+
+            $lockSql = "SELECT testID FROM Tests WHERE testID = ?";
+            if ($db->getAttribute(\PDO::ATTR_DRIVER_NAME) === 'mysql') {
+                $lockSql .= " FOR UPDATE";
+            }
+
+            $lock = $db->prepare($lockSql);
+            $lock->execute([$testID]);
+
+            if ($lock->fetchColumn() === false) {
+                $db->rollBack();
+                return false;
+            }
+
+            $deleteAttempts = $db->prepare(
+                "DELETE FROM CompletedTests WHERE testID = ?"
+            );
+            $deleteAttempts->execute([$testID]);
+
+            $deleteTest = $db->prepare("DELETE FROM Tests WHERE testID = ?");
+            $deleteTest->execute([$testID]);
+
+            $deleted = $deleteTest->rowCount() === 1;
+            $db->commit();
+
+            return $deleted;
+        } catch (\Throwable $exception) {
+            if ($db->inTransaction()) {
+                $db->rollBack();
+            }
+            throw $exception;
+        }
+    }
+
+    /**
+     * Validates test details before they are inserted or updated.
+     */
+    private static function validateTestData(
+        string $testName,
+        string $subjectID,
+        ?string $testDescription,
+        ?int $timeLimit,
+        ?string $dueDate,
+        int $questionCount
+    ): void {
+        $testName = trim($testName);
+
+        if ($testName === '' || mb_strlen($testName) > 30) {
+            throw new \InvalidArgumentException('Test name must be between 1 and 30 characters.');
+        }
+
+        if ($testDescription !== null && mb_strlen(trim($testDescription)) > 100) {
+            throw new \InvalidArgumentException('Test description cannot exceed 100 characters.');
+        }
+
+        if ($timeLimit !== null && $timeLimit < 1) {
+            throw new \InvalidArgumentException('Time limit must be at least 1 minute or left blank.');
+        }
+
+        if ($questionCount < 1) {
+            throw new \InvalidArgumentException('Question count must be at least 1.');
+        }
+
+        if ($dueDate !== null && $dueDate !== '') {
+            $date = \DateTimeImmutable::createFromFormat('!Y-m-d', $dueDate);
+            if ($date === false || $date->format('Y-m-d') !== $dueDate) {
+                throw new \InvalidArgumentException('Due date must be a valid date in YYYY-MM-DD format.');
+            }
+        }
+
+        $subject = self::getDB()->prepare(
+            "SELECT subjectID FROM Subjects WHERE subjectID = ? AND isActive = 1"
+        );
+        $subject->execute([$subjectID]);
+
+        if ($subject->fetchColumn() === false) {
+            throw new \InvalidArgumentException('Please select an active subject.');
+        }
+    }
+
+    /**
+     * Generates a UUID v4 for a new test.
+     */
+    private static function newUuid(): string
+    {
+        $data = random_bytes(16);
+        $data[6] = chr((ord($data[6]) & 0x0f) | 0x40);
+        $data[8] = chr((ord($data[8]) & 0x3f) | 0x80);
+
+        return vsprintf('%s%s-%s-%s-%s-%s%s%s', str_split(bin2hex($data), 4));
     }
 
     /**
