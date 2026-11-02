@@ -32,6 +32,7 @@ class Leaderboard extends Model
      * total. With a subject, students are ranked by the points they earned on that subject's
      * tests. Only students who have completed at least one test (in the subject) are included,
      * so the table isn't filled with zero scores. Equal points share a rank.
+     * Tests count wherever their subject is now, so removing a subject from a cohort doesn't lose anyone's scores.
      *
      * Other students' IDs and surnames aren't sent to the browser, only a first name and initial.
      */
@@ -51,11 +52,9 @@ class Leaderboard extends Model
                 AVG(ct.percentageCorrect) AS averageScore
             FROM CompletedTests AS ct
             INNER JOIN Tests AS t ON t.testID = ct.testID
-            INNER JOIN Subjects AS s ON s.subjectID = t.subjectID
             INNER JOIN Students AS student ON student.userID = ct.userID
             INNER JOIN Users AS u ON u.userID = student.userID
             WHERE student.cohortID = (SELECT cohortID FROM Students WHERE userID = ?)
-                AND s.cohortID = student.cohortID
                 AND u.isEnabled = 1
                 AND u.approvalStatus = 'approved'
                 $subjectFilter
