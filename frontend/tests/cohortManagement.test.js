@@ -652,4 +652,191 @@ describe('CohortManagement', () => {
         expect(page.get('.cohortDialogConfirm').text()).toContain('Remove its subjects from the cohort first');
         expect(page.find('.cohortDialogButtons .cohortPrimaryButton').exists()).toBe(false);
     });
+
+    /**
+     * The date and time from the database are shown the way the page writes dates (normal)
+     */
+    it('shows the last login as day, month, year and time', async () => {
+        // Arrange
+        const cohorts = structuredClone(sampleCohorts);
+        cohorts[0].students[0].lastLogin = '2026-09-29 09:42:10';
+        getCohorts.mockResolvedValue(cohorts);
+        const page = await openPage();
+
+        // Act
+        await page.findAll('.cohortTable')[0].get('[aria-label="Show details for DTS 2026"]').trigger('click');
+
+        // Assert
+        expect(page.get('.cohortDetailsTable tbody tr').text()).toContain('29/09/2026 09:42');
+    });
+
+    /**
+     * A student who has never logged in says so (boundary)
+     */
+    it('shows Never for a student with no last login', async () => {
+        // Arrange
+        const cohorts = structuredClone(sampleCohorts);
+        cohorts[0].students[0].lastLogin = null;
+        getCohorts.mockResolvedValue(cohorts);
+        const page = await openPage();
+
+        // Act
+        await page.findAll('.cohortTable')[0].get('[aria-label="Show details for DTS 2026"]').trigger('click');
+
+        // Assert
+        expect(page.get('.cohortDetailsTable tbody tr').text()).toContain('Never');
+    });
+
+    /**
+     * Each subject shows its status, and says when it has no lecturer (normal)
+     */
+    it('shows an archived subject with no lecturer', async () => {
+        // Arrange
+        const cohorts = structuredClone(sampleCohorts);
+        cohorts[0].subjects = [
+            { subjectID: 'subject-1', subjectName: 'Test', testCount: 0, lecturerNames: null, isActive: false },
+        ];
+        getCohorts.mockResolvedValue(cohorts);
+        const page = await openPage();
+
+        // Act
+        await page.findAll('.cohortTable')[1].get('[aria-label="Show details for DTS 2026"]').trigger('click');
+
+        // Assert
+        const row = page.get('.cohortDetailsTable tbody tr');
+        expect(row.text()).toContain('Not assigned');
+        expect(row.get('.statusPill').text()).toBe('Archived');
+    });
+
+    /**
+     * The button counts what's chosen, and only says Subject for one (boundary)
+     */
+    it('counts the chosen subjects on the assign button', async () => {
+        // Arrange
+        const page = await openAssignDialog();
+        const options = page.findAll('.cohortDialogOption input');
+        const assignButton = page.get('.cohortDialogButtons .cohortPrimaryButton');
+        const labelWithNone = assignButton.text();
+
+        // Act
+        await options[0].setValue(true);
+        const labelWithOne = assignButton.text();
+        await options[1].setValue(true);
+        const labelWithTwo = assignButton.text();
+
+        // Assert
+        expect(labelWithNone).toBe('Assign Subjects');
+        expect(labelWithOne).toBe('Assign 1 Subject');
+        expect(labelWithTwo).toBe('Assign 2 Subjects');
+    });
+
+    /**
+     * A search with no match says so, rather than showing an empty table (edge)
+     */
+    it('says when no subject matches the search', async () => {
+        // Arrange
+        const page = await openAssignDialog();
+
+        // Act
+        await page.get('.cohortDialogSearch').setValue('zzz');
+
+        // Assert
+        expect(page.get('.cohortDialogTable tbody').text()).toBe('No subjects match your search');
+    });
+
+    /**
+     * A problem loading the subjects shows in the pop-up (error)
+     */
+    it('shows a problem when the unassigned subjects cannot load', async () => {
+        // Arrange
+        getUnassignedSubjects.mockRejectedValue(new Error('Network Error'));
+
+        // Act
+        const page = await openAssignDialog();
+
+        // Assert
+        expect(page.get('.popupDialog [role="alert"]').text()).toContain('Unable to load the subjects');
+        expect(page.get('.popupBody').text()).not.toContain('There are no unassigned subjects');
+    });
+
+    /**
+     * One test isn't written as tests (boundary)
+     */
+    it('writes a single test correctly in the remove pop-up', async () => {
+        // Arrange
+        const cohorts = structuredClone(sampleCohorts);
+        cohorts[0].subjects[0].testCount = 1;
+        getCohorts.mockResolvedValue(cohorts);
+
+        // Act
+        const page = await openRemoveDialog();
+
+        // Assert
+        expect(page.get('.cohortDialogConfirm').text()).toContain("this subject's 1 test.");
+    });
+
+    /**
+     * The pop-up stays open and the subject stays listed if removing fails (error)
+     */
+    it('shows a problem when removing fails', async () => {
+        // Arrange
+        removeSubject.mockRejectedValue({ response: { data: { error: 'That subject is not in this cohort' } } });
+        const page = await openRemoveDialog();
+
+        // Act
+        await page.get('.cohortDialogButtons .cohortPrimaryButton').trigger('click');
+        await flushPromises();
+
+        // Assert
+        expect(page.get('.popupDialog [role="alert"]').text()).toContain('That subject is not in this cohort');
+        expect(page.get('.cohortDetailsTable tbody th').text()).toBe('Web Applications');
+    });
+
+    /**
+     * One student and no subjects are written correctly in the offer (boundary)
+     */
+    it('writes a single student correctly in the delete pop-up', async () => {
+        // Arrange
+        const cohorts = structuredClone(sampleCohorts);
+        cohorts[0].students = cohorts[0].students.slice(0, 1);
+        cohorts[0].subjects = [];
+        getCohorts.mockResolvedValue(cohorts);
+        const page = await openPage();
+
+        // Act
+        await findButton(page, 'Delete DTS 2026').trigger('click');
+
+        // Assert
+        expect(page.get('.cohortDialogConfirm').text()).toContain('This cohort has 1 student, so');
+    });
+
+    /**
+     * The pop-up stays open and the cohort stays active if disabling fails (error)
+     */
+    it('shows a problem when disabling from the delete pop-up fails', async () => {
+        // Arrange
+        setCohortActive.mockRejectedValue(new Error('Network Error'));
+        const page = await openPage();
+        await findButton(page, 'Delete DTS 2026').trigger('click');
+
+        // Act
+        await page.get('.cohortDialogButtons .cohortPrimaryButton').trigger('click');
+        await flushPromises();
+
+        // Assert
+        expect(page.get('.popupDialog [role="alert"]').text()).toContain('Unable to disable DTS 2026');
+        expect(findButton(page, 'Disable DTS 2026').text()).toBe('Disable');
+    });
+
+    /**
+     * The delete button has the same look as on student management (normal)
+     */
+    it('styles the action buttons like the rest of the site', async () => {
+        // Arrange and Act
+        const page = await openPage();
+
+        // Assert
+        expect(findButton(page, 'Delete DTS 2026').classes()).toContain('tableDeleteButton');
+        expect(findButton(page, 'Disable DTS 2026').classes()).toContain('tableDisableButton');
+    });
 });
