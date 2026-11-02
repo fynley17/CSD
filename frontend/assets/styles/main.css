@@ -1377,6 +1377,17 @@ main.appMainFullScreen {
     border-collapse: collapse;
 }
 
+/* table in the assign subjects pop-up */
+.cohortDialogTable th,
+.cohortDialogTable td {
+    padding: var(--spaceSm) var(--spaceMd);
+    border-bottom: 1px solid var(--colorDivider);
+}
+
+.cohortDialogTable th {
+    background: var(--colorSurfaceAlt);
+}
+
 /* the details tables sit inside .cohortTable, so they pick up the same cell spacing */
 .cohortTable th,
 .cohortTable td {
@@ -1489,12 +1500,6 @@ main.appMainFullScreen {
     background: var(--colorPrimaryHover);
 }
 
-.cohortPrimaryButton:disabled,
-.cohortSecondaryButton:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-}
-
 .cohortSecondaryButton {
     min-height: var(--minTouchTarget);
     padding: var(--spaceSm) var(--spaceMd);
@@ -1504,6 +1509,12 @@ main.appMainFullScreen {
     color: var(--colorText);
     font-weight: 600;
     white-space: nowrap;
+}
+
+.cohortPrimaryButton:disabled,
+.cohortSecondaryButton:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
 }
 
 /* assign subjects and remove subject pop-ups */
@@ -1521,16 +1532,6 @@ main.appMainFullScreen {
     width: 100%;
     margin-top: var(--spaceMd);
     border: 1px solid var(--colorDivider);
-}
-
-.cohortDialogTable th,
-.cohortDialogTable td {
-    padding: var(--spaceSm) var(--spaceMd);
-    border-bottom: 1px solid var(--colorDivider);
-}
-
-.cohortDialogTable th {
-    background: var(--colorSurfaceAlt);
 }
 
 .cohortDialogCount {
@@ -1563,7 +1564,7 @@ main.appMainFullScreen {
     display: block;
     margin-bottom: var(--spaceSm);
     color: var(--colorTextSecondary);
-    font-size: 3rem;
+    font-size: var(--fontSizeH1);
 }
 
 .cohortDialogButtons {
