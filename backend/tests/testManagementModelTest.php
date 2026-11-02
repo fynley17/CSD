@@ -120,13 +120,11 @@ final class TestManagementModelTest extends TestCase
 
     public function testRejectsAnEmptyTestName(): void
     {
-        // Arrange
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessage(
             'Test name must be between 1 and 30 characters.'
         );
 
-        // Act
         Test::create(
             '',
             'subject-1',
@@ -140,13 +138,11 @@ final class TestManagementModelTest extends TestCase
 
     public function testRejectsAnInactiveSubject(): void
     {
-        // Arrange
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessage(
             'Please select an active subject.'
         );
 
-        // Act
         Test::create(
             'Archived Subject Test',
             'subject-3',
@@ -281,8 +277,98 @@ final class TestManagementModelTest extends TestCase
         );
     }
 
+    public function testDeletesTestAndAllAssociatedCompletedAttempts(): void
+    {
+        // Arrange
+        $this->addTest();
+
+        $this->db->exec(
+            "INSERT INTO CompletedTests (testID, userID, percentageCorrect) VALUES
+                ('test-1', 'student-1', 80),
+                ('test-1', 'student-2', 100),
+                ('another-test', 'student-3', 70)"
+        );
+
+        // Act
+        $deleted = Test::delete('test-1');
+
+        // Assert
+        self::assertTrue($deleted);
+
+        $stmt = $this->db->prepare('SELECT COUNT(*) FROM Tests WHERE testID = ?');
+        $stmt->execute(['test-1']);
+        self::assertSame(0, (int) $stmt->fetchColumn());
+
+        $stmt = $this->db->prepare('SELECT COUNT(*) FROM CompletedTests WHERE testID = ?');
+        $stmt->execute(['test-1']);
+        self::assertSame(0, (int) $stmt->fetchColumn());
+
+        // Attempts belonging to other tests must remain untouched.
+        self::assertSame(
+            1,
+            (int) $this->db->query('SELECT COUNT(*) FROM CompletedTests')->fetchColumn()
+        );
+    }
+
+    public function testReturnsFalseWhenDeletingANonexistentTest(): void
+    {
+        // Act
+        $deleted = Test::delete('nonexistent-test');
+
+        // Assert
+        self::assertFalse($deleted);
+
+        self::assertSame(
+            0,
+            (int) $this->db->query('SELECT COUNT(*) FROM CompletedTests')->fetchColumn()
+        );
+    }
+
+    public function testRollsBackCompletedAttemptDeletionWhenTestDeletionFails(): void
+    {
+        // Arrange
+        $this->addTest();
+
+        $this->db->exec(
+            "INSERT INTO CompletedTests (testID, userID, percentageCorrect) VALUES
+                ('test-1', 'student-1', 80),
+                ('test-1', 'student-2', 100)"
+        );
+
+        // Force the Tests deletion to fail after CompletedTests have been deleted.
+        $this->db->exec(
+            "CREATE TRIGGER prevent_test_deletion
+             BEFORE DELETE ON Tests
+             BEGIN
+                 SELECT RAISE(ABORT, 'Test deletion blocked');
+             END"
+        );
+
+        // Act and assert: the database error should be rethrown.
+        try {
+            Test::delete('test-1');
+            self::fail('Expected the test deletion to fail.');
+        } catch (\PDOException $exception) {
+            self::assertStringContainsString(
+                'Test deletion blocked',
+                $exception->getMessage()
+            );
+        }
+
+        // Assert: both the test and its completed attempts must be restored.
+        self::assertSame(
+            1,
+            (int) $this->db->query("SELECT COUNT(*) FROM Tests WHERE testID = 'test-1'")->fetchColumn()
+        );
+
+        self::assertSame(
+            2,
+            (int) $this->db->query("SELECT COUNT(*) FROM CompletedTests WHERE testID = 'test-1'")->fetchColumn()
+        );
+    }
+
     /**
-     * Adds a test record for update scenarios.
+     * Adds a test record for update and deletion scenarios.
      */
     private function addTest(): void
     {
