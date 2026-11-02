@@ -6,10 +6,39 @@ class Student extends User
 {
     public static function getAll(): array
     {
+        $db = self::getDB();
+        $driver = $db->getAttribute(\PDO::ATTR_DRIVER_NAME);
+
+        // Use the correct name concatenation syntax for the active database.
+        $nameSql = $driver === 'sqlite'
+            ? "TRIM(COALESCE(s.firstName, '') || ' ' || COALESCE(s.lastName, ''))"
+            : "CONCAT_WS(' ', s.firstName, s.lastName)";
+
+        // SQLite and MySQL use different GROUP_CONCAT syntax.
+        $subjectSql = $driver === 'sqlite'
+            ? "
+                SELECT GROUP_CONCAT(subjectName, ', ')
+                FROM (
+                    SELECT DISTINCT sub.subjectName
+                    FROM Subjects AS sub
+                    WHERE sub.cohortID = s.cohortID
+                    ORDER BY sub.subjectName
+                ) AS distinct_subjects
+            "
+            : "
+                SELECT GROUP_CONCAT(
+                    DISTINCT sub.subjectName
+                    ORDER BY sub.subjectName
+                    SEPARATOR ', '
+                )
+                FROM Subjects AS sub
+                WHERE sub.cohortID = s.cohortID
+            ";
+
         $sql = "
             SELECT
                 s.userID,
-                CONCAT_WS(' ', s.firstName, s.lastName) AS name,
+                $nameSql AS name,
                 u.username AS studentNumber,
                 u.email,
                 CASE
@@ -19,15 +48,7 @@ class Student extends User
                 END AS status,
                 u.lastLogin,
                 c.cohortName AS cohort,
-                (
-                    SELECT GROUP_CONCAT(
-                        DISTINCT sub.subjectName
-                        ORDER BY sub.subjectName
-                        SEPARATOR ', '
-                    )
-                    FROM Subjects AS sub
-                    WHERE sub.cohortID = s.cohortID
-                ) AS subjects
+                ($subjectSql) AS subjects
             FROM Students AS s
             INNER JOIN Users AS u ON u.userID = s.userID
             LEFT JOIN Cohorts AS c ON c.cohortID = s.cohortID
@@ -35,7 +56,7 @@ class Student extends User
             ORDER BY s.lastName ASC, s.firstName ASC
         ";
 
-        $stmt = self::getDB()->prepare($sql);
+        $stmt = $db->prepare($sql);
         $stmt->execute();
 
         return $stmt->fetchAll(\PDO::FETCH_ASSOC);
