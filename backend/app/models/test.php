@@ -120,12 +120,15 @@ class Test extends Model
     }
 
     /**
-     * Returns all active subjects for the lecturer test form.
+     * Returns all active subjects and their cohort IDs for the lecturer test form.
      */
     public static function getActiveSubjects(): array
     {
         $stmt = self::getDB()->prepare(
-            'SELECT subjectID, subjectName
+            'SELECT
+                subjectID,
+                subjectName,
+                cohortID
              FROM Subjects
              WHERE isActive = 1
              ORDER BY subjectName'
@@ -328,7 +331,7 @@ class Test extends Model
             'SELECT subjectID
              FROM Subjects
              WHERE subjectID = ?
-               AND isActive = 1'
+                AND isActive = 1'
         );
 
         $stmt->execute([$subjectID]);
@@ -427,8 +430,8 @@ class Test extends Model
              INNER JOIN Subjects AS s ON s.subjectID = t.subjectID
              INNER JOIN Students AS student ON student.cohortID = s.cohortID
              WHERE t.testID = ?
-               AND student.userID = ?
-               AND " . self::POOL_SIZE . " > 0"
+                AND student.userID = ?
+                AND " . self::POOL_SIZE . " > 0"
         );
 
         $stmt->execute([$userID, $testID, $userID]);
