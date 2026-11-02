@@ -115,7 +115,7 @@ async function submitTest() {
     const testData = {
         testName: form.value.testName.trim(),
         subjectID: form.value.subjectID,
-        description: form.value.description.trim(),
+        testDescription: form.value.description.trim(),
         timeLimit: form.value.timeLimit === '' ? null : Number(form.value.timeLimit),
         dueDate: form.value.dueDate || null,
         questionCount: Number(form.value.questionCount),
@@ -193,7 +193,7 @@ onMounted(async () => {
                     v-model="form.description"
                     maxlength="100"
                     rows="3"
-                    placeholder="Enter a short description (optional)"
+                    placeholder="Enter a short description"
                 />
                 <small>{{ form.description.length }}/100 characters</small>
             </div>
