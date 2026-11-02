@@ -23,7 +23,8 @@
                 <button type="button" class="cohortActionButton" :aria-label="`Edit ${cohort.cohortName}`">Edit</button>
                 <button
                     type="button"
-                    class="cohortActionButton"
+                    class="btn btn-sm tableActionButton"
+                    :class="cohort.isActive ? 'tableDisableButton' : 'tableEnableButton'"
                     :aria-label="`${cohort.isActive ? 'Disable' : 'Enable'} ${cohort.cohortName}`"
                 >
                     {{ cohort.isActive ? 'Disable' : 'Enable' }}
