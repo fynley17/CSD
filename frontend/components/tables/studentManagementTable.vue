@@ -18,19 +18,36 @@ const dataTable = ref(null);
 const cohorts = ref([]);
 
 // Escape values before inserting them into DataTables-generated HTML.
-const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (character) => ({
-    '&': '&amp;',
-    '<': '&lt;',
-    '>': '&gt;',
-    '"': '&quot;',
-    "'": '&#39;',
-}[character]));
+const escapeHtml = (value) =>
+    String(value ?? '').replace(
+        /[&<>"']/g,
+        (character) =>
+            ({
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#39;',
+            })[character],
+    );
 
 // Define the columns displayed in the student management table.
 const columns = [
-    { data: 'name', title: 'Name', render: (value, type) => type === 'display' ? escapeHtml(value) : value },
-    { data: 'studentNumber', title: 'Student Number', render: (value, type) => type === 'display' ? escapeHtml(value) : value },
-    { data: 'email', title: 'Email', render: (value, type) => type === 'display' ? escapeHtml(value) : value },
+    {
+        data: 'name',
+        title: 'Name',
+        render: (value, type) => (type === 'display' ? escapeHtml(value) : value),
+    },
+    {
+        data: 'studentNumber',
+        title: 'Student Number',
+        render: (value, type) => (type === 'display' ? escapeHtml(value) : value),
+    },
+    {
+        data: 'email',
+        title: 'Email',
+        render: (value, type) => (type === 'display' ? escapeHtml(value) : value),
+    },
     {
         data: 'status',
         title: 'Status',
@@ -55,9 +72,13 @@ const columns = [
         data: 'lastLogin',
         title: 'Last Login',
         // Display 'Never' when the student has not logged in.
-        render: (value, type) => type === 'display' ? escapeHtml(value || 'Never') : (value || 'Never'),
+        render: (value, type) => (type === 'display' ? escapeHtml(value || 'Never') : value || 'Never'),
     },
-    { data: 'cohort', title: 'Cohort', render: (value, type) => type === 'display' ? escapeHtml(value) : value },
+    {
+        data: 'cohort',
+        title: 'Cohort',
+        render: (value, type) => (type === 'display' ? escapeHtml(value) : value),
+    },
     {
         data: null,
         title: 'Actions',
@@ -358,7 +379,6 @@ onMounted(async () => {
     border-color: var(--colorPrimaryHover);
 }
 
-/* Approve and Enable buttons. */
 /* Approve and enable button styling. */
 .tableApproveButton,
 .tableEnableButton {
@@ -399,7 +419,6 @@ onMounted(async () => {
     border-color: var(--colorErrorHover);
 }
 
-/* Keep keyboard focus clearly visible. */
 /* Make keyboard focus clearly visible when navigating action buttons. */
 .tableActionButton:focus-visible {
     outline: 3px solid var(--colorFocus);
