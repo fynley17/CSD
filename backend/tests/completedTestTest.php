@@ -266,6 +266,28 @@ final class CompletedTestTest extends TestCase
         self::assertNull($result);
     }
 
+    public function testStartedLookupSkipsTheCohortCheckThatOpeningATestHas(): void
+    {
+        // Arrange: setUp() puts student-2 in another cohort
+
+        // Act
+        $opening = Test::findForStudent('test-1', 'student-2');
+        $handingIn = Test::findStartedByStudent('test-1', 'student-2');
+
+        // Assert
+        self::assertNull($opening);
+        self::assertSame('Web Apps Test', $handingIn['testName']);
+    }
+
+    public function testStartedLookupGivesNullForATestThatDoesNotExist(): void
+    {
+        // Act
+        $test = Test::findStartedByStudent('missing-test', 'student-1');
+
+        // Assert
+        self::assertNull($test);
+    }
+
     public function testMarksAndSavesTheAttempt(): void
     {
         // Arrange
