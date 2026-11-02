@@ -4,6 +4,7 @@ namespace App\Controllers;
 
 use App\Helpers\Authentication;
 use App\Models\Cohort;
+use App\Models\Student;
 
 class CohortController extends Controller
 {
@@ -175,6 +176,69 @@ class CohortController extends Controller
             error_log('Deleting a cohort failed: ' . $e->getMessage());
             $this->jsonResponse(['error' => 'Unable to delete the cohort'], 500);
         }
+    }
+
+    /**
+     * Sends the students in other cohorts to the add students pop-up
+     */
+    public function getOtherStudents(string $cohortID): void
+    {
+        Authentication::requireRole(['admin']);
+
+        try {
+            $this->jsonResponse(Cohort::getStudentsOutside($cohortID));
+        } catch (\Throwable $e) {
+            error_log('Loading the students for a cohort failed: ' . $e->getMessage());
+            $this->jsonResponse(['error' => 'Unable to load the students'], 500);
+        }
+    }
+
+    /**
+     * Moves students into this cohort, the JSON body is {"studentNumbers": ["...", "..."]}
+     * Both add students and remove from cohort use this, as a student is always in exactly one cohort
+     * Sends every cohort back, as the cohorts they came from have changed too
+     */
+    public function moveStudents(string $cohortID): void
+    {
+        Authentication::requireRole(['admin']);
+
+        $data = json_decode(file_get_contents('php://input'), true);
+        $studentNumbers = is_array($data) ? ($data['studentNumbers'] ?? null) : null;
+        if (!self::validStudentNumbers($studentNumbers)) {
+            $this->jsonResponse(['error' => 'Choose at least one student'], 400);
+        }
+
+        try {
+            if (!Cohort::moveStudents($cohortID, array_values(array_unique($studentNumbers)))) {
+                $this->jsonResponse(['error' => 'Cohort not found'], 404);
+            }
+
+            $this->jsonResponse(Cohort::getAllForManagement());
+        } catch (\InvalidArgumentException $e) {
+            $this->jsonResponse(['error' => $e->getMessage()], 400);
+        } catch (\Throwable $e) {
+            error_log('Moving students failed: ' . $e->getMessage());
+            $this->jsonResponse(['error' => 'Unable to move the students'], 500);
+        }
+    }
+
+    /**
+     * True for a list of at least one student number
+     * public and static so a unit test can hand it made up input
+     */
+    public static function validStudentNumbers(mixed $studentNumbers): bool
+    {
+        if (!is_array($studentNumbers) || $studentNumbers === [] || !array_is_list($studentNumbers)) {
+            return false;
+        }
+
+        foreach ($studentNumbers as $studentNumber) {
+            if (!Student::validUsername($studentNumber)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /**

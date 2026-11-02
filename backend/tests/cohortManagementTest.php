@@ -993,6 +993,309 @@ final class CohortManagementTest extends TestCase
         $this->assertSame('Test Beta', Cohort::findForManagement($cohortID)['cohortName']);
     }
 
+    /**
+     * The add students list has everyone in other cohorts, with the cohort they're in now (normal)
+     */
+    public function testListsStudentsInOtherCohorts(): void
+    {
+        // Arrange
+        $this->addStudent('ws000001', 'Sam', 'Inside', 'cohort-1', 1, 'approved', null);
+        $this->addStudent('ws000002', 'Ali', 'Outside', 'cohort-2', 1, 'approved', null);
+
+        // Act
+        $students = Cohort::getStudentsOutside('cohort-1');
+
+        // Assert
+        $this->assertSame(
+            [['studentNumber' => 'ws000002', 'name' => 'Ali Outside', 'currentCohort' => 'Test Alpha']],
+            $students
+        );
+    }
+
+    /**
+     * A move takes the student out of the old cohort and into the new one, so they're only ever in one (normal)
+     */
+    public function testMovesStudentsIntoACohort(): void
+    {
+        // Arrange
+        $this->db->exec("UPDATE Cohorts SET isActive = 1");
+        $this->addStudent('ws000001', 'Sam', 'One', 'cohort-1', 1, 'approved', null);
+        $this->addStudent('ws000002', 'Sam', 'Two', 'cohort-1', 1, 'approved', null);
+
+        // Act
+        $result = Cohort::moveStudents('cohort-2', ['ws000001', 'ws000002']);
+
+        // Assert
+        $this->assertTrue($result);
+        $this->assertCount(0, Cohort::findForManagement('cohort-1')['students']);
+        $this->assertCount(2, Cohort::findForManagement('cohort-2')['students']);
+        $this->assertSame(2, (int) $this->db->query('SELECT COUNT(*) FROM Students')->fetchColumn());
+    }
+
+    /**
+     * A student moved into a disabled cohort is locked out, and comes back when it's enabled (edge)
+     */
+    public function testMovingIntoADisabledCohortLocksTheStudentOut(): void
+    {
+        // Arrange: setUp() disables cohort-2
+        $this->addStudent('ws000001', 'Sam', 'One', 'cohort-1', 1, 'approved', null);
+
+        // Act
+        Cohort::moveStudents('cohort-2', ['ws000001']);
+        $whileDisabled = $this->userIsEnabled('ws000001');
+        Cohort::setActive('cohort-2', true);
+
+        // Assert
+        $this->assertSame(0, $whileDisabled);
+        $this->assertSame(1, $this->userIsEnabled('ws000001'));
+    }
+
+    /**
+     * A student locked out by a disabled cohort can log in again once moved to an active one (normal)
+     */
+    public function testMovingOutOfADisabledCohortLetsTheStudentBackIn(): void
+    {
+        // Arrange
+        $this->addStudent('ws000001', 'Sam', 'One', 'cohort-2', 1, 'approved', null);
+        Cohort::setActive('cohort-2', true);
+        Cohort::setActive('cohort-2', false);
+
+        // Act
+        Cohort::moveStudents('cohort-1', ['ws000001']);
+
+        // Assert
+        $this->assertSame(1, $this->userIsEnabled('ws000001'));
+    }
+
+    /**
+     * A student disabled for another reason stays disabled wherever they're moved (edge)
+     */
+    public function testMovingLeavesAStudentDisabledForAnotherReasonDisabled(): void
+    {
+        // Arrange
+        $this->addStudent('ws000001', 'Sam', 'Banned', 'cohort-2', 0, 'approved', null);
+
+        // Act
+        Cohort::moveStudents('cohort-1', ['ws000001']);
+
+        // Assert
+        $this->assertSame(0, $this->userIsEnabled('ws000001'));
+    }
+
+    /**
+     * Moving someone who's already there is refused, and nobody else in the request moves (error)
+     */
+    public function testMovingAStudentAlreadyInTheCohortChangesNothing(): void
+    {
+        // Arrange
+        $this->addStudent('ws000001', 'Sam', 'Other', 'cohort-2', 1, 'approved', null);
+        $this->addStudent('ws000002', 'Sam', 'Here', 'cohort-1', 1, 'approved', null);
+
+        // Act
+        try {
+            Cohort::moveStudents('cohort-1', ['ws000001', 'ws000002']);
+            $this->fail('Expected the move to be refused');
+        } catch (InvalidArgumentException) {
+            // Assert
+            $this->assertCount(1, Cohort::findForManagement('cohort-2')['students']);
+            $this->assertCount(1, Cohort::findForManagement('cohort-1')['students']);
+        }
+    }
+
+    /**
+     * A student number that doesn't exist is refused (error)
+     */
+    public function testMovingAnUnknownStudentIsRefused(): void
+    {
+        // Assert
+        $this->expectException(InvalidArgumentException::class);
+
+        // Act
+        Cohort::moveStudents('cohort-1', ['ws999999']);
+    }
+
+    /**
+     * Moving into a cohort that doesn't exist is reported back and the student stays put (error)
+     */
+    public function testMovingIntoAnUnknownCohortReturnsFalse(): void
+    {
+        // Arrange
+        $this->addStudent('ws000001', 'Sam', 'One', 'cohort-1', 1, 'approved', null);
+
+        // Act
+        $result = Cohort::moveStudents('cohort-missing', ['ws000001']);
+
+        // Assert
+        $this->assertFalse($result);
+        $this->assertCount(1, Cohort::findForManagement('cohort-1')['students']);
+    }
+
+    /**
+     * Only a non-empty list of real looking student numbers is accepted (boundary)
+     */
+    public function testValidatesTheListOfStudentNumbers(): void
+    {
+        // Act and Assert
+        $this->assertTrue(CohortController::validStudentNumbers(['ws000001', 'ws000002']));
+        $this->assertFalse(CohortController::validStudentNumbers([]));
+        $this->assertFalse(CohortController::validStudentNumbers('ws000001'));
+        $this->assertFalse(CohortController::validStudentNumbers([1]));
+        $this->assertFalse(CohortController::validStudentNumbers(['id' => 'ws000001']));
+        $this->assertFalse(CohortController::validStudentNumbers(["ws000001' OR 1=1"]));
+    }
+
+    /**
+     * The add students list is A to Z by last name (normal)
+     */
+    public function testListsOtherStudentsAToZByLastName(): void
+    {
+        // Arrange
+        $this->addStudent('ws000001', 'Sam', 'Young', 'cohort-2', 1, 'approved', null);
+        $this->addStudent('ws000002', 'Ali', 'Adams', 'cohort-2', 1, 'approved', null);
+
+        // Act
+        $students = Cohort::getStudentsOutside('cohort-1');
+
+        // Assert
+        $this->assertSame(['Ali Adams', 'Sam Young'], array_column($students, 'name'));
+    }
+
+    /**
+     * Only what the pop-up needs is sent, no emails or account details (normal)
+     */
+    public function testOtherStudentsListOnlySendsWhatThePopUpNeeds(): void
+    {
+        // Arrange
+        $this->addStudent('ws000001', 'Sam', 'One', 'cohort-2', 1, 'approved', null);
+
+        // Act
+        $students = Cohort::getStudentsOutside('cohort-1');
+
+        // Assert
+        $this->assertSame(['studentNumber', 'name', 'currentCohort'], array_keys($students[0]));
+    }
+
+    /**
+     * With nobody in another cohort the list is empty (boundary)
+     */
+    public function testOtherStudentsListIsEmptyWhenEveryoneIsInThisCohort(): void
+    {
+        // Arrange
+        $this->addStudent('ws000001', 'Sam', 'One', 'cohort-1', 1, 'approved', null);
+
+        // Act
+        $students = Cohort::getStudentsOutside('cohort-1');
+
+        // Assert
+        $this->assertSame([], $students);
+    }
+
+    /**
+     * Moving only touches the students chosen (normal)
+     */
+    public function testMovingLeavesOtherStudentsWhereTheyAre(): void
+    {
+        // Arrange
+        $this->addStudent('ws000001', 'Sam', 'Moving', 'cohort-1', 1, 'approved', null);
+        $this->addStudent('ws000002', 'Sam', 'Staying', 'cohort-1', 1, 'approved', null);
+
+        // Act
+        Cohort::moveStudents('cohort-2', ['ws000001']);
+
+        // Assert
+        $staying = Cohort::findForManagement('cohort-1')['students'];
+        $this->assertSame(['Sam Staying'], array_column($staying, 'name'));
+        $this->assertSame(1, $this->userIsEnabled('ws000002'));
+    }
+
+    /**
+     * A student waiting for approval is still waiting after moving (normal)
+     */
+    public function testMovingKeepsThePendingStatus(): void
+    {
+        // Arrange
+        $this->db->exec("UPDATE Cohorts SET isActive = 1");
+        $this->addStudent('ws000001', 'Sam', 'Pending', 'cohort-1', 1, 'pending', null);
+
+        // Act
+        Cohort::moveStudents('cohort-2', ['ws000001']);
+
+        // Assert
+        $this->assertSame('Pending', Cohort::findForManagement('cohort-2')['students'][0]['status']);
+    }
+
+    /**
+     * Moving between two disabled cohorts keeps them locked out, and enabling the new one lets them back in (edge)
+     */
+    public function testMovingBetweenDisabledCohortsStillRestoresOnEnable(): void
+    {
+        // Arrange
+        $this->addStudent('ws000001', 'Sam', 'One', 'cohort-1', 1, 'approved', null);
+        Cohort::setActive('cohort-1', false);
+
+        // Act
+        Cohort::moveStudents('cohort-2', ['ws000001']);
+        $whileDisabled = $this->userIsEnabled('ws000001');
+        Cohort::setActive('cohort-2', true);
+
+        // Assert
+        $this->assertSame(0, $whileDisabled);
+        $this->assertSame(1, $this->userIsEnabled('ws000001'));
+    }
+
+    /**
+     * Once moved away, enabling the old cohort has nothing to do with them (edge)
+     */
+    public function testOldCohortNoLongerControlsAMovedStudent(): void
+    {
+        // Arrange
+        $this->addStudent('ws000001', 'Sam', 'One', 'cohort-1', 1, 'approved', null);
+        Cohort::setActive('cohort-1', false);
+        Cohort::moveStudents('cohort-2', ['ws000001']);
+
+        // Act: cohort-2 is still disabled, so enabling cohort-1 mustn't let them in
+        Cohort::setActive('cohort-1', true);
+
+        // Assert
+        $this->assertSame(0, $this->userIsEnabled('ws000001'));
+    }
+
+    /**
+     * A student who's moved out can no longer stop their old cohort being deleted (boundary)
+     */
+    public function testCohortCanBeDeletedOnceItsLastStudentHasMoved(): void
+    {
+        // Arrange
+        $this->addStudent('ws000001', 'Sam', 'One', 'cohort-1', 1, 'approved', null);
+        Cohort::moveStudents('cohort-2', ['ws000001']);
+
+        // Act and Assert
+        $this->assertTrue(Cohort::delete('cohort-1'));
+    }
+
+    /**
+     * If the account update fails, the student stays in their old cohort (error)
+     */
+    public function testMovingRollsBackWhenAnUpdateFails(): void
+    {
+        // Arrange
+        $this->addStudent('ws000001', 'Sam', 'One', 'cohort-1', 1, 'approved', null);
+        $this->db->exec(
+            "CREATE TRIGGER accountUpdateFails BEFORE UPDATE ON Users
+                BEGIN SELECT RAISE(ABORT, 'account update failed'); END"
+        );
+
+        // Act
+        try {
+            Cohort::moveStudents('cohort-2', ['ws000001']);
+            $this->fail('Expected the move to fail');
+        } catch (PDOException) {
+            // Assert
+            $this->assertFalse($this->db->inTransaction());
+            $this->assertCount(1, Cohort::findForManagement('cohort-1')['students']);
+        }
+    }
+
     private function subjectCohort(string $subjectID): ?string
     {
         $stmt = $this->db->prepare('SELECT cohortID FROM Subjects WHERE subjectID = ?');

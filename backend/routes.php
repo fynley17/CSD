@@ -145,6 +145,18 @@ $router->addRoute('PUT', '/^\/api\/admin\/cohorts\/([0-9a-zA-Z-]+)$/', [new Coho
 // delete an empty cohort, admins only
 $router->addRoute('DELETE', '/^\/api\/admin\/cohorts\/([0-9a-zA-Z-]+)$/', [new CohortController(), 'deleteCohort']);
 
+// students in other cohorts for the add students pop-up, and moving students into a cohort, admins only
+$router->addRoute(
+    'GET',
+    '/^\/api\/admin\/cohorts\/([0-9a-zA-Z-]+)\/other-students$/',
+    [new CohortController(), 'getOtherStudents']
+);
+$router->addRoute(
+    'POST',
+    '/^\/api\/admin\/cohorts\/([0-9a-zA-Z-]+)\/students$/',
+    [new CohortController(), 'moveStudents']
+);
+
 // add subjects to a cohort or take one out, admins only
 $router->addRoute(
     'POST',
