@@ -121,14 +121,39 @@ $router->addRoute(
     [new TestController(), 'deleteTest']
 );
 
-// Return all questions for the lecturer question management page.
+// Question management routes for lecturers.
 $router->addRoute(
     'GET',
-    '/^\\/api\\/lecturer\\/questions$/',
+    '/^\/api\/lecturer\/questions$/',
     [new QuestionController(), 'getAllForLecturer']
 );
 
 // The lecturers in the admin dashboard table, admins only.
+$router->addRoute(
+    'POST',
+    '/^\/api\/lecturer\/questions$/',
+    [new QuestionController(), 'createQuestion']
+);
+
+$router->addRoute(
+    'PUT',
+    '/^\/api\/lecturer\/questions\/([0-9a-zA-Z-]+)$/',
+    [new QuestionController(), 'updateQuestion']
+);
+
+$router->addRoute(
+    'DELETE',
+    '/^\/api\/lecturer\/questions\/([0-9a-zA-Z-]+)$/',
+    [new QuestionController(), 'deleteQuestion']
+);
+
+$router->addRoute(
+    'GET',
+    '/^\/api\/lecturer\/subjects$/',
+    [new QuestionController(), 'getActiveSubjects']
+);
+
+// the lecturers in the admin dashboard table, admins only
 $router->addRoute(
     'GET',
     '/^\\/api\\/admin\\/recent-lecturers$/',

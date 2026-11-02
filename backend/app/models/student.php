@@ -4,10 +4,40 @@ namespace App\Models;
 
 class Student extends User
 {
-    public static function getAll()
+    public static function getAll(): array
     {
-        $stmt = self::getDB()->prepare("SELECT * FROM Students");
+        $sql = "
+            SELECT
+                s.userID,
+                CONCAT_WS(' ', s.firstName, s.lastName) AS name,
+                u.username AS studentNumber,
+                u.email,
+                CASE
+                    WHEN u.isEnabled = 0 THEN 'Disabled'
+                    WHEN u.approvalStatus = 'pending' THEN 'Pending'
+                    ELSE 'Active'
+                END AS status,
+                u.lastLogin,
+                c.cohortName AS cohort,
+                (
+                    SELECT GROUP_CONCAT(
+                        DISTINCT sub.subjectName
+                        ORDER BY sub.subjectName
+                        SEPARATOR ', '
+                    )
+                    FROM Subjects AS sub
+                    WHERE sub.cohortID = s.cohortID
+                ) AS subjects
+            FROM Students AS s
+            INNER JOIN Users AS u ON u.userID = s.userID
+            LEFT JOIN Cohorts AS c ON c.cohortID = s.cohortID
+            WHERE u.accountType = 'student'
+            ORDER BY s.lastName ASC, s.firstName ASC
+        ";
+
+        $stmt = self::getDB()->prepare($sql);
         $stmt->execute();
+
         return $stmt->fetchAll(\PDO::FETCH_ASSOC);
     }
 

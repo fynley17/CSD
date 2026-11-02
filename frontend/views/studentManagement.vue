@@ -1,9 +1,37 @@
 <script setup>
+import { computed, ref } from 'vue';
 import StudentManagementTable from '../components/tables/studentManagementTable.vue';
+
+// Reference the student table component so the parent view can access its filters.
+const studentManagementTable = ref(null);
+
+// Store the selected cohort, status and search term.
+const cohortFilter = ref('');
+const statusFilter = ref('');
+const searchTerm = ref('');
+
+// Retrieve the available cohort options from the student table component.
+const cohorts = computed(() => studentManagementTable.value?.cohorts ?? []);
+
+// Pass the selected cohort to the student table filter.
+const filterByCohort = () => {
+    studentManagementTable.value?.filterByCohort(cohortFilter.value);
+};
+
+// Pass the selected account status to the student table filter.
+const filterByStatus = () => {
+    studentManagementTable.value?.filterByStatus(statusFilter.value);
+};
+
+// Pass the search term to the student table's global search.
+const searchStudents = () => {
+    studentManagementTable.value?.searchStudents(searchTerm.value);
+};
 </script>
 
 <template>
     <main class="studentManagement">
+        <!-- Display the page title, description and Student Applications button. -->
         <div class="pageHeading">
             <div>
                 <h1>Student Management</h1>
@@ -13,40 +41,48 @@ import StudentManagementTable from '../components/tables/studentManagementTable.
             <button type="button" class="secondaryButton">Student Applications</button>
         </div>
 
+        <!-- Provide independent filters for cohort, account status and student search. -->
         <div class="tableToolbar">
-            <label class="searchField">
-                <span class="visuallyHidden">Search students</span>
-                <input type="search" placeholder="Search Students..." />
+            <label class="studentFilter">
+                <span class="visuallyHidden">Filter students by cohort</span>
+                <select v-model="cohortFilter" @change="filterByCohort">
+                    <option value="">All cohorts</option>
+                    <option v-for="cohort in cohorts" :key="cohort" :value="cohort">
+                        {{ cohort }}
+                    </option>
+                </select>
             </label>
 
-            <label>
+            <label class="studentFilter">
                 <span class="visuallyHidden">Filter students by status</span>
-                <select>
-                    <option value="">Status</option>
-                    <option value="active">Active</option>
-                    <option value="pending">Pending</option>
-                    <option value="disabled">Disabled</option>
+                <select v-model="statusFilter" @change="filterByStatus">
+                    <option value="">All statuses</option>
+                    <option value="Active">Active</option>
+                    <option value="Pending">Pending</option>
+                    <option value="Disabled">Disabled</option>
                 </select>
             </label>
 
-            <label>
-                <span class="visuallyHidden">Sort students</span>
-                <select>
-                    <option value="">Sort by</option>
-                    <option value="nameAsc">Name (A-Z)</option>
-                    <option value="nameDesc">Name (Z-A)</option>
-                    <option value="lastLogin">Last Login</option>
-                </select>
+            <label class="studentSearch">
+                <span class="visuallyHidden">Search students</span>
+                <input v-model="searchTerm" type="search" placeholder="Search students..." @input="searchStudents" />
             </label>
-
-            <button type="button" class="primaryButton"><span aria-hidden="true">＋</span> Add Student</button>
         </div>
 
-        <StudentManagementTable />
+        <!-- Display the student table and its records. -->
+        <div class="tableSection">
+            <StudentManagementTable ref="studentManagementTable" />
+        </div>
+
+        <!-- Display the Add Student button underneath the table. -->
+        <div class="tableActions">
+            <button type="button" class="addStudentButton">+ Add New Student</button>
+        </div>
     </main>
 </template>
 
 <style scoped>
+/* Set the main page width, spacing and default typography. */
 .studentManagement {
     max-width: var(--contentMaxWidth);
     min-height: 100%;
@@ -56,6 +92,7 @@ import StudentManagementTable from '../components/tables/studentManagementTable.
     font-family: var(--fontBody);
 }
 
+/* Arrange the page heading and applications button. */
 .pageHeading {
     display: flex;
     align-items: center;
@@ -77,9 +114,10 @@ import StudentManagementTable from '../components/tables/studentManagementTable.
     font-size: var(--fontSizeSmall);
 }
 
+/* Position the cohort filter, status filter and search field in one row. */
 .tableToolbar {
     display: grid;
-    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 1fr) auto;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) minmax(0, 1.3fr);
     align-items: center;
     gap: var(--spaceLg);
     margin-bottom: var(--spaceMd);
@@ -89,6 +127,7 @@ import StudentManagementTable from '../components/tables/studentManagementTable.
     min-width: 0;
 }
 
+/* Apply consistent styling to the filter dropdowns and search input. */
 .tableToolbar input,
 .tableToolbar select {
     width: 100%;
@@ -102,31 +141,51 @@ import StudentManagementTable from '../components/tables/studentManagementTable.
     font: inherit;
 }
 
-.primaryButton,
+/* Style the Student Applications button. */
 .secondaryButton {
     min-height: 44px;
     padding: var(--spaceSm) var(--spaceMd);
     border: 1px solid var(--colorPrimary);
     border-radius: var(--radiusSm);
+    background: var(--colorSurface);
+    color: var(--colorPrimary);
     font: inherit;
     font-weight: 600;
     cursor: pointer;
 }
 
-.primaryButton {
+/* Change the button colours when hovered over. */
+.secondaryButton:hover {
     background: var(--colorPrimary);
     color: var(--colorSurface);
 }
 
-.primaryButton:hover {
+/* Position the Add Student button at the bottom-right of the table. */
+.tableActions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: var(--spaceMd);
+}
+
+/* Style the Add Student button to match Create New Test. */
+.addStudentButton {
+    min-height: 44px;
+    padding: var(--spaceSm) var(--spaceLg);
+    border: 1px solid var(--colorPrimary);
+    border-radius: var(--radiusSm);
+    background: var(--colorPrimary);
+    color: var(--colorSurface);
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.addStudentButton:hover {
     background: var(--colorPrimaryHover);
+    border-color: var(--colorPrimaryHover);
 }
 
-.secondaryButton {
-    background: var(--colorSurface);
-    color: var(--colorPrimary);
-}
-
+/* Make keyboard focus visible on buttons and form controls. */
 button:focus-visible,
 input:focus-visible,
 select:focus-visible {
@@ -134,6 +193,7 @@ select:focus-visible {
     outline-offset: 2px;
 }
 
+/* Hide labels visually while keeping them available to screen readers. */
 .visuallyHidden {
     position: absolute;
     width: 1px;
@@ -145,6 +205,15 @@ select:focus-visible {
     border: 0;
 }
 
+/* Adjust the filter layout for medium-sized screens. */
+@media (max-width: 900px) {
+    .tableToolbar {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: var(--spaceMd);
+    }
+}
+
+/* Stack the heading and filters vertically on smaller screens. */
 @media (max-width: 639px) {
     .studentManagement {
         padding: var(--spaceLg) var(--spaceMd);
