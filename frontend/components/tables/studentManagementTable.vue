@@ -25,7 +25,6 @@ const columns = [
     {
         data: 'status',
         title: 'Status',
-        // Display each student status using its corresponding badge styling.
         render: (value, type) => {
             if (type !== 'display') {
                 return value;
@@ -45,7 +44,6 @@ const columns = [
     {
         data: 'lastLogin',
         title: 'Last Login',
-        // Display 'Never' when the student has not logged in.
         render: (value) => value || 'Never',
     },
     { data: 'cohort', title: 'Cohort' },
@@ -54,8 +52,6 @@ const columns = [
         title: 'Actions',
         orderable: false,
         searchable: false,
-        // Display different action buttons depending on the student's account status.
-        // These buttons are display-only; their functionality is handled in a later ticket.
         render: (data, type, row) => {
             if (type !== 'display') {
                 return '';
@@ -181,7 +177,6 @@ const filterByCohort = async (cohort) => {
     if (tableApi) {
         const searchValue = cohort ? `^${cohort.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$` : '';
 
-        // Cohort is the sixth column (index 5); an empty value clears the filter.
         tableApi.column(5).search(searchValue, true, false).draw();
     }
 };
@@ -195,7 +190,6 @@ const filterByStatus = async (status) => {
     if (tableApi) {
         const searchValue = status ? `^${status}$` : '';
 
-        // Status is the fourth column (index 3); an empty value clears the filter.
         tableApi.column(3).search(searchValue, true, false).draw();
     }
 };
@@ -224,15 +218,12 @@ onMounted(async () => {
     try {
         students.value = await getLecturerStudents();
 
-        // Build a sorted list of unique cohort names for the cohort filter.
         cohorts.value = [...new Set(students.value.map((student) => student.cohort).filter(Boolean))].sort((a, b) =>
             a.localeCompare(b),
         );
     } catch {
-        // Show an error message if the student records cannot be retrieved.
         errorMessage.value = 'Unable to load students. Please try again later.';
     } finally {
-        // Hide the loading message whether the request succeeds or fails.
         loading.value = false;
     }
 });
@@ -240,15 +231,12 @@ onMounted(async () => {
 
 <template>
     <div class="studentTableWrapper">
-        <!-- Show a loading message while student records are being retrieved. -->
         <p v-if="loading" role="status">Loading students...</p>
 
-        <!-- Show an error if the student records could not be loaded. -->
         <p v-else-if="errorMessage" role="alert">
             {{ errorMessage }}
         </p>
 
-        <!-- Display the student table once the data has loaded successfully. -->
         <div v-else class="tableResponsive">
             <DataTable
                 ref="dataTable"
@@ -262,14 +250,12 @@ onMounted(async () => {
 </template>
 
 <style>
-/* Keep the table within the available page width. */
 .studentTableWrapper {
     width: 100%;
     min-width: 0;
     max-width: 100%;
 }
 
-/* Allow horizontal scrolling when the table is wider than the screen. */
 .studentTableWrapper .tableResponsive {
     display: block;
     width: 100%;
@@ -279,26 +265,22 @@ onMounted(async () => {
     overscroll-behavior-x: contain;
 }
 
-/* Maintain enough width for the table columns and their content. */
 .studentTableWrapper .tableResponsive table {
     width: 100%;
     min-width: 1000px;
     margin-bottom: 0;
 }
 
-/* Prevent column content from wrapping onto multiple lines. */
 .studentTableWrapper .tableResponsive th,
 .studentTableWrapper .tableResponsive td {
     white-space: nowrap;
     vertical-align: middle;
 }
 
-/* Give the action buttons enough room to display side by side. */
 .studentTableWrapper .tableResponsive td:last-child {
     min-width: 330px;
 }
 
-/* Shared styling for student account status badges. */
 .studentStatusBadge {
     display: inline-block;
     padding: var(--spaceXs) var(--spaceSm);
@@ -308,7 +290,6 @@ onMounted(async () => {
     line-height: 1.4;
 }
 
-/* Use different colours to distinguish each student status. */
 .studentStatusActive {
     color: var(--colorSurface);
     background-color: var(--colorSuccess);
@@ -324,7 +305,6 @@ onMounted(async () => {
     background-color: var(--colorTextSecondary);
 }
 
-/* Shared styling for the student action buttons. */
 .tableActionButton {
     min-height: 36px;
     padding: var(--spaceXs) var(--spaceSm);
@@ -333,7 +313,6 @@ onMounted(async () => {
     font-weight: 600;
 }
 
-/* Edit button styling. */
 .tableEditButton {
     color: var(--colorPrimary);
     background-color: var(--colorSurface);
@@ -346,7 +325,7 @@ onMounted(async () => {
     border-color: var(--colorPrimaryHover);
 }
 
-/* Approve and enable button styling. */
+/* Approve and Enable buttons. */
 .tableApproveButton,
 .tableEnableButton {
     color: var(--colorSurface);
@@ -354,17 +333,14 @@ onMounted(async () => {
     border: 1px solid var(--colorSuccess);
 }
 
-.tableApproveButton:hover {
-    background-color: var(--colorSuccess);
-    border-color: var(--colorSuccess);
-}
-
+/* Both buttons turn dark green with dark text on hover. */
+.tableApproveButton:hover,
 .tableEnableButton:hover {
+    color: var(--colorText);
     background-color: var(--colorSuccessHover);
     border-color: var(--colorSuccessHover);
 }
 
-/* Disable button styling. */
 .tableDisableButton {
     color: var(--colorWarning);
     background-color: var(--colorSurface);
@@ -376,7 +352,6 @@ onMounted(async () => {
     background-color: var(--colorWarning);
 }
 
-/* Delete button styling. */
 .tableDeleteButton {
     color: var(--colorSurface);
     background-color: var(--colorError);
@@ -388,7 +363,7 @@ onMounted(async () => {
     border-color: var(--colorErrorHover);
 }
 
-/* Make keyboard focus clearly visible when navigating action buttons. */
+/* Keep keyboard focus clearly visible. */
 .tableActionButton:focus-visible {
     outline: 3px solid var(--colorFocus);
     outline-offset: 2px;
