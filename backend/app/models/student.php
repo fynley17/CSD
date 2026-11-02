@@ -154,7 +154,8 @@ class Student extends User
     public static function findVerificationDetails(string $userID): ?array
     {
         $stmt = self::getDB()->prepare(
-            "SELECT Users.email, Users.isEmailVerified, Students.firstName, Students.lastName, Cohorts.cohortName "
+            "SELECT Users.email, Users.isEmailVerified, Users.isEnabled, Students.firstName, Students.lastName, "
+            . "Cohorts.cohortName "
             . "FROM Users "
             . "JOIN Students ON Students.userID = Users.userID "
             . "JOIN Cohorts ON Cohorts.cohortID = Students.cohortID "
@@ -168,6 +169,7 @@ class Student extends User
         }
 
         $row['isEmailVerified'] = (bool) $row['isEmailVerified'];
+        $row['isEnabled'] = (bool) $row['isEnabled'];
         return $row;
     }
 

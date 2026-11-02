@@ -122,6 +122,14 @@ abstract class User extends Model
     }
 
     /**
+     * True if the account has been switched off, whether or not it's been approved or verified
+     */
+    public function isDisabled(): bool
+    {
+        return !$this->isEnabled;
+    }
+
+    /**
      * True if a lecturer hasn't approved the account yet
      */
     public function isPending(): bool

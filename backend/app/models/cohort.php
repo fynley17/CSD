@@ -50,8 +50,13 @@ class Cohort extends Model
      */
     public static function findForManagement(string $cohortID): ?array
     {
+        // the database's own copy of the ID, MariaDB also matches other spellings of a UUID, like uppercase
+        $stmt = self::getDB()->prepare("SELECT cohortID FROM Cohorts WHERE cohortID = ? LIMIT 1");
+        $stmt->execute([$cohortID]);
+        $savedID = $stmt->fetchColumn();
+
         foreach (self::getAllForManagement() as $cohort) {
-            if ($cohort['cohortID'] === $cohortID) {
+            if ($cohort['cohortID'] === $savedID) {
                 return $cohort;
             }
         }
@@ -63,6 +68,7 @@ class Cohort extends Model
      * Saves whether a cohort is active, along with its students and subjects
      * Disabling disables its students and archives its subjects, enabling only undoes what disabling changed,
      * so a student disabled or a subject archived for another reason stays that way
+     * Anything else that changes Users.isEnabled has to clear disabledByCohort, or enabling the cohort will undo it
      * Checks it exists first, as MariaDB counts no rows changed when the value is already the same
      *
      * @return bool false if there's no cohort with this ID

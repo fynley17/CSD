@@ -2,6 +2,7 @@
 
 use App\Models\Cohort;
 use App\Models\Model;
+use App\Models\Student;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -31,7 +32,8 @@ final class CohortManagementTest extends TestCase
         );
         $this->db->exec(
             'CREATE TABLE Users (userID TEXT PRIMARY KEY, username TEXT NOT NULL, email TEXT NOT NULL, '
-            . 'lastLogin TEXT, isEnabled INTEGER NOT NULL, disabledByCohort INTEGER NOT NULL DEFAULT 0, '
+            . 'lastLogin TEXT, isEmailVerified INTEGER NOT NULL DEFAULT 0, '
+            . 'isEnabled INTEGER NOT NULL, disabledByCohort INTEGER NOT NULL DEFAULT 0, '
             . 'approvalStatus TEXT NOT NULL)'
         );
         $this->db->exec(
@@ -285,6 +287,45 @@ final class CohortManagementTest extends TestCase
             $isActive = $this->db->query("SELECT isActive FROM Cohorts WHERE cohortID = 'cohort-1'")->fetchColumn();
             $this->assertSame(1, (int) $isActive);
         }
+    }
+
+    /**
+     * The verification flow can see a student's account was disabled along with their cohort (normal)
+     */
+    public function testVerificationDetailsShowTheStudentWasDisabled(): void
+    {
+        // Arrange
+        $this->addStudent('user-1', 'Sam', 'Inside', 'cohort-1', 1, 'pending', null);
+        $before = Student::findVerificationDetails('user-1');
+
+        // Act
+        Cohort::setActive('cohort-1', false);
+        $after = Student::findVerificationDetails('user-1');
+
+        // Assert
+        $this->assertTrue($before['isEnabled']);
+        $this->assertFalse($after['isEnabled']);
+    }
+
+    /**
+     * Finding one cohort gives the same details as the list (normal)
+     */
+    public function testFindsOneCohortForManagement(): void
+    {
+        // Act
+        $cohort = Cohort::findForManagement('cohort-1');
+
+        // Assert
+        $this->assertSame('Test Beta', $cohort['cohortName']);
+    }
+
+    /**
+     * Looking for a cohort that doesn't exist gives null (error)
+     */
+    public function testFindingAnUnknownCohortGivesNull(): void
+    {
+        // Act and Assert
+        $this->assertNull(Cohort::findForManagement('cohort-missing'));
     }
 
     /**
