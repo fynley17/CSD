@@ -52,6 +52,8 @@
                 @edit="openCohortForm"
                 @toggleStatus="toggleStatus"
                 @delete="deletingCohort = $event"
+                @addStudents="addingToCohort = $event"
+                @moveStudent="(cohort, student) => (moving = { cohort, student })"
             />
 
             <h2>Subjects for each cohort</h2>
@@ -61,6 +63,22 @@
                 @remove="(cohort, subject) => (removing = { cohort, subject })"
             />
         </template>
+
+        <AddStudentsDialog
+            v-if="addingToCohort"
+            :cohort="addingToCohort"
+            @saved="updateCohorts"
+            @close="addingToCohort = null"
+        />
+
+        <MoveStudentDialog
+            v-if="moving"
+            :cohort="moving.cohort"
+            :student="moving.student"
+            :cohorts="allCohorts"
+            @saved="updateCohorts"
+            @close="moving = null"
+        />
 
         <CohortFormDialog
             v-if="isCohortFormOpen"
@@ -96,9 +114,11 @@
 
 <script setup>
 import { computed, onMounted, ref } from 'vue';
+import AddStudentsDialog from '../components/common/addStudentsDialog.vue';
 import AssignSubjectsDialog from '../components/common/assignSubjectsDialog.vue';
 import CohortFormDialog from '../components/common/cohortFormDialog.vue';
 import DeleteCohortDialog from '../components/common/deleteCohortDialog.vue';
+import MoveStudentDialog from '../components/common/moveStudentDialog.vue';
 import RemoveSubjectDialog from '../components/common/removeSubjectDialog.vue';
 import CohortStudentsTable from '../components/tables/cohortStudentsTable.vue';
 import CohortSubjectsTable from '../components/tables/cohortSubjectsTable.vue';
@@ -112,6 +132,8 @@ const searchText = ref('');
 const statusFilter = ref('');
 const sortBy = ref('');
 // which pop-up is open, null when it's closed
+const addingToCohort = ref(null);
+const moving = ref(null);
 const isCohortFormOpen = ref(false);
 const editingCohort = ref(null);
 const assigningCohort = ref(null);
@@ -152,6 +174,16 @@ onMounted(async () => {
 // changed in place rather than replaced, so the table stays on the same page with the same rows open
 function updateCohort(cohort, savedCohort) {
     Object.assign(cohort, savedCohort);
+}
+
+// moving students changes two cohorts, so PHP sends them all and each is updated in place
+function updateCohorts(savedCohorts) {
+    savedCohorts.forEach((savedCohort) => {
+        const cohort = allCohorts.value.find((current) => current.cohortID === savedCohort.cohortID);
+        if (cohort) {
+            updateCohort(cohort, savedCohort);
+        }
+    });
 }
 
 // null creates a new cohort

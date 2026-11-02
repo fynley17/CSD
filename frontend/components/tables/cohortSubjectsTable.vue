@@ -61,7 +61,7 @@
                             <td>
                                 <button
                                     type="button"
-                                    class="cohortActionButton"
+                                    class="btn btn-sm tableActionButton tableDeleteButton"
                                     :aria-label="`Remove from cohort: ${subject.subjectName}`"
                                     @click="emit('remove', cohort, subject)"
                                 >

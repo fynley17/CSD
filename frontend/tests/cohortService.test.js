@@ -7,7 +7,9 @@ import {
     createCohort,
     deleteCohort,
     getCohorts,
+    getStudentsOutsideCohort,
     getUnassignedSubjects,
+    moveStudents,
     removeSubject,
     setCohortActive,
     updateCohort,
@@ -215,6 +217,55 @@ describe('cohortService', () => {
 
         // Act
         const request = createCohort('Test Cohort', true);
+
+        // Assert
+        await expect(request).rejects.toBe(refused);
+    });
+
+    /**
+     * Calls the address for that cohort and gives back the data (normal)
+     */
+    it('gets the students in other cohorts', async () => {
+        // Arrange
+        const students = [{ studentNumber: 'ws000001', name: 'Sam One', currentCohort: 'Test Cohort' }];
+        vi.mocked(api.get).mockResolvedValue({ data: students });
+
+        // Act
+        const result = await getStudentsOutsideCohort('cohort-1');
+
+        // Assert
+        expect(api.get).toHaveBeenCalledWith('/admin/cohorts/cohort-1/other-students');
+        expect(result).toEqual(students);
+    });
+
+    /**
+     * Sends the student numbers to the cohort they're moving into (normal)
+     */
+    it('moves students into a cohort', async () => {
+        // Arrange
+        const cohorts = [{ cohortID: 'cohort-1' }];
+        vi.mocked(api.post).mockResolvedValue({ data: cohorts });
+
+        // Act
+        const result = await moveStudents('cohort-1', ['ws000001', 'ws000002']);
+
+        // Assert
+        expect(api.post).toHaveBeenCalledWith('/admin/cohorts/cohort-1/students', {
+            studentNumbers: ['ws000001', 'ws000002'],
+        });
+        expect(result).toEqual(cohorts);
+    });
+
+    /**
+     * A refused move gets passed on so the pop-up can show PHP's message (error)
+     */
+    it('passes a refused move on to the page', async () => {
+        // Arrange
+        const refused = { response: { status: 400, data: { error: 'One of these students can no longer be moved' } } };
+        vi.mocked(api.post).mockRejectedValue(refused);
+
+        // Act
+        const request = moveStudents('cohort-1', ['ws000001']);
 
         // Assert
         await expect(request).rejects.toBe(refused);
