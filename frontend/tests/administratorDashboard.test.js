@@ -22,8 +22,8 @@ function cardText(page) {
     return page.findAll('.card').map((card) => [card.get('h2').text(), card.get('p').text()]);
 }
 
-// LecturerTable is stubbed out, these tests are only about the cards (its own tests are in lecturerTable.test.js)
-const withoutTable = { global: { stubs: { LecturerTable: true } } };
+// both tables stubbed out, these tests only check the cards
+const withoutTable = { global: { stubs: { LecturerTable: true, SubjectTable: true } } };
 
 describe('AdministratorDashboard', () => {
     // clears the pretend answer before each test, so one test can't change the next one
