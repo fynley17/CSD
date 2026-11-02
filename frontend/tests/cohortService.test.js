@@ -187,4 +187,36 @@ describe('cohortService', () => {
         // Assert
         await expect(request).rejects.toBe(refused);
     });
+
+    /**
+     * Odd characters in the ID can't change which cohort gets saved (edge)
+     */
+    it('makes the ID safe when saving a cohort', async () => {
+        // Arrange
+        vi.mocked(api.put).mockResolvedValue({ data: {} });
+
+        // Act
+        await updateCohort('../students', 'New Name', true);
+
+        // Assert
+        expect(api.put).toHaveBeenCalledWith('/admin/cohorts/..%2Fstudents', {
+            cohortName: 'New Name',
+            isActive: true,
+        });
+    });
+
+    /**
+     * A duplicate name gets passed on so the pop-up can show PHP's message (error)
+     */
+    it('passes a refused name on to the page', async () => {
+        // Arrange
+        const refused = { response: { status: 400, data: { error: 'A cohort with this name already exists' } } };
+        vi.mocked(api.post).mockRejectedValue(refused);
+
+        // Act
+        const request = createCohort('Test Cohort', true);
+
+        // Assert
+        await expect(request).rejects.toBe(refused);
+    });
 });

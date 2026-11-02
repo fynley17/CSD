@@ -851,6 +851,148 @@ final class CohortManagementTest extends TestCase
         }
     }
 
+    /**
+     * Names in other alphabets are allowed (normal)
+     */
+    public function testAllowsNamesInOtherAlphabets(): void
+    {
+        // Act
+        $name = Cohort::cleanName('Génie Логика 2026');
+
+        // Assert
+        $this->assertSame('Génie Логика 2026', $name);
+    }
+
+    /**
+     * The limit counts characters, not bytes, so 50 accented letters still fit (boundary)
+     */
+    public function testNameLengthCountsCharactersNotBytes(): void
+    {
+        // Act
+        $name = Cohort::cleanName(str_repeat('é', 50));
+
+        // Assert
+        $this->assertSame(50, mb_strlen($name));
+    }
+
+    /**
+     * New lines and tabs pasted into a name become single spaces (edge)
+     */
+    public function testNewLinesBecomeSpaces(): void
+    {
+        // Act
+        $name = Cohort::cleanName("Test\n\tGamma");
+
+        // Assert
+        $this->assertSame('Test Gamma', $name);
+    }
+
+    /**
+     * A cohort is active unless it's asked to be disabled (normal)
+     */
+    public function testNewCohortIsActiveByDefaultAndOfferedAtRegistration(): void
+    {
+        // Act
+        $cohortID = Cohort::create('Test Gamma');
+
+        // Assert
+        $this->assertContains($cohortID, array_column(Cohort::getAll(), 'cohortID'));
+    }
+
+    /**
+     * Two admins creating the same name at once, the database's unique key stops the second (edge)
+     */
+    public function testDuplicateCaughtOnlyByTheDatabaseOnCreateGivesTheSameMessage(): void
+    {
+        // Arrange: this trigger acts like the other admin's save, after the name check has passed
+        $this->db->exec(
+            "CREATE TRIGGER otherAdminSaved BEFORE INSERT ON Cohorts
+                BEGIN SELECT RAISE(ABORT, 'UNIQUE constraint failed'); END"
+        );
+
+        // Assert
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('A cohort with this name already exists');
+
+        // Act
+        Cohort::create('Test Gamma');
+    }
+
+    /**
+     * The same for renaming, and nothing is left half saved (edge)
+     */
+    public function testDuplicateCaughtOnlyByTheDatabaseOnUpdateChangesNothing(): void
+    {
+        // Arrange: this trigger acts like the other admin's save, after the name check has passed
+        $this->addStudent('user-1', 'Sam', 'Inside', 'cohort-1', 1, 'approved', null);
+        $this->db->exec(
+            "CREATE TRIGGER otherAdminSaved BEFORE UPDATE OF cohortName ON Cohorts
+                BEGIN SELECT RAISE(ABORT, 'UNIQUE constraint failed'); END"
+        );
+
+        // Act
+        try {
+            Cohort::update('cohort-1', 'Test Gamma', false);
+            $this->fail('Expected the update to be refused');
+        } catch (InvalidArgumentException $e) {
+            // Assert
+            $this->assertSame('A cohort with this name already exists', $e->getMessage());
+            $this->assertFalse($this->db->inTransaction());
+            $this->assertSame(1, $this->userIsEnabled('user-1'));
+        }
+    }
+
+    /**
+     * Editing keeps the cohort's date, students and subjects (normal)
+     */
+    public function testUpdateKeepsTheDateStudentsAndSubjects(): void
+    {
+        // Arrange
+        $this->addStudent('user-1', 'Sam', 'Inside', 'cohort-1', 1, 'approved', null);
+        $this->addSubject('subject-1', 'cohort-1', 1);
+
+        // Act
+        Cohort::update('cohort-1', 'Test Gamma', true);
+
+        // Assert
+        $cohort = Cohort::findForManagement('cohort-1');
+        $this->assertSame('2026-09-01', $cohort['createdDate']);
+        $this->assertCount(1, $cohort['students']);
+        $this->assertCount(1, $cohort['subjects']);
+    }
+
+    /**
+     * Editing only changes the chosen cohort (normal)
+     */
+    public function testUpdateLeavesOtherCohortsAlone(): void
+    {
+        // Arrange
+        $this->addStudent('user-2', 'Sam', 'Alpha', 'cohort-2', 1, 'approved', null);
+
+        // Act
+        Cohort::update('cohort-1', 'Test Gamma', false);
+
+        // Assert
+        $other = Cohort::findForManagement('cohort-2');
+        $this->assertSame('Test Alpha', $other['cohortName']);
+        $this->assertSame(1, $this->userIsEnabled('user-2'));
+    }
+
+    /**
+     * A freed up name can be used again, as the check only looks at current cohorts (boundary)
+     */
+    public function testNameCanBeReusedOnceFreedUp(): void
+    {
+        // Arrange
+        Cohort::update('cohort-1', 'Test Gamma', true);
+
+        // Act
+        $cohortID = Cohort::create('Test Beta');
+
+        // Assert
+        $this->assertSame('Test Beta', Cohort::findForManagement($cohortID)['cohortName']);
+    }
+
     private function subjectCohort(string $subjectID): ?string
     {
         $stmt = $this->db->prepare('SELECT cohortID FROM Subjects WHERE subjectID = ?');
