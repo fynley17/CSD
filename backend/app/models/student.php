@@ -231,47 +231,135 @@ class Student extends User
     }
 
     /**
-     * Enables or disables an approved student account.
-     *
-     * Returns false when the student does not exist or is not approved.
+     * Enables or disables a student account.
+     * Returns false only when the student does not exist.
      */
     public static function setEnabled(string $userID, bool $enabled): bool
     {
-        $userID = trim($userID);
-
-        if ($userID === '') {
-            throw new \InvalidArgumentException('A student ID is required.');
-        }
-
         $db = self::getDB();
-
         $stmt = $db->prepare(
-            "UPDATE Users
-             SET isEnabled = ?
-             WHERE userID = ?
-             AND accountType = 'student'
-             AND approvalStatus = 'approved'"
+            "UPDATE Users SET isEnabled = ? WHERE userID = ? AND accountType = 'student'"
         );
-
         $stmt->execute([$enabled ? 1 : 0, $userID]);
 
         if ($stmt->rowCount() > 0) {
             return true;
         }
 
-        // A zero row count can also mean the account was already in that state.
-        $stmt = $db->prepare(
-            "SELECT 1
-             FROM Users
-             WHERE userID = ?
-             AND accountType = 'student'
-             AND approvalStatus = 'approved'
-             LIMIT 1"
+        $check = $db->prepare(
+            "SELECT 1 FROM Users WHERE userID = ? AND accountType = 'student' LIMIT 1"
         );
+        $check->execute([$userID]);
+        return $check->fetchColumn() !== false;
+    }
 
+    /** Approves an application only while it is pending. */
+    public static function approveApplication(string $userID): bool
+    {
+        $stmt = self::getDB()->prepare(
+            "UPDATE Users
+             SET approvalStatus = 'approved', isEnabled = 1
+             WHERE userID = ? AND accountType = 'student' AND approvalStatus = 'pending'"
+        );
         $stmt->execute([$userID]);
+        return $stmt->rowCount() > 0;
+    }
 
-        return $stmt->fetchColumn() !== false;
+    /**
+     * Declines a pending application by deleting its student account.
+     * The database foreign keys are configured to cascade dependent student records.
+     */
+    public static function declineApplication(string $userID): bool
+    {
+        $db = self::getDB();
+        $stmt = $db->prepare(
+            "DELETE FROM Users
+             WHERE userID = ? AND accountType = 'student' AND approvalStatus = 'pending'"
+        );
+        $stmt->execute([$userID]);
+        return $stmt->rowCount() > 0;
+    }
+
+    /** Updates the editable details for an existing student. */
+    public static function updateDetails(string $userID, array $data): void
+    {
+        $firstName = trim((string) ($data['firstName'] ?? ''));
+        $lastName = trim((string) ($data['lastName'] ?? ''));
+        $email = strtolower(trim((string) ($data['email'] ?? '')));
+        $studentNumber = strtolower(trim((string) ($data['studentNumber'] ?? '')));
+        $cohortID = trim((string) ($data['cohortID'] ?? ''));
+
+        if (!self::names($firstName)) {
+            throw new \InvalidArgumentException('Please enter a valid first name.');
+        }
+        if (!self::names($lastName)) {
+            throw new \InvalidArgumentException('Please enter a valid last name.');
+        }
+        if (!self::validEmail($email)) {
+            throw new \InvalidArgumentException('Please enter a valid email address.');
+        }
+        if (!self::validUsername($studentNumber)) {
+            throw new \InvalidArgumentException('Please enter a valid student number, for example ws123456.');
+        }
+        if ($cohortID === '') {
+            throw new \InvalidArgumentException('Please select a cohort.');
+        }
+
+        $db = self::getDB();
+        $studentCheck = $db->prepare(
+            "SELECT 1 FROM Students s
+             INNER JOIN Users u ON u.userID = s.userID
+             WHERE s.userID = ? AND u.accountType = 'student' LIMIT 1"
+        );
+        $studentCheck->execute([$userID]);
+        if ($studentCheck->fetchColumn() === false) {
+            throw new \OutOfBoundsException('Student account not found.');
+        }
+
+        $duplicate = $db->prepare(
+            'SELECT 1 FROM Users WHERE (email = ? OR username = ?) AND userID <> ? LIMIT 1'
+        );
+        $duplicate->execute([$email, $studentNumber, $userID]);
+        if ($duplicate->fetchColumn() !== false) {
+            throw new \InvalidArgumentException(
+                'Another account already uses this email address or student number.'
+            );
+        }
+
+        $cohortCheck = $db->prepare('SELECT 1 FROM Cohorts WHERE cohortID = ? LIMIT 1');
+        $cohortCheck->execute([$cohortID]);
+        if ($cohortCheck->fetchColumn() === false) {
+            throw new \InvalidArgumentException('The selected cohort could not be found.');
+        }
+
+        $db->beginTransaction();
+        try {
+            $userUpdate = $db->prepare(
+                'UPDATE Users SET email = ?, username = ? WHERE userID = ? AND accountType = \'student\''
+            );
+            $userUpdate->execute([$email, $studentNumber, $userID]);
+
+            $studentUpdate = $db->prepare(
+                'UPDATE Students SET firstName = ?, lastName = ?, cohortID = ? WHERE userID = ?'
+            );
+            $studentUpdate->execute([$firstName, $lastName, $cohortID, $userID]);
+            $db->commit();
+        } catch (\Throwable $e) {
+            if ($db->inTransaction()) {
+                $db->rollBack();
+            }
+            throw $e;
+        }
+    }
+
+    /** Permanently deletes a student account. */
+    public static function deleteStudent(string $userID): bool
+    {
+        $stmt = self::getDB()->prepare(
+            "DELETE FROM Users WHERE userID = ? AND accountType = 'student'"
+        );
+        $stmt->execute([$userID]);
+        return $stmt->rowCount() > 0;
     }
 
     public static function register($data)

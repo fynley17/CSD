@@ -123,6 +123,7 @@ onMounted(async () => {
                     autocomplete="given-name"
                     required
                     placeholder="Enter first name"
+                    :disabled="submitting"
                 />
             </div>
 
@@ -136,6 +137,7 @@ onMounted(async () => {
                     autocomplete="family-name"
                     required
                     placeholder="Enter last name"
+                    :disabled="submitting"
                 />
             </div>
 
@@ -148,6 +150,7 @@ onMounted(async () => {
                     maxlength="8"
                     required
                     placeholder="e.g. ws123456"
+                    :disabled="submitting"
                 />
                 <small>Enter the student's eight-character student number.</small>
             </div>
@@ -162,6 +165,7 @@ onMounted(async () => {
                     autocomplete="email"
                     required
                     placeholder="Enter email address"
+                    :disabled="submitting"
                 />
                 <small>The student's login details will be sent to this address.</small>
             </div>
@@ -172,7 +176,7 @@ onMounted(async () => {
                     id="cohortID"
                     v-model="form.cohortID"
                     required
-                    :disabled="loadingCohorts || cohorts.length === 0"
+                    :disabled="loadingCohorts || submitting || cohorts.length === 0"
                 >
                     <option value="" disabled>
                         {{ loadingCohorts ? 'Loading cohorts...' : 'Select a cohort' }}
@@ -188,18 +192,20 @@ onMounted(async () => {
         </form>
 
         <template #buttons>
-            <button type="button" class="secondaryButton" :disabled="submitting" @click="dialog?.close()">
-                Cancel
-            </button>
+            <div class="studentFormActions">
+                <button type="button" class="studentCancelButton" :disabled="submitting" @click="dialog?.close()">
+                    Cancel
+                </button>
 
-            <button
-                type="submit"
-                form="student-form"
-                class="primaryButton"
-                :disabled="submitting || loadingCohorts || cohorts.length === 0"
-            >
-                {{ submitting ? 'Creating...' : 'Create Student' }}
-            </button>
+                <button
+                    type="submit"
+                    form="student-form"
+                    class="studentCreateButton"
+                    :disabled="submitting || loadingCohorts || cohorts.length === 0"
+                >
+                    {{ submitting ? 'Creating...' : 'Create Student' }}
+                </button>
+            </div>
         </template>
     </PopupDialog>
 </template>
@@ -249,5 +255,72 @@ onMounted(async () => {
     border-radius: var(--radiusSm);
     color: var(--colorError);
     background: var(--colorErrorLight);
+}
+
+/* Align the form actions neatly at the bottom of the dialog. */
+.studentFormActions {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: var(--spaceSm);
+    width: 100%;
+}
+
+/* Shared button styling. */
+.studentFormActions button {
+    min-height: 42px;
+    padding: var(--spaceSm) var(--spaceLg);
+    border: 1px solid transparent;
+    border-radius: var(--radiusSm);
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+    transition:
+        background-color 0.2s ease,
+        border-color 0.2s ease,
+        color 0.2s ease;
+}
+
+/* Secondary cancel button. */
+.studentCancelButton {
+    color: var(--colorText);
+    background: var(--colorSurface);
+    border-color: var(--colorBorderInput);
+}
+
+.studentCancelButton:hover:not(:disabled) {
+    color: var(--colorPrimary);
+    border-color: var(--colorPrimary);
+}
+
+/* Primary create student button. */
+.studentCreateButton {
+    color: var(--colorSurface);
+    background: var(--colorPrimary);
+    border-color: var(--colorPrimary);
+}
+
+.studentCreateButton:hover:not(:disabled) {
+    background: var(--colorPrimaryHover);
+    border-color: var(--colorPrimaryHover);
+}
+
+/* Disabled button appearance. */
+.studentFormActions button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* Accessible keyboard focus. */
+.studentFormActions button:focus-visible {
+    outline: 3px solid var(--colorFocus);
+    outline-offset: 3px;
+}
+
+/* Respect users who prefer reduced motion. */
+@media (prefers-reduced-motion: reduce) {
+    .studentFormActions button {
+        transition: none;
+    }
 }
 </style>

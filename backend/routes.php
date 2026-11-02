@@ -42,6 +42,30 @@ $router->addRoute(
     [new StudentController(), 'registerStudent']
 );
 
+$router->addRoute(
+    'PUT',
+    '/^\/api\/students\/approve$/',
+    [new StudentController(), 'approveStudent']
+);
+
+$router->addRoute(
+    'PUT',
+    '/^\/api\/students\/decline$/',
+    [new StudentController(), 'declineStudent']
+);
+
+$router->addRoute(
+    'PUT',
+    '/^\/api\/students\/update$/',
+    [new StudentController(), 'updateStudent']
+);
+
+$router->addRoute(
+    'DELETE',
+    '/^\/api\/students$/',
+    [new StudentController(), 'deleteStudent']
+);
+
 // Cohorts.
 $router->addRoute(
     'GET',

@@ -12,55 +12,32 @@ class StudentController extends Controller
     public function getAllStudents(): void
     {
         Authentication::requireRole(['lecturer', 'admin']);
-
-        $students = Student::getAll();
-
-        $this->jsonResponse($students);
+        $this->jsonResponse(Student::getAll());
     }
 
-    /**
-     * Returns recent student activity for the lecturer dashboard.
-     */
+    /** Returns recent student activity for the lecturer dashboard. */
     public function getRecentStudentActivity(): void
     {
         Authentication::requireRole(['lecturer']);
 
         try {
-            $students = Student::getRecentActivity();
-
-            $this->jsonResponse($students);
+            $this->jsonResponse(Student::getRecentActivity());
         } catch (\Throwable $e) {
-            error_log(
-                'Loading recent student activity failed: '
-                . $e->getMessage()
-            );
-
+            error_log('Loading recent student activity failed: ' . $e->getMessage());
             $this->jsonResponse([
                 'error' => 'Unable to retrieve recent student activity.',
             ], 500);
         }
     }
 
-    /**
-     * Creates an active student account on behalf of a lecturer.
-     * Sends the student their temporary login details by email.
-     */
+    /** Creates an active student account on behalf of a lecturer. */
     public function createStudent(): void
     {
         Authentication::requireRole(['lecturer']);
-
-        $authentication = new Authentication();
-        $authentication->requireCsrfToken();
+        $this->requireCsrf();
 
         try {
-            $data = json_decode(file_get_contents('php://input'), true);
-
-            if (!is_array($data)) {
-                throw new \InvalidArgumentException(
-                    'Please check the student details and try again.'
-                );
-            }
-
+            $data = $this->readJsonBody();
             $result = Student::createByLecturer($data);
 
             $emailSent = Mailer::sendStudentAccountDetails(
@@ -84,57 +61,34 @@ class StudentController extends Controller
                 ],
             ], 201);
         } catch (\InvalidArgumentException $e) {
-            $this->jsonResponse([
-                'error' => $e->getMessage(),
-            ], 400);
+            $this->jsonResponse(['error' => $e->getMessage()], 400);
         } catch (\Throwable $e) {
-            error_log(sprintf(
-                'Lecturer student creation failed (%s): %s',
-                get_class($e),
-                $e->getMessage()
-            ));
-
+            error_log(sprintf('Lecturer student creation failed (%s): %s', get_class($e), $e->getMessage()));
             $this->jsonResponse([
                 'error' => 'Unable to create the student account. Please try again later.',
             ], 500);
         }
     }
 
-    /**
-     * Enables or disables a student account.
-     */
+    /** Enables or disables a student account. */
     public function updateStudentStatus(): void
     {
         Authentication::requireRole(['lecturer', 'admin']);
-
-        $authentication = new Authentication();
-        $authentication->requireCsrfToken();
+        $this->requireCsrf();
 
         try {
-            $data = json_decode(file_get_contents('php://input'), true);
-
+            $data = $this->readJsonBody();
             if (
-                !is_array($data)
-                || empty($data['userID'])
+                empty($data['userID'])
                 || !is_string($data['userID'])
                 || !array_key_exists('isEnabled', $data)
                 || !is_bool($data['isEnabled'])
             ) {
-                throw new \InvalidArgumentException(
-                    'Please provide a valid student ID and account status.'
-                );
+                throw new \InvalidArgumentException('Please provide a valid student ID and account status.');
             }
 
-            $updated = Student::setEnabled(
-                $data['userID'],
-                $data['isEnabled']
-            );
-
-            if (!$updated) {
-                $this->jsonResponse([
-                    'error' => 'Student account not found or status unchanged.',
-                ], 404);
-
+            if (!Student::setEnabled($data['userID'], $data['isEnabled'])) {
+                $this->jsonResponse(['error' => 'Student account not found.'], 404);
                 return;
             }
 
@@ -145,76 +99,158 @@ class StudentController extends Controller
                 'isEnabled' => $data['isEnabled'],
             ]);
         } catch (\InvalidArgumentException $e) {
-            $this->jsonResponse([
-                'error' => $e->getMessage(),
-            ], 400);
+            $this->jsonResponse(['error' => $e->getMessage()], 400);
         } catch (\Throwable $e) {
-            error_log(sprintf(
-                'Updating student status failed (%s): %s',
-                get_class($e),
-                $e->getMessage()
-            ));
-
-            $this->jsonResponse([
-                'error' => 'Unable to update the student account status.',
-            ], 500);
+            error_log(sprintf('Updating student status failed (%s): %s', get_class($e), $e->getMessage()));
+            $this->jsonResponse(['error' => 'Unable to update the student account status.'], 500);
         }
     }
 
-    /**
-     * Handles existing student self-registration.
-     * This workflow is deliberately unchanged.
-     */
+    /** Approves a pending self-registration application. */
+    public function approveStudent(): void
+    {
+        Authentication::requireRole(['lecturer', 'admin']);
+        $this->requireCsrf();
+
+        try {
+            $data = $this->readJsonBody();
+            $userID = $this->readUserID($data);
+
+            if (!Student::approveApplication($userID)) {
+                $this->jsonResponse(['error' => 'Pending student application not found.'], 404);
+                return;
+            }
+
+            $this->jsonResponse(['message' => 'Student application approved successfully.']);
+        } catch (\InvalidArgumentException $e) {
+            $this->jsonResponse(['error' => $e->getMessage()], 400);
+        } catch (\Throwable $e) {
+            error_log(sprintf('Approving student application failed (%s): %s', get_class($e), $e->getMessage()));
+            $this->jsonResponse(['error' => 'Unable to approve the student application.'], 500);
+        }
+    }
+
+    /** Declines and removes a pending student application. */
+    public function declineStudent(): void
+    {
+        Authentication::requireRole(['lecturer', 'admin']);
+        $this->requireCsrf();
+
+        try {
+            $data = $this->readJsonBody();
+            $userID = $this->readUserID($data);
+
+            if (!Student::declineApplication($userID)) {
+                $this->jsonResponse(['error' => 'Pending student application not found.'], 404);
+                return;
+            }
+
+            $this->jsonResponse(['message' => 'Student application declined successfully.']);
+        } catch (\InvalidArgumentException $e) {
+            $this->jsonResponse(['error' => $e->getMessage()], 400);
+        } catch (\Throwable $e) {
+            error_log(sprintf('Declining student application failed (%s): %s', get_class($e), $e->getMessage()));
+            $this->jsonResponse(['error' => 'Unable to decline the student application.'], 500);
+        }
+    }
+
+    /** Updates an existing student's details. */
+    public function updateStudent(): void
+    {
+        Authentication::requireRole(['lecturer', 'admin']);
+        $this->requireCsrf();
+
+        try {
+            $data = $this->readJsonBody();
+            $userID = $this->readUserID($data);
+            Student::updateDetails($userID, $data);
+            $this->jsonResponse(['message' => 'Student details updated successfully.']);
+        } catch (\InvalidArgumentException $e) {
+            $this->jsonResponse(['error' => $e->getMessage()], 400);
+        } catch (\OutOfBoundsException $e) {
+            $this->jsonResponse(['error' => $e->getMessage()], 404);
+        } catch (\Throwable $e) {
+            error_log(sprintf('Updating student details failed (%s): %s', get_class($e), $e->getMessage()));
+            $this->jsonResponse(['error' => 'Unable to update the student details.'], 500);
+        }
+    }
+
+    /** Permanently deletes a student account and its dependent records. */
+    public function deleteStudent(): void
+    {
+        Authentication::requireRole(['lecturer', 'admin']);
+        $this->requireCsrf();
+
+        try {
+            $data = $this->readJsonBody();
+            $userID = $this->readUserID($data);
+
+            if (!Student::deleteStudent($userID)) {
+                $this->jsonResponse(['error' => 'Student account not found.'], 404);
+                return;
+            }
+
+            $this->jsonResponse(['message' => 'Student account deleted successfully.']);
+        } catch (\InvalidArgumentException $e) {
+            $this->jsonResponse(['error' => $e->getMessage()], 400);
+        } catch (\Throwable $e) {
+            error_log(sprintf('Deleting student failed (%s): %s', get_class($e), $e->getMessage()));
+            $this->jsonResponse(['error' => 'Unable to delete the student account.'], 500);
+        }
+    }
+
+    /** Handles existing student self-registration; this workflow is unchanged. */
     public function registerStudent(): void
     {
         try {
-            $data = json_decode(file_get_contents('php://input'), true);
-
-            if (!is_array($data)) {
-                throw new \InvalidArgumentException(
-                    'Please check your registration details and try again.'
-                );
-            }
-
+            $data = $this->readJsonBody();
             $result = Student::register($data);
 
-            if ($result['success']) {
-                $token = EmailVerification::createToken(
-                    $result['userID']
-                );
-
-                $emailSent = Mailer::sendVerificationEmail(
-                    $result['email'],
-                    $token
-                );
-
-                Authentication::savePendingVerification(
-                    $result['userID']
-                );
-
-                $this->jsonResponse([
-                    'message' => 'Registration successful. Check your email to verify your address.',
-                    'emailSent' => $emailSent,
-                ], 201);
-            } else {
-                $this->jsonResponse([
-                    'error' => 'Unable to register the student. Please try again.',
-                ], 400);
+            if (!$result['success']) {
+                $this->jsonResponse(['error' => 'Unable to register the student. Please try again.'], 400);
+                return;
             }
-        } catch (\InvalidArgumentException $e) {
-            $this->jsonResponse([
-                'error' => $e->getMessage(),
-            ], 400);
-        } catch (\Throwable $e) {
-            error_log(sprintf(
-                'Student registration failed (%s): %s',
-                get_class($e),
-                $e->getMessage()
-            ));
+
+            $token = EmailVerification::createToken($result['userID']);
+            $emailSent = Mailer::sendVerificationEmail($result['email'], $token);
+            Authentication::savePendingVerification($result['userID']);
 
             $this->jsonResponse([
-                'error' => 'An unexpected error occurred. Please try again later.',
-            ], 500);
+                'message' => 'Registration successful. Check your email to verify your address.',
+                'emailSent' => $emailSent,
+            ], 201);
+        } catch (\InvalidArgumentException $e) {
+            $this->jsonResponse(['error' => $e->getMessage()], 400);
+        } catch (\Throwable $e) {
+            error_log(sprintf('Student registration failed (%s): %s', get_class($e), $e->getMessage()));
+            $this->jsonResponse(['error' => 'An unexpected error occurred. Please try again later.'], 500);
         }
+    }
+
+    private function requireCsrf(): void
+    {
+        $authentication = new Authentication();
+        $authentication->requireCsrfToken();
+    }
+
+    /** @return array<string, mixed> */
+    private function readJsonBody(): array
+    {
+        $data = json_decode(file_get_contents('php://input'), true);
+        if (!is_array($data)) {
+            throw new \InvalidArgumentException('Please provide valid request details.');
+        }
+
+        return $data;
+    }
+
+    /** @param array<string, mixed> $data */
+    private function readUserID(array $data): string
+    {
+        if (empty($data['userID']) || !is_string($data['userID'])) {
+            throw new \InvalidArgumentException('Please provide a valid student ID.');
+        }
+
+        return $data['userID'];
     }
 }
