@@ -138,6 +138,10 @@ $router->addRoute(
     [new CohortController(), 'updateCohortStatus']
 );
 
+// create a cohort or change its name and status, admins only
+$router->addRoute('POST', '/^\/api\/admin\/cohorts$/', [new CohortController(), 'createCohort']);
+$router->addRoute('PUT', '/^\/api\/admin\/cohorts\/([0-9a-zA-Z-]+)$/', [new CohortController(), 'updateCohort']);
+
 // delete an empty cohort, admins only
 $router->addRoute('DELETE', '/^\/api\/admin\/cohorts\/([0-9a-zA-Z-]+)$/', [new CohortController(), 'deleteCohort']);
 
