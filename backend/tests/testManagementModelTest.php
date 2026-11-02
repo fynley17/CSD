@@ -1,3 +1,4 @@
+
 <?php
 
 use App\Models\Model;
@@ -36,6 +37,14 @@ final class TestManagementModelTest extends TestCase
         );
 
         $this->db->exec(
+            'CREATE TABLE CompletedTests (
+                testID TEXT NOT NULL,
+                userID TEXT NOT NULL,
+                percentageCorrect REAL NOT NULL
+            )'
+        );
+
+        $this->db->exec(
             "INSERT INTO Subjects (subjectID, subjectName, cohortID, isActive) VALUES
                 ('subject-1', 'Web Applications', 'cohort-1', 1),
                 ('subject-2', 'Cyber Security', 'cohort-2', 1),
@@ -54,8 +63,6 @@ final class TestManagementModelTest extends TestCase
 
     public function testReturnsOnlyActiveSubjects(): void
     {
-        // Arrange: setUp() creates two active subjects and one archived subject.
-
         // Act
         $subjects = Test::getActiveSubjects();
 
@@ -149,5 +156,152 @@ final class TestManagementModelTest extends TestCase
             10,
             'lecturer-1'
         );
+    }
+
+    public function testUpdatesAllTestDetails(): void
+    {
+        // Arrange
+        $this->addTest();
+
+        // Act
+        $updated = Test::update(
+            'test-1',
+            'Updated Test',
+            'subject-1',
+            'Updated description',
+            60,
+            '2026-12-20',
+            15
+        );
+
+        // Assert
+        self::assertTrue($updated);
+
+        $stmt = $this->db->prepare('SELECT * FROM Tests WHERE testID = ?');
+        $stmt->execute(['test-1']);
+
+        $test = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+        self::assertSame('Updated Test', $test['testName']);
+        self::assertSame('subject-1', $test['subjectID']);
+        self::assertSame('Updated description', $test['testDescription']);
+        self::assertSame(60, (int) $test['timeLimit']);
+        self::assertSame('2026-12-20', $test['dueDate']);
+        self::assertSame(15, (int) $test['questionCount']);
+    }
+
+    public function testAllowsSubjectChangeWhenNoCompletedAttemptsExist(): void
+    {
+        // Arrange
+        $this->addTest();
+
+        // Act
+        $updated = Test::update(
+            'test-1',
+            'Updated Test',
+            'subject-2',
+            'Updated description',
+            null,
+            null,
+            10
+        );
+
+        // Assert
+        self::assertTrue($updated);
+
+        $stmt = $this->db->prepare('SELECT subjectID FROM Tests WHERE testID = ?');
+        $stmt->execute(['test-1']);
+
+        self::assertSame('subject-2', $stmt->fetchColumn());
+    }
+
+    public function testRejectsSubjectChangeWhenCompletedAttemptsExist(): void
+    {
+        // Arrange
+        $this->addTest();
+
+        $this->db->exec(
+            "INSERT INTO CompletedTests (testID, userID, percentageCorrect)
+             VALUES ('test-1', 'student-1', 80)"
+        );
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage(
+            'The subject cannot be changed because students have completed this test.'
+        );
+
+        // Act
+        Test::update(
+            'test-1',
+            'Updated Test',
+            'subject-2',
+            'Updated description',
+            null,
+            null,
+            10
+        );
+    }
+
+    public function testReturnsFalseWhenUpdatingANonexistentTest(): void
+    {
+        // Act
+        $updated = Test::update(
+            'nonexistent-test',
+            'Updated Test',
+            'subject-1',
+            null,
+            null,
+            null,
+            10
+        );
+
+        // Assert
+        self::assertFalse($updated);
+    }
+
+    public function testRejectsInvalidUpdateData(): void
+    {
+        // Arrange
+        $this->addTest();
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage(
+            'Test name must be between 1 and 30 characters.'
+        );
+
+        // Act
+        Test::update(
+            'test-1',
+            '',
+            'subject-1',
+            null,
+            null,
+            null,
+            10
+        );
+    }
+
+    /**
+     * Adds a test record for update scenarios.
+     */
+    private function addTest(): void
+    {
+        $stmt = $this->db->prepare(
+            'INSERT INTO Tests
+                (testID, testName, testDescription, timeLimit, dueDate,
+                 questionCount, subjectID, createdBy)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+        );
+
+        $stmt->execute([
+            'test-1',
+            'Original Test',
+            'Original description',
+            30,
+            '2026-11-30',
+            10,
+            'subject-1',
+            'lecturer-1'
+        ]);
     }
 }
