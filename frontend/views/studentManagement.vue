@@ -1,5 +1,14 @@
 <script setup>
-import { computed, ref } from 'vue';
+import { computed, ref, onMounted } from 'vue';
+import { getCurrentUser } from '../services/authService';
+
+const currentUser = ref(null);
+
+const canCreateStudent = computed(() => currentUser.value?.accountType === 'lecturer');
+
+onMounted(async () => {
+    currentUser.value = await getCurrentUser();
+});
 import StudentManagementTable from '../components/tables/studentManagementTable.vue';
 import StudentForm from '../components/forms/studentForm.vue';
 
@@ -20,6 +29,13 @@ const tableKey = ref(0);
 
 // Retrieve the available cohort options from the student table component.
 const cohorts = computed(() => studentManagementTable.value?.cohorts ?? []);
+const pendingCount = computed(() => studentManagementTable.value?.pendingCount ?? 0);
+
+// Show only students whose applications are awaiting approval.
+const showPendingApplications = () => {
+    statusFilter.value = 'Pending';
+    filterByStatus();
+};
 
 // Pass the selected cohort to the student table filter.
 const filterByCohort = () => {
@@ -69,7 +85,9 @@ const handleStudentSaved = () => {
                 <p>Manage student accounts, approvals and account status</p>
             </div>
 
-            <button type="button" class="secondaryButton">Student Applications</button>
+            <button type="button" class="secondaryButton" @click="showPendingApplications">
+                Student Applications ({{ pendingCount }})
+            </button>
         </div>
 
         <!-- Provide independent filters for cohort, account status and student search. -->
@@ -106,7 +124,7 @@ const handleStudentSaved = () => {
         </div>
 
         <!-- Display the Add Student button underneath the table. -->
-        <div class="tableActions">
+        <div v-if="canCreateStudent" class="tableActions">
             <button type="button" class="addStudentButton" @click="openStudentForm">+ Add New Student</button>
         </div>
 

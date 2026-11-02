@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, onUnmounted, ref, nextTick } from 'vue';
+import { computed, onMounted, onUnmounted, ref, nextTick } from 'vue';
 import DataTable from 'datatables.net-vue3';
 import DataTablesCore from 'datatables.net-bs5';
 import 'datatables.net-bs5/css/dataTables.bootstrap5.css';
@@ -19,6 +19,9 @@ const students = ref([]);
 const loading = ref(true);
 const errorMessage = ref('');
 const actionError = ref('');
+
+// Count the student applications that are awaiting approval.
+const pendingCount = computed(() => students.value.filter((student) => student.status === 'Pending').length);
 
 const emit = defineEmits(['edit']);
 
@@ -266,6 +269,7 @@ const searchStudents = async (searchTerm) => {
 // Expose the cohort options and filter methods to the parent view.
 defineExpose({
     cohorts,
+    pendingCount,
     filterByCohort,
     filterByStatus,
     searchStudents,
