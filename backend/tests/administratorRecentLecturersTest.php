@@ -59,6 +59,9 @@ final class AdministratorRecentLecturersTest extends TestCase
         $this->assertSame(
             [
                 [
+                    'userID' => 'id-ws000102',
+                    'firstName' => 'Second',
+                    'lastName' => 'Lecturer',
                     'name' => 'Second Lecturer',
                     'staffID' => 'ws000102',
                     'email' => 'ws000102@example.test',
@@ -66,6 +69,9 @@ final class AdministratorRecentLecturersTest extends TestCase
                     'lastLogin' => '2026-10-25 14:30:00',
                 ],
                 [
+                    'userID' => 'id-ws000101',
+                    'firstName' => 'Test',
+                    'lastName' => 'Lecturer',
                     'name' => 'Test Lecturer',
                     'staffID' => 'ws000101',
                     'email' => 'ws000101@example.test',
