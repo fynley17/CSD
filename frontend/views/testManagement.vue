@@ -1,31 +1,44 @@
 <script setup>
+// Import Vue functions for reactive state, computed values and lifecycle management.
 import { computed, nextTick, onBeforeUnmount, ref } from 'vue';
 
+// Import the test table, create/edit form and reusable confirmation dialog.
 import TestManagementTable from '../components/tables/testManagementTable.vue';
 import TestForm from '../components/forms/testForm.vue';
 import PopupDialog from '../components/common/popupDialog.vue';
+
+// Import the API function used to delete tests.
 import { deleteTest } from '../services/testService';
 
+// References to the child components.
 const testManagementTable = ref(null);
 const deleteDialog = ref(null);
 
+// Store the current subject filter and search input.
 const subjectFilter = ref('');
 const searchTerm = ref('');
 
+// Control whether the create/edit form is displayed and which test is being edited.
 const showTestForm = ref(false);
 const editingTest = ref(null);
+
+// Store the test selected for deletion.
 const testToDelete = ref(null);
 
+// Track whether a test deletion is in progress.
 const deletingTest = ref(false);
 
+// Store success and error messages displayed to the lecturer.
 const successMessage = ref('');
 const errorMessage = ref('');
 
+// Store the notification timeout so it can be cleared when necessary.
 let messageTimeout = null;
 
+// Retrieve the subject options exposed by the test management table.
 const subjects = computed(() => testManagementTable.value?.subjects ?? []);
 
-// Clear existing feedback and any pending timeout.
+// Clear existing feedback and any pending notification timeout.
 function clearMessages() {
     successMessage.value = '';
     errorMessage.value = '';
@@ -58,32 +71,37 @@ function showError(message) {
     }, 10000);
 }
 
+// Pass the selected subject filter to the table component.
 const filterBySubject = () => {
     testManagementTable.value?.filterBySubject(subjectFilter.value);
 };
 
+// Pass the search term to the table component.
 const searchTests = () => {
     testManagementTable.value?.searchTests(searchTerm.value);
 };
 
+// Open the form in create mode and clear any previously selected test.
 function openCreateForm() {
     clearMessages();
     editingTest.value = null;
     showTestForm.value = true;
 }
 
+// Open the form in edit mode and populate it with the selected test.
 function openEditForm(test) {
     clearMessages();
     editingTest.value = test;
     showTestForm.value = true;
 }
 
+// Close the create/edit form and reset the selected test.
 function closeTestForm() {
     showTestForm.value = false;
     editingTest.value = null;
 }
 
-// Refresh the table after a successful operation.
+// Refresh the table after a successful create or edit operation.
 async function handleTestSaved() {
     const wasEditing = Boolean(editingTest.value);
 
@@ -96,18 +114,22 @@ async function handleTestSaved() {
     }
 }
 
+// Store the selected test and open the deletion confirmation dialog.
 async function openDeleteDialog(test) {
     clearMessages();
     testToDelete.value = test;
 
+    // Wait for the dialog component to update before opening it.
     await nextTick();
     deleteDialog.value?.open();
 }
 
+// Clear the selected test when the deletion dialog closes.
 function closeDeleteDialog() {
     testToDelete.value = null;
 }
 
+// Delete the selected test after the lecturer confirms the action.
 async function confirmDelete() {
     if (!testToDelete.value?.testID) {
         return;
@@ -117,14 +139,17 @@ async function confirmDelete() {
     clearMessages();
 
     try {
+        // Send the delete request to the backend.
         await deleteTest(testToDelete.value.testID);
 
+        // Close the confirmation dialog and refresh the table.
         deleteDialog.value?.close();
 
         await testManagementTable.value?.refreshTests();
 
         showSuccess('Test deleted successfully.');
     } catch (error) {
+        // Display the backend error where available, otherwise use a fallback message.
         showError(
             error.response?.data?.error ??
                 error.response?.data?.message ??
@@ -135,7 +160,7 @@ async function confirmDelete() {
     }
 }
 
-// Clear any outstanding timeout when leaving the page.
+// Clear any outstanding notification timeout when leaving the page.
 onBeforeUnmount(() => {
     if (messageTimeout) {
         clearTimeout(messageTimeout);
@@ -145,6 +170,7 @@ onBeforeUnmount(() => {
 
 <template>
     <main class="testManagement">
+        <!-- Page heading and description. -->
         <div class="pageHeading">
             <div>
                 <h1>Test Management</h1>
@@ -152,13 +178,13 @@ onBeforeUnmount(() => {
             </div>
         </div>
 
-        <!-- Temporary success notification. -->
+        <!-- Display a temporary success notification after an operation. -->
         <div v-if="successMessage" class="toastMessage successMessage" role="status" aria-live="polite">
             <span aria-hidden="true">✓</span>
             {{ successMessage }}
         </div>
 
-        <!-- Temporary error notification. -->
+        <!-- Display a temporary error notification if an operation fails. -->
         <div v-if="errorMessage" class="toastMessage errorMessage" role="alert" aria-live="assertive">
             <span aria-hidden="true">!</span>
             {{ errorMessage }}
@@ -189,6 +215,7 @@ onBeforeUnmount(() => {
         <div class="tableSection">
             <TestManagementTable ref="testManagementTable" @edit="openEditForm" @delete="openDeleteDialog" />
 
+            <!-- Button to open the form for creating a new test. -->
             <div class="tableFooter">
                 <button type="button" class="primaryButton" @click="openCreateForm">
                     <span aria-hidden="true">＋</span>
@@ -197,10 +224,10 @@ onBeforeUnmount(() => {
             </div>
         </div>
 
-        <!-- Create or edit a test using the shared form. -->
+        <!-- Reuse the same form for creating and editing tests. -->
         <TestForm v-if="showTestForm" :test="editingTest" @saved="handleTestSaved" @close="closeTestForm" />
 
-        <!-- Confirm permanent test deletion. -->
+        <!-- Confirm permanent test deletion before sending the request. -->
         <PopupDialog ref="deleteDialog" title="Delete Test" @close="closeDeleteDialog">
             <div class="deleteConfirmation">
                 <p>
@@ -215,6 +242,7 @@ onBeforeUnmount(() => {
                 </p>
             </div>
 
+            <!-- Provide cancel and confirm actions for the deletion dialog. -->
             <template #buttons>
                 <button type="button" class="secondaryButton" :disabled="deletingTest" @click="deleteDialog?.close()">
                     Cancel
@@ -229,6 +257,7 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
+/* Main page layout and typography. */
 .testManagement {
     max-width: var(--contentMaxWidth);
     min-height: 100%;
@@ -238,6 +267,7 @@ onBeforeUnmount(() => {
     font-family: var(--fontBody);
 }
 
+/* Page heading layout. */
 .pageHeading {
     display: flex;
     align-items: center;
@@ -289,6 +319,7 @@ onBeforeUnmount(() => {
     color: var(--colorError);
 }
 
+/* Layout for the subject filter and search toolbar. */
 .tableToolbar {
     display: flex;
     align-items: center;
@@ -312,6 +343,7 @@ onBeforeUnmount(() => {
     margin-left: auto;
 }
 
+/* Shared styling for toolbar input and select elements. */
 .tableToolbar input,
 .tableToolbar select {
     width: 100%;
@@ -325,6 +357,7 @@ onBeforeUnmount(() => {
     font: inherit;
 }
 
+/* Table and create button layout. */
 .tableSection {
     width: 100%;
 }
@@ -335,6 +368,7 @@ onBeforeUnmount(() => {
     margin-top: var(--spaceMd);
 }
 
+/* Shared styling for management page buttons. */
 .primaryButton,
 .secondaryButton,
 .deleteButton {
@@ -347,6 +381,7 @@ onBeforeUnmount(() => {
     cursor: pointer;
 }
 
+/* Create button styling. */
 .primaryButton {
     background: var(--colorPrimary);
     color: var(--colorSurface);
@@ -356,11 +391,13 @@ onBeforeUnmount(() => {
     background: var(--colorPrimaryHover);
 }
 
+/* Cancel button styling. */
 .secondaryButton {
     background: var(--colorSurface);
     color: var(--colorPrimary);
 }
 
+/* Delete button styling. */
 .deleteButton {
     border-color: var(--colorError);
     background: var(--colorError);
@@ -371,6 +408,7 @@ onBeforeUnmount(() => {
     background: var(--colorErrorHover);
 }
 
+/* Indicate when an action is unavailable. */
 .primaryButton:disabled,
 .secondaryButton:disabled,
 .deleteButton:disabled {
@@ -378,6 +416,7 @@ onBeforeUnmount(() => {
     cursor: not-allowed;
 }
 
+/* Arrange the deletion confirmation message. */
 .deleteConfirmation {
     display: flex;
     flex-direction: column;
@@ -388,6 +427,7 @@ onBeforeUnmount(() => {
     margin: 0;
 }
 
+/* Provide visible focus indicators for keyboard navigation. */
 button:focus-visible,
 input:focus-visible,
 select:focus-visible {
@@ -395,6 +435,7 @@ select:focus-visible {
     outline-offset: 2px;
 }
 
+/* Hide labels visually while keeping them available to screen readers. */
 .visuallyHidden {
     position: absolute;
     width: 1px;
@@ -406,6 +447,7 @@ select:focus-visible {
     border: 0;
 }
 
+/* Adjust the page layout for smaller screens. */
 @media (max-width: 639px) {
     .testManagement {
         padding: var(--spaceLg) var(--spaceMd);
