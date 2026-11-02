@@ -43,6 +43,7 @@
                             <th scope="col">Subject</th>
                             <th scope="col">Tests</th>
                             <th scope="col">Lecturers</th>
+                            <th scope="col">Status</th>
                             <th scope="col">Actions</th>
                         </tr>
                     </thead>
@@ -51,6 +52,11 @@
                             <th scope="row">{{ subject.subjectName }}</th>
                             <td>{{ subject.testCount }}</td>
                             <td>{{ subject.lecturerNames || 'Not assigned' }}</td>
+                            <td>
+                                <span class="statusPill" :class="subject.isActive ? 'statusActive' : 'statusArchived'">
+                                    {{ subject.isActive ? 'Active' : 'Archived' }}
+                                </span>
+                            </td>
                             <td>
                                 <button
                                     type="button"

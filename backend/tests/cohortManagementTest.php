@@ -31,10 +31,12 @@ final class CohortManagementTest extends TestCase
         );
         $this->db->exec(
             'CREATE TABLE Users (userID TEXT PRIMARY KEY, username TEXT NOT NULL, email TEXT NOT NULL, '
-            . 'lastLogin TEXT, isEnabled INTEGER NOT NULL, approvalStatus TEXT NOT NULL)'
+            . 'lastLogin TEXT, isEnabled INTEGER NOT NULL, disabledByCohort INTEGER NOT NULL DEFAULT 0, '
+            . 'approvalStatus TEXT NOT NULL)'
         );
         $this->db->exec(
-            'CREATE TABLE Subjects (subjectID TEXT PRIMARY KEY, subjectName TEXT NOT NULL, cohortID TEXT NOT NULL)'
+            'CREATE TABLE Subjects (subjectID TEXT PRIMARY KEY, subjectName TEXT NOT NULL, cohortID TEXT NOT NULL, '
+            . 'isActive INTEGER NOT NULL DEFAULT 1, archivedByCohort INTEGER NOT NULL DEFAULT 0)'
         );
         $this->db->exec('CREATE TABLE Tests (testID TEXT PRIMARY KEY, subjectID TEXT NOT NULL)');
         $this->db->exec(
@@ -139,12 +141,14 @@ final class CohortManagementTest extends TestCase
                     'subjectName' => 'Test Databases',
                     'testCount' => 2,
                     'lecturerNames' => 'Sample Lecturer',
+                    'isActive' => true,
                 ],
                 [
                     'subjectID' => 'subject-2',
                     'subjectName' => 'Test Networks',
                     'testCount' => 0,
                     'lecturerNames' => null,
+                    'isActive' => true,
                 ],
             ],
             $subjects
@@ -186,6 +190,136 @@ final class CohortManagementTest extends TestCase
         // Assert
         $this->assertFalse($result);
         $this->assertSame([false, true], array_column(Cohort::getAllForManagement(), 'isActive'));
+    }
+
+    /**
+     * Disabling stops the cohort's students logging in and archives its subjects, other cohorts are left alone (normal)
+     */
+    public function testDisablingDisablesStudentsAndArchivesSubjectsInThatCohortOnly(): void
+    {
+        // Arrange
+        $this->addStudent('user-1', 'Sam', 'Inside', 'cohort-1', 1, 'approved', null);
+        $this->addStudent('user-2', 'Sam', 'Outside', 'cohort-2', 1, 'approved', null);
+        $this->addSubject('subject-1', 'cohort-1', 1);
+        $this->addSubject('subject-2', 'cohort-2', 1);
+
+        // Act
+        Cohort::setActive('cohort-1', false);
+
+        // Assert
+        $this->assertSame(0, $this->userIsEnabled('user-1'));
+        $this->assertSame(1, $this->userIsEnabled('user-2'));
+        $this->assertSame(0, $this->subjectIsActive('subject-1'));
+        $this->assertSame(1, $this->subjectIsActive('subject-2'));
+    }
+
+    /**
+     * Enabling brings back the students and subjects disabling changed (normal)
+     */
+    public function testEnablingRestoresWhatDisablingChanged(): void
+    {
+        // Arrange
+        $this->addStudent('user-1', 'Sam', 'Inside', 'cohort-1', 1, 'approved', null);
+        $this->addSubject('subject-1', 'cohort-1', 1);
+        Cohort::setActive('cohort-1', false);
+
+        // Act
+        Cohort::setActive('cohort-1', true);
+
+        // Assert
+        $this->assertSame(1, $this->userIsEnabled('user-1'));
+        $this->assertSame(1, $this->subjectIsActive('subject-1'));
+    }
+
+    /**
+     * A student already disabled and a subject already archived stay that way after enabling (edge)
+     */
+    public function testEnablingLeavesThingsChangedForOtherReasonsAlone(): void
+    {
+        // Arrange
+        $this->addStudent('user-1', 'Sam', 'Banned', 'cohort-1', 0, 'approved', null);
+        $this->addSubject('subject-1', 'cohort-1', 0);
+        Cohort::setActive('cohort-1', false);
+
+        // Act
+        Cohort::setActive('cohort-1', true);
+
+        // Assert
+        $this->assertSame(0, $this->userIsEnabled('user-1'));
+        $this->assertSame(0, $this->subjectIsActive('subject-1'));
+    }
+
+    /**
+     * Disabling twice doesn't lose track of what to restore (boundary)
+     */
+    public function testDisablingTwiceStillRestoresOnEnable(): void
+    {
+        // Arrange
+        $this->addStudent('user-1', 'Sam', 'Inside', 'cohort-1', 1, 'approved', null);
+
+        // Act
+        Cohort::setActive('cohort-1', false);
+        Cohort::setActive('cohort-1', false);
+        Cohort::setActive('cohort-1', true);
+
+        // Assert
+        $this->assertSame(1, $this->userIsEnabled('user-1'));
+    }
+
+    /**
+     * If a later update fails, the cohort isn't left half disabled (error)
+     */
+    public function testDisablingRollsBackWhenAnUpdateFails(): void
+    {
+        // Arrange
+        $this->addStudent('user-1', 'Sam', 'Inside', 'cohort-1', 1, 'approved', null);
+        $this->db->exec('DROP TABLE Subjects');
+
+        // Act
+        try {
+            Cohort::setActive('cohort-1', false);
+            $this->fail('Expected the update to fail');
+        } catch (PDOException) {
+            // Assert
+            $this->assertSame(1, $this->userIsEnabled('user-1'));
+            $isActive = $this->db->query("SELECT isActive FROM Cohorts WHERE cohortID = 'cohort-1'")->fetchColumn();
+            $this->assertSame(1, (int) $isActive);
+        }
+    }
+
+    /**
+     * The registration form is only offered active cohorts (normal)
+     */
+    public function testRegistrationListLeavesOutDisabledCohorts(): void
+    {
+        // Act
+        $cohorts = Cohort::getAll();
+
+        // Assert
+        $this->assertSame([['cohortID' => 'cohort-1', 'cohortName' => 'Test Beta']], $cohorts);
+    }
+
+    private function userIsEnabled(string $userID): int
+    {
+        $stmt = $this->db->prepare('SELECT isEnabled FROM Users WHERE userID = ?');
+        $stmt->execute([$userID]);
+
+        return (int) $stmt->fetchColumn();
+    }
+
+    private function subjectIsActive(string $subjectID): int
+    {
+        $stmt = $this->db->prepare('SELECT isActive FROM Subjects WHERE subjectID = ?');
+        $stmt->execute([$subjectID]);
+
+        return (int) $stmt->fetchColumn();
+    }
+
+    private function addSubject(string $subjectID, string $cohortID, int $isActive): void
+    {
+        $this->db->prepare(
+            'INSERT INTO Subjects (subjectID, subjectName, cohortID, isActive) VALUES (?, ?, ?, ?)'
+        )->execute([$subjectID, 'Test ' . $subjectID, $cohortID, $isActive]);
     }
 
     /**

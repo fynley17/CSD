@@ -49,7 +49,9 @@ function makeStudents(firstNumber, count) {
 }
 
 function makeCohort(cohortID, cohortName, createdDate, isActive, students, subjectCount) {
-    return { cohortID, cohortName, createdDate, isActive, students, subjects: SAMPLE_SUBJECTS.slice(0, subjectCount) };
+    const subjects = SAMPLE_SUBJECTS.slice(0, subjectCount).map((subject) => ({ ...subject, isActive }));
+
+    return { cohortID, cohortName, createdDate, isActive, students, subjects };
 }
 
 export const sampleCohorts = [

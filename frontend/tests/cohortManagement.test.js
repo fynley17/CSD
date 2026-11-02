@@ -40,7 +40,10 @@ describe('CohortManagement', () => {
     beforeEach(() => {
         vi.clearAllMocks();
         getCohorts.mockResolvedValue(structuredClone(sampleCohorts));
-        setCohortActive.mockResolvedValue({});
+        setCohortActive.mockImplementation(async (cohortID, isActive) => ({
+            ...structuredClone(sampleCohorts.find((cohort) => cohort.cohortID === cohortID)),
+            isActive,
+        }));
     });
 
     /**
@@ -278,6 +281,28 @@ describe('CohortManagement', () => {
 
         // Assert
         expect(setCohortActive).toHaveBeenCalledWith('cohort-1', false);
+    });
+
+    /**
+     * The students PHP sends back replace the old ones, so their new status shows (normal)
+     */
+    it('shows the students as disabled once the cohort is disabled', async () => {
+        // Arrange
+        setCohortActive.mockResolvedValue({
+            isActive: false,
+            students: [
+                { studentNumber: 'WS1', name: 'Joe Bloggs', email: 'a@b.c', lastLogin: null, status: 'Disabled' },
+            ],
+        });
+        const page = await openPage();
+        await findButton(page, 'Show details for DTS 2026').trigger('click');
+
+        // Act
+        await findButton(page, 'Disable DTS 2026').trigger('click');
+        await flushPromises();
+
+        // Assert
+        expect(page.get('.cohortDetailsTable tbody .statusPill').text()).toBe('Disabled');
     });
 
     /**

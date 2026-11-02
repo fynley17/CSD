@@ -23,7 +23,9 @@ question pool migration then removes `TestQuestions`: each attempt now draws
 (`Questions.subjectID`), and tests with no count set are given the default of 10.
 Which questions an attempt was given is still recorded in `StudentAnswers`. The
 cohort created date migration adds `Cohorts.createdDate`, used by the cohort
-management page; existing cohorts get the date the migration is run. Do not run migrations through the init directory; init scripts run only
+management page; existing cohorts get the date the migration is run. The cohort
+disable tracking migration adds `Users.disabledByCohort` and
+`Subjects.archivedByCohort`, so enabling a cohort only undoes what disabling it changed. Do not run migrations through the init directory; init scripts run only
 for a new volume.
 
 ## Sample data

@@ -6,8 +6,8 @@ class Cohort extends Model
 {
     public static function getAll()
     {
-        // Return cohort identifiers and names for the registration form's selector.
-        $stmt = self::getDB()->prepare("SELECT * FROM Cohorts");
+        // Return cohort identifiers and names for the registration form's selector, disabled cohorts can't be joined.
+        $stmt = self::getDB()->prepare("SELECT cohortID, cohortName FROM Cohorts WHERE isActive = 1");
         $stmt->execute();
         return $stmt->fetchAll(\PDO::FETCH_ASSOC);
     }
@@ -44,7 +44,25 @@ class Cohort extends Model
     }
 
     /**
-     * Saves whether a cohort is active
+     * One cohort with its students and subjects, the same shape as getAllForManagement()
+     *
+     * @return array<string, mixed>|null null if there's no cohort with this ID
+     */
+    public static function findForManagement(string $cohortID): ?array
+    {
+        foreach (self::getAllForManagement() as $cohort) {
+            if ($cohort['cohortID'] === $cohortID) {
+                return $cohort;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Saves whether a cohort is active, along with its students and subjects
+     * Disabling disables its students and archives its subjects, enabling only undoes what disabling changed,
+     * so a student disabled or a subject archived for another reason stays that way
      * Checks it exists first, as MariaDB counts no rows changed when the value is already the same
      *
      * @return bool false if there's no cohort with this ID
@@ -59,8 +77,35 @@ class Cohort extends Model
             return false;
         }
 
-        $stmt = $db->prepare("UPDATE Cohorts SET isActive = ? WHERE cohortID = ?");
-        $stmt->execute([$isActive ? 1 : 0, $cohortID]);
+        // all or nothing, so a cohort can't end up disabled with students who can still log in
+        $db->beginTransaction();
+        try {
+            $stmt = $db->prepare("UPDATE Cohorts SET isActive = ? WHERE cohortID = ?");
+            $stmt->execute([$isActive ? 1 : 0, $cohortID]);
+
+            $statements = $isActive
+                ? [
+                    "UPDATE Users SET isEnabled = 1, disabledByCohort = 0 WHERE disabledByCohort = 1
+                        AND userID IN (SELECT userID FROM Students WHERE cohortID = ?)",
+                    "UPDATE Subjects SET isActive = 1, archivedByCohort = 0
+                        WHERE archivedByCohort = 1 AND cohortID = ?",
+                ]
+                : [
+                    "UPDATE Users SET isEnabled = 0, disabledByCohort = 1 WHERE isEnabled = 1
+                        AND userID IN (SELECT userID FROM Students WHERE cohortID = ?)",
+                    "UPDATE Subjects SET isActive = 0, archivedByCohort = 1 WHERE isActive = 1 AND cohortID = ?",
+                ];
+
+            foreach ($statements as $sql) {
+                $stmt = $db->prepare($sql);
+                $stmt->execute([$cohortID]);
+            }
+
+            $db->commit();
+        } catch (\Throwable $e) {
+            $db->rollBack();
+            throw $e;
+        }
 
         return true;
     }
@@ -102,7 +147,7 @@ class Cohort extends Model
     private static function getSubjectsByCohort(): array
     {
         $sql = "
-            SELECT Subjects.subjectID, Subjects.subjectName, Subjects.cohortID,
+            SELECT Subjects.subjectID, Subjects.subjectName, Subjects.cohortID, Subjects.isActive,
                 (SELECT COUNT(*) FROM Tests WHERE Tests.subjectID = Subjects.subjectID) AS testCount
             FROM Subjects
             ORDER BY Subjects.subjectName
@@ -120,6 +165,7 @@ class Cohort extends Model
                 'subjectName' => $row['subjectName'],
                 'testCount' => (int) $row['testCount'],
                 'lecturerNames' => $lecturerNames[$row['subjectID']] ?? null,
+                'isActive' => (int) $row['isActive'] === 1,
             ];
         }
 

@@ -33,6 +33,7 @@ class CohortController extends Controller
 
     /**
      * Disables or enables a cohort, the JSON body is {"isActive": true or false}
+     * Sends the cohort back, as its students and subjects change with it
      */
     public function updateCohortStatus(string $cohortID): void
     {
@@ -48,7 +49,7 @@ class CohortController extends Controller
                 $this->jsonResponse(['error' => 'Cohort not found'], 404);
             }
 
-            $this->jsonResponse(['isActive' => $data['isActive']]);
+            $this->jsonResponse(Cohort::findForManagement($cohortID));
         } catch (\Throwable $e) {
             error_log('Updating the cohort status failed: ' . $e->getMessage());
             $this->jsonResponse(['error' => 'Unable to update the cohort'], 500);

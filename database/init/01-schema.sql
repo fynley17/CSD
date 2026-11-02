@@ -79,7 +79,8 @@ CREATE TABLE `Subjects` (
   `subjectID` uuid NOT NULL DEFAULT uuid(),
   `subjectName` varchar(100) NOT NULL,
   `cohortID` uuid NOT NULL,
-  `isActive` tinyint(1) NOT NULL DEFAULT 1 COMMENT '1 = active, 0 = archived'
+  `isActive` tinyint(1) NOT NULL DEFAULT 1 COMMENT '1 = active, 0 = archived',
+  `archivedByCohort` tinyint(1) NOT NULL DEFAULT 0 COMMENT '1 = archived because its cohort was disabled'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE `Tests` (
@@ -103,6 +104,7 @@ CREATE TABLE `Users` (
   `accountType` enum('student','lecturer','admin') NOT NULL DEFAULT 'student',
   `approvalStatus` enum('pending','approved') NOT NULL DEFAULT 'pending',
   `isEnabled` tinyint(1) NOT NULL DEFAULT 1 COMMENT '1 = can sign in, 0 = disabled',
+  `disabledByCohort` tinyint(1) NOT NULL DEFAULT 0 COMMENT '1 = disabled because their cohort was disabled',
   `isEmailVerified` tinyint(1) NOT NULL DEFAULT 1 COMMENT '0 = registered but the email link not clicked yet',
   `timestamp` timestamp NOT NULL DEFAULT current_timestamp() COMMENT 'Account creation time',
   `lastLogin` datetime DEFAULT NULL,

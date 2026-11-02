@@ -105,9 +105,7 @@ async function toggleStatus(cohort) {
     saveError.value = '';
 
     try {
-        const newStatus = !cohort.isActive;
-        await setCohortActive(cohort.cohortID, newStatus);
-        cohort.isActive = newStatus;
+        Object.assign(cohort, await setCohortActive(cohort.cohortID, !cohort.isActive));
     } catch (error) {
         saveError.value = error.response?.data?.error || `Unable to update ${cohort.cohortName}`;
     }
