@@ -27,9 +27,10 @@ class Test extends Model
     /**
      * Returns the tests a student can view and start.
      *
-     * The query filters by cohort and only includes tests whose subject has
-     * questions, so empty or irrelevant assessments are not shown. Tests the
-     * student already has full marks on stay listed, with earnsPoints false.
+     * The query filters by cohort and only includes tests whose subject is
+     * active and has questions, so archived, empty or irrelevant assessments
+     * are not shown. Tests the student already has full marks on stay listed,
+     * with earnsPoints false.
      */
     public static function getAvailableForStudents(string $userID): array
     {
@@ -59,6 +60,7 @@ class Test extends Model
                 WHERE student.userID = ?
                     AND student.cohortID = s.cohortID
             )
+            AND s.isActive = 1
             AND " . self::POOL_SIZE . " > 0
             ORDER BY t.dueDate IS NULL, t.dueDate, t.testName"
         );
@@ -127,13 +129,15 @@ class Test extends Model
      * isCorrect is never selected here, so the correct answers can't be read in the
      * browser while the test is running. They're only sent back once it's marked.
      *
-     * @return array|null null if the test isn't in the student's cohort or has no questions.
+     * @return array|null null if the test isn't in the student's cohort, its subject is archived
+     *                    or it has no questions.
      *                    earnsPoints is false once the student has full marks on it.
      */
     public static function getForStudent(string $testID, string $userID): ?array
     {
         $test = self::findForStudent($testID, $userID);
-        if ($test === null) {
+        // only checked when starting, so an attempt already underway can still be handed in
+        if ($test === null || !$test['subjectIsActive']) {
             return null;
         }
 
@@ -145,7 +149,7 @@ class Test extends Model
         // shuffle the whole pool and keep the first few, so every question has the same chance
         shuffle($pool);
         $questions = array_slice($pool, 0, self::attemptSize($test['questionsPerAttempt'], count($pool)));
-        unset($test['questionsPerAttempt']);
+        unset($test['questionsPerAttempt'], $test['subjectIsActive']);
 
         $test['timeLimit'] = $test['timeLimit'] === null ? null : (int) $test['timeLimit'];
         $test['questionCount'] = count($questions);
@@ -164,7 +168,7 @@ class Test extends Model
         // cohort's test, or one whose subject has no questions, by typing its ID into the URL.
         $stmt = self::getDB()->prepare(
             "SELECT t.testID, t.testName, t.testDescription, t.timeLimit,
-                t.questionCount AS questionsPerAttempt, s.subjectName,
+                t.questionCount AS questionsPerAttempt, s.subjectName, s.isActive AS subjectIsActive,
                 NOT " . self::FULL_MARKS_ATTEMPT . " AS earnsPoints
             FROM Tests AS t
             INNER JOIN Subjects AS s ON s.subjectID = t.subjectID
