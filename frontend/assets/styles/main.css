@@ -27,6 +27,7 @@
     --colorWarning: #b45309;
     --colorWarningLight: #fef3c7;
     --colorInfoLight: #dbeafe;
+    --colorSuccessHover: #166534;
 
     /* Leaderboard trophies for the top three, all at least 3:1 against white */
     --colorRankGold: #a16207;

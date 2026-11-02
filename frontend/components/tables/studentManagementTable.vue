@@ -17,11 +17,37 @@ const errorMessage = ref('');
 const dataTable = ref(null);
 const cohorts = ref([]);
 
+// Escape values before inserting them into DataTables-generated HTML.
+const escapeHtml = (value) =>
+    String(value ?? '').replace(
+        /[&<>"']/g,
+        (character) =>
+            ({
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#39;',
+            })[character],
+    );
+
 // Define the columns displayed in the student management table.
 const columns = [
-    { data: 'name', title: 'Name' },
-    { data: 'studentNumber', title: 'Student Number' },
-    { data: 'email', title: 'Email' },
+    {
+        data: 'name',
+        title: 'Name',
+        render: (value, type) => (type === 'display' ? escapeHtml(value) : value),
+    },
+    {
+        data: 'studentNumber',
+        title: 'Student Number',
+        render: (value, type) => (type === 'display' ? escapeHtml(value) : value),
+    },
+    {
+        data: 'email',
+        title: 'Email',
+        render: (value, type) => (type === 'display' ? escapeHtml(value) : value),
+    },
     {
         data: 'status',
         title: 'Status',
@@ -39,16 +65,20 @@ const columns = [
 
             const statusClass = statusClasses[value] || '';
 
-            return `<span class="studentStatusBadge ${statusClass}">${value}</span>`;
+            return `<span class="studentStatusBadge ${statusClass}">${escapeHtml(value)}</span>`;
         },
     },
     {
         data: 'lastLogin',
         title: 'Last Login',
         // Display 'Never' when the student has not logged in.
-        render: (value) => value || 'Never',
+        render: (value, type) => (type === 'display' ? escapeHtml(value || 'Never') : value || 'Never'),
     },
-    { data: 'cohort', title: 'Cohort' },
+    {
+        data: 'cohort',
+        title: 'Cohort',
+        render: (value, type) => (type === 'display' ? escapeHtml(value) : value),
+    },
     {
         data: null,
         title: 'Actions',
@@ -61,6 +91,10 @@ const columns = [
                 return '';
             }
 
+            // Escape database values before placing them in HTML attributes.
+            const userID = escapeHtml(row.userID);
+            const name = escapeHtml(row.name);
+
             // Pending students can be approved or declined.
             if (row.status === 'Pending') {
                 return `
@@ -68,8 +102,8 @@ const columns = [
                         type="button"
                         class="btn btn-sm tableApproveButton tableActionButton me-2"
                         data-action="approve"
-                        data-user-id="${row.userID}"
-                        aria-label="Approve ${row.name}"
+                        data-user-id="${userID}"
+                        aria-label="Approve ${name}"
                     >
                         Approve
                     </button>
@@ -77,8 +111,8 @@ const columns = [
                         type="button"
                         class="btn btn-sm tableDeleteButton tableActionButton"
                         data-action="decline"
-                        data-user-id="${row.userID}"
-                        aria-label="Decline ${row.name}"
+                        data-user-id="${userID}"
+                        aria-label="Decline ${name}"
                     >
                         Decline
                     </button>
@@ -92,8 +126,8 @@ const columns = [
                         type="button"
                         class="btn btn-sm tableEditButton tableActionButton me-2"
                         data-action="edit"
-                        data-user-id="${row.userID}"
-                        aria-label="Edit ${row.name}"
+                        data-user-id="${userID}"
+                        aria-label="Edit ${name}"
                     >
                         Edit
                     </button>
@@ -101,8 +135,8 @@ const columns = [
                         type="button"
                         class="btn btn-sm tableEnableButton tableActionButton me-2"
                         data-action="enable"
-                        data-user-id="${row.userID}"
-                        aria-label="Enable ${row.name}"
+                        data-user-id="${userID}"
+                        aria-label="Enable ${name}"
                     >
                         Enable
                     </button>
@@ -110,8 +144,8 @@ const columns = [
                         type="button"
                         class="btn btn-sm tableDeleteButton tableActionButton"
                         data-action="delete"
-                        data-user-id="${row.userID}"
-                        aria-label="Delete ${row.name}"
+                        data-user-id="${userID}"
+                        aria-label="Delete ${name}"
                     >
                         Delete
                     </button>
@@ -124,8 +158,8 @@ const columns = [
                     type="button"
                     class="btn btn-sm tableEditButton tableActionButton me-2"
                     data-action="edit"
-                    data-user-id="${row.userID}"
-                    aria-label="Edit ${row.name}"
+                    data-user-id="${userID}"
+                    aria-label="Edit ${name}"
                 >
                     Edit
                 </button>
@@ -133,8 +167,8 @@ const columns = [
                     type="button"
                     class="btn btn-sm tableDisableButton tableActionButton me-2"
                     data-action="disable"
-                    data-user-id="${row.userID}"
-                    aria-label="Disable ${row.name}"
+                    data-user-id="${userID}"
+                    aria-label="Disable ${name}"
                 >
                     Disable
                 </button>
@@ -142,8 +176,8 @@ const columns = [
                     type="button"
                     class="btn btn-sm tableDeleteButton tableActionButton"
                     data-action="delete"
-                    data-user-id="${row.userID}"
-                    aria-label="Delete ${row.name}"
+                    data-user-id="${userID}"
+                    aria-label="Delete ${name}"
                 >
                     Delete
                 </button>
@@ -229,7 +263,6 @@ onMounted(async () => {
             a.localeCompare(b),
         );
     } catch {
-        // Show an error message if the student records cannot be retrieved.
         errorMessage.value = 'Unable to load students. Please try again later.';
     } finally {
         // Hide the loading message whether the request succeeds or fails.
@@ -354,8 +387,10 @@ onMounted(async () => {
     border: 1px solid var(--colorSuccess);
 }
 
+/* Both buttons use the success hover colour. */
 .tableApproveButton:hover,
 .tableEnableButton:hover {
+    color: var(--colorSurface);
     background-color: var(--colorSuccessHover);
     border-color: var(--colorSuccessHover);
 }
