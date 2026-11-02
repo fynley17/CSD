@@ -16,9 +16,9 @@ export async function getLecturerTests() {
     return response.data;
 }
 
-// Fetch active subjects for lecturer forms.
+// Fetch active subjects with cohort IDs for Test Management.
 export async function getLecturerSubjects() {
-    const response = await api.get('/lecturer/subjects');
+    const response = await api.get('/lecturer/test-subjects');
     return response.data;
 }
 

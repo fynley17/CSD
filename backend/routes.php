@@ -142,4 +142,11 @@ $router->addRoute(
     [new QuestionController(), 'getActiveSubjects']
 );
 
+// Active subjects for lecturer Test Management, including cohort IDs.
+$router->addRoute(
+    'GET',
+    '/^\\/api\\/lecturer\\/test-subjects$/',
+    [new TestController(), 'getActiveSubjects']
+);
+
 return $router;
