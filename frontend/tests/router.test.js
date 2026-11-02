@@ -66,6 +66,39 @@ describe('Router page guard', () => {
     });
 
     /**
+     * Cohort management opens for an admin (normal)
+     */
+    it('lets an admin open cohort management', async () => {
+        // Arrange
+        vi.mocked(getCurrentUser).mockResolvedValue({ username: 'adm01', accountType: 'admin' });
+
+        // Act
+        await router.push('/cohort-management');
+        const pageReached = router.currentRoute.value;
+
+        // Assert
+        expect(pageReached.name).toBe('cohortManagement');
+    });
+
+    /**
+     * Every other account type goes back to its own dashboard (error)
+     */
+    it.each([
+        ['lecturer', 'lecturerDashboard'],
+        ['student', 'testSelection'],
+    ])('turns a %s away from cohort management', async (accountType, dashboard) => {
+        // Arrange
+        vi.mocked(getCurrentUser).mockResolvedValue({ username: 'user01', accountType });
+
+        // Act
+        await router.push('/cohort-management');
+        const pageReached = router.currentRoute.value;
+
+        // Assert
+        expect(pageReached.name).toBe(dashboard);
+    });
+
+    /**
      * An admin can't get into the pages only students use, i.e. the leaderboard
      * and goes back to their dashboard (error)
      */
