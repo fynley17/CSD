@@ -43,3 +43,11 @@ export async function removeSubject(cohortID, subjectID) {
     );
     return response.data;
 }
+
+/**
+ * Deletes a cohort, PHP refuses if it still has students or subjects
+ */
+export async function deleteCohort(cohortID) {
+    const response = await api.delete(`/admin/cohorts/${encodeURIComponent(cohortID)}`);
+    return response.data;
+}

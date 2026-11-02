@@ -1,4 +1,4 @@
-<!-- Students in each cohort. Only Disable and Enable are connected to PHP so far -->
+<!-- Students in each cohort. Only Disable, Enable and Delete are connected to PHP so far -->
 <template>
     <CohortExpandableTable :cohorts="cohorts" label="Students in each cohort" :columnCount="7">
         <template #headings>
@@ -30,12 +30,12 @@
                 >
                     {{ cohort.isActive ? 'Disable' : 'Enable' }}
                 </button>
-                <!-- a cohort can only be deleted once it has no students or subjects -->
+                <!-- always clickable, the pop-up explains why a cohort with students or subjects can't be deleted -->
                 <button
                     type="button"
                     class="cohortActionButton"
                     :aria-label="`Delete ${cohort.cohortName}`"
-                    :disabled="cohort.students.length > 0 || cohort.subjects.length > 0"
+                    @click="emit('delete', cohort)"
                 >
                     Delete
                 </button>
@@ -130,7 +130,7 @@ defineProps({
     },
 });
 
-const emit = defineEmits(['toggleStatus']);
+const emit = defineEmits(['toggleStatus', 'delete']);
 
 const showAllCohortIDs = ref(new Set());
 

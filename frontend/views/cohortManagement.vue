@@ -47,7 +47,11 @@
 
         <template v-else>
             <h2>Students in each cohort</h2>
-            <CohortStudentsTable :cohorts="visibleCohorts" @toggleStatus="toggleStatus" />
+            <CohortStudentsTable
+                :cohorts="visibleCohorts"
+                @toggleStatus="toggleStatus"
+                @delete="deletingCohort = $event"
+            />
 
             <h2>Subjects for each cohort</h2>
             <CohortSubjectsTable
@@ -71,12 +75,21 @@
             @saved="updateCohort(removing.cohort, $event)"
             @close="removing = null"
         />
+
+        <DeleteCohortDialog
+            v-if="deletingCohort"
+            :cohort="deletingCohort"
+            @deleted="removeCohort"
+            @disabled="updateCohort(deletingCohort, $event)"
+            @close="deletingCohort = null"
+        />
     </section>
 </template>
 
 <script setup>
 import { computed, onMounted, ref } from 'vue';
 import AssignSubjectsDialog from '../components/common/assignSubjectsDialog.vue';
+import DeleteCohortDialog from '../components/common/deleteCohortDialog.vue';
 import RemoveSubjectDialog from '../components/common/removeSubjectDialog.vue';
 import CohortStudentsTable from '../components/tables/cohortStudentsTable.vue';
 import CohortSubjectsTable from '../components/tables/cohortSubjectsTable.vue';
@@ -92,6 +105,7 @@ const sortBy = ref('');
 // which pop-up is open, null when it's closed
 const assigningCohort = ref(null);
 const removing = ref(null);
+const deletingCohort = ref(null);
 
 const sorters = {
     nameAsc: (a, b) => a.cohortName.localeCompare(b.cohortName),
@@ -127,6 +141,10 @@ onMounted(async () => {
 // changed in place rather than replaced, so the table stays on the same page with the same rows open
 function updateCohort(cohort, savedCohort) {
     Object.assign(cohort, savedCohort);
+}
+
+function removeCohort(deletedCohort) {
+    allCohorts.value = allCohorts.value.filter((cohort) => cohort.cohortID !== deletedCohort.cohortID);
 }
 
 // the screen only changes once PHP confirms it's saved, so it never shows a status the database doesn't have

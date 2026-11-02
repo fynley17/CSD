@@ -6,6 +6,7 @@ import { flushPromises, mount } from '@vue/test-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
     assignSubjects,
+    deleteCohort,
     getCohorts,
     getUnassignedSubjects,
     removeSubject,
@@ -20,6 +21,7 @@ vi.mock('../services/cohortService', () => ({
     getUnassignedSubjects: vi.fn(),
     assignSubjects: vi.fn(),
     removeSubject: vi.fn(),
+    deleteCohort: vi.fn(),
 }));
 
 /**
@@ -206,18 +208,6 @@ describe('CohortManagement', () => {
 
         // Assert
         expect(page.findAll('.cohortPagingSummary')[0].text()).toBe('Showing 1-3 of 3 cohorts');
-    });
-
-    /**
-     * Only an empty cohort can be deleted (edge)
-     */
-    it('only lets empty cohorts be deleted', async () => {
-        // Arrange and Act
-        const page = await openPage();
-
-        // Assert
-        expect(findButton(page, 'Delete DTS 2026').attributes('disabled')).toBeDefined();
-        expect(findButton(page, 'Delete Data Science 2026').attributes('disabled')).toBeUndefined();
     });
 
     /**
@@ -520,5 +510,146 @@ describe('CohortManagement', () => {
         expect(page.findAll('.cohortDetailsEmpty').map((text) => text.text())).toContain(
             'No subjects for this cohort yet',
         );
+    });
+
+    /**
+     * An empty cohort asks for confirmation before anything is deleted (normal)
+     */
+    it('asks before deleting an empty cohort', async () => {
+        // Arrange
+        const page = await openPage();
+
+        // Act
+        await findButton(page, 'Delete Data Science 2026').trigger('click');
+
+        // Assert
+        expect(page.get('.popupTitle').text()).toBe('Delete Cohort?');
+        expect(page.get('.cohortDialogConfirm h3').text()).toBe('Data Science 2026');
+        expect(deleteCohort).not.toHaveBeenCalled();
+    });
+
+    /**
+     * Confirming deletes the cohort and takes it off both tables (normal)
+     */
+    it('deletes an empty cohort once confirmed', async () => {
+        // Arrange
+        deleteCohort.mockResolvedValue({});
+        const page = await openPage();
+        await findButton(page, 'Delete Data Science 2026').trigger('click');
+
+        // Act
+        await page.get('.cohortDialogButtons .cohortPrimaryButton').trigger('click');
+        await flushPromises();
+
+        // Assert
+        expect(deleteCohort).toHaveBeenCalledWith('cohort-3');
+        expect(page.find('.popupDialog').exists()).toBe(false);
+        expect(cohortNames(page, 0)).not.toContain('Data Science 2026');
+        expect(cohortNames(page, 1)).not.toContain('Data Science 2026');
+    });
+
+    /**
+     * Cancel closes the pop-up and the cohort stays (edge)
+     */
+    it('keeps the cohort when deleting is cancelled', async () => {
+        // Arrange
+        const page = await openPage();
+        await findButton(page, 'Delete Data Science 2026').trigger('click');
+
+        // Act
+        await page.get('.cohortDialogButtons .cohortSecondaryButton').trigger('click');
+
+        // Assert
+        expect(deleteCohort).not.toHaveBeenCalled();
+        expect(page.find('.popupDialog').exists()).toBe(false);
+        expect(cohortNames(page, 0)).toContain('Data Science 2026');
+    });
+
+    /**
+     * The pop-up stays open and the cohort stays listed if PHP refuses (error)
+     */
+    it('shows the problem when PHP refuses the delete', async () => {
+        // Arrange
+        deleteCohort.mockRejectedValue({ response: { data: { error: 'This cohort still has students' } } });
+        const page = await openPage();
+        await findButton(page, 'Delete Data Science 2026').trigger('click');
+
+        // Act
+        await page.get('.cohortDialogButtons .cohortPrimaryButton').trigger('click');
+        await flushPromises();
+
+        // Assert
+        expect(page.get('.popupDialog [role="alert"]').text()).toContain('This cohort still has students');
+        expect(cohortNames(page, 0)).toContain('Data Science 2026');
+    });
+
+    /**
+     * A cohort with students can't be deleted, the only offer is to disable it (normal)
+     */
+    it('offers to disable a cohort that has students', async () => {
+        // Arrange
+        const page = await openPage();
+
+        // Act
+        await findButton(page, 'Delete DTS 2026').trigger('click');
+
+        // Assert
+        expect(page.get('.popupTitle').text()).toBe('Cannot Delete Cohort');
+        expect(page.get('.cohortDialogConfirm').text()).toContain('24 students and 4 subjects');
+        expect(page.get('.cohortDialogButtons .cohortPrimaryButton').text()).toBe('Disable Cohort');
+    });
+
+    /**
+     * Taking the offer disables the cohort rather than deleting it (normal)
+     */
+    it('disables the cohort when the offer is taken', async () => {
+        // Arrange
+        const page = await openPage();
+        await findButton(page, 'Delete DTS 2026').trigger('click');
+
+        // Act
+        await page.get('.cohortDialogButtons .cohortPrimaryButton').trigger('click');
+        await flushPromises();
+
+        // Assert
+        expect(setCohortActive).toHaveBeenCalledWith('cohort-1', false);
+        expect(deleteCohort).not.toHaveBeenCalled();
+        expect(page.find('.popupDialog').exists()).toBe(false);
+        expect(findButton(page, 'Enable DTS 2026').text()).toBe('Enable');
+    });
+
+    /**
+     * A cohort that's already disabled has nothing to offer, just a way out (edge)
+     */
+    it('makes no offer when the cohort is already disabled', async () => {
+        // Arrange
+        const page = await openPage();
+        await page.findAll('select')[0].setValue('disabled');
+
+        // Act
+        await findButton(page, 'Delete Software Engineering 2024').trigger('click');
+
+        // Assert
+        expect(page.get('.cohortDialogConfirm').text()).toContain('already disabled');
+        expect(page.find('.cohortDialogButtons .cohortPrimaryButton').exists()).toBe(false);
+        expect(page.get('.cohortDialogButtons .cohortSecondaryButton').text()).toBe('Close');
+    });
+
+    /**
+     * Subjects but no students means removing the subjects first, disabling wouldn't help (edge)
+     */
+    it('says to remove the subjects when a cohort only has subjects', async () => {
+        // Arrange
+        const cohorts = structuredClone(sampleCohorts);
+        cohorts[0].students = [];
+        getCohorts.mockResolvedValue(cohorts);
+        const page = await openPage();
+
+        // Act
+        await findButton(page, 'Delete DTS 2026').trigger('click');
+
+        // Assert
+        expect(page.get('.cohortDialogConfirm').text()).toContain('Remove its subjects from the cohort first');
+        expect(page.find('.cohortDialogButtons .cohortPrimaryButton').exists()).toBe(false);
     });
 });
