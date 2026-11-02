@@ -29,6 +29,15 @@
                     </div>
                 </div>
             </section>
+            <!-- lecturer and subject tables, side by side on big screens and stacked on phones -->
+            <section class="row g-4">
+                <div class="col-12 col-xl-6">
+                    <LecturerTable />
+                </div>
+                <div class="col-12 col-xl-6">
+                    <SubjectTable />
+                </div>
+            </section>
         </div>
     </section>
 </template>
@@ -39,8 +48,14 @@ import subjectsImage from '../assets/images/tests.jpg';
 import lecturersImage from '../assets/images/students.jpg';
 import archivedImage from '../assets/images/approvals.jpg';
 import disabledImage from '../assets/images/lockedAccounts.jpg';
+import LecturerTable from '../components/tables/lecturerTable.vue';
+import SubjectTable from '../components/tables/subjectTable.vue';
 
 export default {
+    components: {
+        LecturerTable,
+        SubjectTable,
+    },
     data() {
         return {
             // the totals from PHP, null until they arrive

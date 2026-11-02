@@ -10,3 +10,12 @@ export async function getDashboardSummary() {
     const response = await api.get('/admin/dashboard-summary');
     return response.data;
 }
+
+/**
+ * Gets the lecturers for the admin dashboard table from GET /api/admin/recent-lecturers
+ * @returns up to 5 lecturers, latest login first, i.e. [{ name, staffID, email, isEnabled, lastLogin }]
+ */
+export async function getRecentLecturers() {
+    const response = await api.get('/admin/recent-lecturers');
+    return response.data;
+}

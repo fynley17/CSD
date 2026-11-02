@@ -3,7 +3,7 @@
 // each test is laid out Arrange (pick what PHP sends back), Act (call the service), Assert (check the answer)
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import api from '../services/api';
-import { getDashboardSummary } from '../services/administratorService';
+import { getDashboardSummary, getRecentLecturers } from '../services/administratorService';
 
 // swaps the real axios setup for a pretend one, so no PHP is needed
 vi.mock('../services/api', () => ({
@@ -47,5 +47,29 @@ describe('administratorService', () => {
 
         // Assert
         await expect(request).rejects.toBe(refused);
+    });
+
+    /**
+     * Calls /admin/recent-lecturers and hands back response.data (normal)
+     */
+    it('gets the lecturers from the recent lecturers address', async () => {
+        // Arrange
+        const lecturers = [
+            {
+                name: 'Test Lecturer',
+                staffID: 'ws000101',
+                email: 'ws000101@example.test',
+                isEnabled: true,
+                lastLogin: '2026-10-20 09:00:00',
+            },
+        ];
+        vi.mocked(api.get).mockResolvedValue({ data: lecturers });
+
+        // Act
+        const recentLecturers = await getRecentLecturers();
+
+        // Assert
+        expect(api.get).toHaveBeenCalledWith('/admin/recent-lecturers');
+        expect(recentLecturers).toEqual(lecturers);
     });
 });

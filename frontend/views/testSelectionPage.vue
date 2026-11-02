@@ -2,9 +2,9 @@
     <main class="container py-4">
         <h1>Your tests to complete</h1>
 
-        <p v-if="isLoading" class="text-secondary" role="status">Loading tests...</p>
+        <p v-if="isLoading" class="hintText" role="status">Loading tests...</p>
         <p v-else-if="loadError" class="alert alert-danger" role="alert">{{ loadError }}</p>
-        <p v-else-if="tests.length === 0" class="text-secondary">There are no tests available right now.</p>
+        <p v-else-if="tests.length === 0" class="hintText">There are no tests available right now.</p>
 
         <!-- each column stacks its own cards, so every card starts right under the one above it -->
         <div v-else class="testCardGrid mt-4" :style="{ '--testCardColumns': columnCount }">
@@ -18,15 +18,11 @@
         <section class="mt-5" aria-labelledby="completedTestsHeading">
             <h2 id="completedTestsHeading">Completed tests</h2>
 
-            <p v-if="isLoadingCompleted" class="text-secondary" role="status">Loading completed tests...</p>
+            <p v-if="isLoadingCompleted" class="hintText" role="status">Loading completed tests...</p>
             <p v-else-if="completedLoadError" class="alert alert-danger" role="alert">{{ completedLoadError }}</p>
-            <p v-else-if="completedTests.length === 0" class="text-secondary">You have not completed any tests yet.</p>
+            <p v-else-if="completedTests.length === 0" class="hintText">You have not completed any tests yet.</p>
 
-            <ul v-else class="completedTestList list-unstyled mt-4 mb-0">
-                <li v-for="result in completedTests" :key="result.completedID">
-                    <CompletedTestItem :result="result" />
-                </li>
-            </ul>
+            <CompletedTestList v-else :tests="completedTests" />
         </section>
     </main>
 </template>
@@ -34,7 +30,7 @@
 <script setup>
 import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
-import CompletedTestItem from '../components/common/completedTestItem.vue';
+import CompletedTestList from '../components/common/completedTestList.vue';
 import TestCard from '../components/common/testCard.vue';
 import { getCompletedTests } from '../services/resultService';
 import { getAvailableTests } from '../services/testService';
@@ -134,11 +130,5 @@ onUnmounted(() => {
     display: flex;
     flex-direction: column;
     gap: var(--spaceLg);
-}
-
-/* Stack completed tests in a single list beneath the cards. */
-.completedTestList {
-    display: grid;
-    gap: var(--spaceMd);
 }
 </style>

@@ -196,8 +196,10 @@ a {
     color: var(--colorPrimary);
 }
 
+/* .btn is listed because Bootstrap's .btn:focus-visible removes the outline otherwise */
 a:focus-visible,
-button:focus-visible {
+button:focus-visible,
+.btn:focus-visible {
     outline: 3px solid var(--colorFocus);
     outline-offset: 2px;
 }
@@ -1313,6 +1315,61 @@ main.appMainFullScreen {
 /* the line under a page heading, house style Slate Grey for captions, 7:1 on the page background */
 .pageIntro {
     color: var(--colorTextSecondary);
+}
+
+/* status pill for the admin tables, a dot then the word Active or Disabled */
+.statusPill {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spaceXs);
+    padding: var(--spaceXs) var(--spaceSm);
+    border-radius: var(--radiusPill);
+    font-size: var(--fontSizeSmall);
+    font-weight: 600;
+}
+
+/* the dot is drawn in the same colour as the word */
+.statusPill::before {
+    width: var(--spaceSm);
+    height: var(--spaceSm);
+    border-radius: var(--radiusPill);
+    background-color: currentColor;
+    content: '';
+}
+
+.statusActive {
+    background-color: var(--colorSuccessLight);
+    color: var(--colorText);
+}
+
+/* the dot stays green, the word is dark */
+.statusActive::before {
+    background-color: var(--colorSuccess);
+}
+
+.statusDisabled,
+.statusArchived {
+    background-color: var(--colorDisabled);
+    color: var(--colorText);
+}
+
+/* admin dashboard tables, only the table scrolls sideways, the search box and page buttons stay put */
+.adminTable .row {
+    --bs-gutter-x: 0;
+}
+
+/* dt-layout-table is the row DataTables puts the table in, it's their name so it can't be camelCase */
+/* stylelint-disable-next-line selector-class-pattern */
+.adminTable .dt-layout-table {
+    overflow: auto hidden;
+}
+
+/* large number on the results summary cards */
+.statValue {
+    color: var(--colorText);
+    font-size: var(--fontSizeStat);
+    font-weight: 700;
+    line-height: 1.2;
 }
 
 /* Responsive layouts */
