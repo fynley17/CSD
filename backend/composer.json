@@ -32,7 +32,9 @@
             "app/controllers/questionController.php",
             "app/models/completedTest.php",
             "app/models/leaderboard.php",
-            "app/controllers/leaderboardController.php"
+            "app/controllers/leaderboardController.php",
+            "app/models/subject.php",
+            "app/controllers/subjectController.php"
         ],
         "psr-4": {
             "App\\": "app/"

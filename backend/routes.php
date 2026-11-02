@@ -11,6 +11,7 @@ use App\Controllers\TestController;
 use App\Controllers\VerificationController;
 use App\Controllers\AdministratorController;
 use App\Controllers\QuestionController;
+use App\Controllers\SubjectController;
 
 $router = new Router();
 
@@ -31,6 +32,9 @@ $router->addRoute('POST', '/^\/api\/tests\/([0-9a-zA-Z-]+)\/complete$/', [new Te
 
 // Provide the tests the authenticated student has already completed.
 $router->addRoute('GET', '/^\/api\/tests\/completed$/', [new ResultController(), 'getCompletedTests']);
+
+// Provide the details and totals for the top of the authenticated student's results page.
+$router->addRoute('GET', '/^\/api\/results\/summary$/', [new ResultController(), 'getResultsSummary']);
 
 // Top students in the student's cohort, overall or for one subject (/api/leaderboard/<subjectID>).
 $router->addRoute(
@@ -59,13 +63,10 @@ $router->addRoute('GET', '/^\/api\/pending-verification$/', [new VerificationCon
 $router->addRoute('POST', '/^\/api\/resend-verification$/', [new VerificationController(), 'resendVerification']);
 $router->addRoute('POST', '/^\/api\/change-email$/', [new VerificationController(), 'changeEmail']);
 
-// one AuthController shared by login, logout, the session check and the secret code
-$authController = new AuthController();
+// Login, logout, session check and the anti-CSRF code
 $router->addRoute('POST', '/^\/api\/login$/', [new AuthController(), 'login']);
 $router->addRoute('POST', '/^\/api\/logout$/', [new AuthController(), 'logout']);
 $router->addRoute('GET', '/^\/api\/current-user$/', [new AuthController(), 'currentUser']);
-// gives the page its secret code, it sends that back with anything that changes data i.e. login or register
-// other websites can't read our replies, so they can't get the code to fake a request as a logged in user
 $router->addRoute('GET', '/^\/api\/csrf-token$/', [new AuthController(), 'csrfToken']);
 
 // Lecturer dashboard summary.
@@ -89,11 +90,45 @@ $router->addRoute(
     [new TestController(), 'getAllForLecturer']
 );
 
-// Return all questions for the lecturer question management page.
+// Question management routes for lecturers.
 $router->addRoute(
     'GET',
-    '/^\\/api\\/lecturer\\/questions$/',
+    '/^\/api\/lecturer\/questions$/',
     [new QuestionController(), 'getAllForLecturer']
 );
+
+$router->addRoute(
+    'POST',
+    '/^\/api\/lecturer\/questions$/',
+    [new QuestionController(), 'createQuestion']
+);
+
+$router->addRoute(
+    'PUT',
+    '/^\/api\/lecturer\/questions\/([0-9a-zA-Z-]+)$/',
+    [new QuestionController(), 'updateQuestion']
+);
+
+$router->addRoute(
+    'DELETE',
+    '/^\/api\/lecturer\/questions\/([0-9a-zA-Z-]+)$/',
+    [new QuestionController(), 'deleteQuestion']
+);
+
+$router->addRoute(
+    'GET',
+    '/^\/api\/lecturer\/subjects$/',
+    [new QuestionController(), 'getActiveSubjects']
+);
+
+// the lecturers in the admin dashboard table, admins only
+$router->addRoute(
+    'GET',
+    '/^\\/api\\/admin\\/recent-lecturers$/',
+    [new AdministratorController(), 'getRecentLecturers']
+);
+
+// every subject for the admin dashboard table, admins only
+$router->addRoute('GET', '/^\/api\/subjects$/', [new SubjectController(), 'getAllSubjects']);
 
 return $router;

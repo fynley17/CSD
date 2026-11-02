@@ -26,4 +26,21 @@ class AdministratorController extends Controller
             $this->jsonResponse(['error' => 'Unable to load the dashboard totals'], 500);
         }
     }
+
+
+    /**
+     * GET /api/admin/recent-lecturers, the lecturers shown in the table on the admin dashboard
+     */
+    public function getRecentLecturers(): void
+    {
+        // same check as the cards, only admins get the list
+        Authentication::requireRole(['admin']);
+
+        try {
+            $this->jsonResponse(Administrator::getRecentLecturers());
+        } catch (\Throwable $e) {
+            error_log('Loading the admin dashboard lecturers failed: ' . $e->getMessage());
+            $this->jsonResponse(['error' => 'Unable to load the lecturers'], 500);
+        }
+    }
 }

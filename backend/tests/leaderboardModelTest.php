@@ -94,19 +94,29 @@ final class LeaderboardModelTest extends TestCase
 
     public function testListsOnlyActiveSubjectsInTheStudentsCohort(): void
     {
+        // Arrange: setUp() has filled the tables
+
+        // Act
+        $subjects = Leaderboard::getSubjectsForStudent('s1');
+
+        // Assert
         self::assertSame(
             [
                 ['subjectID' => 'cyber', 'subjectName' => 'Cyber Security'],
                 ['subjectID' => 'web', 'subjectName' => 'Web Apps'],
             ],
-            Leaderboard::getSubjectsForStudent('s1')
+            $subjects
         );
     }
 
     public function testOverallShowsTopFiveInTheCohortByTotalPoints(): void
     {
+        // Arrange: setUp() has filled the tables
+
+        // Act
         $students = Leaderboard::getTopStudents('s1');
 
+        // Assert
         // Ash is disabled, Max is in another cohort and Noor hasn't taken a test.
         self::assertSame(['Sam G.', 'Alex B.', 'Jo W.', 'Kai B.', 'Rae G.'], array_column($students, 'name'));
         self::assertSame([500, 300, 200, 200, 100], array_column($students, 'points'));
@@ -114,15 +124,23 @@ final class LeaderboardModelTest extends TestCase
 
     public function testEqualPointsShareARank(): void
     {
+        // Arrange: setUp() has filled the tables
+
+        // Act
         $students = Leaderboard::getTopStudents('s1');
 
+        // Assert
         self::assertSame([1, 2, 3, 3, 5], array_column($students, 'rank'));
     }
 
     public function testSubjectLeaderboardOnlyCountsThatSubjectsTests(): void
     {
+        // Arrange: setUp() has filled the tables
+
+        // Act
         $students = Leaderboard::getTopStudents('s1', 'web');
 
+        // Assert
         self::assertSame(['Alex B.', 'Jo W.', 'Kai B.', 'Lee S.'], array_column($students, 'name'));
         self::assertSame(
             [
@@ -140,8 +158,12 @@ final class LeaderboardModelTest extends TestCase
 
     public function testDoesNotSendStudentIDsOrSurnames(): void
     {
+        // Arrange: setUp() has filled the tables
+
+        // Act
         $students = Leaderboard::getTopStudents('s1');
 
+        // Assert
         self::assertSame(
             ['rank', 'name', 'isCurrentStudent', 'testsTaken', 'averageScore', 'points'],
             array_keys($students[0])

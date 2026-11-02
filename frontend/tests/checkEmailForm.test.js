@@ -28,77 +28,102 @@ describe('CheckEmailForm', () => {
     });
 
     it('shows the address the link was sent to', async () => {
+        // Arrange: beforeEach sets the address waiting to be verified
+
+        // Act
         const wrapper = mountForm();
         await flushPromises();
 
+        // Assert
         expect(wrapper.get('.verificationEmail').text()).toBe('ws123456@weston.ac.uk');
     });
 
     it('tells the student to resend when the first email failed', async () => {
-        const wrapper = mountForm({ notSent: '1' });
+        // Arrange
+        const query = { notSent: '1' };
+
+        // Act
+        const wrapper = mountForm(query);
         await flushPromises();
 
+        // Assert
         expect(wrapper.get('[role="alert"]').text()).toContain('We could not send the email');
     });
 
     it('asks the student to login when the session has ended', async () => {
+        // Arrange
         getPendingVerification.mockRejectedValue({
             response: { data: { error: 'Your session has ended. Login to verify your email address' } },
         });
+
+        // Act
         const wrapper = mountForm();
         await flushPromises();
 
+        // Assert
         expect(wrapper.get('[role="alert"]').text()).toContain('Your session has ended');
         expect(wrapper.text()).toContain('Go to login');
     });
 
     it('shows a success message after resending', async () => {
+        // Arrange
         resendVerification.mockResolvedValue({ message: 'We have sent a new link to ws123456@weston.ac.uk' });
         const wrapper = mountForm();
         await flushPromises();
 
+        // Act
         await wrapper.get('button.loginButton').trigger('click');
         await flushPromises();
 
+        // Assert
         expect(wrapper.get('.successMessage').text()).toContain('We have sent a new link');
     });
 
     it('shows PHP’s message when asked again too quickly', async () => {
+        // Arrange
         resendVerification.mockRejectedValue({
             response: { data: { error: 'Wait a minute before asking for another email' } },
         });
         const wrapper = mountForm();
         await flushPromises();
 
+        // Act
         await wrapper.get('button.loginButton').trigger('click');
         await flushPromises();
 
+        // Assert
         expect(wrapper.get('[role="alert"]').text()).toContain('Wait a minute');
     });
 
     it('stops an empty new address before it reaches PHP', async () => {
+        // Arrange
         const wrapper = mountForm();
         await flushPromises();
 
+        // Act
         await wrapper.get('button.registerButton').trigger('click');
         await wrapper.get('#newEmail').setValue('   ');
         await wrapper.get('form').trigger('submit');
         await flushPromises();
 
+        // Assert
         expect(changeEmail).not.toHaveBeenCalled();
         expect(wrapper.get('#newEmailError').text()).toBe('Error: Enter your email address');
     });
 
     it('updates the address shown once the new one is saved', async () => {
+        // Arrange
         changeEmail.mockResolvedValue({ message: 'We have sent a new link', email: 'ws654321@weston.ac.uk' });
         const wrapper = mountForm();
         await flushPromises();
 
+        // Act
         await wrapper.get('button.registerButton').trigger('click');
         await wrapper.get('#newEmail').setValue(' ws654321@weston.ac.uk ');
         await wrapper.get('form').trigger('submit');
         await flushPromises();
 
+        // Assert
         expect(changeEmail).toHaveBeenCalledWith('ws654321@weston.ac.uk');
         expect(wrapper.get('.verificationEmail').text()).toBe('ws654321@weston.ac.uk');
         expect(wrapper.find('form').exists()).toBe(false);

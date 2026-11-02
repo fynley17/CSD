@@ -108,14 +108,24 @@ describe('router guard for student only pages', () => {
     });
 
     it('sends signed-out visitors to the landing page', async () => {
+        // Arrange
         getCurrentUser.mockResolvedValue(null);
+
+        // Act
         await router.push('/testing/test-1');
+
+        // Assert
         expect(router.currentRoute.value.name).toBe('landingPage');
     });
 
     it('treats an unreachable backend as signed out', async () => {
+        // Arrange
         getCurrentUser.mockRejectedValue(new Error('Network Error'));
+
+        // Act
         await router.push('/leaderboard');
+
+        // Assert
         expect(router.currentRoute.value.name).toBe('landingPage');
     });
 
@@ -123,14 +133,27 @@ describe('router guard for student only pages', () => {
         ['admin', 'administratorDashboard'],
         ['lecturer', 'lecturerDashboard'],
     ])('sends a signed-in %s to their dashboard', async (accountType, dashboard) => {
+        // Arrange
         getCurrentUser.mockResolvedValue({ accountType });
+
+        // Act
         await router.push('/test-selection');
+
+        // Assert
         expect(router.currentRoute.value.name).toBe(dashboard);
     });
 
     it('lets students open student only pages', async () => {
+        // Arrange
         getCurrentUser.mockResolvedValue({ accountType: 'student' });
+
+        // Act
         await router.push('/testing/test-1');
+
+        // Assert
         expect(router.currentRoute.value.name).toBe('testing');
+
+        await router.push('/testing/answers/completed-1');
+        expect(router.currentRoute.value.name).toBe('testAnswers');
     });
 });

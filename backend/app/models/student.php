@@ -7,8 +7,15 @@ class Student extends User
     public static function getAll(): array
     {
         $db = self::getDB();
+        $driver = $db->getAttribute(\PDO::ATTR_DRIVER_NAME);
 
-        $subjectSql = $db->getAttribute(\PDO::ATTR_DRIVER_NAME) === 'sqlite'
+        // Use the correct name concatenation syntax for the active database.
+        $nameSql = $driver === 'sqlite'
+            ? "TRIM(COALESCE(s.firstName, '') || ' ' || COALESCE(s.lastName, ''))"
+            : "CONCAT_WS(' ', s.firstName, s.lastName)";
+
+        // SQLite and MySQL use different GROUP_CONCAT syntax.
+        $subjectSql = $driver === 'sqlite'
             ? "
                 SELECT GROUP_CONCAT(subjectName, ', ')
                 FROM (
@@ -16,7 +23,7 @@ class Student extends User
                     FROM Subjects AS sub
                     WHERE sub.cohortID = s.cohortID
                     ORDER BY sub.subjectName
-                )
+                ) AS distinct_subjects
             "
             : "
                 SELECT GROUP_CONCAT(
@@ -31,7 +38,7 @@ class Student extends User
         $sql = "
             SELECT
                 s.userID,
-                TRIM(COALESCE(s.firstName, '') || ' ' || COALESCE(s.lastName, '')) AS name,
+                $nameSql AS name,
                 u.username AS studentNumber,
                 u.email,
                 CASE

@@ -8,8 +8,12 @@ final class MailerTest extends TestCase
     // Check the welcome email content without needing a mail server.
     public function testWelcomeEmailIncludesStudentDetails(): void
     {
+        // Arrange: nothing to set up, the input is passed straight in
+
+        // Act
         $email = Mailer::buildWelcomeEmail('Fyn', 'Geary', 'Computing 2026');
 
+        // Assert
         self::assertStringContainsString('pending approval', $email['subject']);
         self::assertStringContainsString('Welcome to RevisionHub, Fyn', $email['html']);
         self::assertStringContainsString('Fyn Geary', $email['html']);
@@ -20,8 +24,13 @@ final class MailerTest extends TestCase
 
     public function testWelcomeEmailEscapesHtml(): void
     {
-        $email = Mailer::buildWelcomeEmail('Fyn', 'Geary', '<script>alert(1)</script>');
+        // Arrange
+        $cohortName = '<script>alert(1)</script>';
 
+        // Act
+        $email = Mailer::buildWelcomeEmail('Fyn', 'Geary', $cohortName);
+
+        // Assert
         self::assertStringNotContainsString('<script>', $email['html']);
         self::assertStringContainsString('&lt;script&gt;', $email['html']);
     }
@@ -29,9 +38,13 @@ final class MailerTest extends TestCase
     // The verification email can reach a stranger if the address was mistyped, so it only holds the link.
     public function testVerificationEmailIncludesLinkButNoPersonalDetails(): void
     {
+        // Arrange
         $link = 'http://localhost:5173/verify-email?token=abc123';
+
+        // Act
         $email = Mailer::buildVerificationEmail($link);
 
+        // Assert
         self::assertStringContainsString('Verify your email address', $email['subject']);
         self::assertStringContainsString('href="' . $link . '"', $email['html']);
         self::assertStringContainsString('cid:revisionhub-logo', $email['html']);
@@ -41,17 +54,19 @@ final class MailerTest extends TestCase
 
     public function testVerificationLinkUsesAppUrl(): void
     {
+        // Arrange
         // put the container's own value back afterwards so other tests aren't affected
         $originalUrl = getenv('APP_URL');
         putenv('APP_URL=https://revisionhub.example/');
 
+        // Act
         try {
-            self::assertSame(
-                'https://revisionhub.example/verify-email?token=abc123',
-                Mailer::verificationLink('abc123')
-            );
+            $link = Mailer::verificationLink('abc123');
         } finally {
             putenv($originalUrl === false ? 'APP_URL' : 'APP_URL=' . $originalUrl);
         }
+
+        // Assert
+        self::assertSame('https://revisionhub.example/verify-email?token=abc123', $link);
     }
 }

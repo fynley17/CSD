@@ -119,10 +119,11 @@ final class LecturerDashboardSummaryTest extends TestCase
         // Arrange: remove a table required by the dashboard summary query.
         $this->db->exec('DROP TABLE CompletedTests');
 
-        // Act and assert: the model should throw a database exception.
+        // Assert: PHPUnit has to be told which exception to expect before the Act.
         // If no exception is thrown, PHPUnit marks this test as failed.
         $this->expectException(PDOException::class);
 
+        // Act: the model should throw a database exception.
         Lecturer::getDashboardSummary();
     }
 

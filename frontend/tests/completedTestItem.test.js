@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { flushPromises, mount } from '@vue/test-utils';
+import { flushPromises, mount, RouterLinkStub } from '@vue/test-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import CompletedTestItem from '../components/common/completedTestItem.vue';
 import { getCompletedTestReview } from '../services/resultService';
@@ -31,9 +31,24 @@ describe('CompletedTestItem', () => {
         vi.clearAllMocks();
     });
 
+    it('links to the answers for that attempt', () => {
+        const wrapper = mount(CompletedTestItem, {
+            props: { result: baseResult },
+            global: { stubs: { RouterLink: RouterLinkStub } },
+        });
+        const link = wrapper.getComponent(RouterLinkStub);
+
+        expect(link.props('to')).toEqual({ name: 'testAnswers', params: { completedID: 'completed-1' } });
+        expect(link.text()).toBe('View Answers');
+    });
+
     it('displays the completed test information and percentage', () => {
+        // Arrange: baseResult is the completed test to show
+
+        // Act
         const wrapper = mount(CompletedTestItem, { props: { result: baseResult } });
 
+        // Assert
         expect(wrapper.get('.completedTestTitle').text()).toBe(baseResult.testName);
         expect(wrapper.get('.completedTestDescription').text()).toBe(baseResult.testDescription);
         expect(wrapper.get('.completedTestPercentage').text()).toBe('86.7%');
@@ -51,35 +66,44 @@ describe('CompletedTestItem', () => {
     });
 
     it('shows whole percentages without a decimal place', () => {
-        const wrapper = mount(CompletedTestItem, {
-            props: { result: { ...baseResult, percentageCorrect: 100 } },
-        });
+        // Arrange
+        const result = { ...baseResult, percentageCorrect: 100 };
 
+        // Act
+        const wrapper = mount(CompletedTestItem, { props: { result } });
+
+        // Assert
         expect(wrapper.get('.completedTestPercentage').text()).toBe('100%');
     });
 
     it('loads the attempt and exports it as a PDF', async () => {
+        // Arrange
         const review = { testName: baseResult.testName, studentName: 'Ada Lovelace', questions: [] };
         getCompletedTestReview.mockResolvedValue(review);
         const wrapper = mount(CompletedTestItem, { props: { result: baseResult } });
 
+        // Act
         await wrapper.get('.completedTestExport').trigger('click');
         await flushPromises();
 
+        // Assert
         expect(getCompletedTestReview).toHaveBeenCalledWith('completed-1');
         expect(exportTestPdf).toHaveBeenCalledWith(review);
         expect(wrapper.find('.completedTestExportError').exists()).toBe(false);
     });
 
     it('shows the error when the export fails', async () => {
+        // Arrange
         getCompletedTestReview.mockRejectedValue({
             response: { data: { error: 'This completed test could not be found.' } },
         });
         const wrapper = mount(CompletedTestItem, { props: { result: baseResult } });
 
+        // Act
         await wrapper.get('.completedTestExport').trigger('click');
         await flushPromises();
 
+        // Assert
         expect(exportTestPdf).not.toHaveBeenCalled();
         expect(wrapper.get('.completedTestExportError').text()).toBe('This completed test could not be found.');
     });
