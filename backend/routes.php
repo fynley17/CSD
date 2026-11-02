@@ -128,6 +128,13 @@ $router->addRoute(
     [new AdministratorController(), 'getRecentLecturers']
 );
 
+// lecturer management page, every lecturer and the disable or enable buttons, admins only
+$router->addRoute('GET', '/^\\/api\\/admin\\/lecturers$/', [new AdministratorController(), 'getLecturers']);
+$router->addRoute(
+    'PATCH',
+    '/^\\/api\\/admin\\/lecturers\\/([0-9a-zA-Z-]+)\\/enabled$/',
+    [new AdministratorController(), 'setLecturerEnabled']
+);
 // every subject for the admin dashboard table, admins only
 $router->addRoute('GET', '/^\/api\/subjects$/', [new SubjectController(), 'getAllSubjects']);
 

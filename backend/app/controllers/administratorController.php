@@ -4,6 +4,8 @@ namespace App\Controllers;
 
 use App\Helpers\Authentication;
 use App\Models\Administrator;
+use App\Models\Lecturer;
+use App\Models\User;
 
 /**
  * Answers the admin dashboard's requests, only someone logged in as an admin gets an answer
@@ -42,5 +44,74 @@ class AdministratorController extends Controller
             error_log('Loading the admin dashboard lecturers failed: ' . $e->getMessage());
             $this->jsonResponse(['error' => 'Unable to load the lecturers'], 500);
         }
+    }
+
+    /**
+     * GET /api/admin/lecturers, every lecturer for the table on the lecturer management page
+     */
+    public function getLecturers(): void
+    {
+        Authentication::requireRole(['admin']);
+
+        try {
+            // null means no limit, the dashboard is the one that only wants 5
+            $this->jsonResponse(Administrator::getRecentLecturers(null));
+        } catch (\Throwable $e) {
+            error_log('Loading the lecturer management list failed: ' . $e->getMessage());
+            $this->jsonResponse(['error' => 'Unable to load the lecturers'], 500);
+        }
+    }
+
+    /**
+     * PATCH /api/admin/lecturers/{id}/enabled, the Disable account and Enable account buttons and Undo
+     */
+    public function setLecturerEnabled(string $userID): void
+    {
+        Authentication::requireRole(['admin']);
+
+        $data = $this->readBody();
+        if (!is_bool($data['isEnabled'] ?? null)) {
+            $this->jsonResponse(['error' => 'Choose disable or enable'], 400);
+            return;
+        }
+
+        try {
+            $admin = $this->getLoggedInAdmin();
+            $lecturer = User::findById($userID);
+            // a student or an unknown ID isn't a lecturer
+            if (!($lecturer instanceof Lecturer)) {
+                $this->jsonResponse(['error' => 'Lecturer not found'], 404);
+                return;
+            }
+
+            if ($data['isEnabled']) {
+                $admin->enableLecturer($lecturer);
+            } else {
+                $admin->disableLecturer($lecturer);
+            }
+            $this->jsonResponse(['message' => 'Status updated']);
+        } catch (\InvalidArgumentException $e) {
+            // the message is written in Administrator for the page, nothing from the database
+            $this->jsonResponse(['error' => $e->getMessage()], 400);
+        } catch (\Throwable $e) {
+            error_log('Changing the lecturer status failed: ' . $e->getMessage());
+            $this->jsonResponse(['error' => 'Unable to update the lecturer'], 500);
+        }
+    }
+
+    /**
+     * Loads the admin who's logged in as an Administrator object so the change goes through their methods
+     */
+    private function getLoggedInAdmin(): Administrator
+    {
+        $userID = Authentication::getLoggedInUserID();
+        $admin = $userID === null ? null : User::findById($userID);
+
+        // requireRole already checked this so it shouldn't fail, if it does it ends up as a 500
+        if (!($admin instanceof Administrator)) {
+            throw new \RuntimeException('The logged in admin could not be loaded');
+        }
+
+        return $admin;
     }
 }

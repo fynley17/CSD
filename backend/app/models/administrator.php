@@ -91,4 +91,45 @@ class Administrator extends Lecturer
         return $lecturers;
     }
 
+    /**
+     * Disable account button, the lecturer can't log in until they're enabled again
+     */
+    public function disableLecturer(Lecturer $lecturer): void
+    {
+        $this->setLecturerEnabled($lecturer, false);
+    }
+
+    /**
+     * Enable account button, and the Undo after a disable
+     */
+    public function enableLecturer(Lecturer $lecturer): void
+    {
+        $this->setLecturerEnabled($lecturer, true);
+    }
+
+    /**
+     * Disable and enable only differ by the 1 or 0 saved, so they share this
+     */
+    private function setLecturerEnabled(Lecturer $lecturer, bool $isEnabled): void
+    {
+        $this->checkCanManage($lecturer);
+
+        // login already checks isEnabled through User::isActive() so this is all disabling needs
+        $stmt = self::getDB()->prepare('UPDATE Users SET isEnabled = ? WHERE userID = ?');
+        $stmt->execute([$isEnabled ? 1 : 0, $lecturer->getUserID()]);
+    }
+
+    /**
+     * Stops an admin changing an admin account, that includes their own
+     *
+     * @throws \InvalidArgumentException if the account is an admin
+     */
+    private function checkCanManage(Lecturer $lecturer): void
+    {
+        // an Administrator is also a Lecturer so it gets past the type hint without this
+        if ($lecturer instanceof Administrator) {
+            throw new \InvalidArgumentException("Administrator accounts can't be changed on this page");
+        }
+    }
+
 }
