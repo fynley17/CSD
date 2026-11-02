@@ -230,6 +230,50 @@ class Student extends User
         ];
     }
 
+    /**
+     * Enables or disables an approved student account.
+     *
+     * Returns false when the student does not exist or is not approved.
+     */
+    public static function setEnabled(string $userID, bool $enabled): bool
+    {
+        $userID = trim($userID);
+
+        if ($userID === '') {
+            throw new \InvalidArgumentException('A student ID is required.');
+        }
+
+        $db = self::getDB();
+
+        $stmt = $db->prepare(
+            "UPDATE Users
+             SET isEnabled = ?
+             WHERE userID = ?
+             AND accountType = 'student'
+             AND approvalStatus = 'approved'"
+        );
+
+        $stmt->execute([$enabled ? 1 : 0, $userID]);
+
+        if ($stmt->rowCount() > 0) {
+            return true;
+        }
+
+        // A zero row count can also mean the account was already in that state.
+        $stmt = $db->prepare(
+            "SELECT 1
+             FROM Users
+             WHERE userID = ?
+             AND accountType = 'student'
+             AND approvalStatus = 'approved'
+             LIMIT 1"
+        );
+
+        $stmt->execute([$userID]);
+
+        return $stmt->fetchColumn() !== false;
+    }
+
     public static function register($data)
     {
         // Validate every submitted value on the server; browser-side checks are only a convenience.

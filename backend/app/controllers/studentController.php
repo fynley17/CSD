@@ -101,6 +101,67 @@ class StudentController extends Controller
     }
 
     /**
+     * Enables or disables a student account.
+     */
+    public function updateStudentStatus(): void
+    {
+        Authentication::requireRole(['lecturer', 'admin']);
+
+        $authentication = new Authentication();
+        $authentication->requireCsrfToken();
+
+        try {
+            $data = json_decode(file_get_contents('php://input'), true);
+
+            if (
+                !is_array($data)
+                || empty($data['userID'])
+                || !is_string($data['userID'])
+                || !array_key_exists('isEnabled', $data)
+                || !is_bool($data['isEnabled'])
+            ) {
+                throw new \InvalidArgumentException(
+                    'Please provide a valid student ID and account status.'
+                );
+            }
+
+            $updated = Student::setEnabled(
+                $data['userID'],
+                $data['isEnabled']
+            );
+
+            if (!$updated) {
+                $this->jsonResponse([
+                    'error' => 'Student account not found or status unchanged.',
+                ], 404);
+
+                return;
+            }
+
+            $this->jsonResponse([
+                'message' => $data['isEnabled']
+                    ? 'Student account enabled successfully.'
+                    : 'Student account disabled successfully.',
+                'isEnabled' => $data['isEnabled'],
+            ]);
+        } catch (\InvalidArgumentException $e) {
+            $this->jsonResponse([
+                'error' => $e->getMessage(),
+            ], 400);
+        } catch (\Throwable $e) {
+            error_log(sprintf(
+                'Updating student status failed (%s): %s',
+                get_class($e),
+                $e->getMessage()
+            ));
+
+            $this->jsonResponse([
+                'error' => 'Unable to update the student account status.',
+            ], 500);
+        }
+    }
+
+    /**
      * Handles existing student self-registration.
      * This workflow is deliberately unchanged.
      */

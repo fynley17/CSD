@@ -11,3 +11,13 @@ export async function createStudent(studentData) {
     const response = await api.post('/students', studentData);
     return response.data;
 }
+
+// Enable or disable a student account.
+export async function updateStudentStatus(userID, isEnabled) {
+    const response = await api.put('/students/status', {
+        userID,
+        isEnabled,
+    });
+
+    return response.data;
+}
