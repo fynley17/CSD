@@ -50,6 +50,8 @@ class Authentication
         $_SESSION['accountType'] = $user->getAccountType();
         // a fresh anti-CSRF code for the logged in session, the page picks it up before its next request
         unset($_SESSION['csrfToken']);
+        // handing in only checks the session has the attempt, so one account's attempts can't carry over to the next
+        unset($_SESSION['testAttempts']);
     }
 
     /**

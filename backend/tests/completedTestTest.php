@@ -216,6 +216,56 @@ final class CompletedTestTest extends TestCase
         self::assertEquals(1, $this->db->query('SELECT COUNT(*) FROM CompletedTests')->fetchColumn());
     }
 
+    public function testStartedAttemptCanStillBeHandedInAfterItsSubjectIsRemovedFromTheCohort(): void
+    {
+        // Arrange
+        $this->db->exec("UPDATE Subjects SET cohortID = NULL WHERE subjectID = 'subject-1'");
+
+        // Act
+        $result = CompletedTest::submit('student-1', 'test-1', self::ALL_QUESTIONS, ['question-1' => 'a1']);
+
+        // Assert
+        self::assertSame(1, $result['correctCount']);
+        self::assertEquals(1, $this->db->query('SELECT COUNT(*) FROM CompletedTests')->fetchColumn());
+        self::assertEquals(
+            100 + $result['pointsEarned'],
+            $this->db->query("SELECT points FROM Students WHERE userID = 'student-1'")->fetchColumn()
+        );
+    }
+
+    public function testStartedAttemptCanStillBeHandedInAfterItsSubjectMovesToAnotherCohort(): void
+    {
+        // Arrange
+        $this->db->exec("UPDATE Subjects SET cohortID = 'cohort-2' WHERE subjectID = 'subject-1'");
+
+        // Act
+        $result = CompletedTest::submit('student-1', 'test-1', self::ALL_QUESTIONS, ['question-1' => 'a1']);
+
+        // Assert
+        self::assertNotNull($result);
+    }
+
+    public function testNewAttemptCannotStartAfterItsSubjectIsRemovedFromTheCohort(): void
+    {
+        // Arrange
+        $this->db->exec("UPDATE Subjects SET cohortID = NULL WHERE subjectID = 'subject-1'");
+
+        // Act
+        $test = Test::getForStudent('test-1', 'student-1');
+
+        // Assert
+        self::assertNull($test);
+    }
+
+    public function testHandingInATestThatNoLongerExistsGivesNull(): void
+    {
+        // Act
+        $result = CompletedTest::submit('student-1', 'missing-test', self::ALL_QUESTIONS, []);
+
+        // Assert
+        self::assertNull($result);
+    }
+
     public function testMarksAndSavesTheAttempt(): void
     {
         // Arrange
@@ -433,18 +483,6 @@ final class CompletedTestTest extends TestCase
         // Assert
         self::assertInstanceOf(\InvalidArgumentException::class, $exception);
         // nothing is saved when the submission is rejected
-        self::assertEquals(0, $this->db->query('SELECT COUNT(*) FROM CompletedTests')->fetchColumn());
-    }
-
-    public function testDoesNotSaveATestFromAnotherCohort(): void
-    {
-        // Arrange: setUp() puts student-2 in another cohort
-
-        // Act
-        $result = CompletedTest::submit('student-2', 'test-1', self::ALL_QUESTIONS, ['question-1' => 'a1']);
-
-        // Assert
-        self::assertNull($result);
         self::assertEquals(0, $this->db->query('SELECT COUNT(*) FROM CompletedTests')->fetchColumn());
     }
 }

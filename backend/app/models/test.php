@@ -166,18 +166,42 @@ class Test extends Model
     {
         // Same checks as getAvailableForStudents(), so a student can't open another
         // cohort's test, or one whose subject has no questions, by typing its ID into the URL.
+        return self::findTest($testID, $userID, true);
+    }
+
+    /**
+     * Finds a test the student has already started, for handing it in.
+     * There's no cohort check, so an attempt still counts if its subject has left their cohort since it started.
+     * Only call this with an attempt from the student's session, startTest only saves one after the cohort check.
+     *
+     * @return array|null null if the test doesn't exist or has no questions
+     */
+    public static function findStartedByStudent(string $testID, string $userID): ?array
+    {
+        return self::findTest($testID, $userID, false);
+    }
+
+    /**
+     * The shared query behind findForStudent() and findStartedByStudent()
+     */
+    private static function findTest(string $testID, string $userID, bool $checkCohort): ?array
+    {
+        $cohortCheck = $checkCohort
+            ? "INNER JOIN Students AS student ON student.cohortID = s.cohortID AND student.userID = ?"
+            : '';
+
         $stmt = self::getDB()->prepare(
             "SELECT t.testID, t.testName, t.testDescription, t.timeLimit,
                 t.questionCount AS questionsPerAttempt, s.subjectName, s.isActive AS subjectIsActive,
                 NOT " . self::FULL_MARKS_ATTEMPT . " AS earnsPoints
             FROM Tests AS t
             INNER JOIN Subjects AS s ON s.subjectID = t.subjectID
-            INNER JOIN Students AS student ON student.cohortID = s.cohortID
-            WHERE t.testID = ? AND student.userID = ?
+            $cohortCheck
+            WHERE t.testID = ?
             AND " . self::POOL_SIZE . " > 0"
         );
         // the first ? is the full marks check in the SELECT
-        $stmt->execute([$userID, $testID, $userID]);
+        $stmt->execute($checkCohort ? [$userID, $userID, $testID] : [$userID, $testID]);
         $test = $stmt->fetch(\PDO::FETCH_ASSOC);
         if ($test === false) {
             return null;
