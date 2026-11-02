@@ -156,12 +156,16 @@ class Question extends Model
         $db->beginTransaction();
 
         try {
-            // Check whether the question exists and lock it during the update.
+            // Lock the question during updates on MySQL.
+            // SQLite does not support FOR UPDATE.
+            $lockClause = $db->getAttribute(\PDO::ATTR_DRIVER_NAME) === 'mysql'
+                ? ' FOR UPDATE'
+                : '';
+
             $stmt = $db->prepare(
                 'SELECT questionID
                  FROM Questions
-                 WHERE questionID = ?
-                 FOR UPDATE'
+                 WHERE questionID = ?' . $lockClause
             );
 
             $stmt->execute([$questionID]);
@@ -254,12 +258,16 @@ class Question extends Model
         $db->beginTransaction();
 
         try {
-            // Check whether the question exists and lock it during deletion.
+            // Lock the question during deletion on MySQL.
+            // SQLite does not support FOR UPDATE.
+            $lockClause = $db->getAttribute(\PDO::ATTR_DRIVER_NAME) === 'mysql'
+                ? ' FOR UPDATE'
+                : '';
+
             $stmt = $db->prepare(
                 'SELECT questionID
                  FROM Questions
-                 WHERE questionID = ?
-                 FOR UPDATE'
+                 WHERE questionID = ?' . $lockClause
             );
 
             $stmt->execute([$questionID]);

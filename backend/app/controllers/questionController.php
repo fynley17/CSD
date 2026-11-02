@@ -9,7 +9,7 @@ class QuestionController extends Controller
 {
     public function getAllForLecturer(): void
     {
-        Authentication::requireRole(['lecturer']);
+        Authentication::requireRole(['lecturer', 'admin']);
 
         try {
             $questions = Question::getAllForLecturer();
@@ -31,7 +31,7 @@ class QuestionController extends Controller
      */
     public function getActiveSubjects(): void
     {
-        Authentication::requireRole(['lecturer']);
+        Authentication::requireRole(['lecturer', 'admin']);
 
         try {
             $subjects = Question::getActiveSubjects();
@@ -53,7 +53,7 @@ class QuestionController extends Controller
      */
     public function createQuestion(): void
     {
-        Authentication::requireRole(['lecturer']);
+        Authentication::requireRole(['lecturer', 'admin']);
 
         try {
             $data = $this->getQuestionRequestData();
@@ -88,7 +88,7 @@ class QuestionController extends Controller
      */
     public function updateQuestion(string $questionID): void
     {
-        Authentication::requireRole(['lecturer']);
+        Authentication::requireRole(['lecturer', 'admin']);
 
         try {
             $data = $this->getQuestionRequestData();
@@ -128,7 +128,7 @@ class QuestionController extends Controller
      */
     public function deleteQuestion(string $questionID): void
     {
-        Authentication::requireRole(['lecturer']);
+        Authentication::requireRole(['lecturer', 'admin']);
 
         try {
             $deleted = Question::delete($questionID);

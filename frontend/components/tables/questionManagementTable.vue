@@ -150,6 +150,7 @@ const columns = [
     {
         data: 'question',
         title: 'Question',
+        render: (value, type) => (type === 'display' ? escapeHtml(value) : value),
     },
     {
         data: 'answers',
@@ -185,6 +186,7 @@ const columns = [
         data: 'subjectName',
         title: 'Subject',
         defaultContent: '',
+        render: (value, type) => (type === 'display' ? escapeHtml(value) : value),
     },
     {
         data: 'percentageCorrect',

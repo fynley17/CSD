@@ -1,15 +1,16 @@
 <script setup>
-// Import Vue functions for reactive state and lifecycle management.
-import { computed, onMounted, onBeforeUnmount, ref } from 'vue';
+import { computed, nextTick, onMounted, onBeforeUnmount, ref } from 'vue';
 
-// Import the question table and reusable question form.
 import QuestionManagementTable from '../components/tables/questionManagementTable.vue';
 import QuestionForm from '../components/forms/questionForm.vue';
+import PopupDialog from '../components/common/popupDialog.vue';
 
-// Import the services used to manage questions and subjects.
 import { getActiveSubjects, createQuestion, updateQuestion, deleteQuestion } from '../services/questionService';
 
 const questionTable = ref(null);
+const questionDialog = ref(null);
+const deleteDialog = ref(null);
+
 const availableSubjects = ref([]);
 
 const subjectFilter = ref('');
@@ -26,16 +27,12 @@ const errorMessage = ref('');
 const questionToDelete = ref(null);
 const showDeleteConfirmation = ref(false);
 
-// Store the notification timeout.
 let messageTimeout = null;
 
-// Retrieve the subject names from the question table.
 const subjects = computed(() => questionTable.value?.subjects ?? []);
-
-// Retrieve the active subjects for the question form.
 const formSubjects = computed(() => availableSubjects.value);
 
-// Load the active subjects when the page is opened.
+// Load active subjects when the page opens.
 onMounted(async () => {
     try {
         availableSubjects.value = await getActiveSubjects();
@@ -63,7 +60,7 @@ const showSuccess = (message) => {
     messageTimeout = setTimeout(() => {
         successMessage.value = '';
         messageTimeout = null;
-    }, 3000);
+    }, 10000);
 };
 
 // Display a temporary error notification.
@@ -74,7 +71,7 @@ const showError = (message) => {
     messageTimeout = setTimeout(() => {
         errorMessage.value = '';
         messageTimeout = null;
-    }, 5000);
+    }, 10000);
 };
 
 // Apply the selected subject filter.
@@ -82,27 +79,38 @@ const filterBySubject = () => {
     questionTable.value?.filterBySubject(subjectFilter.value);
 };
 
-// Search the questions using the DataTables API.
+// Search questions using the DataTables API.
 const searchQuestions = () => {
     questionTable.value?.searchQuestions(searchTerm.value);
 };
 
 // Open the form to create a new question.
-const openCreateForm = () => {
+const openCreateForm = async () => {
     clearMessages();
     selectedQuestion.value = null;
     showQuestionForm.value = true;
+
+    await nextTick();
+    questionDialog.value?.open();
 };
 
 // Open the form to edit an existing question.
-const openEditForm = (question) => {
+const openEditForm = async (question) => {
     clearMessages();
     selectedQuestion.value = question;
     showQuestionForm.value = true;
+
+    await nextTick();
+    questionDialog.value?.open();
 };
 
-// Close the create/edit form.
+// Close the create/edit dialog.
 const closeQuestionForm = () => {
+    questionDialog.value?.close();
+};
+
+// Handle the dialog closing, including when Escape is pressed.
+const handleQuestionDialogClose = () => {
     showQuestionForm.value = false;
     selectedQuestion.value = null;
 };
@@ -120,12 +128,14 @@ const saveQuestion = async (questionData) => {
     try {
         if (selectedQuestion.value) {
             await updateQuestion(selectedQuestion.value.questionID, questionData);
+
             closeQuestionForm();
             await refreshQuestions();
 
             showSuccess('Question updated successfully.');
         } else {
             await createQuestion(questionData);
+
             closeQuestionForm();
             await refreshQuestions();
 
@@ -138,15 +148,23 @@ const saveQuestion = async (questionData) => {
     }
 };
 
-// Open the delete confirmation modal.
-const openDeleteConfirmation = (question) => {
+// Open the delete confirmation dialog.
+const openDeleteConfirmation = async (question) => {
     clearMessages();
     questionToDelete.value = question;
     showDeleteConfirmation.value = true;
+
+    await nextTick();
+    deleteDialog.value?.open();
 };
 
-// Close the delete confirmation modal.
+// Close the delete confirmation dialog.
 const closeDeleteConfirmation = () => {
+    deleteDialog.value?.close();
+};
+
+// Handle the delete dialog closing, including Escape.
+const handleDeleteDialogClose = () => {
     showDeleteConfirmation.value = false;
     questionToDelete.value = null;
 };
@@ -240,35 +258,40 @@ onBeforeUnmount(() => {
             </div>
         </div>
 
-        <!-- Create/Edit question modal. -->
-        <div v-if="showQuestionForm" class="modalOverlay">
-            <section class="modalContent" role="dialog" aria-modal="true" aria-label="Question form">
-                <QuestionForm
-                    :subjects="formSubjects"
-                    :question="selectedQuestion"
-                    :loading="saving"
-                    @save="saveQuestion"
-                    @cancel="closeQuestionForm"
-                />
-            </section>
-        </div>
+        <!-- Create/Edit question dialog. -->
+        <PopupDialog
+            v-if="showQuestionForm"
+            ref="questionDialog"
+            :title="selectedQuestion ? 'Edit Question' : 'Create Question'"
+            @close="handleQuestionDialogClose"
+        >
+            <QuestionForm
+                :subjects="formSubjects"
+                :question="selectedQuestion"
+                :loading="saving"
+                @save="saveQuestion"
+                @cancel="closeQuestionForm"
+            />
+        </PopupDialog>
 
-        <!-- Delete confirmation modal. -->
-        <div v-if="showDeleteConfirmation" class="modalOverlay">
-            <section
-                class="modalContent deleteModal"
-                role="alertdialog"
-                aria-modal="true"
-                aria-labelledby="deleteModalTitle"
-            >
-                <h2 id="deleteModalTitle">Are you sure?</h2>
+        <!-- Delete confirmation dialog. -->
+        <PopupDialog
+            v-if="showDeleteConfirmation"
+            ref="deleteDialog"
+            title="Confirm Delete"
+            @close="handleDeleteDialogClose"
+        >
+            <div class="deleteModal">
+                <h2>Are you sure?</h2>
 
                 <p>Are you sure you want to delete this question? This action cannot be undone.</p>
 
                 <div class="questionToDelete">
                     {{ questionToDelete?.question }}
                 </div>
+            </div>
 
+            <template #buttons>
                 <div class="modalActions">
                     <button type="button" class="cancelButton" :disabled="saving" @click="closeDeleteConfirmation">
                         Cancel
@@ -278,8 +301,8 @@ onBeforeUnmount(() => {
                         {{ saving ? 'Deleting...' : 'Confirm Delete' }}
                     </button>
                 </div>
-            </section>
-        </div>
+            </template>
+        </PopupDialog>
     </main>
 </template>
 
@@ -315,7 +338,7 @@ onBeforeUnmount(() => {
     font-size: var(--fontSizeSmall);
 }
 
-/* Position temporary notifications in the top-right corner. */
+/* Temporary notifications. */
 .toastMessage {
     position: fixed;
     z-index: 1100;
@@ -334,17 +357,16 @@ onBeforeUnmount(() => {
     font-weight: 600;
 }
 
-/* Success notification styling. */
 .successMessage {
     border-color: var(--colorPrimary);
 }
 
-/* Error notification styling. */
 .errorMessage {
     border-color: var(--colorError);
     color: var(--colorError);
 }
 
+/* Table toolbar. */
 .tableToolbar {
     display: flex;
     align-items: center;
@@ -408,44 +430,7 @@ onBeforeUnmount(() => {
     background: var(--colorPrimaryHover);
 }
 
-.modalOverlay {
-    position: fixed;
-    z-index: 1000;
-    inset: 64px 0 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: var(--spaceLg);
-    box-sizing: border-box;
-    overflow-y: auto;
-    background: transparent;
-}
-
-.modalOverlay::before {
-    position: fixed;
-    z-index: 0;
-    inset: 0;
-    background: var(--colorText);
-    opacity: 0.72;
-    backdrop-filter: blur(6px);
-    content: '';
-    pointer-events: none;
-}
-
-.modalContent {
-    position: relative;
-    z-index: 1;
-    width: 100%;
-    max-width: 650px;
-    max-height: calc(100vh - 2 * var(--space2xl));
-    padding: var(--spaceXl);
-    box-sizing: border-box;
-    overflow-y: auto;
-    border-radius: var(--radiusMd);
-    background: var(--colorSurface);
-    color: var(--colorText);
-}
-
+/* Delete confirmation content. */
 .deleteModal h2 {
     margin-top: 0;
     font-family: var(--fontHeading);
@@ -459,18 +444,21 @@ onBeforeUnmount(() => {
 
 .questionToDelete {
     margin: var(--spaceMd) 0;
-    padding: var(--spaceMd);
+    padding: var(--spaceLg);
     border: 1px solid var(--colorBorder);
     border-radius: var(--radiusSm);
     background: var(--colorSurface);
+    color: var(--colorText);
+    font-size: var(--fontSizeH3);
     font-weight: 600;
+    line-height: 1.5;
 }
 
 .modalActions {
     display: flex;
     justify-content: flex-end;
     gap: var(--spaceSm);
-    margin-top: var(--spaceLg);
+    width: 100%;
 }
 
 .modalActions button {
@@ -482,20 +470,18 @@ onBeforeUnmount(() => {
     cursor: pointer;
 }
 
-/* Delete modal Cancel button. */
-.deleteModal .cancelButton {
+.cancelButton {
     border: 1px solid var(--colorBorderInput);
     background: var(--colorSurface);
     color: var(--colorTextSecondary);
 }
 
-.deleteModal .cancelButton:hover:not(:disabled) {
+.cancelButton:hover:not(:disabled) {
     background: var(--colorBorderInput);
     border-color: var(--colorBorderInput);
     color: var(--colorText);
 }
 
-/* Confirm Delete button. */
 .deleteConfirmButton {
     border: 1px solid var(--colorError);
     background: var(--colorError);
@@ -506,19 +492,7 @@ onBeforeUnmount(() => {
     filter: brightness(0.9);
 }
 
-/* Question displayed in the delete confirmation. */
-.deleteModal .questionToDelete {
-    margin: var(--spaceMd) 0;
-    padding: var(--spaceLg);
-    border: 1px solid var(--colorBorder);
-    border-radius: var(--radiusSm);
-    background: var(--colorSurface);
-    color: var(--colorText);
-    font-size: var(--fontSizeH3);
-    font-weight: 600;
-    line-height: 1.5;
-}
-
+/* Keyboard focus indicators. */
 button:focus-visible,
 input:focus-visible,
 select:focus-visible {
@@ -566,10 +540,6 @@ select:focus-visible {
 
     .tableFooter .primaryButton {
         width: 100%;
-    }
-
-    .modalContent {
-        padding: var(--spaceLg);
     }
 
     .modalActions {

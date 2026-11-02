@@ -161,7 +161,6 @@ const cancelForm = () => {
     <div class="questionForm">
         <!-- Display the form heading depending on the current mode. -->
         <div class="formHeading">
-            <h2>{{ isEditing ? 'Edit Question' : 'Create New Question' }}</h2>
             <p>
                 {{
                     isEditing
