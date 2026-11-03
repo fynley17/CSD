@@ -1,14 +1,19 @@
 <script setup>
 // Import Vue functions for reactive state, computed values and lifecycle management.
-import { computed, nextTick, onBeforeUnmount, ref } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
 
 // Import the test table, create/edit form and reusable confirmation dialog.
 import TestManagementTable from '../components/tables/testManagementTable.vue';
 import TestForm from '../components/forms/testForm.vue';
 import PopupDialog from '../components/common/popupDialog.vue';
 
-// Import the API function used to delete tests.
+// Import the API functions used to retrieve the current user and delete tests.
+import { getCurrentUser } from '../services/authService';
 import { deleteTest } from '../services/testService';
+
+// Store the signed-in user so only lecturers can create tests.
+const currentUser = ref(null);
+const canCreateTest = computed(() => currentUser.value?.accountType === 'lecturer');
 
 // References to the child components.
 const testManagementTable = ref(null);
@@ -160,6 +165,11 @@ async function confirmDelete() {
     }
 }
 
+// Retrieve the signed-in user's account type when the page loads.
+onMounted(async () => {
+    currentUser.value = await getCurrentUser();
+});
+
 // Clear any outstanding notification timeout when leaving the page.
 onBeforeUnmount(() => {
     if (messageTimeout) {
@@ -217,9 +227,9 @@ onBeforeUnmount(() => {
 
             <!-- Button to open the form for creating a new test. -->
             <div class="tableFooter">
-                <button type="button" class="primaryButton" @click="openCreateForm">
+                <button v-if="canCreateTest" type="button" class="primaryButton" @click="openCreateForm">
                     <span aria-hidden="true">＋</span>
-                    Create New Test
+                    + Create New Test
                 </button>
             </div>
         </div>

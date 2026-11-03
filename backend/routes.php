@@ -1,4 +1,3 @@
-
 <?php
 
 use App\Router;
@@ -100,7 +99,7 @@ $router->addRoute(
     [new TestController(), 'getActiveSubjects']
 );
 
-// Create a new test (lecturers only).
+// Create a new test (lecturers only; administrators cannot create tests).
 $router->addRoute(
     'POST',
     '/^\\/api\\/lecturer\\/tests$/',

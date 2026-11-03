@@ -69,6 +69,22 @@ async function loadSubjects() {
 
         // Support the response formats returned by the service.
         subjects.value = Array.isArray(response) ? response : (response?.subjects ?? response?.data ?? []);
+
+        // Keep the existing subject visible when editing a test with an archived subject.
+        if (props.test?.subjectID) {
+            const existingSubject = subjects.value.some(
+                (subject) => String(subject.subjectID) === String(props.test.subjectID),
+            );
+
+            if (!existingSubject) {
+                subjects.value.push({
+                    subjectID: props.test.subjectID,
+                    subjectName: props.test.subjectName ?? 'Archived subject',
+                    cohortName: props.test.cohortName ?? '',
+                    isActive: false,
+                });
+            }
+        }
     } catch {
         errorMessage.value = 'Unable to load subjects. Please try again.';
     } finally {
@@ -104,13 +120,13 @@ function validateForm() {
         return false;
     }
 
-    if (!Number.isInteger(questionCount) || questionCount < 1) {
-        errorMessage.value = 'Question count must be at least 1.';
+    if (!Number.isInteger(questionCount) || questionCount < 1 || questionCount > 999) {
+        errorMessage.value = 'Question count must be between 1 and 999.';
         return false;
     }
 
-    if (timeLimit !== null && (!Number.isInteger(timeLimit) || timeLimit < 1)) {
-        errorMessage.value = 'Time limit must be a whole number of at least 1 minute.';
+    if (timeLimit !== null && (!Number.isInteger(timeLimit) || timeLimit < 1 || timeLimit > 999)) {
+        errorMessage.value = 'Time limit must be between 1 and 999 minutes.';
         return false;
     }
 
@@ -150,7 +166,9 @@ async function submitTest() {
     } catch (error) {
         // Display the backend error where available, otherwise use a fallback message.
         errorMessage.value =
-            error.response?.data?.message ?? 'Unable to save the test. Please check your details and try again.';
+            error.response?.data?.error ??
+            error.response?.data?.message ??
+            'Unable to save the test. Please check your details and try again.';
     } finally {
         submitting.value = false;
     }
@@ -194,8 +212,13 @@ onMounted(async () => {
                     <option value="" disabled>
                         {{ loadingSubjects ? 'Loading subjects...' : 'Select a subject' }}
                     </option>
-                    <option v-for="subject in subjects" :key="subject.subjectID" :value="subject.subjectID">
-                        {{ subject.subjectName }}
+                    <option
+                        v-for="subject in subjects"
+                        :key="subject.subjectID"
+                        :value="subject.subjectID"
+                        :disabled="subject.isActive === false"
+                    >
+                        {{ subject.subjectName }}{{ subject.isActive === false ? ' (Archived)' : '' }}
                     </option>
                 </select>
             </div>
@@ -224,7 +247,15 @@ onMounted(async () => {
             <div class="formRow">
                 <div class="formGroup">
                     <label for="questionCount"> Questions per attempt <span aria-hidden="true">*</span> </label>
-                    <input id="questionCount" v-model="form.questionCount" type="number" min="1" step="1" required />
+                    <input
+                        id="questionCount"
+                        v-model="form.questionCount"
+                        type="number"
+                        min="1"
+                        max="999"
+                        step="1"
+                        required
+                    />
                 </div>
 
                 <div class="formGroup">
@@ -234,6 +265,7 @@ onMounted(async () => {
                         v-model="form.timeLimit"
                         type="number"
                         min="1"
+                        max="999"
                         step="1"
                         placeholder="No limit"
                     />

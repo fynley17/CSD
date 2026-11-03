@@ -14,7 +14,8 @@ class Test extends Model
         WHERE pool.subjectID = t.subjectID
     )";
 
-    // True once a student has achieved full marks on a test.
+    // Prevents students earning leaderboard points by repeatedly retaking a test
+    // after achieving full marks.
     private const FULL_MARKS_ATTEMPT = "EXISTS (
         SELECT 1
         FROM CompletedTests AS ct
@@ -111,11 +112,7 @@ class Test extends Model
         $tests = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
         foreach ($tests as &$test) {
-            $test['questionCount'] = self::attemptSize(
-                $test['questionsPerAttempt'],
-                (int) $test['questionPoolSize']
-            );
-
+            $test['questionCount'] = (int) $test['questionsPerAttempt'];
             unset($test['questionsPerAttempt']);
 
             $test['timeLimit'] = $test['timeLimit'] === null
@@ -214,15 +211,6 @@ class Test extends Model
         ?string $dueDate,
         int $questionCount
     ): bool {
-        self::validateTestData(
-            $testName,
-            $subjectID,
-            $testDescription,
-            $timeLimit,
-            $dueDate,
-            $questionCount
-        );
-
         $db = self::getDB();
 
         $existing = $db->prepare(
@@ -237,7 +225,33 @@ class Test extends Model
             return false;
         }
 
-        if ($currentTest['subjectID'] !== $subjectID) {
+        // Validate the test details without checking subject activity.
+        self::validateTestData(
+            $testName,
+            $subjectID,
+            $testDescription,
+            $timeLimit,
+            $dueDate,
+            $questionCount,
+            false
+        );
+
+        // Only require an active subject when changing the test's subject.
+        if ((string) $currentTest['subjectID'] !== $subjectID) {
+            $subject = $db->prepare(
+                "SELECT subjectID
+            FROM Subjects
+            WHERE subjectID = ? AND isActive = 1"
+            );
+
+            $subject->execute([$subjectID]);
+
+            if ($subject->fetchColumn() === false) {
+                throw new \InvalidArgumentException(
+                    'Please select an active subject.'
+                );
+            }
+
             $attempts = $db->prepare(
                 "SELECT COUNT(*) FROM CompletedTests WHERE testID = ?"
             );
@@ -253,9 +267,9 @@ class Test extends Model
 
         $stmt = $db->prepare(
             "UPDATE Tests
-            SET testName = ?, subjectID = ?, testDescription = ?,
-                timeLimit = ?, dueDate = ?, questionCount = ?
-            WHERE testID = ?"
+        SET testName = ?, subjectID = ?, testDescription = ?,
+            timeLimit = ?, dueDate = ?, questionCount = ?
+        WHERE testID = ?"
         );
 
         $stmt->execute([
@@ -333,7 +347,8 @@ class Test extends Model
         ?string $testDescription,
         ?int $timeLimit,
         ?string $dueDate,
-        int $questionCount
+        int $questionCount,
+        bool $validateActiveSubject = true
     ): void {
         $testName = trim($testName);
 
@@ -352,15 +367,15 @@ class Test extends Model
             );
         }
 
-        if ($timeLimit !== null && $timeLimit < 1) {
+        if ($timeLimit !== null && ($timeLimit < 1 || $timeLimit > 999)) {
             throw new \InvalidArgumentException(
-                'Time limit must be at least 1 minute or left blank.'
+                'Time limit must be between 1 and 999 minutes or left blank.'
             );
         }
 
-        if ($questionCount < 1) {
+        if ($questionCount < 1 || $questionCount > 999) {
             throw new \InvalidArgumentException(
-                'Question count must be at least 1.'
+                'Question count must be between 1 and 999.'
             );
         }
 
@@ -374,18 +389,20 @@ class Test extends Model
             }
         }
 
-        $subject = self::getDB()->prepare(
-            "SELECT subjectID
+        if ($validateActiveSubject) {
+            $subject = self::getDB()->prepare(
+                "SELECT subjectID
             FROM Subjects
             WHERE subjectID = ? AND isActive = 1"
-        );
-
-        $subject->execute([$subjectID]);
-
-        if ($subject->fetchColumn() === false) {
-            throw new \InvalidArgumentException(
-                'Please select an active subject.'
             );
+
+            $subject->execute([$subjectID]);
+
+            if ($subject->fetchColumn() === false) {
+                throw new \InvalidArgumentException(
+                    'Please select an active subject.'
+                );
+            }
         }
     }
 
@@ -457,6 +474,9 @@ class Test extends Model
 
     /**
      * Returns test details if the student is allowed to take the test.
+     *
+     * Checks the student's cohort against the test's subject cohort,
+     * preventing students from accessing another cohort's test by changing the test ID.
      */
     public static function findForStudent(
         string $testID,

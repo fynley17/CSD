@@ -1,4 +1,3 @@
-
 <?php
 
 use App\Models\Model;
@@ -95,9 +94,10 @@ final class TestAllForLecturerTest extends TestCase
         self::assertSame(2, $tests[0]['questionCount']);
         self::assertSame(30, $tests[0]['timeLimit']);
 
-        // Assert: tests without questions are still returned.
+        // Assert: tests without questions are still returned with their configured question count.
         self::assertSame('Science', $tests[1]['subjectName']);
-        self::assertSame(0, $tests[1]['questionCount']);
+        self::assertSame(5, $tests[1]['questionCount']);
+        self::assertSame(0, $tests[1]['questionPoolSize']);
 
         // Assert: an untimed test returns null for its time limit.
         self::assertNull($tests[1]['timeLimit']);

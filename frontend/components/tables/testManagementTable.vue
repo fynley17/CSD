@@ -131,8 +131,9 @@ const refreshTests = async () => {
             .sort((a, b) => a.localeCompare(b));
 
         await nextTick();
-    } catch {
+    } catch (error) {
         errorMessage.value = 'Unable to load tests. Please try again later.';
+        throw error;
     }
 };
 
@@ -205,9 +206,13 @@ onMounted(async () => {
 
     loading.value = true;
 
-    await refreshTests();
-
-    loading.value = false;
+    try {
+        await refreshTests();
+    } catch {
+        // The refresh function already stores the error message.
+    } finally {
+        loading.value = false;
+    }
 });
 
 // Remove the event listener when the component is destroyed to prevent memory leaks.
