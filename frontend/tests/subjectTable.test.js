@@ -14,8 +14,8 @@ vi.mock('../services/subjectService', () => ({
 /**
  * Mounts the table, router-link swapped for a plain <a> as there's no router here
  */
-function openTable() {
-    return mount(SubjectTable, { global: { stubs: { RouterLink: { template: '<a><slot /></a>' } } } });
+function openTable(props = {}) {
+    return mount(SubjectTable, { props, global: { stubs: { RouterLink: { template: '<a><slot /></a>' } } } });
 }
 
 /**
@@ -164,5 +164,61 @@ describe('SubjectTable', () => {
         expect(table.find('#injectedLecturer').exists()).toBe(false);
         expect(rowText(table)[0][0]).toBe('<img src=x id=injected>');
         expect(rowText(table)[0][3]).toBe('<img src=x id=injectedLecturer>');
+    });
+
+    /**
+     * manage mode buttons, clicking them passes the right row up to the page (normal)
+     */
+    it('shows Edit and Archive buttons in manage mode', async () => {
+        // Arrange
+        const subject = {
+            subjectID: 'subject-1',
+            subjectName: 'Test Databases',
+            cohortName: 'Test Cohort',
+            testCount: 0,
+            lecturerNames: null,
+            isActive: true,
+        };
+        vi.mocked(getSubjects).mockResolvedValue([subject]);
+        const table = openTable({ manage: true });
+        await flushPromises();
+
+        // Act
+        await table.get('[aria-label="Edit Test Databases"]').trigger('click');
+        await table.get('[aria-label="Archive Test Databases"]').trigger('click');
+
+        // Assert
+        expect(table.emitted('edit')[0]).toEqual([subject]);
+        expect(table.emitted('toggle')[0]).toEqual([subject]);
+    });
+
+    /**
+     * filter set to archived so only the archived one is left (boundary)
+     */
+    it('only shows archived subjects when the filter says archived', async () => {
+        // Arrange
+        vi.mocked(getSubjects).mockResolvedValue([
+            {
+                subjectName: 'Test Web Apps',
+                cohortName: 'Test Cohort',
+                testCount: 0,
+                lecturerNames: null,
+                isActive: true,
+            },
+            {
+                subjectName: 'Test Archived',
+                cohortName: 'Test Cohort',
+                testCount: 0,
+                lecturerNames: null,
+                isActive: false,
+            },
+        ]);
+
+        // Act
+        const table = openTable({ statusFilter: 'archived' });
+        await flushPromises();
+
+        // Assert
+        expect(rowText(table).map((row) => row[0])).toEqual(['Test Archived']);
     });
 });
