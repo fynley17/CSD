@@ -219,4 +219,33 @@ describe('cohortService', () => {
         // Assert
         await expect(request).rejects.toBe(refused);
     });
+
+    /**
+     * Odd characters in the ID can't change which cohort's status is saved (edge)
+     */
+    it('makes the ID safe when saving a status', async () => {
+        // Arrange
+        vi.mocked(api.put).mockResolvedValue({ data: {} });
+
+        // Act
+        await setCohortActive('../students', true);
+
+        // Assert
+        expect(api.put).toHaveBeenCalledWith('/admin/cohorts/..%2Fstudents/status', { isActive: true });
+    });
+
+    /**
+     * A refused save gets passed on so the page can show PHP's message (error)
+     */
+    it('passes a refused save on to the page', async () => {
+        // Arrange
+        const refused = { response: { status: 404, data: { error: 'Cohort not found' } } };
+        vi.mocked(api.put).mockRejectedValue(refused);
+
+        // Act
+        const request = setCohortActive('cohort-1', false);
+
+        // Assert
+        await expect(request).rejects.toBe(refused);
+    });
 });

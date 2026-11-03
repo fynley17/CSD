@@ -1,3 +1,4 @@
+
 <?php
 
 use App\Models\Model;
@@ -22,9 +23,11 @@ final class TestModelTest extends TestCase
                 dueDate TEXT,
                 questionCount INTEGER,
                 subjectID TEXT NOT NULL,
-                createdBy TEXT NOT NULL
+                createdBy TEXT NOT NULL,
+                isActive INTEGER NOT NULL DEFAULT 1
             )'
         );
+
         $this->db->exec(
             'CREATE TABLE Subjects (
                 subjectID TEXT PRIMARY KEY,
@@ -33,7 +36,14 @@ final class TestModelTest extends TestCase
                 isActive INTEGER NOT NULL DEFAULT 1
             )'
         );
-        $this->db->exec('CREATE TABLE Students (userID TEXT PRIMARY KEY, cohortID TEXT NOT NULL)');
+
+        $this->db->exec(
+            'CREATE TABLE Students (
+                userID TEXT PRIMARY KEY,
+                cohortID TEXT NOT NULL
+            )'
+        );
+
         $this->db->exec(
             'CREATE TABLE Lecturer (
                 userID TEXT PRIMARY KEY,
@@ -41,7 +51,14 @@ final class TestModelTest extends TestCase
                 lastName TEXT NOT NULL
             )'
         );
-        $this->db->exec('CREATE TABLE Questions (questionID TEXT PRIMARY KEY, subjectID TEXT NOT NULL)');
+
+        $this->db->exec(
+            'CREATE TABLE Questions (
+                questionID TEXT PRIMARY KEY,
+                subjectID TEXT NOT NULL
+            )'
+        );
+
         $this->db->exec(
             'CREATE TABLE CompletedTests (
                 testID TEXT NOT NULL,
@@ -55,17 +72,39 @@ final class TestModelTest extends TestCase
                 ('subject-1', 'Web Apps', 'cohort-1'),
                 ('subject-2', 'Cyber Security', 'cohort-2'),
                 ('subject-3', 'Empty Subject', 'cohort-1');
+
              INSERT INTO Students VALUES
                 ('student-user-1', 'cohort-1'),
                 ('student-user-2', 'cohort-2');
-             INSERT INTO Lecturer VALUES ('lecturer-1', 'Alex', 'Lecturer');
-             INSERT INTO Tests VALUES
+
+             INSERT INTO Lecturer VALUES
+                ('lecturer-1', 'Alex', 'Lecturer');
+
+             INSERT INTO Tests (
+                testID,
+                testName,
+                testDescription,
+                timeLimit,
+                dueDate,
+                questionCount,
+                subjectID,
+                createdBy
+             ) VALUES
                 ('test-with-questions', 'Web Apps Test', 'Review web apps', 75,
                  '2026-10-30', 2, 'subject-1', 'lecturer-1'),
-                ('untimed-test', 'Untimed Test', NULL, NULL, NULL, NULL, 'subject-1', 'lecturer-1'),
-                ('empty-test', 'Empty Test', 'Subject has no questions', NULL, NULL, 5, 'subject-3', 'lecturer-1'),
-                ('other-cohort-test', 'Cyber Security Test', 'Other cohort test', NULL, NULL, NULL,
-                 'subject-2', 'lecturer-1');
+                ('untimed-test', 'Untimed Test', NULL, NULL, NULL, NULL,
+                 'subject-1', 'lecturer-1'),
+                ('empty-test', 'Empty Test', 'Subject has no questions', NULL,
+                 NULL, 5, 'subject-3', 'lecturer-1'),
+                ('other-cohort-test', 'Cyber Security Test', 'Other cohort test',
+                 NULL, NULL, NULL, 'subject-2', 'lecturer-1'),
+                ('archived-test', 'Archived Test', 'Archived test description',
+                 NULL, NULL, NULL, 'subject-1', 'lecturer-1');
+
+             UPDATE Tests
+             SET isActive = 0
+             WHERE testID = 'archived-test';
+
              INSERT INTO Questions VALUES
                 ('question-1', 'subject-1'),
                 ('question-2', 'subject-1'),
@@ -85,13 +124,14 @@ final class TestModelTest extends TestCase
 
     public function testReturnsCardFieldsAndHowManyQuestionsAnAttemptAsks(): void
     {
-        // Arrange: setUp() has filled the tables
+        // Arrange: setUp() has filled the tables.
 
         // Act
         $tests = Test::getAvailableForStudents('student-user-1');
 
         // Assert
         self::assertCount(2, $tests);
+
         self::assertSame(
             [
                 'testID',
@@ -106,6 +146,7 @@ final class TestModelTest extends TestCase
             ],
             array_keys($tests[0])
         );
+
         self::assertSame('test-with-questions', $tests[0]['testID']);
         self::assertSame('Review web apps', $tests[0]['testDescription']);
         self::assertSame(75, $tests[0]['timeLimit']);
@@ -118,7 +159,7 @@ final class TestModelTest extends TestCase
 
     public function testUsesCardFallbacksForMissingOptionalValues(): void
     {
-        // Arrange: setUp() has filled the tables
+        // Arrange: setUp() has filled the tables.
 
         // Act
         $tests = Test::getAvailableForStudents('student-user-1');
@@ -128,16 +169,25 @@ final class TestModelTest extends TestCase
         self::assertSame('No description provided.', $untimedTest['testDescription']);
         self::assertNull($untimedTest['timeLimit']);
         self::assertNull($untimedTest['dueDate']);
-        // no count set falls back to the default of 10, capped at the 3 questions in the subject
+
+        // No count set falls back to the default of 10,
+        // capped at the 3 questions in the subject.
         self::assertSame(3, $untimedTest['questionCount']);
     }
 
     public function testQuestionCountIsHowManyQuestionsEachAttemptDraws(): void
     {
         // Arrange
-        // a set count is shown, but never more than the pool holds
-        $this->db->exec("UPDATE Tests SET questionCount = 1 WHERE testID = 'test-with-questions'");
-        $this->db->exec("UPDATE Tests SET questionCount = 4 WHERE testID = 'untimed-test'");
+        // A set count is shown, but never more than the pool holds.
+        $this->db->exec(
+            "UPDATE Tests SET questionCount = 1
+             WHERE testID = 'test-with-questions'"
+        );
+
+        $this->db->exec(
+            "UPDATE Tests SET questionCount = 4
+             WHERE testID = 'untimed-test'"
+        );
 
         // Act
         $tests = Test::getAvailableForStudents('student-user-1');
@@ -150,8 +200,11 @@ final class TestModelTest extends TestCase
     public function testTestsInTheSameSubjectShareItsQuestionPool(): void
     {
         // Arrange
-        // a new question in the subject is added to the pool of every test in that subject
-        $this->db->exec("INSERT INTO Questions VALUES ('question-5', 'subject-1')");
+        // A new question in the subject is added to the pool of every test.
+        $this->db->exec(
+            "INSERT INTO Questions VALUES ('question-5', 'subject-1')"
+        );
+
         $this->db->exec("UPDATE Tests SET questionCount = 10");
 
         // Act
@@ -163,7 +216,7 @@ final class TestModelTest extends TestCase
 
     public function testDoesNotReturnTestsWhoseSubjectHasNoQuestionsOrAnswerData(): void
     {
-        // Arrange: setUp() has filled the tables
+        // Arrange: setUp() has filled the tables.
 
         // Act
         $tests = Test::getAvailableForStudents('student-user-1');
@@ -176,10 +229,27 @@ final class TestModelTest extends TestCase
         self::assertNotContains('isCorrect', array_keys($tests[0]));
     }
 
+    public function testDoesNotReturnArchivedTestsToStudents(): void
+    {
+        // Arrange: setUp() includes an archived test.
+
+        // Act
+        $tests = Test::getAvailableForStudents('student-user-1');
+        $testIDs = array_column($tests, 'testID');
+
+        // Assert
+        self::assertNotContains('archived-test', $testIDs);
+        self::assertContains('test-with-questions', $testIDs);
+        self::assertContains('untimed-test', $testIDs);
+    }
+
     public function testDoesNotReturnTestsWhoseSubjectIsArchived(): void
     {
         // Arrange
-        $this->db->exec("UPDATE Subjects SET isActive = 0 WHERE subjectID = 'subject-1'");
+        $this->db->exec(
+            "UPDATE Subjects SET isActive = 0
+             WHERE subjectID = 'subject-1'"
+        );
 
         // Act
         $tests = Test::getAvailableForStudents('student-user-1');
@@ -187,13 +257,17 @@ final class TestModelTest extends TestCase
 
         // Assert
         self::assertSame([], $tests);
-        self::assertSame(['other-cohort-test'], array_column($otherCohortTests, 'testID'));
+        self::assertSame(
+            ['other-cohort-test'],
+            array_column($otherCohortTests, 'testID')
+        );
     }
 
     public function testKeepsFullMarksTestsListedButStopsThemEarningPoints(): void
     {
         // Arrange
-        // a lower score still earns points, full marks stops it earning points for that student only
+        // A lower score still earns points; full marks stops it
+        // earning points for that student only.
         $this->db->exec(
             "INSERT INTO CompletedTests VALUES
                 ('untimed-test', 'student-user-1', 50),
@@ -207,14 +281,18 @@ final class TestModelTest extends TestCase
         $otherStudentsTests = Test::getAvailableForStudents('student-user-2');
 
         // Assert
-        self::assertSame(['test-with-questions', 'untimed-test'], array_column($tests, 'testID'));
+        self::assertSame(
+            ['test-with-questions', 'untimed-test'],
+            array_column($tests, 'testID')
+        );
+
         self::assertSame([false, true], array_column($tests, 'earnsPoints'));
         self::assertSame([true], array_column($otherStudentsTests, 'earnsPoints'));
     }
 
     public function testReturnsOnlyTestsForTheLoggedInStudentsCohort(): void
     {
-        // Arrange: setUp() has filled the tables
+        // Arrange: setUp() has filled the tables.
 
         // Act
         $tests = Test::getAvailableForStudents('student-user-2');

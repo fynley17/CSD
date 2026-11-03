@@ -993,6 +993,85 @@ final class CohortManagementTest extends TestCase
         $this->assertSame('Test Beta', Cohort::findForManagement($cohortID)['cohortName']);
     }
 
+    /**
+     * Enabling one cohort doesn't bring back students or subjects from another disabled cohort (edge)
+     */
+    public function testEnablingOneCohortLeavesAnotherDisabledCohortAlone(): void
+    {
+        // Arrange
+        $this->addStudent('user-1', 'Sam', 'Beta', 'cohort-1', 1, 'approved', null);
+        $this->addStudent('user-2', 'Sam', 'Alpha', 'cohort-2', 1, 'approved', null);
+        $this->addSubject('subject-1', 'cohort-1', 1);
+        $this->addSubject('subject-2', 'cohort-2', 1);
+        Cohort::setActive('cohort-1', false);
+        Cohort::setActive('cohort-2', false);
+
+        // Act
+        Cohort::setActive('cohort-1', true);
+
+        // Assert
+        $this->assertSame(1, $this->userIsEnabled('user-1'));
+        $this->assertSame(0, $this->userIsEnabled('user-2'));
+        $this->assertSame(1, $this->subjectIsActive('subject-1'));
+        $this->assertSame(0, $this->subjectIsActive('subject-2'));
+    }
+
+    /**
+     * Enabling a cohort that was never disabled changes nothing (boundary)
+     */
+    public function testEnablingAnActiveCohortLeavesADisabledStudentAlone(): void
+    {
+        // Arrange
+        $this->addStudent('user-1', 'Sam', 'Banned', 'cohort-1', 0, 'approved', null);
+
+        // Act
+        Cohort::setActive('cohort-1', true);
+
+        // Assert
+        $this->assertSame(0, $this->userIsEnabled('user-1'));
+    }
+
+    /**
+     * Finding a cohort shows the status and students as they are after disabling it (normal)
+     */
+    public function testFindingACohortShowsItAfterDisabling(): void
+    {
+        // Arrange
+        $this->addStudent('user-1', 'Sam', 'Inside', 'cohort-1', 1, 'approved', null);
+        Cohort::setActive('cohort-1', false);
+
+        // Act
+        $cohort = Cohort::findForManagement('cohort-1');
+
+        // Assert
+        $this->assertFalse($cohort['isActive']);
+        $this->assertSame('Disabled', $cohort['students'][0]['status']);
+    }
+
+    /**
+     * Registering into a disabled cohort is refused, even if the form was opened before it was disabled (error)
+     */
+    public function testRegisteringIntoADisabledCohortIsRefused(): void
+    {
+        // Arrange: setUp() disables cohort-2, the Users table is empty
+        $data = [
+            'firstName' => 'Sam',
+            'lastName' => 'Sample',
+            'email' => 'sam@example.test',
+            'studentNumber' => 'ws000001',
+            'password' => 'Sample123!',
+            'confirmPassword' => 'Sample123!',
+            'cohortID' => 'cohort-2',
+        ];
+
+        // Assert: PHPUnit has to be told which exception to expect before the Act
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('The selected cohort was not found');
+
+        // Act
+        Student::register($data);
+    }
+
     private function subjectCohort(string $subjectID): ?string
     {
         $stmt = $this->db->prepare('SELECT cohortID FROM Subjects WHERE subjectID = ?');
