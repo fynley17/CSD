@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import api from '../services/api';
 import {
     assignSubjects,
+    deleteCohort,
     getCohorts,
     getUnassignedSubjects,
     removeSubject,
@@ -115,9 +116,11 @@ describe('cohortService', () => {
         vi.mocked(api.delete).mockResolvedValue({ data: {} });
 
         // Act
+        await deleteCohort('../students');
         await removeSubject('a/b', 'c?d');
 
         // Assert
+        expect(api.delete).toHaveBeenCalledWith('/admin/cohorts/..%2Fstudents');
         expect(api.delete).toHaveBeenCalledWith('/admin/cohorts/a%2Fb/subjects/c%3Fd');
     });
 
@@ -160,6 +163,36 @@ describe('cohortService', () => {
 
         // Act
         const request = setCohortActive('cohort-1', false);
+
+        // Assert
+        await expect(request).rejects.toBe(refused);
+    });
+
+    /**
+     * Calls the address for that cohort (normal)
+     */
+    it('deletes a cohort', async () => {
+        // Arrange
+        vi.mocked(api.delete).mockResolvedValue({ data: { message: 'Cohort deleted' } });
+
+        // Act
+        const result = await deleteCohort('cohort-1');
+
+        // Assert
+        expect(api.delete).toHaveBeenCalledWith('/admin/cohorts/cohort-1');
+        expect(result).toEqual({ message: 'Cohort deleted' });
+    });
+
+    /**
+     * A refused delete gets passed on so the pop-up can show PHP's message (error)
+     */
+    it('passes a refused delete on to the page', async () => {
+        // Arrange
+        const refused = { response: { status: 409, data: { error: 'This cohort still has students' } } };
+        vi.mocked(api.delete).mockRejectedValue(refused);
+
+        // Act
+        const request = deleteCohort('cohort-1');
 
         // Assert
         await expect(request).rejects.toBe(refused);
