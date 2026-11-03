@@ -57,6 +57,7 @@ class Test extends Model
                     AND student.cohortID = s.cohortID
             )
             AND s.isActive = 1
+            AND t.isActive = 1
             AND " . self::POOL_SIZE . " > 0
             ORDER BY t.dueDate IS NULL, t.dueDate, t.testName"
         );
@@ -102,7 +103,8 @@ class Test extends Model
                 s.subjectName,
                 " . self::POOL_SIZE . " AS questionPoolSize,
                 t.questionCount AS questionsPerAttempt,
-                t.timeLimit
+                t.timeLimit,
+                t.isActive
             FROM Tests AS t
             INNER JOIN Subjects AS s ON s.subjectID = t.subjectID
             ORDER BY t.testName
@@ -120,6 +122,8 @@ class Test extends Model
                 : (int) $test['timeLimit'];
 
             $test['questionPoolSize'] = (int) $test['questionPoolSize'];
+
+            $test['isActive'] = (bool) $test['isActive'];
         }
 
         unset($test);
@@ -289,9 +293,12 @@ class Test extends Model
     }
 
     /**
-     * Deletes a test and its completed attempts in one transaction.
+     * Archives a test if it has completed attempts.
+     * Permanently deletes a test if it has no completed attempts.
+     *
+     * @return string|false 'archived', 'deleted', or false if not found.
      */
-    public static function delete(string $testID): bool
+    public static function delete(string $testID): string|false
     {
         $db = self::getDB();
 
@@ -312,23 +319,32 @@ class Test extends Model
                 return false;
             }
 
-            $deleteAttempts = $db->prepare(
-                "DELETE FROM CompletedTests WHERE testID = ?"
+            $attempts = $db->prepare(
+                "SELECT COUNT(*) FROM CompletedTests WHERE testID = ?"
             );
+            $attempts->execute([$testID]);
 
-            $deleteAttempts->execute([$testID]);
+            $hasAttempts = (int) $attempts->fetchColumn() > 0;
+
+            if ($hasAttempts) {
+                $archiveTest = $db->prepare(
+                    "UPDATE Tests SET isActive = 0 WHERE testID = ?"
+                );
+                $archiveTest->execute([$testID]);
+
+                $db->commit();
+
+                return 'archived';
+            }
 
             $deleteTest = $db->prepare(
                 "DELETE FROM Tests WHERE testID = ?"
             );
-
             $deleteTest->execute([$testID]);
-
-            $deleted = $deleteTest->rowCount() === 1;
 
             $db->commit();
 
-            return $deleted;
+            return 'deleted';
         } catch (\Throwable $exception) {
             if ($db->inTransaction()) {
                 $db->rollBack();
@@ -435,7 +451,11 @@ class Test extends Model
         $test = self::findForStudent($testID, $userID);
 
         // An attempt already underway can still be handed in.
-        if ($test === null || !$test['subjectIsActive']) {
+        if (
+            $test === null ||
+            !$test['subjectIsActive'] ||
+            !$test['testIsActive']
+        ) {
             return null;
         }
 
@@ -459,7 +479,8 @@ class Test extends Model
 
         unset(
             $test['questionsPerAttempt'],
-            $test['subjectIsActive']
+            $test['subjectIsActive'],
+            $test['testIsActive']
         );
 
         $test['timeLimit'] = $test['timeLimit'] === null
@@ -491,6 +512,7 @@ class Test extends Model
                 t.questionCount AS questionsPerAttempt,
                 s.subjectName,
                 s.isActive AS subjectIsActive,
+                t.isActive AS testIsActive,
                 NOT " . self::FULL_MARKS_ATTEMPT . " AS earnsPoints
             FROM Tests AS t
             INNER JOIN Subjects AS s ON s.subjectID = t.subjectID

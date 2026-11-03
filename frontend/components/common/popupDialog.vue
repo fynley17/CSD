@@ -40,7 +40,7 @@ export default {
 
 <style scoped>
 .popupDialog {
-    display: flex;
+    display: none;
     flex-direction: column;
     width: min(650px, calc(100vw - 32px));
     max-width: 650px;
@@ -75,6 +75,10 @@ export default {
     background: var(--colorText);
     opacity: 0.72;
     backdrop-filter: blur(4px);
+}
+
+.popupDialog[open] {
+    display: flex;
 }
 
 @media (max-width: 639px) {

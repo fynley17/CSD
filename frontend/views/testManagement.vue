@@ -134,7 +134,7 @@ function closeDeleteDialog() {
     testToDelete.value = null;
 }
 
-// Delete the selected test after the lecturer confirms the action.
+// Archive or delete the selected test after the lecturer confirms the action.
 async function confirmDelete() {
     if (!testToDelete.value?.testID) {
         return;
@@ -144,21 +144,26 @@ async function confirmDelete() {
     clearMessages();
 
     try {
-        // Send the delete request to the backend.
-        await deleteTest(testToDelete.value.testID);
+        // Send the request to the backend.
+        const response = await deleteTest(testToDelete.value.testID);
+
+        // Retrieve the message whether the service returns Axios response data
+        // or the response data directly.
+        const message = response?.data?.message ?? response?.message ?? 'Test processed successfully.';
 
         // Close the confirmation dialog and refresh the table.
         deleteDialog.value?.close();
 
         await testManagementTable.value?.refreshTests();
 
-        showSuccess('Test deleted successfully.');
+        // Display the backend's archive or deletion message.
+        showSuccess(message);
     } catch (error) {
         // Display the backend error where available, otherwise use a fallback message.
         showError(
             error.response?.data?.error ??
                 error.response?.data?.message ??
-                'Unable to delete the test. Please try again.',
+                'Unable to process the test. Please try again.',
         );
     } finally {
         deletingTest.value = false;
@@ -229,7 +234,7 @@ onBeforeUnmount(() => {
             <div class="tableFooter">
                 <button v-if="canCreateTest" type="button" class="primaryButton" @click="openCreateForm">
                     <span aria-hidden="true">＋</span>
-                    + Create New Test
+                    Create New Test
                 </button>
             </div>
         </div>
@@ -237,29 +242,31 @@ onBeforeUnmount(() => {
         <!-- Reuse the same form for creating and editing tests. -->
         <TestForm v-if="showTestForm" :test="editingTest" @saved="handleTestSaved" @close="closeTestForm" />
 
-        <!-- Confirm permanent test deletion before sending the request. -->
-        <PopupDialog ref="deleteDialog" title="Delete Test" @close="closeDeleteDialog">
+        <!-- Explain the archive and permanent deletion behaviour. -->
+        <PopupDialog ref="deleteDialog" title="Archive / Delete Test" @close="closeDeleteDialog">
             <div class="deleteConfirmation">
                 <p>
-                    Are you sure you want to permanently delete
-                    <strong>{{ testToDelete?.testName }}</strong
-                    >?
+                    Are you sure you want to remove
+                    <strong>{{ testToDelete?.testName }}</strong>
+                    from the available tests?
                 </p>
 
                 <p>
-                    This will also delete all completed attempts associated with this test. This action cannot be
-                    undone.
+                    If students have completed attempts, this test will be archived and all existing results and
+                    leaderboard history will be preserved.
                 </p>
+
+                <p>If no completed attempts exist, the test will be permanently deleted.</p>
             </div>
 
-            <!-- Provide cancel and confirm actions for the deletion dialog. -->
+            <!-- Provide cancel and confirm actions. -->
             <template #buttons>
                 <button type="button" class="secondaryButton" :disabled="deletingTest" @click="deleteDialog?.close()">
                     Cancel
                 </button>
 
                 <button type="button" class="deleteButton" :disabled="deletingTest" @click="confirmDelete">
-                    {{ deletingTest ? 'Deleting...' : 'Delete Test' }}
+                    {{ deletingTest ? 'Processing...' : 'Confirm' }}
                 </button>
             </template>
         </PopupDialog>
@@ -407,7 +414,7 @@ onBeforeUnmount(() => {
     color: var(--colorPrimary);
 }
 
-/* Delete button styling. */
+/* Confirm button styling. */
 .deleteButton {
     border-color: var(--colorError);
     background: var(--colorError);

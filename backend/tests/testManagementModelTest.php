@@ -1,3 +1,4 @@
+
 <?php
 
 use App\Models\Model;
@@ -22,7 +23,8 @@ final class TestManagementModelTest extends TestCase
                 dueDate TEXT NULL,
                 questionCount INTEGER NOT NULL DEFAULT 10,
                 subjectID TEXT NOT NULL,
-                createdBy TEXT NOT NULL
+                createdBy TEXT NOT NULL,
+                isActive INTEGER NOT NULL DEFAULT 1
             )'
         );
 
@@ -123,7 +125,9 @@ final class TestManagementModelTest extends TestCase
         // Assert
         self::assertNotEmpty($testID);
 
-        $stmt = $this->db->prepare('SELECT * FROM Tests WHERE testID = ?');
+        $stmt = $this->db->prepare(
+            'SELECT * FROM Tests WHERE testID = ?'
+        );
         $stmt->execute([$testID]);
 
         $test = $stmt->fetch(\PDO::FETCH_ASSOC);
@@ -136,6 +140,7 @@ final class TestManagementModelTest extends TestCase
         self::assertSame($dueDate, $test['dueDate']);
         self::assertSame(10, (int) $test['questionCount']);
         self::assertSame($createdBy, $test['createdBy']);
+        self::assertSame(1, (int) $test['isActive']);
     }
 
     public function testRejectsAnEmptyTestName(): void
@@ -193,7 +198,9 @@ final class TestManagementModelTest extends TestCase
         // Assert
         self::assertTrue($updated);
 
-        $stmt = $this->db->prepare('SELECT * FROM Tests WHERE testID = ?');
+        $stmt = $this->db->prepare(
+            'SELECT * FROM Tests WHERE testID = ?'
+        );
         $stmt->execute(['test-1']);
 
         $test = $stmt->fetch(\PDO::FETCH_ASSOC);
@@ -299,7 +306,7 @@ final class TestManagementModelTest extends TestCase
         );
     }
 
-    public function testDeletesTestAndAllAssociatedCompletedAttempts(): void
+    public function testArchivesTestAndPreservesCompletedAttempts(): void
     {
         // Arrange
         $this->addTest();
@@ -312,39 +319,52 @@ final class TestManagementModelTest extends TestCase
         );
 
         // Act
-        $deleted = Test::delete('test-1');
+        $result = Test::delete('test-1');
 
         // Assert
-        self::assertTrue($deleted);
+        self::assertSame('archived', $result);
 
         $stmt = $this->db->prepare(
-            'SELECT COUNT(*) FROM Tests WHERE testID = ?'
+            'SELECT isActive FROM Tests WHERE testID = ?'
         );
         $stmt->execute(['test-1']);
+
         self::assertSame(0, (int) $stmt->fetchColumn());
 
+        // Both completed attempts must remain.
         $stmt = $this->db->prepare(
             'SELECT COUNT(*) FROM CompletedTests WHERE testID = ?'
         );
         $stmt->execute(['test-1']);
-        self::assertSame(0, (int) $stmt->fetchColumn());
 
-        // Attempts belonging to other tests must remain untouched.
+        self::assertSame(2, (int) $stmt->fetchColumn());
+
+        // All three attempts, including the other test's attempt, remain.
         self::assertSame(
-            1,
+            3,
             (int) $this->db->query(
                 'SELECT COUNT(*) FROM CompletedTests'
             )->fetchColumn()
         );
     }
 
-    public function testReturnsFalseWhenDeletingANonexistentTest(): void
+    public function testPermanentlyDeletesTestWithoutCompletedAttempts(): void
     {
+        // Arrange
+        $this->addTest();
+
         // Act
-        $deleted = Test::delete('nonexistent-test');
+        $result = Test::delete('test-1');
 
         // Assert
-        self::assertFalse($deleted);
+        self::assertSame('deleted', $result);
+
+        $stmt = $this->db->prepare(
+            'SELECT COUNT(*) FROM Tests WHERE testID = ?'
+        );
+        $stmt->execute(['test-1']);
+
+        self::assertSame(0, (int) $stmt->fetchColumn());
 
         self::assertSame(
             0,
@@ -354,7 +374,23 @@ final class TestManagementModelTest extends TestCase
         );
     }
 
-    public function testRollsBackCompletedAttemptDeletionWhenTestDeletionFails(): void
+    public function testReturnsFalseWhenDeletingANonexistentTest(): void
+    {
+        // Act
+        $result = Test::delete('nonexistent-test');
+
+        // Assert
+        self::assertFalse($result);
+
+        self::assertSame(
+            0,
+            (int) $this->db->query(
+                'SELECT COUNT(*) FROM CompletedTests'
+            )->fetchColumn()
+        );
+    }
+
+    public function testRollsBackArchiveWhenArchivingFails(): void
     {
         // Arrange
         $this->addTest();
@@ -365,31 +401,31 @@ final class TestManagementModelTest extends TestCase
                 ('test-1', 'student-2', 100)"
         );
 
-        // Force the Tests deletion to fail after CompletedTests have been deleted.
+        // Force the archive update to fail.
         $this->db->exec(
-            "CREATE TRIGGER prevent_test_deletion
-             BEFORE DELETE ON Tests
+            "CREATE TRIGGER prevent_test_archiving
+             BEFORE UPDATE OF isActive ON Tests
              BEGIN
-                 SELECT RAISE(ABORT, 'Test deletion blocked');
+                 SELECT RAISE(ABORT, 'Test archiving blocked');
              END"
         );
 
         // Act and assert: the database error should be rethrown.
         try {
             Test::delete('test-1');
-            self::fail('Expected the test deletion to fail.');
+            self::fail('Expected the test archiving to fail.');
         } catch (\PDOException $exception) {
             self::assertStringContainsString(
-                'Test deletion blocked',
+                'Test archiving blocked',
                 $exception->getMessage()
             );
         }
 
-        // Assert: both the test and its completed attempts must be restored.
+        // Assert: the test remains active and both attempts remain.
         self::assertSame(
             1,
             (int) $this->db->query(
-                "SELECT COUNT(*) FROM Tests WHERE testID = 'test-1'"
+                "SELECT isActive FROM Tests WHERE testID = 'test-1'"
             )->fetchColumn()
         );
 
@@ -421,7 +457,7 @@ final class TestManagementModelTest extends TestCase
             '2026-11-30',
             10,
             'subject-1',
-            'lecturer-1'
+            'lecturer-1',
         ]);
     }
 }

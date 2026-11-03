@@ -273,19 +273,28 @@ class TestController extends Controller
     }
 
     /**
-     * Delete a test and its associated completed attempts.
+     * Delete a test and if not completed by any students, remove it from the database.
+     * If students have completed the test, it will be archived instead.
      */
     public function deleteTest(string $testID): void
     {
         Authentication::requireRole(['lecturer', 'admin']);
 
         try {
-            $deleted = Test::delete($testID);
+            $result = Test::delete($testID);
 
-            if (!$deleted) {
+            if ($result === false) {
                 $this->jsonResponse([
                     'error' => 'Test not found.'
                 ], 404);
+                return;
+            }
+
+            if ($result === 'archived') {
+                $this->jsonResponse([
+                    'message' => 'Test archived successfully. Existing student results have been preserved.'
+                ]);
+                return;
             }
 
             $this->jsonResponse([

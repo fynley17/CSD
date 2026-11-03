@@ -1,3 +1,4 @@
+
 <?php
 
 use App\Models\Model;
@@ -31,7 +32,8 @@ final class TestAllForLecturerTest extends TestCase
                 testDescription TEXT NULL,
                 dueDate TEXT NULL,
                 questionCount INTEGER NOT NULL DEFAULT 10,
-                timeLimit INTEGER NULL
+                timeLimit INTEGER NULL,
+                isActive INTEGER NOT NULL DEFAULT 1
             )'
         );
 
@@ -101,6 +103,40 @@ final class TestAllForLecturerTest extends TestCase
 
         // Assert: an untimed test returns null for its time limit.
         self::assertNull($tests[1]['timeLimit']);
+
+        // Assert: both tests are active by default.
+        self::assertTrue($tests[0]['isActive']);
+        self::assertTrue($tests[1]['isActive']);
+    }
+
+    public function testReturnsArchivedTestsToLecturers(): void
+    {
+        // Arrange: create a subject.
+        $this->db->exec(
+            "INSERT INTO Subjects (subjectID, subjectName)
+             VALUES ('subject-1', 'Mathematics')"
+        );
+
+        // Arrange: create one active test and one archived test.
+        $this->db->exec(
+            "INSERT INTO Tests (testID, testName, subjectID, isActive) VALUES
+                ('test-1', 'Active Test', 'subject-1', 1),
+                ('test-2', 'Archived Test', 'subject-1', 0)"
+        );
+
+        // Act: retrieve all tests for the lecturer.
+        $tests = Test::getAllForLecturer();
+
+        // Assert: both active and archived tests are returned.
+        self::assertCount(2, $tests);
+        self::assertSame(
+            ['Active Test', 'Archived Test'],
+            array_column($tests, 'testName')
+        );
+
+        // Assert: the active status is returned as a boolean.
+        self::assertTrue($tests[0]['isActive']);
+        self::assertFalse($tests[1]['isActive']);
     }
 
     public function testReturnsAnEmptyArrayWhenThereAreNoTests(): void
