@@ -30,7 +30,7 @@
                 </select>
             </label>
 
-            <button type="button" class="cohortPrimaryButton cohortCreateButton">
+            <button type="button" class="cohortPrimaryButton cohortCreateButton" @click="openCohortForm(null)">
                 <span aria-hidden="true">+</span> Create Cohort
             </button>
         </div>
@@ -49,6 +49,7 @@
             <h2>Students in each cohort</h2>
             <CohortStudentsTable
                 :cohorts="visibleCohorts"
+                @edit="openCohortForm"
                 @toggleStatus="toggleStatus"
                 @delete="deletingCohort = $event"
             />
@@ -60,6 +61,13 @@
                 @remove="(cohort, subject) => (removing = { cohort, subject })"
             />
         </template>
+
+        <CohortFormDialog
+            v-if="isCohortFormOpen"
+            :cohort="editingCohort"
+            @saved="saveCohort"
+            @close="isCohortFormOpen = false"
+        />
 
         <AssignSubjectsDialog
             v-if="assigningCohort"
@@ -89,6 +97,7 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue';
 import AssignSubjectsDialog from '../components/common/assignSubjectsDialog.vue';
+import CohortFormDialog from '../components/common/cohortFormDialog.vue';
 import DeleteCohortDialog from '../components/common/deleteCohortDialog.vue';
 import RemoveSubjectDialog from '../components/common/removeSubjectDialog.vue';
 import CohortStudentsTable from '../components/tables/cohortStudentsTable.vue';
@@ -103,6 +112,8 @@ const searchText = ref('');
 const statusFilter = ref('');
 const sortBy = ref('');
 // which pop-up is open, null when it's closed
+const isCohortFormOpen = ref(false);
+const editingCohort = ref(null);
 const assigningCohort = ref(null);
 const removing = ref(null);
 const deletingCohort = ref(null);
@@ -141,6 +152,21 @@ onMounted(async () => {
 // changed in place rather than replaced, so the table stays on the same page with the same rows open
 function updateCohort(cohort, savedCohort) {
     Object.assign(cohort, savedCohort);
+}
+
+// null creates a new cohort
+function openCohortForm(cohort) {
+    editingCohort.value = cohort;
+    isCohortFormOpen.value = true;
+}
+
+// a new cohort goes at the top of the list so it can be seen straight away
+function saveCohort(savedCohort) {
+    if (editingCohort.value) {
+        updateCohort(editingCohort.value, savedCohort);
+    } else {
+        allCohorts.value = [savedCohort, ...allCohorts.value];
+    }
 }
 
 function removeCohort(deletedCohort) {

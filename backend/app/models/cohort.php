@@ -4,6 +4,9 @@ namespace App\Models;
 
 class Cohort extends Model
 {
+    private const DUPLICATE_NAME = 'A cohort with this name already exists';
+    private const MAX_NAME_LENGTH = 50;
+
     public static function getAll()
     {
         // Return cohort identifiers and names for the registration form's selector, disabled cohorts can't be joined.
@@ -86,26 +89,7 @@ class Cohort extends Model
         // all or nothing, so a cohort can't end up disabled with students who can still log in
         $db->beginTransaction();
         try {
-            $stmt = $db->prepare("UPDATE Cohorts SET isActive = ? WHERE cohortID = ?");
-            $stmt->execute([$isActive ? 1 : 0, $cohortID]);
-
-            $statements = $isActive
-                ? [
-                    "UPDATE Users SET isEnabled = 1, disabledByCohort = 0 WHERE disabledByCohort = 1
-                        AND userID IN (SELECT userID FROM Students WHERE cohortID = ?)",
-                    "UPDATE Subjects SET isActive = 1, archivedByCohort = 0
-                        WHERE archivedByCohort = 1 AND cohortID = ?",
-                ]
-                : [
-                    "UPDATE Users SET isEnabled = 0, disabledByCohort = 1 WHERE isEnabled = 1
-                        AND userID IN (SELECT userID FROM Students WHERE cohortID = ?)",
-                    "UPDATE Subjects SET isActive = 0, archivedByCohort = 1 WHERE isActive = 1 AND cohortID = ?",
-                ];
-
-            foreach ($statements as $sql) {
-                $stmt = $db->prepare($sql);
-                $stmt->execute([$cohortID]);
-            }
+            self::applyStatus($cohortID, $isActive);
 
             $db->commit();
         } catch (\Throwable $e) {
@@ -114,6 +98,155 @@ class Cohort extends Model
         }
 
         return true;
+    }
+
+    /**
+     * The updates behind a status change, the caller wraps them in a transaction
+     */
+    private static function applyStatus(string $cohortID, bool $isActive): void
+    {
+        $db = self::getDB();
+
+        $stmt = $db->prepare("UPDATE Cohorts SET isActive = ? WHERE cohortID = ?");
+        $stmt->execute([$isActive ? 1 : 0, $cohortID]);
+
+        $statements = $isActive
+            ? [
+                "UPDATE Users SET isEnabled = 1, disabledByCohort = 0 WHERE disabledByCohort = 1
+                    AND userID IN (SELECT userID FROM Students WHERE cohortID = ?)",
+                "UPDATE Subjects SET isActive = 1, archivedByCohort = 0
+                    WHERE archivedByCohort = 1 AND cohortID = ?",
+            ]
+            : [
+                "UPDATE Users SET isEnabled = 0, disabledByCohort = 1 WHERE isEnabled = 1
+                    AND userID IN (SELECT userID FROM Students WHERE cohortID = ?)",
+                "UPDATE Subjects SET isActive = 0, archivedByCohort = 1 WHERE isActive = 1 AND cohortID = ?",
+            ];
+
+        foreach ($statements as $sql) {
+            $stmt = $db->prepare($sql);
+            $stmt->execute([$cohortID]);
+        }
+    }
+
+    /**
+     * Tidies a cohort name and checks it can be used, extra spaces are removed first
+     * Only letters, numbers, spaces and - ' & ( ) . , / are allowed, so a name can't contain HTML
+     *
+     * @return string the tidied name
+     * @throws \InvalidArgumentException if the name is empty, too long or has other characters in it
+     */
+    public static function cleanName(mixed $cohortName): string
+    {
+        $cleanName = is_string($cohortName) ? trim((string) preg_replace('/\s+/u', ' ', $cohortName)) : '';
+
+        if ($cleanName === '') {
+            throw new \InvalidArgumentException('Enter a cohort name');
+        }
+        if (mb_strlen($cleanName) > self::MAX_NAME_LENGTH) {
+            throw new \InvalidArgumentException('Cohort name must be 50 characters or fewer');
+        }
+        if (preg_match("/^[\\p{L}\\p{N} \\-'&().,\\/]+$/uD", $cleanName) !== 1) {
+            throw new \InvalidArgumentException(
+                "Cohort name can only use letters, numbers, spaces and - ' & ( ) . , /"
+            );
+        }
+
+        return $cleanName;
+    }
+
+    /**
+     * Creates a cohort with today's date
+     *
+     * @return string the new cohort's ID
+     * @throws \InvalidArgumentException if the name can't be used or is already taken
+     */
+    public static function create(mixed $cohortName, bool $isActive = true): string
+    {
+        $cleanName = self::cleanName($cohortName);
+        $db = self::getDB();
+
+        self::stopIfNameTaken($cleanName);
+
+        try {
+            $stmt = $db->prepare("INSERT INTO Cohorts (cohortName, isActive) VALUES (?, ?)");
+            $stmt->execute([$cleanName, $isActive ? 1 : 0]);
+        } catch (\PDOException $e) {
+            self::stopIfDuplicateError($e);
+            throw $e;
+        }
+
+        // the database makes the ID, so it's looked up by the name that's now unique
+        $stmt = $db->prepare("SELECT cohortID FROM Cohorts WHERE cohortName = ? LIMIT 1");
+        $stmt->execute([$cleanName]);
+
+        return (string) $stmt->fetchColumn();
+    }
+
+    /**
+     * Saves a cohort's name and status together, changing only the upper and lower case of its own name is fine
+     * A status change also updates its students and subjects, the same as setActive()
+     *
+     * @return bool false if there's no cohort with this ID
+     * @throws \InvalidArgumentException if the name can't be used or another cohort has it
+     */
+    public static function update(string $cohortID, mixed $cohortName, bool $isActive): bool
+    {
+        $cleanName = self::cleanName($cohortName);
+        $db = self::getDB();
+
+        $stmt = $db->prepare("SELECT 1 FROM Cohorts WHERE cohortID = ? LIMIT 1");
+        $stmt->execute([$cohortID]);
+        if ($stmt->fetchColumn() === false) {
+            return false;
+        }
+
+        self::stopIfNameTaken($cleanName, $cohortID);
+
+        // all or nothing, so a refused name can't still change who can log in
+        $db->beginTransaction();
+        try {
+            $stmt = $db->prepare("UPDATE Cohorts SET cohortName = ? WHERE cohortID = ?");
+            $stmt->execute([$cleanName, $cohortID]);
+
+            self::applyStatus($cohortID, $isActive);
+
+            $db->commit();
+        } catch (\PDOException $e) {
+            $db->rollBack();
+            self::stopIfDuplicateError($e);
+            throw $e;
+        } catch (\Throwable $e) {
+            $db->rollBack();
+            throw $e;
+        }
+
+        return true;
+    }
+
+    /**
+     * Refuses a name another cohort has, ignoring upper and lower case
+     */
+    private static function stopIfNameTaken(string $cleanName, ?string $ignoredCohortID = null): void
+    {
+        $stmt = self::getDB()->prepare(
+            "SELECT 1 FROM Cohorts WHERE LOWER(cohortName) = LOWER(?) AND cohortID <> ? LIMIT 1"
+        );
+        $stmt->execute([$cleanName, $ignoredCohortID ?? '00000000-0000-0000-0000-000000000000']);
+
+        if ($stmt->fetchColumn() !== false) {
+            throw new \InvalidArgumentException(self::DUPLICATE_NAME);
+        }
+    }
+
+    /**
+     * Two admins saving the same name at once gets past the check above, the unique key stops the second
+     */
+    private static function stopIfDuplicateError(\PDOException $e): void
+    {
+        if ((string) $e->getCode() === '23000') {
+            throw new \InvalidArgumentException(self::DUPLICATE_NAME);
+        }
     }
 
     /**

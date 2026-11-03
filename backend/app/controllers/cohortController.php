@@ -105,6 +105,60 @@ class CohortController extends Controller
     }
 
     /**
+     * Creates a cohort, the JSON body is {"cohortName": "...", "isActive": true or false}
+     * Sends the new cohort back so the page can add it to the list
+     */
+    public function createCohort(): void
+    {
+        Authentication::requireRole(['admin']);
+
+        $data = json_decode(file_get_contents('php://input'), true);
+        if (!is_array($data) || !is_bool($data['isActive'] ?? null)) {
+            $this->jsonResponse(['error' => 'isActive must be true or false'], 400);
+        }
+
+        try {
+            $cohortID = Cohort::create($data['cohortName'] ?? null, $data['isActive']);
+
+            $this->jsonResponse(Cohort::findForManagement($cohortID), 201);
+        } catch (\InvalidArgumentException $e) {
+            // only the name can be refused here, field tells the form which box to mark as wrong
+            $this->jsonResponse(['error' => $e->getMessage(), 'field' => 'cohortName'], 400);
+        } catch (\Throwable $e) {
+            error_log('Creating a cohort failed: ' . $e->getMessage());
+            $this->jsonResponse(['error' => 'Unable to create the cohort'], 500);
+        }
+    }
+
+    /**
+     * Saves a cohort's name and status, the JSON body is {"cohortName": "...", "isActive": true or false}
+     * Sends the cohort back so the page can update it
+     */
+    public function updateCohort(string $cohortID): void
+    {
+        Authentication::requireRole(['admin']);
+
+        $data = json_decode(file_get_contents('php://input'), true);
+        if (!is_array($data) || !is_bool($data['isActive'] ?? null)) {
+            $this->jsonResponse(['error' => 'isActive must be true or false'], 400);
+        }
+
+        try {
+            if (!Cohort::update($cohortID, $data['cohortName'] ?? null, $data['isActive'])) {
+                $this->jsonResponse(['error' => 'Cohort not found'], 404);
+            }
+
+            $this->jsonResponse(Cohort::findForManagement($cohortID));
+        } catch (\InvalidArgumentException $e) {
+            // only the name can be refused here, field tells the form which box to mark as wrong
+            $this->jsonResponse(['error' => $e->getMessage(), 'field' => 'cohortName'], 400);
+        } catch (\Throwable $e) {
+            error_log('Updating a cohort failed: ' . $e->getMessage());
+            $this->jsonResponse(['error' => 'Unable to update the cohort'], 500);
+        }
+    }
+
+    /**
      * Deletes a cohort, 409 = it still has students or subjects
      */
     public function deleteCohort(string $cohortID): void

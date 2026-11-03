@@ -179,10 +179,26 @@ $router->addRoute(
     [new CohortController(), 'updateCohortStatus']
 );
 
-// delete an empty cohort, admins only
-$router->addRoute('DELETE', '/^\/api\/admin\/cohorts\/([0-9a-zA-Z-]+)$/', [new CohortController(), 'deleteCohort']);
+// Create a cohort, or change its name and status, admins only.
+$router->addRoute(
+    'POST',
+    '/^\\/api\\/admin\\/cohorts$/',
+    [new CohortController(), 'createCohort']
+);
+$router->addRoute(
+    'PUT',
+    '/^\\/api\\/admin\\/cohorts\\/([0-9a-zA-Z-]+)$/',
+    [new CohortController(), 'updateCohort']
+);
 
-// add subjects to a cohort or take one out, admins only
+// Delete an empty cohort, admins only.
+$router->addRoute(
+    'DELETE',
+    '/^\\/api\\/admin\\/cohorts\\/([0-9a-zA-Z-]+)$/',
+    [new CohortController(), 'deleteCohort']
+);
+
+// Add subjects to a cohort or take one out, admins only.
 $router->addRoute(
     'POST',
     '/^\\/api\\/admin\\/cohorts\\/([0-9a-zA-Z-]+)\\/subjects$/',
@@ -194,7 +210,7 @@ $router->addRoute(
     [new CohortController(), 'removeSubject']
 );
 
-// active subjects that aren't in a cohort, for the assign subjects pop-up, admins only
+// Active subjects that aren't in a cohort, for the assign subjects pop-up, admins only.
 $router->addRoute(
     'GET',
     '/^\\/api\\/admin\\/subjects\\/unassigned$/',

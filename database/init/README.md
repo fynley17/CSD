@@ -26,7 +26,8 @@ cohort created date migration adds `Cohorts.createdDate`, used by the cohort
 management page; existing cohorts get the date the migration is run. The cohort
 disable tracking migration adds `Users.disabledByCohort` and
 `Subjects.archivedByCohort`, so enabling a cohort only undoes what disabling it changed. The subjects optional
-cohort migration lets `Subjects.cohortID` be NULL, for a subject not in a cohort. Do not run migrations through the init directory; init scripts run only
+cohort migration lets `Subjects.cohortID` be NULL, for a subject not in a cohort. The cohorts unique
+name migration stops two cohorts having the same name; rename any duplicates first. Do not run migrations through the init directory; init scripts run only
 for a new volume.
 
 ## Sample data

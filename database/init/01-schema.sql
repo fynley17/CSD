@@ -120,7 +120,8 @@ ALTER TABLE `Answers`
   ADD KEY `idx_answers_question` (`questionID`);
 
 ALTER TABLE `Cohorts`
-  ADD PRIMARY KEY (`cohortID`);
+  ADD PRIMARY KEY (`cohortID`),
+  ADD UNIQUE KEY `uq_cohorts_name` (`cohortName`);
 
 ALTER TABLE `CompletedTests`
   ADD PRIMARY KEY (`completedID`),

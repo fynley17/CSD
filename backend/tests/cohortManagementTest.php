@@ -5,6 +5,7 @@ use App\Models\Cohort;
 use App\Models\Model;
 use App\Models\Student;
 use App\Models\Subject;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -25,8 +26,9 @@ final class CohortManagementTest extends TestCase
         $this->db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
         $this->db->exec(
-            'CREATE TABLE Cohorts (cohortID TEXT PRIMARY KEY, cohortName TEXT NOT NULL, '
-            . 'createdDate TEXT NOT NULL, isActive INTEGER NOT NULL)'
+            'CREATE TABLE Cohorts (cohortID TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))), '
+            . "cohortName TEXT NOT NULL UNIQUE COLLATE NOCASE, createdDate TEXT NOT NULL DEFAULT '2026-11-03', "
+            . 'isActive INTEGER NOT NULL DEFAULT 1)'
         );
         $this->db->exec(
             'CREATE TABLE Students (userID TEXT PRIMARY KEY, firstName TEXT NOT NULL, lastName TEXT NOT NULL, '
@@ -733,6 +735,409 @@ final class CohortManagementTest extends TestCase
     {
         // Act and Assert
         $this->assertFalse(Cohort::delete('cohort-missing'));
+    }
+
+    /**
+     * A new cohort starts active and empty (normal)
+     */
+    public function testCreatesACohort(): void
+    {
+        // Act
+        $cohortID = Cohort::create('Test Gamma');
+
+        // Assert
+        $cohort = Cohort::findForManagement($cohortID);
+        $this->assertSame('Test Gamma', $cohort['cohortName']);
+        $this->assertTrue($cohort['isActive']);
+        $this->assertSame([], $cohort['students']);
+    }
+
+    /**
+     * Spaces around and doubled inside a name are tidied before saving (edge)
+     */
+    public function testTidiesSpacesInANewName(): void
+    {
+        // Act
+        $cohortID = Cohort::create("  Test   Gamma\t");
+
+        // Assert
+        $this->assertSame('Test Gamma', Cohort::findForManagement($cohortID)['cohortName']);
+    }
+
+    /**
+     * Empty names, or ones that aren't text, are rejected (error)
+     */
+    #[DataProvider('emptyNames')]
+    public function testRejectsAnEmptyName(mixed $name): void
+    {
+        // Assert: PHPUnit has to be told which exception to expect before the Act
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Enter a cohort name');
+
+        // Act
+        Cohort::create($name);
+    }
+
+    public static function emptyNames(): array
+    {
+        return [
+            'nothing' => [''],
+            'only spaces' => ['   '],
+            'missing' => [null],
+            'a list' => [['Test Gamma']],
+            'a number' => [2026],
+        ];
+    }
+
+    /**
+     * 50 characters is the longest allowed, as the column only holds 50 (boundary)
+     */
+    public function testNameLengthLimit(): void
+    {
+        // Act
+        $longestName = Cohort::cleanName(str_repeat('a', 50));
+
+        // Assert
+        $this->assertSame(50, strlen($longestName));
+        $this->expectException(InvalidArgumentException::class);
+        Cohort::cleanName(str_repeat('a', 51));
+    }
+
+    /**
+     * HTML can't get into a name (error)
+     */
+    public function testRejectsHtmlInAName(): void
+    {
+        // Assert
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('can only use letters');
+
+        // Act
+        Cohort::create('<script>alert(1)</script>');
+    }
+
+    /**
+     * Usual cohort names with punctuation are allowed (normal)
+     */
+    public function testAllowsPunctuationInAName(): void
+    {
+        // Act
+        $name = Cohort::cleanName("BSc (Hons) Maths & Art - Yr 1/2, St. John's");
+
+        // Assert
+        $this->assertSame("BSc (Hons) Maths & Art - Yr 1/2, St. John's", $name);
+    }
+
+    /**
+     * A duplicate name is rejected, whatever its upper and lower case (error)
+     */
+    public function testRejectsADuplicateNameOnCreate(): void
+    {
+        // Assert
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('A cohort with this name already exists');
+
+        // Act
+        Cohort::create('TEST beta');
+    }
+
+    /**
+     * Renaming changes only that cohort (normal)
+     */
+    public function testRenamesACohort(): void
+    {
+        // Act
+        $result = Cohort::update('cohort-1', 'Test Gamma', true);
+
+        // Assert
+        $this->assertTrue($result);
+        $this->assertSame(['Test Alpha', 'Test Gamma'], array_column(Cohort::getAllForManagement(), 'cohortName'));
+    }
+
+    /**
+     * A cohort can't take another cohort's name (error)
+     */
+    public function testRejectsADuplicateNameOnRename(): void
+    {
+        // Assert
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('A cohort with this name already exists');
+
+        // Act
+        Cohort::update('cohort-1', 'test alpha', true);
+    }
+
+    /**
+     * A cohort can keep its own name, or change only its case (boundary)
+     */
+    public function testCanKeepOwnNameOrChangeItsCase(): void
+    {
+        // Act
+        $sameName = Cohort::update('cohort-1', 'Test Beta', true);
+        $newCase = Cohort::update('cohort-1', 'TEST BETA', true);
+
+        // Assert
+        $this->assertTrue($sameName);
+        $this->assertTrue($newCase);
+        $this->assertSame('TEST BETA', Cohort::findForManagement('cohort-1')['cohortName']);
+    }
+
+    /**
+     * An empty name is rejected on rename and the old name stays (error)
+     */
+    public function testRenameRejectsAnEmptyNameAndKeepsTheOldOne(): void
+    {
+        // Act
+        try {
+            Cohort::update('cohort-1', '  ', true);
+            $this->fail('Expected the rename to be refused');
+        } catch (InvalidArgumentException) {
+            // Assert
+            $this->assertSame('Test Beta', Cohort::findForManagement('cohort-1')['cohortName']);
+        }
+    }
+
+    /**
+     * Renaming a cohort that doesn't exist is reported back (error)
+     */
+    public function testRenamingAnUnknownCohortReturnsFalse(): void
+    {
+        // Act and Assert
+        $this->assertFalse(Cohort::update('cohort-missing', 'Test Gamma', true));
+    }
+
+    /**
+     * A cohort can be created as disabled (normal)
+     */
+    public function testCreatesADisabledCohort(): void
+    {
+        // Act
+        $cohortID = Cohort::create('Test Gamma', false);
+
+        // Assert
+        $this->assertFalse(Cohort::findForManagement($cohortID)['isActive']);
+        $this->assertSame([], array_column(
+            array_filter(Cohort::getAll(), fn ($cohort) => $cohort['cohortID'] === $cohortID),
+            'cohortName'
+        ));
+    }
+
+    /**
+     * Disabling through the edit form locks out students and archives subjects, as the button does (normal)
+     */
+    public function testUpdateCanDisableACohortAndRenameItTogether(): void
+    {
+        // Arrange
+        $this->addStudent('user-1', 'Sam', 'Inside', 'cohort-1', 1, 'approved', null);
+        $this->addSubject('subject-1', 'cohort-1', 1);
+
+        // Act
+        Cohort::update('cohort-1', 'Test Gamma', false);
+
+        // Assert
+        $cohort = Cohort::findForManagement('cohort-1');
+        $this->assertSame('Test Gamma', $cohort['cohortName']);
+        $this->assertFalse($cohort['isActive']);
+        $this->assertSame(0, $this->userIsEnabled('user-1'));
+        $this->assertSame(0, $this->subjectIsActive('subject-1'));
+    }
+
+    /**
+     * Enabling through the edit form brings back only what disabling changed (normal)
+     */
+    public function testUpdateCanEnableACohort(): void
+    {
+        // Arrange
+        $this->addStudent('user-1', 'Sam', 'Inside', 'cohort-1', 1, 'approved', null);
+        $this->addStudent('user-2', 'Sam', 'Banned', 'cohort-1', 0, 'approved', null);
+        Cohort::setActive('cohort-1', false);
+
+        // Act
+        Cohort::update('cohort-1', 'Test Beta', true);
+
+        // Assert
+        $this->assertSame(1, $this->userIsEnabled('user-1'));
+        $this->assertSame(0, $this->userIsEnabled('user-2'));
+    }
+
+    /**
+     * A refused name doesn't lock anyone out, nothing is saved (error)
+     */
+    public function testRefusedNameLeavesTheStatusAlone(): void
+    {
+        // Arrange
+        $this->addStudent('user-1', 'Sam', 'Inside', 'cohort-1', 1, 'approved', null);
+
+        // Act
+        try {
+            Cohort::update('cohort-1', 'Test Alpha', false);
+            $this->fail('Expected the update to be refused');
+        } catch (InvalidArgumentException) {
+            // Assert
+            $this->assertTrue(Cohort::findForManagement('cohort-1')['isActive']);
+            $this->assertSame(1, $this->userIsEnabled('user-1'));
+        }
+    }
+
+    /**
+     * If the status updates fail, the new name isn't saved either (error)
+     */
+    public function testUpdateRollsBackTheNameWhenTheStatusFails(): void
+    {
+        // Arrange
+        $this->db->exec('DROP TABLE Subjects');
+
+        // Act
+        try {
+            Cohort::update('cohort-1', 'Test Gamma', false);
+            $this->fail('Expected the update to fail');
+        } catch (PDOException) {
+            // Assert
+            $name = $this->db->query("SELECT cohortName FROM Cohorts WHERE cohortID = 'cohort-1'")->fetchColumn();
+            $this->assertSame('Test Beta', $name);
+        }
+    }
+
+    /**
+     * Names in other alphabets are allowed (normal)
+     */
+    public function testAllowsNamesInOtherAlphabets(): void
+    {
+        // Act
+        $name = Cohort::cleanName('Génie Логика 2026');
+
+        // Assert
+        $this->assertSame('Génie Логика 2026', $name);
+    }
+
+    /**
+     * The limit counts characters, not bytes, so 50 accented letters still fit (boundary)
+     */
+    public function testNameLengthCountsCharactersNotBytes(): void
+    {
+        // Act
+        $name = Cohort::cleanName(str_repeat('é', 50));
+
+        // Assert
+        $this->assertSame(50, mb_strlen($name));
+    }
+
+    /**
+     * New lines and tabs pasted into a name become single spaces (edge)
+     */
+    public function testNewLinesBecomeSpaces(): void
+    {
+        // Act
+        $name = Cohort::cleanName("Test\n\tGamma");
+
+        // Assert
+        $this->assertSame('Test Gamma', $name);
+    }
+
+    /**
+     * A cohort is active unless it's asked to be disabled (normal)
+     */
+    public function testNewCohortIsActiveByDefaultAndOfferedAtRegistration(): void
+    {
+        // Act
+        $cohortID = Cohort::create('Test Gamma');
+
+        // Assert
+        $this->assertContains($cohortID, array_column(Cohort::getAll(), 'cohortID'));
+    }
+
+    /**
+     * Two admins creating the same name at once, the database's unique key stops the second (edge)
+     */
+    public function testDuplicateCaughtOnlyByTheDatabaseOnCreateGivesTheSameMessage(): void
+    {
+        // Arrange: this trigger acts like the other admin's save, after the name check has passed
+        $this->db->exec(
+            "CREATE TRIGGER otherAdminSaved BEFORE INSERT ON Cohorts
+                BEGIN SELECT RAISE(ABORT, 'UNIQUE constraint failed'); END"
+        );
+
+        // Assert
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('A cohort with this name already exists');
+
+        // Act
+        Cohort::create('Test Gamma');
+    }
+
+    /**
+     * The same for renaming, and nothing is left half saved (edge)
+     */
+    public function testDuplicateCaughtOnlyByTheDatabaseOnUpdateChangesNothing(): void
+    {
+        // Arrange: this trigger acts like the other admin's save, after the name check has passed
+        $this->addStudent('user-1', 'Sam', 'Inside', 'cohort-1', 1, 'approved', null);
+        $this->db->exec(
+            "CREATE TRIGGER otherAdminSaved BEFORE UPDATE OF cohortName ON Cohorts
+                BEGIN SELECT RAISE(ABORT, 'UNIQUE constraint failed'); END"
+        );
+
+        // Act
+        try {
+            Cohort::update('cohort-1', 'Test Gamma', false);
+            $this->fail('Expected the update to be refused');
+        } catch (InvalidArgumentException $e) {
+            // Assert
+            $this->assertSame('A cohort with this name already exists', $e->getMessage());
+            $this->assertFalse($this->db->inTransaction());
+            $this->assertSame(1, $this->userIsEnabled('user-1'));
+        }
+    }
+
+    /**
+     * Editing keeps the cohort's date, students and subjects (normal)
+     */
+    public function testUpdateKeepsTheDateStudentsAndSubjects(): void
+    {
+        // Arrange
+        $this->addStudent('user-1', 'Sam', 'Inside', 'cohort-1', 1, 'approved', null);
+        $this->addSubject('subject-1', 'cohort-1', 1);
+
+        // Act
+        Cohort::update('cohort-1', 'Test Gamma', true);
+
+        // Assert
+        $cohort = Cohort::findForManagement('cohort-1');
+        $this->assertSame('2026-09-01', $cohort['createdDate']);
+        $this->assertCount(1, $cohort['students']);
+        $this->assertCount(1, $cohort['subjects']);
+    }
+
+    /**
+     * Editing only changes the chosen cohort (normal)
+     */
+    public function testUpdateLeavesOtherCohortsAlone(): void
+    {
+        // Arrange
+        $this->addStudent('user-2', 'Sam', 'Alpha', 'cohort-2', 1, 'approved', null);
+
+        // Act
+        Cohort::update('cohort-1', 'Test Gamma', false);
+
+        // Assert
+        $other = Cohort::findForManagement('cohort-2');
+        $this->assertSame('Test Alpha', $other['cohortName']);
+        $this->assertSame(1, $this->userIsEnabled('user-2'));
+    }
+
+    /**
+     * A freed up name can be used again, as the check only looks at current cohorts (boundary)
+     */
+    public function testNameCanBeReusedOnceFreedUp(): void
+    {
+        // Arrange
+        Cohort::update('cohort-1', 'Test Gamma', true);
+
+        // Act
+        $cohortID = Cohort::create('Test Beta');
+
+        // Assert
+        $this->assertSame('Test Beta', Cohort::findForManagement($cohortID)['cohortName']);
     }
 
     private function subjectCohort(string $subjectID): ?string
