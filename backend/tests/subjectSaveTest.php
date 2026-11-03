@@ -14,7 +14,7 @@ final class SubjectSaveTest extends TestCase
     private PDO $db;
 
     /**
-     * Empty tables with just the columns the save and archive queries use
+     * Tables with just the columns the queries use, plus a cohort and 2 lecturers
      */
     protected function setUp(): void
     {
@@ -29,6 +29,13 @@ final class SubjectSaveTest extends TestCase
         $this->db->exec(
             'CREATE TABLE Lecturer (userID TEXT PRIMARY KEY, firstName TEXT NOT NULL, lastName TEXT NOT NULL)'
         );
+
+        $this->db->exec('CREATE TABLE Cohorts (cohortID TEXT PRIMARY KEY, cohortName TEXT NOT NULL)');
+
+        // every test can use this cohort and these 2 lecturers
+        $this->db->exec("INSERT INTO Cohorts VALUES ('cohort-1', 'Test Cohort')");
+        $this->db->exec("INSERT INTO Lecturer VALUES ('lecturer-1', 'Zoe', 'Younger')");
+        $this->db->exec("INSERT INTO Lecturer VALUES ('lecturer-2', 'Alex', 'Adams')");
 
         // swap Model's database connection for the test one
         $dbProperty = new ReflectionProperty(Model::class, 'db');
@@ -96,6 +103,32 @@ final class SubjectSaveTest extends TestCase
     }
 
     /**
+     * Saving into a cohort that isn't there gives the clear message (error)
+     */
+    public function testRejectsACohortThatDoesNotExist(): void
+    {
+        // Arrange
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('That cohort no longer exists');
+
+        // Act
+        Subject::save(null, 'Test Databases', 'cohort-9', ['lecturer-1']);
+    }
+
+    /**
+     * One made up lecturer in the list stops the whole save (error)
+     */
+    public function testRejectsALecturerThatDoesNotExist(): void
+    {
+        // Arrange
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('One of the lecturers no longer exists');
+
+        // Act
+        Subject::save(null, 'Test Databases', 'cohort-1', ['lecturer-1', 'lecturer-9']);
+    }
+
+    /**
      * Archive turns the subject off, restore turns it back on (normal)
      */
     public function testArchiveAndRestoreChangeIsActive(): void
@@ -116,9 +149,7 @@ final class SubjectSaveTest extends TestCase
      */
     public function testListsTheLecturersForTheForm(): void
     {
-        // Arrange
-        $this->db->exec("INSERT INTO Lecturer VALUES ('lecturer-1', 'Zoe', 'Younger')");
-        $this->db->exec("INSERT INTO Lecturer VALUES ('lecturer-2', 'Alex', 'Adams')");
+        // Arrange (setUp already put the 2 lecturers in)
 
         // Act
         $options = Subject::getLecturerOptions();

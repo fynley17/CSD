@@ -132,6 +132,7 @@ class Subject extends Model
     {
         $subjectName = trim($subjectName);
         self::checkName($subjectName, $cohortID, $subjectID);
+        self::checkCohortAndLecturers($cohortID, $lecturerIDs);
 
         if ($subjectID !== null && !self::exists($subjectID)) {
             return false;
@@ -189,8 +190,31 @@ class Subject extends Model
     }
 
     /**
+    /**
+     * Cohort and ticked lecturers have to be real ones, if not the database refuses and it comes back as a 500
+     *
+     * @throws \InvalidArgumentException with the message the form shows
+     */
+    private static function checkCohortAndLecturers(string $cohortID, array $lecturerIDs): void
+    {
+        $stmt = self::getDB()->prepare('SELECT 1 FROM Cohorts WHERE cohortID = ?');
+        $stmt->execute([$cohortID]);
+
+        if ($stmt->fetchColumn() === false) {
+            throw new \InvalidArgumentException('That cohort no longer exists');
+        }
+
+        // the form's own lecturer list, anyone ticked who isnt in it isnt real
+        $realIDs = array_column(self::getLecturerOptions(), 'lecturerID');
+        foreach ($lecturerIDs as $lecturerID) {
+            if (!in_array($lecturerID, $realIDs, true)) {
+                throw new \InvalidArgumentException('One of the lecturers no longer exists');
+            }
+        }
+    }
+
+    /**
      * Checks the name server side, the page checks too but can't be trusted
-     * The database already refuses a cohort or lecturer that doesn't exist
      *
      * @throws \InvalidArgumentException with the message the form shows
      */
