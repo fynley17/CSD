@@ -280,6 +280,11 @@ $router->addRoute(
     '/^\\/api\\/admin\\/lecturers\\/([0-9a-zA-Z-]+)\\/enabled$/',
     [new AdministratorController(), 'setLecturerEnabled']
 );
+$router->addRoute(
+    'DELETE',
+    '/^\\/api\\/admin\\/lecturers\\/([0-9a-zA-Z-]+)$/',
+    [new AdministratorController(), 'deleteLecturer']
+);
 
 // Admin cohort management.
 

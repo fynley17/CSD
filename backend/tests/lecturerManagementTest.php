@@ -15,7 +15,7 @@ final class LecturerManagementTest extends TestCase
     private \PDO $db;
 
     /**
-     * Fresh Users table for every test with one admin and two lecturers, all enabled
+     * Fresh Users, Lecturer and Tests tables for every test, one admin and two lecturers all enabled
      */
     protected function setUp(): void
     {
@@ -35,6 +35,11 @@ final class LecturerManagementTest extends TestCase
         $this->db->exec(
             "INSERT INTO Lecturer VALUES ('admin-id', 'Test', 'Admin'), ('lecturer-id', 'Test', 'One'), "
             . "('other-id', 'Test', 'Two')"
+        );
+        // two tests for the lecturer being deleted and one for the other lecturer
+        $this->db->exec('CREATE TABLE Tests (testID TEXT PRIMARY KEY, createdBy TEXT NOT NULL)');
+        $this->db->exec(
+            "INSERT INTO Tests VALUES ('test-1', 'lecturer-id'), ('test-2', 'lecturer-id'), ('test-3', 'other-id')"
         );
 
         // points the models at the pretend database instead of the real one
@@ -187,6 +192,47 @@ final class LecturerManagementTest extends TestCase
     }
 
     /**
+     * Delete removes the lecturer and their tests move to the admin, the other lecturer's test stays (normal)
+     */
+    public function testDeletesTheLecturerAndKeepsTheirTests(): void
+    {
+        // Arrange
+        $admin = new Administrator($this->makeRow('admin-id', 'admin'));
+        $lecturer = new Lecturer($this->makeRow('lecturer-id', 'lecturer'));
+
+        // Act
+        $admin->deleteLecturer($lecturer);
+
+        // Assert
+        $this->assertSame(0, $this->countAccounts('lecturer-id'));
+        $this->assertSame(
+            ['test-1' => 'admin-id', 'test-2' => 'admin-id', 'test-3' => 'other-id'],
+            $this->getTestOwners()
+        );
+    }
+
+    /**
+     * An admin account can't be deleted, their own included, and its still there afterwards (error)
+     */
+    public function testRefusesToDeleteAnAdministrator(): void
+    {
+        // Arrange
+        $admin = new Administrator($this->makeRow('admin-id', 'admin'));
+        $message = '';
+
+        // Act
+        try {
+            $admin->deleteLecturer($admin);
+        } catch (\InvalidArgumentException $e) {
+            $message = $e->getMessage();
+        }
+
+        // Assert
+        $this->assertSame("Administrator accounts can't be changed on this page", $message);
+        $this->assertSame(1, $this->countAccounts('admin-id'));
+    }
+
+    /**
      * A made up Users row, same keys the real query gives, the password is just filler
      */
     private function makeRow(string $userID, string $accountType): array
@@ -227,5 +273,27 @@ final class LecturerManagementTest extends TestCase
         $stmt->execute([$userID]);
 
         return $stmt->fetch(\PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * How many Users rows an ID has, 1 if the account is still there and 0 if it was deleted
+     */
+    private function countAccounts(string $userID): int
+    {
+        $stmt = $this->db->prepare('SELECT COUNT(*) FROM Users WHERE userID = ?');
+        $stmt->execute([$userID]);
+
+        return (int) $stmt->fetchColumn();
+    }
+
+    /**
+     * who owns each test, as testID => createdBy
+     */
+    private function getTestOwners(): array
+    {
+        $stmt = $this->db->prepare('SELECT testID, createdBy FROM Tests ORDER BY testID');
+        $stmt->execute();
+
+        return $stmt->fetchAll(\PDO::FETCH_KEY_PAIR);
     }
 }

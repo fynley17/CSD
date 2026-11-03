@@ -127,6 +127,30 @@ class AdministratorController extends Controller
     }
 
     /**
+     * DELETE /api/admin/lecturers/{id}, the Delete button in the confirm pop-up
+     */
+    public function deleteLecturer(string $userID): void
+    {
+        Authentication::requireRole(['admin']);
+
+        try {
+            $admin = $this->getLoggedInAdmin();
+            $lecturer = User::findById($userID);
+            if (!($lecturer instanceof Lecturer)) {
+                $this->jsonResponse(['error' => 'Lecturer not found'], 404);
+                return;
+            }
+
+            $admin->deleteLecturer($lecturer);
+            $this->jsonResponse(['message' => 'Lecturer deleted']);
+        } catch (\InvalidArgumentException $e) {
+            $this->jsonResponse(['error' => $e->getMessage()], 400);
+        } catch (\Throwable $e) {
+            error_log('Deleting the lecturer failed: ' . $e->getMessage());
+            $this->jsonResponse(['error' => 'Unable to delete the lecturer'], 500);
+        }
+    }
+    /**
      * Loads the admin who's logged in as an Administrator object so the change goes through their methods
      */
     private function getLoggedInAdmin(): Administrator

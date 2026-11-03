@@ -207,4 +207,34 @@ class Administrator extends Lecturer
 
         return trim($details[$key]);
     }
+
+    /**
+     * Delete button, removes the lecturer's account but keeps their tests
+     */
+    public function deleteLecturer(Lecturer $lecturer): void
+    {
+        $this->checkCanManage($lecturer);
+
+        $db = self::getDB();
+        $lecturerID = $lecturer->getUserID();
+
+        // a test has to belong to a real lecturer so the admin doing the delete takes theirs over
+        // admins have a Lecturer row too so that works, both changes happen or neither does
+        $db->beginTransaction();
+        try {
+            $stmt = $db->prepare('UPDATE Tests SET createdBy = ? WHERE createdBy = ?');
+            $stmt->execute([$this->getUserID(), $lecturerID]);
+
+            // the Lecturer row and their LecturerSubjects rows go with the Users row (cascade in the schema)
+            $stmt = $db->prepare('DELETE FROM Users WHERE userID = ?');
+            $stmt->execute([$lecturerID]);
+
+            $db->commit();
+        } catch (\Throwable $e) {
+            if ($db->inTransaction()) {
+                $db->rollBack();
+            }
+            throw $e;
+        }
+    }
 }
