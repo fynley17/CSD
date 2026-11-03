@@ -1,4 +1,4 @@
-<!-- Subjects for each cohort. The action buttons aren't connected to PHP yet -->
+<!-- Subjects for each cohort, the page shows the pop-ups for assigning and removing them -->
 <template>
     <CohortExpandableTable :cohorts="cohorts" label="Subjects for each cohort" :columnCount="4">
         <template #headings>
@@ -24,6 +24,7 @@
                         type="button"
                         class="cohortPrimaryButton"
                         :aria-label="`Assign subjects to ${cohort.cohortName}`"
+                        @click="emit('assign', cohort)"
                     >
                         <span aria-hidden="true">+</span> Assign subjects
                     </button>
@@ -43,6 +44,7 @@
                             <th scope="col">Subject</th>
                             <th scope="col">Tests</th>
                             <th scope="col">Lecturers</th>
+                            <th scope="col">Status</th>
                             <th scope="col">Actions</th>
                         </tr>
                     </thead>
@@ -50,12 +52,18 @@
                         <tr v-for="subject in cohort.subjects" :key="subject.subjectID">
                             <th scope="row">{{ subject.subjectName }}</th>
                             <td>{{ subject.testCount }}</td>
-                            <td>{{ subject.lecturerNames }}</td>
+                            <td>{{ subject.lecturerNames || 'Not assigned' }}</td>
+                            <td>
+                                <span class="statusPill" :class="subject.isActive ? 'statusActive' : 'statusArchived'">
+                                    {{ subject.isActive ? 'Active' : 'Archived' }}
+                                </span>
+                            </td>
                             <td>
                                 <button
                                     type="button"
-                                    class="cohortActionButton"
+                                    class="btn btn-sm tableActionButton tableDeleteButton"
                                     :aria-label="`Remove from cohort: ${subject.subjectName}`"
+                                    @click="emit('remove', cohort, subject)"
                                 >
                                     Remove from cohort
                                 </button>
@@ -77,4 +85,6 @@ defineProps({
         required: true,
     },
 });
+
+const emit = defineEmits(['assign', 'remove']);
 </script>

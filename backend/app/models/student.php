@@ -1,3 +1,4 @@
+
 <?php
 
 namespace App\Models;
@@ -253,6 +254,7 @@ class Student extends User
             "SELECT 1 FROM Users WHERE userID = ? AND accountType = 'student' LIMIT 1"
         );
         $check->execute([$userID]);
+
         return $check->fetchColumn() !== false;
     }
 
@@ -265,6 +267,7 @@ class Student extends User
              WHERE userID = ? AND accountType = 'student' AND approvalStatus = 'pending'"
         );
         $stmt->execute([$userID]);
+
         return $stmt->rowCount() > 0;
     }
 
@@ -280,6 +283,7 @@ class Student extends User
              WHERE userID = ? AND accountType = 'student' AND approvalStatus = 'pending'"
         );
         $stmt->execute([$userID]);
+
         return $stmt->rowCount() > 0;
     }
 
@@ -315,6 +319,7 @@ class Student extends User
              WHERE s.userID = ? AND u.accountType = 'student' LIMIT 1"
         );
         $studentCheck->execute([$userID]);
+
         if ($studentCheck->fetchColumn() === false) {
             throw new \OutOfBoundsException('Student account not found.');
         }
@@ -323,6 +328,7 @@ class Student extends User
             'SELECT 1 FROM Users WHERE (email = ? OR username = ?) AND userID <> ? LIMIT 1'
         );
         $duplicate->execute([$email, $studentNumber, $userID]);
+
         if ($duplicate->fetchColumn() !== false) {
             throw new \InvalidArgumentException(
                 'Another account already uses this email address or student number.'
@@ -331,11 +337,13 @@ class Student extends User
 
         $cohortCheck = $db->prepare('SELECT 1 FROM Cohorts WHERE cohortID = ? LIMIT 1');
         $cohortCheck->execute([$cohortID]);
+
         if ($cohortCheck->fetchColumn() === false) {
             throw new \InvalidArgumentException('The selected cohort could not be found.');
         }
 
         $db->beginTransaction();
+
         try {
             $userUpdate = $db->prepare(
                 'UPDATE Users SET email = ?, username = ? WHERE userID = ? AND accountType = \'student\''
@@ -346,11 +354,13 @@ class Student extends User
                 'UPDATE Students SET firstName = ?, lastName = ?, cohortID = ? WHERE userID = ?'
             );
             $studentUpdate->execute([$firstName, $lastName, $cohortID, $userID]);
+
             $db->commit();
         } catch (\Throwable $e) {
             if ($db->inTransaction()) {
                 $db->rollBack();
             }
+
             throw $e;
         }
     }
@@ -362,6 +372,7 @@ class Student extends User
             "DELETE FROM Users WHERE userID = ? AND accountType = 'student'"
         );
         $stmt->execute([$userID]);
+
         return $stmt->rowCount() > 0;
     }
 
@@ -443,8 +454,12 @@ class Student extends User
         }
 
         // The cohort name is also needed for the welcome email.
+        // Only allow registration into active cohorts.
         $stmt = $db->prepare(
-            'SELECT cohortID, cohortName FROM Cohorts WHERE cohortID = ? LIMIT 1'
+            'SELECT cohortID, cohortName
+             FROM Cohorts
+             WHERE cohortID = ? AND isActive = 1
+             LIMIT 1'
         );
         $stmt->execute([$cohortID]);
         $cohort = $stmt->fetch(\PDO::FETCH_ASSOC);
@@ -519,11 +534,12 @@ class Student extends User
     public static function findVerificationDetails(string $userID): ?array
     {
         $stmt = self::getDB()->prepare(
-            'SELECT Users.email, Users.isEmailVerified, Students.firstName, Students.lastName, Cohorts.cohortName '
-            . 'FROM Users '
-            . 'JOIN Students ON Students.userID = Users.userID '
-            . 'JOIN Cohorts ON Cohorts.cohortID = Students.cohortID '
-            . 'WHERE Users.userID = ?'
+            'SELECT Users.email, Users.isEmailVerified, Users.isEnabled,
+                    Students.firstName, Students.lastName, Cohorts.cohortName
+             FROM Users
+             JOIN Students ON Students.userID = Users.userID
+             JOIN Cohorts ON Cohorts.cohortID = Students.cohortID
+             WHERE Users.userID = ?'
         );
 
         $stmt->execute([$userID]);
@@ -534,6 +550,7 @@ class Student extends User
         }
 
         $row['isEmailVerified'] = (bool) $row['isEmailVerified'];
+        $row['isEnabled'] = (bool) $row['isEnabled'];
 
         return $row;
     }

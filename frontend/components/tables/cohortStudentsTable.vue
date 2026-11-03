@@ -1,4 +1,4 @@
-<!-- Students in each cohort. The action buttons aren't connected to PHP yet -->
+<!-- Students in each cohort, the page shows the pop-ups for its action buttons -->
 <template>
     <CohortExpandableTable :cohorts="cohorts" label="Students in each cohort" :columnCount="7">
         <template #headings>
@@ -19,24 +19,36 @@
                     {{ cohort.isActive ? 'Active' : 'Disabled' }}
                 </span>
             </td>
-            <td class="cohortActions">
-                <button type="button" class="cohortActionButton" :aria-label="`Edit ${cohort.cohortName}`">Edit</button>
-                <button
-                    type="button"
-                    class="cohortActionButton"
-                    :aria-label="`${cohort.isActive ? 'Disable' : 'Enable'} ${cohort.cohortName}`"
-                >
-                    {{ cohort.isActive ? 'Disable' : 'Enable' }}
-                </button>
-                <!-- a cohort can only be deleted once it has no students or subjects -->
-                <button
-                    type="button"
-                    class="cohortActionButton"
-                    :aria-label="`Delete ${cohort.cohortName}`"
-                    :disabled="cohort.students.length > 0 || cohort.subjects.length > 0"
-                >
-                    Delete
-                </button>
+            <td>
+                <!-- in its own div, a flex td stops being a table cell and no longer centres with its row -->
+                <div class="cohortActions">
+                    <button
+                        type="button"
+                        class="btn btn-sm tableActionButton tableEditButton"
+                        :aria-label="`Edit ${cohort.cohortName}`"
+                        @click="emit('edit', cohort)"
+                    >
+                        Edit
+                    </button>
+                    <button
+                        type="button"
+                        class="btn btn-sm tableActionButton"
+                        :class="cohort.isActive ? 'tableDisableButton' : 'tableEnableButton'"
+                        :aria-label="`${cohort.isActive ? 'Disable' : 'Enable'} ${cohort.cohortName}`"
+                        @click="emit('toggleStatus', cohort)"
+                    >
+                        {{ cohort.isActive ? 'Disable' : 'Enable' }}
+                    </button>
+                    <!-- always clickable, the pop-up explains why a cohort with students or subjects can't go -->
+                    <button
+                        type="button"
+                        class="btn btn-sm tableActionButton tableDeleteButton"
+                        :aria-label="`Delete ${cohort.cohortName}`"
+                        @click="emit('delete', cohort)"
+                    >
+                        Delete
+                    </button>
+                </div>
             </td>
         </template>
 
@@ -48,6 +60,7 @@
                         type="button"
                         class="cohortPrimaryButton"
                         :aria-label="`Add students to ${cohort.cohortName}`"
+                        @click="emit('addStudents', cohort)"
                     >
                         <span aria-hidden="true">+</span> Add students
                     </button>
@@ -78,7 +91,7 @@
                                 <td>{{ student.studentNumber }}</td>
                                 <th scope="row">{{ student.name }}</th>
                                 <td>{{ student.email }}</td>
-                                <td>{{ student.lastLogin || 'Never' }}</td>
+                                <td>{{ formatLastLogin(student.lastLogin) }}</td>
                                 <td>
                                     <span class="statusPill" :class="studentStatusClass(student)">
                                         {{ student.status }}
@@ -87,8 +100,9 @@
                                 <td>
                                     <button
                                         type="button"
-                                        class="cohortActionButton"
+                                        class="btn btn-sm tableActionButton tableDeleteButton"
                                         :aria-label="`Remove from cohort: ${student.name}`"
+                                        @click="emit('moveStudent', cohort, student)"
                                     >
                                         Remove from cohort
                                     </button>
@@ -128,6 +142,8 @@ defineProps({
     },
 });
 
+const emit = defineEmits(['edit', 'toggleStatus', 'delete', 'addStudents', 'moveStudent']);
+
 const showAllCohortIDs = ref(new Set());
 
 function isShowingAll(cohort) {
@@ -157,5 +173,16 @@ function studentStatusClass(student) {
 // turns 2026-09-01 into 01/09/2026
 function formatDate(date) {
     return date.split('-').reverse().join('/');
+}
+
+// turns 2026-09-29 09:42:10 into 29/09/2026 09:42
+function formatLastLogin(lastLogin) {
+    if (!lastLogin) {
+        return 'Never';
+    }
+
+    const [date, time] = lastLogin.split(' ');
+
+    return `${formatDate(date)} ${time.slice(0, 5)}`;
 }
 </script>
