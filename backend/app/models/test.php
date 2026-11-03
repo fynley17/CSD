@@ -527,10 +527,6 @@ class Test extends Model
             ? "INNER JOIN Students AS student ON student.cohortID = s.cohortID AND student.userID = ?"
             : '';
 
-    public static function findForStudent(
-        string $testID,
-        string $userID
-    ): ?array {
         $stmt = self::getDB()->prepare(
             "SELECT
                 t.testID,
@@ -550,15 +546,6 @@ class Test extends Model
         );
         // the first ? is the full marks check in the SELECT
         $stmt->execute($checkCohort ? [$userID, $userID, $testID] : [$userID, $testID]);
-            INNER JOIN Students AS student ON student.cohortID = s.cohortID
-            WHERE t.testID = ?
-                AND student.userID = ?
-                AND " . self::POOL_SIZE . " > 0"
-        );
-
-        // The first placeholder belongs to the full marks check.
-        $stmt->execute([$userID, $testID, $userID]);
-
         $test = $stmt->fetch(\PDO::FETCH_ASSOC);
 
         if ($test === false) {
