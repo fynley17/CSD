@@ -4,10 +4,61 @@ namespace App\Models;
 
 class Student extends User
 {
-    public static function getAll()
+    public static function getAll(): array
     {
-        $stmt = self::getDB()->prepare("SELECT * FROM Students");
+        $db = self::getDB();
+        $driver = $db->getAttribute(\PDO::ATTR_DRIVER_NAME);
+
+        // Use the correct name concatenation syntax for the active database.
+        $nameSql = $driver === 'sqlite'
+            ? "TRIM(COALESCE(s.firstName, '') || ' ' || COALESCE(s.lastName, ''))"
+            : "CONCAT_WS(' ', s.firstName, s.lastName)";
+
+        // SQLite and MySQL use different GROUP_CONCAT syntax.
+        $subjectSql = $driver === 'sqlite'
+            ? "
+                SELECT GROUP_CONCAT(subjectName, ', ')
+                FROM (
+                    SELECT DISTINCT sub.subjectName
+                    FROM Subjects AS sub
+                    WHERE sub.cohortID = s.cohortID
+                    ORDER BY sub.subjectName
+                ) AS distinct_subjects
+            "
+            : "
+                SELECT GROUP_CONCAT(
+                    DISTINCT sub.subjectName
+                    ORDER BY sub.subjectName
+                    SEPARATOR ', '
+                )
+                FROM Subjects AS sub
+                WHERE sub.cohortID = s.cohortID
+            ";
+
+        $sql = "
+            SELECT
+                s.userID,
+                $nameSql AS name,
+                u.username AS studentNumber,
+                u.email,
+                CASE
+                    WHEN u.isEnabled = 0 THEN 'Disabled'
+                    WHEN u.approvalStatus = 'pending' THEN 'Pending'
+                    ELSE 'Active'
+                END AS status,
+                u.lastLogin,
+                c.cohortName AS cohort,
+                ($subjectSql) AS subjects
+            FROM Students AS s
+            INNER JOIN Users AS u ON u.userID = s.userID
+            LEFT JOIN Cohorts AS c ON c.cohortID = s.cohortID
+            WHERE u.accountType = 'student'
+            ORDER BY s.lastName ASC, s.firstName ASC
+        ";
+
+        $stmt = $db->prepare($sql);
         $stmt->execute();
+
         return $stmt->fetchAll(\PDO::FETCH_ASSOC);
     }
 
@@ -70,7 +121,7 @@ class Student extends User
         }
 
         // The cohort name is also needed for the welcome email.
-        $stmt = $db->prepare("SELECT cohortID, cohortName FROM Cohorts WHERE cohortID = ? LIMIT 1");
+        $stmt = $db->prepare("SELECT cohortID, cohortName FROM Cohorts WHERE cohortID = ? AND isActive = 1 LIMIT 1");
         $stmt->execute([$cohortID]);
         $cohort = $stmt->fetch(\PDO::FETCH_ASSOC);
         if ($cohort === false) {
@@ -124,7 +175,8 @@ class Student extends User
     public static function findVerificationDetails(string $userID): ?array
     {
         $stmt = self::getDB()->prepare(
-            "SELECT Users.email, Users.isEmailVerified, Students.firstName, Students.lastName, Cohorts.cohortName "
+            "SELECT Users.email, Users.isEmailVerified, Users.isEnabled, Students.firstName, Students.lastName, "
+            . "Cohorts.cohortName "
             . "FROM Users "
             . "JOIN Students ON Students.userID = Users.userID "
             . "JOIN Cohorts ON Cohorts.cohortID = Students.cohortID "
@@ -138,6 +190,7 @@ class Student extends User
         }
 
         $row['isEmailVerified'] = (bool) $row['isEmailVerified'];
+        $row['isEnabled'] = (bool) $row['isEnabled'];
         return $row;
     }
 

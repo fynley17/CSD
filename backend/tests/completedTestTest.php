@@ -27,7 +27,12 @@ final class CompletedTestTest extends TestCase
                 subjectID TEXT NOT NULL
             )'
         );
-        $this->db->exec('CREATE TABLE Subjects (subjectID TEXT PRIMARY KEY, subjectName TEXT NOT NULL, cohortID TEXT)');
+        $this->db->exec('CREATE TABLE Subjects (
+                subjectID TEXT PRIMARY KEY,
+                subjectName TEXT NOT NULL,
+                cohortID TEXT,
+                isActive INTEGER NOT NULL DEFAULT 1
+            )');
         $this->db->exec(
             'CREATE TABLE Students (userID TEXT PRIMARY KEY, cohortID TEXT NOT NULL, points INTEGER NOT NULL DEFAULT 0)'
         );
@@ -70,7 +75,9 @@ final class CompletedTestTest extends TestCase
 
         // test-1's pool is the three Web Apps questions, question-4 belongs to another subject
         $this->db->exec(
-            "INSERT INTO Subjects VALUES ('subject-1', 'Web Apps', 'cohort-1'), ('subject-2', 'Databases', 'cohort-1');
+            "INSERT INTO Subjects (subjectID, subjectName, cohortID) VALUES
+                ('subject-1', 'Web Apps', 'cohort-1'),
+                ('subject-2', 'Databases', 'cohort-1');
              INSERT INTO Students VALUES ('student-1', 'cohort-1', 100), ('student-2', 'cohort-2', 0);
              INSERT INTO Tests VALUES ('test-1', 'Web Apps Test', 'Review', 5, 10, 'subject-1');
              INSERT INTO Questions (questionID, subjectID, question) VALUES
@@ -111,6 +118,7 @@ final class CompletedTestTest extends TestCase
         self::assertSame(5, $test['timeLimit']);
         self::assertSame(3, $test['questionCount']);
         self::assertArrayNotHasKey('questionsPerAttempt', $test);
+        self::assertArrayNotHasKey('subjectIsActive', $test);
         $questionIDs = array_column($test['questions'], 'questionID');
         sort($questionIDs);
         self::assertSame(['question-1', 'question-2', 'question-3'], $questionIDs);
@@ -181,6 +189,31 @@ final class CompletedTestTest extends TestCase
         // Assert
         self::assertNull($otherCohortTest);
         self::assertNull($missingTest);
+    }
+
+    public function testDoesNotLoadATestWhoseSubjectIsArchived(): void
+    {
+        // Arrange
+        $this->db->exec("UPDATE Subjects SET isActive = 0 WHERE subjectID = 'subject-1'");
+
+        // Act
+        $test = Test::getForStudent('test-1', 'student-1');
+
+        // Assert
+        self::assertNull($test);
+    }
+
+    public function testStartedAttemptCanStillBeHandedInAfterItsSubjectIsArchived(): void
+    {
+        // Arrange
+        $this->db->exec("UPDATE Subjects SET isActive = 0 WHERE subjectID = 'subject-1'");
+
+        // Act
+        $result = CompletedTest::submit('student-1', 'test-1', self::ALL_QUESTIONS, ['question-1' => 'a1']);
+
+        // Assert
+        self::assertNotNull($result);
+        self::assertEquals(1, $this->db->query('SELECT COUNT(*) FROM CompletedTests')->fetchColumn());
     }
 
     public function testMarksAndSavesTheAttempt(): void

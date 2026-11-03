@@ -29,7 +29,8 @@ final class TestModelTest extends TestCase
             'CREATE TABLE Subjects (
                 subjectID TEXT PRIMARY KEY,
                 subjectName TEXT NOT NULL,
-                cohortID TEXT NOT NULL
+                cohortID TEXT NOT NULL,
+                isActive INTEGER NOT NULL DEFAULT 1
             )'
         );
         $this->db->exec('CREATE TABLE Students (userID TEXT PRIMARY KEY, cohortID TEXT NOT NULL)');
@@ -50,7 +51,7 @@ final class TestModelTest extends TestCase
         );
 
         $this->db->exec(
-            "INSERT INTO Subjects VALUES
+            "INSERT INTO Subjects (subjectID, subjectName, cohortID) VALUES
                 ('subject-1', 'Web Apps', 'cohort-1'),
                 ('subject-2', 'Cyber Security', 'cohort-2'),
                 ('subject-3', 'Empty Subject', 'cohort-1');
@@ -173,6 +174,20 @@ final class TestModelTest extends TestCase
         self::assertNotContains('other-cohort-test', $testIDs);
         self::assertNotContains('answerID', array_keys($tests[0]));
         self::assertNotContains('isCorrect', array_keys($tests[0]));
+    }
+
+    public function testDoesNotReturnTestsWhoseSubjectIsArchived(): void
+    {
+        // Arrange
+        $this->db->exec("UPDATE Subjects SET isActive = 0 WHERE subjectID = 'subject-1'");
+
+        // Act
+        $tests = Test::getAvailableForStudents('student-user-1');
+        $otherCohortTests = Test::getAvailableForStudents('student-user-2');
+
+        // Assert
+        self::assertSame([], $tests);
+        self::assertSame(['other-cohort-test'], array_column($otherCohortTests, 'testID'));
     }
 
     public function testKeepsFullMarksTestsListedButStopsThemEarningPoints(): void

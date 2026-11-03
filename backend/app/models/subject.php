@@ -105,6 +105,22 @@ class Subject extends Model
     }
 
     /**
+     * Just the lecturer names for each subject as one string, i.e. "Alex Adams, Zoe Younger"
+     * The cohort management page reads this one
+     *
+     * @return array<string, string> subjectID => names
+     */
+    public static function getLecturerNames(): array
+    {
+        $names = [];
+        foreach (self::getLecturers() as $subjectID => $lecturer) {
+            $names[$subjectID] = $lecturer['names'];
+        }
+
+        return $names;
+    }
+
+    /**
      * Saves the create and edit forms, no $subjectID means a new subject (it starts active)
      * Whoever was picked as lecturer replaces the old ones, nobody picked is fine too
      *

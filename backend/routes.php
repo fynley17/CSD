@@ -90,11 +90,35 @@ $router->addRoute(
     [new TestController(), 'getAllForLecturer']
 );
 
-// Return all questions for the lecturer question management page.
+// Question management routes for lecturers.
 $router->addRoute(
     'GET',
-    '/^\\/api\\/lecturer\\/questions$/',
+    '/^\/api\/lecturer\/questions$/',
     [new QuestionController(), 'getAllForLecturer']
+);
+
+$router->addRoute(
+    'POST',
+    '/^\/api\/lecturer\/questions$/',
+    [new QuestionController(), 'createQuestion']
+);
+
+$router->addRoute(
+    'PUT',
+    '/^\/api\/lecturer\/questions\/([0-9a-zA-Z-]+)$/',
+    [new QuestionController(), 'updateQuestion']
+);
+
+$router->addRoute(
+    'DELETE',
+    '/^\/api\/lecturer\/questions\/([0-9a-zA-Z-]+)$/',
+    [new QuestionController(), 'deleteQuestion']
+);
+
+$router->addRoute(
+    'GET',
+    '/^\/api\/lecturer\/subjects$/',
+    [new QuestionController(), 'getActiveSubjects']
 );
 
 // the lecturers in the admin dashboard table, admins only
@@ -102,6 +126,16 @@ $router->addRoute(
     'GET',
     '/^\\/api\\/admin\\/recent-lecturers$/',
     [new AdministratorController(), 'getRecentLecturers']
+);
+
+// every cohort with its students and subjects for cohort management, admins only
+$router->addRoute('GET', '/^\/api\/admin\/cohorts$/', [new CohortController(), 'getCohortsForManagement']);
+
+// disable or enable a cohort, admins only
+$router->addRoute(
+    'PUT',
+    '/^\/api\/admin\/cohorts\/([0-9a-zA-Z-]+)\/status$/',
+    [new CohortController(), 'updateCohortStatus']
 );
 
 // every subject for the admin dashboard table, admins only

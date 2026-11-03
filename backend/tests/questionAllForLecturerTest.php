@@ -1,3 +1,4 @@
+
 <?php
 
 use App\Models\Model;
@@ -10,19 +11,18 @@ final class QuestionAllForLecturerTest extends TestCase
 
     protected function setUp(): void
     {
-        // Arrange: create an isolated in-memory SQLite database.
+        // Create an isolated in-memory SQLite database.
         $this->db = new PDO('sqlite::memory:');
         $this->db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-        // Create the minimum Subjects table structure required by the query.
         $this->db->exec(
             'CREATE TABLE Subjects (
                 subjectID TEXT PRIMARY KEY,
-                subjectName TEXT NOT NULL
+                subjectName TEXT NOT NULL,
+                isActive INTEGER NOT NULL DEFAULT 1
             )'
         );
 
-        // Create the Questions table used by the Question model.
         $this->db->exec(
             'CREATE TABLE Questions (
                 questionID TEXT PRIMARY KEY,
@@ -32,13 +32,19 @@ final class QuestionAllForLecturerTest extends TestCase
             )'
         );
 
-        // Create the Answers table used to retrieve answer options.
         $this->db->exec(
             'CREATE TABLE Answers (
                 answerID TEXT PRIMARY KEY,
                 questionID TEXT NOT NULL,
                 answerText TEXT NOT NULL,
                 isCorrect INTEGER NOT NULL DEFAULT 0
+            )'
+        );
+
+        $this->db->exec(
+            'CREATE TABLE StudentAnswers (
+                studentAnswerID TEXT PRIMARY KEY,
+                questionID TEXT NOT NULL
             )'
         );
 
@@ -49,9 +55,57 @@ final class QuestionAllForLecturerTest extends TestCase
 
     protected function tearDown(): void
     {
-        // Clean up: prevent other tests from reusing this connection.
+        // Prevent other tests from reusing this connection.
         $dbProperty = new ReflectionProperty(Model::class, 'db');
         $dbProperty->setValue(null, null);
+    }
+
+    private function insertActiveSubject(): void
+    {
+        $this->db->exec(
+            "INSERT INTO Subjects (subjectID, subjectName, isActive)
+             VALUES ('subject-1', 'Mathematics', 1)"
+        );
+    }
+
+    private function insertQuestionWithAnswers(): void
+    {
+        $this->insertActiveSubject();
+
+        $this->db->exec(
+            "INSERT INTO Questions
+                (questionID, subjectID, question)
+             VALUES
+                ('question-1', 'subject-1', 'What is 2 + 2?')"
+        );
+
+        $this->db->exec(
+            "INSERT INTO Answers
+                (answerID, questionID, answerText, isCorrect)
+             VALUES
+                ('answer-1', 'question-1', '3', 0),
+                ('answer-2', 'question-1', '4', 1),
+                ('answer-3', 'question-1', '5', 0),
+                ('answer-4', 'question-1', '6', 0)"
+        );
+
+        // Add a historical student answer.
+        $this->db->exec(
+            "INSERT INTO StudentAnswers
+                (studentAnswerID, questionID)
+             VALUES
+                ('student-answer-1', 'question-1')"
+        );
+    }
+
+    private function validAnswers(): array
+    {
+        return [
+            ['answerText' => 'Answer 1', 'isCorrect' => true],
+            ['answerText' => 'Answer 2', 'isCorrect' => false],
+            ['answerText' => 'Answer 3', 'isCorrect' => false],
+            ['answerText' => 'Answer 4', 'isCorrect' => false],
+        ];
     }
 
     public function testReturnsQuestionsWithSubjectsAndAnswers(): void
@@ -101,8 +155,14 @@ final class QuestionAllForLecturerTest extends TestCase
         self::assertSame('Science', $questions[1]['subjectName']);
 
         // Assert: the answer options are included.
-        self::assertStringContainsString('4', $questions[0]['answers']);
-        self::assertStringContainsString('Mars', $questions[1]['answers']);
+        self::assertContains(
+            '4',
+            array_column($questions[0]['answers'], 'answerText')
+        );
+        self::assertContains(
+            'Mars',
+            array_column($questions[1]['answers'], 'answerText')
+        );
 
         // Assert: the correct answers are returned.
         self::assertSame('4', $questions[0]['correctAnswer']);
@@ -116,7 +176,6 @@ final class QuestionAllForLecturerTest extends TestCase
     public function testReturnsAnEmptyArrayWhenThereAreNoQuestions(): void
     {
         // Arrange: create a subject but no questions.
-
         $this->db->exec(
             "INSERT INTO Subjects (subjectID, subjectName)
              VALUES ('subject-1', 'Mathematics')"
@@ -127,5 +186,109 @@ final class QuestionAllForLecturerTest extends TestCase
 
         // Assert: no questions are returned.
         self::assertSame([], $questions);
+    }
+
+    public function testRejectsQuestionsWithFewerThanFourAnswers(): void
+    {
+        $this->insertActiveSubject();
+
+        $answers = [
+            ['answerText' => 'Answer 1', 'isCorrect' => true],
+            ['answerText' => 'Answer 2', 'isCorrect' => false],
+            ['answerText' => 'Answer 3', 'isCorrect' => false],
+        ];
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage(
+            'A question must have exactly four answers.'
+        );
+
+        Question::create('subject-1', 'Test question?', $answers);
+    }
+
+    public function testRejectsQuestionsWithNoCorrectAnswer(): void
+    {
+        $this->insertActiveSubject();
+
+        $answers = [
+            ['answerText' => 'Answer 1', 'isCorrect' => false],
+            ['answerText' => 'Answer 2', 'isCorrect' => false],
+            ['answerText' => 'Answer 3', 'isCorrect' => false],
+            ['answerText' => 'Answer 4', 'isCorrect' => false],
+        ];
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage(
+            'Exactly one answer must be marked correct.'
+        );
+
+        Question::create('subject-1', 'Test question?', $answers);
+    }
+
+    public function testRejectsQuestionsWithMultipleCorrectAnswers(): void
+    {
+        $this->insertActiveSubject();
+
+        $answers = [
+            ['answerText' => 'Answer 1', 'isCorrect' => true],
+            ['answerText' => 'Answer 2', 'isCorrect' => true],
+            ['answerText' => 'Answer 3', 'isCorrect' => false],
+            ['answerText' => 'Answer 4', 'isCorrect' => false],
+        ];
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage(
+            'Exactly one answer must be marked correct.'
+        );
+
+        Question::create('subject-1', 'Test question?', $answers);
+    }
+
+    public function testRejectsQuestionsForInactiveSubjects(): void
+    {
+        $this->db->exec(
+            "INSERT INTO Subjects (subjectID, subjectName, isActive)
+             VALUES ('subject-1', 'Mathematics', 0)"
+        );
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage(
+            'The selected subject is invalid or inactive.'
+        );
+
+        Question::create(
+            'subject-1',
+            'Test question?',
+            $this->validAnswers()
+        );
+    }
+
+    public function testPreventsEditingQuestionsWithStudentAnswers(): void
+    {
+        $this->insertQuestionWithAnswers();
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage(
+            'This question cannot be edited because it has already been used in a completed test.'
+        );
+
+        Question::update(
+            'question-1',
+            'subject-1',
+            'Updated question?',
+            $this->validAnswers()
+        );
+    }
+
+    public function testPreventsDeletingQuestionsWithStudentAnswers(): void
+    {
+        $this->insertQuestionWithAnswers();
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage(
+            'This question cannot be deleted because it has already been used in a completed test.'
+        );
+
+        Question::delete('question-1');
     }
 }

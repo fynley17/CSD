@@ -1,31 +1,207 @@
 <script setup>
-import { computed, ref } from 'vue';
+import { computed, nextTick, onMounted, onBeforeUnmount, ref } from 'vue';
+
 import QuestionManagementTable from '../components/tables/questionManagementTable.vue';
+import QuestionForm from '../components/forms/questionForm.vue';
+import PopupDialog from '../components/common/popupDialog.vue';
 
-// Store the table reference so the page can apply filters and searches.
+import { getActiveSubjects, createQuestion, updateQuestion, deleteQuestion } from '../services/questionService';
+
 const questionTable = ref(null);
+const questionDialog = ref(null);
+const deleteDialog = ref(null);
 
-// Track the selected subject and the text entered into the search box.
+const availableSubjects = ref([]);
+
 const subjectFilter = ref('');
 const searchTerm = ref('');
 
-// Retrieve the available subjects from the question table for the dropdown.
-const subjects = computed(() => questionTable.value?.subjects ?? []);
+const showQuestionForm = ref(false);
+const selectedQuestion = ref(null);
 
-// Apply the selected subject filter to the Question table.
+const saving = ref(false);
+
+const successMessage = ref('');
+const errorMessage = ref('');
+
+const questionToDelete = ref(null);
+const showDeleteConfirmation = ref(false);
+
+let messageTimeout = null;
+
+const subjects = computed(() => questionTable.value?.subjects ?? []);
+const formSubjects = computed(() => availableSubjects.value);
+
+// Load active subjects when the page opens.
+onMounted(async () => {
+    try {
+        availableSubjects.value = await getActiveSubjects();
+    } catch (error) {
+        showError(error.response?.data?.error ?? 'Unable to load subjects. Please try again.');
+    }
+});
+
+// Clear existing feedback and any pending timeout.
+const clearMessages = () => {
+    successMessage.value = '';
+    errorMessage.value = '';
+
+    if (messageTimeout) {
+        clearTimeout(messageTimeout);
+        messageTimeout = null;
+    }
+};
+
+// Display a temporary success notification.
+const showSuccess = (message) => {
+    clearMessages();
+    successMessage.value = message;
+
+    messageTimeout = setTimeout(() => {
+        successMessage.value = '';
+        messageTimeout = null;
+    }, 10000);
+};
+
+// Display a temporary error notification.
+const showError = (message) => {
+    clearMessages();
+    errorMessage.value = message;
+
+    messageTimeout = setTimeout(() => {
+        errorMessage.value = '';
+        messageTimeout = null;
+    }, 10000);
+};
+
+// Apply the selected subject filter.
 const filterBySubject = () => {
     questionTable.value?.filterBySubject(subjectFilter.value);
 };
 
-// Search the questions using the DataTables search API.
+// Search questions using the DataTables API.
 const searchQuestions = () => {
     questionTable.value?.searchQuestions(searchTerm.value);
 };
+
+// Open the form to create a new question.
+const openCreateForm = async () => {
+    clearMessages();
+    selectedQuestion.value = null;
+    showQuestionForm.value = true;
+
+    await nextTick();
+    questionDialog.value?.open();
+};
+
+// Open the form to edit an existing question.
+const openEditForm = async (question) => {
+    clearMessages();
+    selectedQuestion.value = question;
+    showQuestionForm.value = true;
+
+    await nextTick();
+    questionDialog.value?.open();
+};
+
+// Close the create/edit dialog.
+const closeQuestionForm = () => {
+    questionDialog.value?.close();
+};
+
+// Handle the dialog closing, including when Escape is pressed.
+const handleQuestionDialogClose = () => {
+    showQuestionForm.value = false;
+    selectedQuestion.value = null;
+};
+
+// Refresh the question table after a successful operation.
+const refreshQuestions = async () => {
+    await questionTable.value?.refreshQuestions();
+};
+
+// Save a new question or update an existing question.
+const saveQuestion = async (questionData) => {
+    saving.value = true;
+    clearMessages();
+
+    try {
+        if (selectedQuestion.value) {
+            await updateQuestion(selectedQuestion.value.questionID, questionData);
+
+            closeQuestionForm();
+            await refreshQuestions();
+
+            showSuccess('Question updated successfully.');
+        } else {
+            await createQuestion(questionData);
+
+            closeQuestionForm();
+            await refreshQuestions();
+
+            showSuccess('Question created successfully.');
+        }
+    } catch (error) {
+        showError(error.response?.data?.error ?? 'Unable to save the question. Please try again.');
+    } finally {
+        saving.value = false;
+    }
+};
+
+// Open the delete confirmation dialog.
+const openDeleteConfirmation = async (question) => {
+    clearMessages();
+    questionToDelete.value = question;
+    showDeleteConfirmation.value = true;
+
+    await nextTick();
+    deleteDialog.value?.open();
+};
+
+// Close the delete confirmation dialog.
+const closeDeleteConfirmation = () => {
+    deleteDialog.value?.close();
+};
+
+// Handle the delete dialog closing, including Escape.
+const handleDeleteDialogClose = () => {
+    showDeleteConfirmation.value = false;
+    questionToDelete.value = null;
+};
+
+// Delete the selected question after confirmation.
+const confirmDelete = async () => {
+    if (!questionToDelete.value) {
+        return;
+    }
+
+    saving.value = true;
+    clearMessages();
+
+    try {
+        await deleteQuestion(questionToDelete.value.questionID);
+
+        closeDeleteConfirmation();
+        await refreshQuestions();
+
+        showSuccess('Question deleted successfully.');
+    } catch (error) {
+        showError(error.response?.data?.error ?? 'Unable to delete the question. Please try again.');
+    } finally {
+        saving.value = false;
+    }
+};
+
+// Clear any outstanding timeout when leaving the page.
+onBeforeUnmount(() => {
+    if (messageTimeout) {
+        clearTimeout(messageTimeout);
+    }
+});
 </script>
 
 <template>
     <main class="questionManagement">
-        <!-- Page heading and short description. -->
         <div class="pageHeading">
             <div>
                 <h1>Question Management</h1>
@@ -33,14 +209,26 @@ const searchQuestions = () => {
             </div>
         </div>
 
-        <!-- Toolbar containing the subject filter and search input. -->
+        <!-- Temporary success notification. -->
+        <div v-if="successMessage" class="toastMessage successMessage" role="status" aria-live="polite">
+            <span aria-hidden="true">✓</span>
+            {{ successMessage }}
+        </div>
+
+        <!-- Temporary error notification. -->
+        <div v-if="errorMessage" class="toastMessage errorMessage" role="alert" aria-live="assertive">
+            <span aria-hidden="true">!</span>
+            {{ errorMessage }}
+        </div>
+
+        <!-- Subject filter and search. -->
         <div class="tableToolbar">
             <label class="subjectFilter">
                 <span class="visuallyHidden">Filter questions by subject</span>
 
-                <!-- Populate the dropdown from the subjects returned by the table. -->
                 <select v-model="subjectFilter" @change="filterBySubject">
                     <option value="">All subjects</option>
+
                     <option v-for="subject in subjects" :key="subject" :value="subject">
                         {{ subject }}
                     </option>
@@ -50,28 +238,75 @@ const searchQuestions = () => {
             <label class="questionSearch">
                 <span class="visuallyHidden">Search questions</span>
 
-                <!-- Search the table as the user types. -->
                 <input v-model="searchTerm" type="search" placeholder="Search questions..." @input="searchQuestions" />
             </label>
         </div>
 
-        <!-- Display the questions table, including its pagination controls. -->
+        <!-- Questions table. -->
         <div class="tableSection">
-            <QuestionManagementTable ref="questionTable" />
+            <QuestionManagementTable
+                ref="questionTable"
+                @editQuestion="openEditForm"
+                @deleteQuestion="openDeleteConfirmation"
+            />
 
-            <!-- Align the create button below the table, on the right. -->
             <div class="tableFooter">
-                <button type="button" class="primaryButton">
+                <button type="button" class="primaryButton" @click="openCreateForm">
                     <span aria-hidden="true">＋</span>
                     Create New Question
                 </button>
             </div>
         </div>
+
+        <!-- Create/Edit question dialog. -->
+        <PopupDialog
+            v-if="showQuestionForm"
+            ref="questionDialog"
+            :title="selectedQuestion ? 'Edit Question' : 'Create Question'"
+            @close="handleQuestionDialogClose"
+        >
+            <QuestionForm
+                :subjects="formSubjects"
+                :question="selectedQuestion"
+                :loading="saving"
+                @save="saveQuestion"
+                @cancel="closeQuestionForm"
+            />
+        </PopupDialog>
+
+        <!-- Delete confirmation dialog. -->
+        <PopupDialog
+            v-if="showDeleteConfirmation"
+            ref="deleteDialog"
+            title="Confirm Delete"
+            @close="handleDeleteDialogClose"
+        >
+            <div class="deleteModal">
+                <h2>Are you sure?</h2>
+
+                <p>Are you sure you want to delete this question? This action cannot be undone.</p>
+
+                <div class="questionToDelete">
+                    {{ questionToDelete?.question }}
+                </div>
+            </div>
+
+            <template #buttons>
+                <div class="modalActions">
+                    <button type="button" class="cancelButton" :disabled="saving" @click="closeDeleteConfirmation">
+                        Cancel
+                    </button>
+
+                    <button type="button" class="deleteConfirmButton" :disabled="saving" @click="confirmDelete">
+                        {{ saving ? 'Deleting...' : 'Confirm Delete' }}
+                    </button>
+                </div>
+            </template>
+        </PopupDialog>
     </main>
 </template>
 
 <style scoped>
-/* Centre the page and apply the shared application typography and spacing. */
 .questionManagement {
     width: 100%;
     max-width: var(--contentMaxWidth);
@@ -82,7 +317,6 @@ const searchQuestions = () => {
     font-family: var(--fontBody);
 }
 
-/* Position the page title and description consistently with other management pages. */
 .pageHeading {
     display: flex;
     align-items: center;
@@ -91,7 +325,6 @@ const searchQuestions = () => {
     margin-bottom: var(--space2xl);
 }
 
-/* Apply the shared heading font and brand colour. */
 .pageHeading h1 {
     margin: 0;
     color: var(--colorBrand);
@@ -99,14 +332,41 @@ const searchQuestions = () => {
     font-size: var(--fontSizeH1);
 }
 
-/* Style the supporting description beneath the page heading. */
 .pageHeading p {
     margin: var(--spaceXs) 0 0;
     color: var(--colorTextSecondary);
     font-size: var(--fontSizeSmall);
 }
 
-/* Place the subject filter and search input on the same row. */
+/* Temporary notifications. */
+.toastMessage {
+    position: fixed;
+    z-index: 1100;
+    top: var(--spaceLg);
+    right: var(--spaceLg);
+    display: flex;
+    align-items: center;
+    gap: var(--spaceSm);
+    width: max-content;
+    max-width: min(450px, calc(100vw - 2 * var(--spaceLg)));
+    padding: var(--spaceMd) var(--spaceLg);
+    border: 2px solid var(--colorPrimary);
+    border-radius: var(--radiusSm);
+    background: var(--colorSurface);
+    color: var(--colorText);
+    font-weight: 600;
+}
+
+.successMessage {
+    border-color: var(--colorPrimary);
+}
+
+.errorMessage {
+    border-color: var(--colorError);
+    color: var(--colorError);
+}
+
+/* Table toolbar. */
 .tableToolbar {
     display: flex;
     align-items: center;
@@ -115,25 +375,21 @@ const searchQuestions = () => {
     margin-bottom: var(--spaceMd);
 }
 
-/* Allow both toolbar controls to shrink within the available space. */
 .subjectFilter,
 .questionSearch {
     flex: 1;
     min-width: 0;
 }
 
-/* Keep the subject dropdown wider than the search input. */
 .subjectFilter {
     max-width: 405px;
 }
 
-/* Align the search box to the right and limit its width. */
 .questionSearch {
     max-width: 320px;
     margin-left: auto;
 }
 
-/* Use consistent sizing, borders and typography for both toolbar controls. */
 .tableToolbar input,
 .tableToolbar select {
     width: 100%;
@@ -147,20 +403,17 @@ const searchQuestions = () => {
     font: inherit;
 }
 
-/* Keep the table section within the available page width. */
 .tableSection {
     width: 100%;
     min-width: 0;
 }
 
-/* Align the create button beneath the table to the right. */
 .tableFooter {
     display: flex;
     justify-content: flex-end;
     margin-top: var(--spaceMd);
 }
 
-/* Apply the shared primary button styling. */
 .primaryButton {
     min-height: 44px;
     padding: var(--spaceSm) var(--spaceMd);
@@ -173,12 +426,73 @@ const searchQuestions = () => {
     cursor: pointer;
 }
 
-/* Provide visual feedback when the primary button is hovered over. */
 .primaryButton:hover {
     background: var(--colorPrimaryHover);
 }
 
-/* Make keyboard focus visible on interactive controls. */
+/* Delete confirmation content. */
+.deleteModal h2 {
+    margin-top: 0;
+    font-family: var(--fontHeading);
+    color: var(--colorBrand);
+}
+
+.deleteModal > p {
+    color: var(--colorTextSecondary);
+    line-height: 1.5;
+}
+
+.questionToDelete {
+    margin: var(--spaceMd) 0;
+    padding: var(--spaceLg);
+    border: 1px solid var(--colorBorder);
+    border-radius: var(--radiusSm);
+    background: var(--colorSurface);
+    color: var(--colorText);
+    font-size: var(--fontSizeH3);
+    font-weight: 600;
+    line-height: 1.5;
+}
+
+.modalActions {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--spaceSm);
+    width: 100%;
+}
+
+.modalActions button {
+    min-height: 40px;
+    padding: var(--spaceSm) var(--spaceMd);
+    border-radius: var(--radiusSm);
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.cancelButton {
+    border: 1px solid var(--colorBorderInput);
+    background: var(--colorSurface);
+    color: var(--colorTextSecondary);
+}
+
+.cancelButton:hover:not(:disabled) {
+    background: var(--colorBorderInput);
+    border-color: var(--colorBorderInput);
+    color: var(--colorText);
+}
+
+.deleteConfirmButton {
+    border: 1px solid var(--colorError);
+    background: var(--colorError);
+    color: var(--colorSurface);
+}
+
+.deleteConfirmButton:hover:not(:disabled) {
+    filter: brightness(0.9);
+}
+
+/* Keyboard focus indicators. */
 button:focus-visible,
 input:focus-visible,
 select:focus-visible {
@@ -186,7 +500,11 @@ select:focus-visible {
     outline-offset: 2px;
 }
 
-/* Hide labels visually while keeping them available to assistive technology. */
+.modalActions button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
 .visuallyHidden {
     position: absolute;
     width: 1px;
@@ -198,7 +516,6 @@ select:focus-visible {
     border: 0;
 }
 
-/* Stack the toolbar controls on smaller screens for easier use. */
 @media (max-width: 639px) {
     .questionManagement {
         padding: var(--spaceLg) var(--spaceMd);
@@ -216,15 +533,26 @@ select:focus-visible {
         gap: var(--spaceMd);
     }
 
-    /* Allow both controls to use the full available width on mobile. */
     .subjectFilter,
     .questionSearch {
         max-width: none;
     }
 
-    /* Make the create button easier to tap on smaller screens. */
     .tableFooter .primaryButton {
         width: 100%;
+    }
+
+    .modalActions {
+        flex-direction: column-reverse;
+    }
+
+    .modalActions button {
+        width: 100%;
+    }
+
+    .toastMessage {
+        top: var(--spaceMd);
+        right: var(--spaceMd);
     }
 }
 </style>

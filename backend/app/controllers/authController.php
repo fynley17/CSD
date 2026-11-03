@@ -79,7 +79,11 @@ class AuthController extends Controller
             $user->saveLoginAttempts();
 
             // these only get checked once the password is right, a stranger never sees them
-            // an unverified email comes first, the page sends them to check your email to resend or fix it
+            // disabled comes first, so a disabled account can't get to the check your email page
+            if ($user->isDisabled()) {
+                $this->jsonResponse(['error' => self::ACCOUNT_DISABLED], 403);
+            }
+            // then an unverified email, the page sends them to check your email to resend or fix it
             if (!$user->isEmailVerified()) {
                 $this->authentication->savePendingVerification($user->getUserID());
                 $this->jsonResponse(['error' => self::EMAIL_NOT_VERIFIED, 'emailNotVerified' => true], 403);

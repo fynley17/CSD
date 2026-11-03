@@ -1,10 +1,6 @@
 <script>
-// shared pop-up (house style section 5), uses the browser's own <dialog> tag
-// showModal() keeps the keyboard inside it and Esc closes it, so there's no extra code for that
-// whichever page uses it puts its own message and buttons in, e.g. <PopupDialog title="Account locked">
 export default {
     props: {
-        // goes top left, and it's what a screen reader says when it opens
         title: {
             type: String,
             required: true,
@@ -12,16 +8,9 @@ export default {
     },
     emits: ['close'],
     methods: {
-        /**
-         * Opens it on top of the page, everything behind goes dark
-         */
         open() {
             this.$refs.dialog.showModal();
         },
-
-        /**
-         * Closes it, used by the X and any button the page adds
-         */
         close() {
             this.$refs.dialog.close();
         },
@@ -30,7 +19,6 @@ export default {
 </script>
 
 <template>
-    <!-- close fires however it gets shut (X, Esc or a button), so the page only has to listen for that -->
     <dialog ref="dialog" class="popupDialog" :aria-label="title" @close="$emit('close')">
         <div class="popupHeader d-flex justify-content-between align-items-center">
             <h2 class="popupTitle mb-0">{{ title }}</h2>
@@ -49,3 +37,54 @@ export default {
         </div>
     </dialog>
 </template>
+
+<style scoped>
+/* only while open, a display on .popupDialog would override the browser hiding the closed dialog */
+.popupDialog[open] {
+    display: flex;
+    flex-direction: column;
+}
+
+.popupDialog {
+    width: min(650px, calc(100vw - 32px));
+    max-width: 650px;
+    max-height: calc(100vh - 40px);
+    max-height: calc(100dvh - 40px);
+    margin: auto;
+    padding: 0;
+    box-sizing: border-box;
+    overflow: hidden;
+    border: none;
+    border-radius: var(--radiusMd);
+    background: var(--colorSurface);
+    color: var(--colorText);
+}
+
+.popupHeader {
+    flex: 0 0 auto;
+}
+
+.popupBody {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+
+.popupFooter {
+    flex: 0 0 auto;
+}
+
+.popupDialog::backdrop {
+    background: var(--colorText);
+    opacity: 0.72;
+    backdrop-filter: blur(4px);
+}
+
+@media (max-width: 639px) {
+    .popupDialog {
+        width: calc(100vw - 24px);
+        max-height: calc(100dvh - 24px);
+    }
+}
+</style>
