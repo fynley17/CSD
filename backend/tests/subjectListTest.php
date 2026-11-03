@@ -24,7 +24,7 @@ final class SubjectListTest extends TestCase
         $this->db->exec('CREATE TABLE Cohorts (cohortID TEXT PRIMARY KEY, cohortName TEXT NOT NULL)');
         $this->db->exec(
             'CREATE TABLE Subjects (subjectID TEXT PRIMARY KEY, subjectName TEXT NOT NULL, '
-            . 'cohortID TEXT NOT NULL, isActive INTEGER NOT NULL)'
+            . 'cohortID TEXT, isActive INTEGER NOT NULL)'
         );
         $this->db->exec('CREATE TABLE Tests (testID TEXT PRIMARY KEY, subjectID TEXT NOT NULL)');
         $this->db->exec(
@@ -121,6 +121,23 @@ final class SubjectListTest extends TestCase
 
         // Assert
         $this->assertNull($subjects[0]['lecturerNames']);
+    }
+
+    /**
+     * A subject with no cohort is still listed, with no cohort name (edge)
+     */
+    public function testListsASubjectWithNoCohort(): void
+    {
+        // Arrange
+        $this->addSubject('subject-1', 'Test Databases', 1, 0);
+        $this->db->exec("UPDATE Subjects SET cohortID = NULL WHERE subjectID = 'subject-1'");
+
+        // Act
+        $subjects = Subject::getAll();
+
+        // Assert
+        $this->assertCount(1, $subjects);
+        $this->assertNull($subjects[0]['cohortName']);
     }
 
     /**
