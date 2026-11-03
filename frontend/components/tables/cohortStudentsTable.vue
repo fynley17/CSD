@@ -1,4 +1,4 @@
-<!-- Students in each cohort. Edit, Disable, Enable and Delete are connected to PHP, the student buttons aren't yet -->
+<!-- Students in each cohort, the page shows the pop-ups for its action buttons -->
 <template>
     <CohortExpandableTable :cohorts="cohorts" label="Students in each cohort" :columnCount="7">
         <template #headings>
@@ -60,6 +60,7 @@
                         type="button"
                         class="cohortPrimaryButton"
                         :aria-label="`Add students to ${cohort.cohortName}`"
+                        @click="emit('addStudents', cohort)"
                     >
                         <span aria-hidden="true">+</span> Add students
                     </button>
@@ -99,8 +100,9 @@
                                 <td>
                                     <button
                                         type="button"
-                                        class="cohortActionButton"
+                                        class="btn btn-sm tableActionButton tableDeleteButton"
                                         :aria-label="`Remove from cohort: ${student.name}`"
+                                        @click="emit('moveStudent', cohort, student)"
                                     >
                                         Remove from cohort
                                     </button>
@@ -140,7 +142,7 @@ defineProps({
     },
 });
 
-const emit = defineEmits(['edit', 'toggleStatus', 'delete']);
+const emit = defineEmits(['edit', 'toggleStatus', 'delete', 'addStudents', 'moveStudent']);
 
 const showAllCohortIDs = ref(new Set());
 

@@ -9,7 +9,9 @@ import {
     createCohort,
     deleteCohort,
     getCohorts,
+    getStudentsOutsideCohort,
     getUnassignedSubjects,
+    moveStudents,
     removeSubject,
     setCohortActive,
     updateCohort,
@@ -26,6 +28,8 @@ vi.mock('../services/cohortService', () => ({
     deleteCohort: vi.fn(),
     createCohort: vi.fn(),
     updateCohort: vi.fn(),
+    getStudentsOutsideCohort: vi.fn(),
+    moveStudents: vi.fn(),
 }));
 
 /**
@@ -1341,5 +1345,597 @@ describe('CohortManagement', () => {
         // Assert
         expect(markedAfterRefusal).toBe('true');
         expect(cohortForm(page).name.attributes('aria-invalid')).toBeUndefined();
+    });
+
+    /**
+     * Opens a cohort's students and the add students pop-up, DTS 2026 is the first cohort
+     */
+    async function openAddStudentsDialog() {
+        getStudentsOutsideCohort.mockResolvedValue([
+            { studentNumber: 'ws382590', name: 'Liam Evans', currentCohort: 'BSc Computing 2025' },
+            { studentNumber: 'ws382602', name: 'Grace Okafor', currentCohort: 'DTS 2025' },
+        ]);
+        const page = await openPage();
+        await page.findAll('.cohortTable')[0].get('[aria-label="Show details for DTS 2026"]').trigger('click');
+        await findButton(page, 'Add students to DTS 2026').trigger('click');
+        await flushPromises();
+
+        return page;
+    }
+
+    async function openMoveDialog() {
+        const page = await openPage();
+        await page.findAll('.cohortTable')[0].get('[aria-label="Show details for DTS 2026"]').trigger('click');
+        await findButton(page, 'Remove from cohort: Joe Bloggs').trigger('click');
+
+        return page;
+    }
+
+    /**
+     * PHP's reply after moving students, the student has left DTS 2026 and joined DTS 2025
+     */
+    function cohortsAfterMove() {
+        const cohorts = structuredClone(sampleCohorts);
+        const student = cohorts[0].students.shift();
+        cohorts.find((cohort) => cohort.cohortName === 'DTS 2025').students.push(student);
+
+        return cohorts;
+    }
+
+    /**
+     * The pop-up lists students with their current cohort and the note about moving (normal)
+     */
+    it('lists students in other cohorts in the add pop-up', async () => {
+        // Arrange and Act
+        const page = await openAddStudentsDialog();
+
+        // Assert
+        expect(getStudentsOutsideCohort).toHaveBeenCalledWith('cohort-1');
+        expect(page.get('.popupTitle').text()).toBe('Add Students to DTS 2026');
+        expect(page.get('.cohortDialogTable tbody tr').text()).toContain('BSc Computing 2025');
+        expect(page.get('.popupBody').text()).toContain('A student can only be in one cohort');
+    });
+
+    /**
+     * Search works on both the name and the student number (normal)
+     */
+    it('searches by name or student number', async () => {
+        // Arrange
+        const page = await openAddStudentsDialog();
+        const options = () => page.findAll('.cohortDialogOption').map((option) => option.text());
+
+        // Act
+        await page.get('.cohortDialogSearch').setValue('GRACE');
+        const byName = options();
+        await page.get('.cohortDialogSearch').setValue('382590');
+        const byNumber = options();
+
+        // Assert
+        expect(byName).toEqual(['Grace Okafor ws382602']);
+        expect(byNumber).toEqual(['Liam Evans ws382590']);
+    });
+
+    /**
+     * The button counts what's chosen, and only says Student for one (boundary)
+     */
+    it('counts the chosen students on the add button', async () => {
+        // Arrange
+        const page = await openAddStudentsDialog();
+        const options = page.findAll('.cohortDialogOption input');
+        const addButton = page.get('.cohortDialogButtons .cohortPrimaryButton');
+        const labelWithNone = addButton.text();
+        const disabledWithNone = addButton.attributes('disabled');
+
+        // Act
+        await options[0].setValue(true);
+        const labelWithOne = addButton.text();
+        await options[1].setValue(true);
+
+        // Assert
+        expect(labelWithNone).toBe('Add Students');
+        expect(disabledWithNone).toBeDefined();
+        expect(labelWithOne).toBe('Add 1 Student');
+        expect(addButton.text()).toBe('Add 2 Students');
+    });
+
+    /**
+     * Adding saves the chosen students and updates the cohorts they moved between (normal)
+     */
+    it('adds the chosen students and updates both cohorts', async () => {
+        // Arrange
+        const cohortsWithNewStudent = structuredClone(sampleCohorts);
+        cohortsWithNewStudent[0].students.push({
+            studentNumber: 'ws382590',
+            name: 'Liam Evans',
+            email: 'a@b.c',
+            lastLogin: null,
+            status: 'Active',
+        });
+        cohortsWithNewStudent[1].students.pop();
+        moveStudents.mockResolvedValue(cohortsWithNewStudent);
+        const page = await openAddStudentsDialog();
+        await page.findAll('.cohortDialogOption input')[0].setValue(true);
+
+        // Act
+        await page.get('.cohortDialogButtons .cohortPrimaryButton').trigger('click');
+        await flushPromises();
+
+        // Assert
+        expect(moveStudents).toHaveBeenCalledWith('cohort-1', ['ws382590']);
+        expect(page.find('.popupDialog').exists()).toBe(false);
+        expect(page.get('.cohortDetails h3').text()).toContain(`(${cohortsWithNewStudent[0].students.length})`);
+    });
+
+    /**
+     * Moving students keeps the table on the same page (boundary)
+     */
+    it('stays on the same page after moving a student', async () => {
+        // Arrange
+        moveStudents.mockResolvedValue(cohortsAfterMove());
+        const page = await openMoveDialog();
+        await page.get('#newCohort').setValue('cohort-5');
+        const summary = page.findAll('.cohortPagingSummary')[0].text();
+
+        // Act
+        await page.get('#moveStudentForm').trigger('submit');
+        await flushPromises();
+
+        // Assert
+        expect(page.findAll('.cohortPagingSummary')[0].text()).toBe(summary);
+    });
+
+    /**
+     * The pop-up stays open and shows the problem if adding fails (error)
+     */
+    it('shows a problem when adding students fails', async () => {
+        // Arrange
+        moveStudents.mockRejectedValue({ response: { data: { error: 'Reload the page and try again' } } });
+        const page = await openAddStudentsDialog();
+        await page.findAll('.cohortDialogOption input')[0].setValue(true);
+
+        // Act
+        await page.get('.cohortDialogButtons .cohortPrimaryButton').trigger('click');
+        await flushPromises();
+
+        // Assert
+        expect(page.get('.popupDialog [role="alert"]').text()).toContain('Reload the page and try again');
+    });
+
+    /**
+     * A problem loading the students shows in the pop-up (error)
+     */
+    it('shows a problem when the students cannot load', async () => {
+        // Arrange
+        const page = await openPage();
+        getStudentsOutsideCohort.mockRejectedValue(new Error('Network Error'));
+        await page.findAll('.cohortTable')[0].get('[aria-label="Show details for DTS 2026"]').trigger('click');
+
+        // Act
+        await findButton(page, 'Add students to DTS 2026').trigger('click');
+        await flushPromises();
+
+        // Assert
+        expect(page.get('.popupDialog [role="alert"]').text()).toContain('Unable to load the students');
+    });
+
+    /**
+     * Nobody to add says so, instead of an empty table (boundary)
+     */
+    it('says when there are no students to add', async () => {
+        // Arrange
+        const page = await openPage();
+        getStudentsOutsideCohort.mockResolvedValue([]);
+        await page.findAll('.cohortTable')[0].get('[aria-label="Show details for DTS 2026"]').trigger('click');
+
+        // Act
+        await findButton(page, 'Add students to DTS 2026').trigger('click');
+        await flushPromises();
+
+        // Assert
+        expect(page.get('.popupBody').text()).toContain('There are no students in other cohorts to add');
+    });
+
+    /**
+     * Adding to a disabled cohort warns that the students will be locked out (edge)
+     */
+    it('warns when adding students to a disabled cohort', async () => {
+        // Arrange
+        getStudentsOutsideCohort.mockResolvedValue([
+            { studentNumber: 'ws382590', name: 'Liam Evans', currentCohort: 'DTS 2026' },
+        ]);
+        const page = await openPage();
+        await page.findAll('select')[0].setValue('disabled');
+        await page
+            .findAll('.cohortTable')[0]
+            .get('[aria-label="Show details for Software Engineering 2024"]')
+            .trigger('click');
+
+        // Act
+        await findButton(page, 'Add students to Software Engineering 2024').trigger('click');
+        await flushPromises();
+
+        // Assert
+        expect(page.get('.popupBody').text()).toContain("won't be able to log in");
+    });
+
+    /**
+     * The remove pop-up names the student and offers every other cohort (normal)
+     */
+    it('asks where the student moves to', async () => {
+        // Arrange and Act
+        const page = await openMoveDialog();
+
+        // Assert
+        expect(page.get('.popupTitle').text()).toBe('Remove from Cohort');
+        expect(page.get('.cohortDialogStudent').text()).toBe('Joe Bloggs (WS382544)');
+        const choices = page.findAll('#newCohort option').map((option) => option.text());
+        expect(choices).toContain('Select a cohort');
+        expect(choices).toContain('DTS 2025');
+        expect(choices).toContain('DTS 2024 (disabled)');
+        expect(choices).not.toContain('DTS 2026');
+    });
+
+    /**
+     * Every student needs a cohort, so nothing happens without one chosen (error)
+     */
+    it('needs a new cohort before moving', async () => {
+        // Arrange
+        const page = await openMoveDialog();
+
+        // Act
+        await page.get('#moveStudentForm').trigger('submit');
+        await flushPromises();
+
+        // Assert
+        expect(moveStudents).not.toHaveBeenCalled();
+        expect(page.get('.popupDialog [role="alert"]').text()).toContain('Select a cohort to move this student to');
+    });
+
+    /**
+     * Moving sends the student to the new cohort and updates both cohorts on the page (normal)
+     */
+    it('moves the student to the chosen cohort', async () => {
+        // Arrange
+        moveStudents.mockResolvedValue(cohortsAfterMove());
+        const page = await openMoveDialog();
+        await page.get('#newCohort').setValue('cohort-5');
+
+        // Act
+        await page.get('#moveStudentForm').trigger('submit');
+        await flushPromises();
+
+        // Assert
+        expect(moveStudents).toHaveBeenCalledWith('cohort-5', ['WS382544']);
+        expect(page.find('.popupDialog').exists()).toBe(false);
+        expect(page.get('.cohortDetailsTable').text()).not.toContain('Joe Bloggs');
+    });
+
+    /**
+     * Cancel leaves the student where they are (edge)
+     */
+    it('leaves the student in place when cancelled', async () => {
+        // Arrange
+        const page = await openMoveDialog();
+
+        // Act
+        await page.get('.cohortDialogButtons .cohortSecondaryButton').trigger('click');
+
+        // Assert
+        expect(moveStudents).not.toHaveBeenCalled();
+        expect(page.find('.popupDialog').exists()).toBe(false);
+        expect(page.get('.cohortDetailsTable').text()).toContain('Joe Bloggs');
+    });
+
+    /**
+     * Choosing a disabled cohort warns that the student will be locked out (edge)
+     */
+    it('warns when moving a student to a disabled cohort', async () => {
+        // Arrange
+        const page = await openMoveDialog();
+
+        // Act
+        await page.get('#newCohort').setValue('cohort-8');
+
+        // Assert
+        expect(page.get('.popupBody').text()).toContain("won't be able to log in");
+    });
+
+    /**
+     * With only one cohort there's nowhere to move to, so the button can't be used (boundary)
+     */
+    it('stops the move when there are no other cohorts', async () => {
+        // Arrange
+        getCohorts.mockResolvedValue(structuredClone(sampleCohorts).slice(0, 1));
+
+        // Act
+        const page = await openMoveDialog();
+
+        // Assert
+        expect(page.get('.popupBody').text()).toContain('There are no other cohorts');
+        expect(page.get('.cohortDialogButtons .cohortPrimaryButton').attributes('disabled')).toBeDefined();
+    });
+
+    /**
+     * The pop-up stays open and the student stays listed if moving fails (error)
+     */
+    it('shows a problem when moving fails', async () => {
+        // Arrange
+        moveStudents.mockRejectedValue(new Error('Network Error'));
+        const page = await openMoveDialog();
+        await page.get('#newCohort').setValue('cohort-5');
+
+        // Act
+        await page.get('#moveStudentForm').trigger('submit');
+        await flushPromises();
+
+        // Assert
+        expect(page.get('.popupDialog [role="alert"]').text()).toContain('Unable to move Joe Bloggs');
+        expect(page.get('.cohortDetailsTable').text()).toContain('Joe Bloggs');
+    });
+
+    /**
+     * The remove buttons have the same look as the rest of the site (normal)
+     */
+    it('styles the remove buttons like the rest of the site', async () => {
+        // Arrange
+        const page = await openPage();
+
+        // Act
+        await page.findAll('.cohortTable')[0].get('[aria-label="Show details for DTS 2026"]').trigger('click');
+        await page.findAll('.cohortTable')[1].get('[aria-label="Show details for DTS 2026"]').trigger('click');
+
+        // Assert
+        expect(findButton(page, 'Remove from cohort: Joe Bloggs').classes()).toContain('tableDeleteButton');
+        expect(findButton(page, 'Remove from cohort: Web Applications').classes()).toContain('tableDeleteButton');
+    });
+
+    /**
+     * Searching narrows the list without losing who's already chosen (edge)
+     */
+    it('keeps a chosen student when a search hides them', async () => {
+        // Arrange
+        const page = await openAddStudentsDialog();
+        await page.findAll('.cohortDialogOption input')[0].setValue(true);
+
+        // Act
+        await page.get('.cohortDialogSearch').setValue('grace');
+
+        // Assert
+        expect(page.findAll('.cohortDialogOption').map((option) => option.text())).toEqual(['Grace Okafor ws382602']);
+        expect(page.get('.cohortDialogButtons .cohortPrimaryButton').text()).toBe('Add 1 Student');
+    });
+
+    /**
+     * A search with no match says so, rather than showing an empty table (edge)
+     */
+    it('says when no student matches the search', async () => {
+        // Arrange
+        const page = await openAddStudentsDialog();
+
+        // Act
+        await page.get('.cohortDialogSearch').setValue('zzz');
+
+        // Assert
+        expect(page.get('.cohortDialogTable tbody').text()).toBe('No students match your search');
+    });
+
+    /**
+     * Cancel closes the add pop-up without moving anyone (edge)
+     */
+    it('moves nobody when adding is cancelled', async () => {
+        // Arrange
+        const page = await openAddStudentsDialog();
+        await page.findAll('.cohortDialogOption input')[0].setValue(true);
+
+        // Act
+        await page.get('.cohortDialogButtons .cohortSecondaryButton').trigger('click');
+
+        // Assert
+        expect(moveStudents).not.toHaveBeenCalled();
+        expect(page.find('.popupDialog').exists()).toBe(false);
+    });
+
+    /**
+     * An active cohort has no lock out warning (boundary)
+     */
+    it('does not warn when adding students to an active cohort', async () => {
+        // Arrange and Act
+        const page = await openAddStudentsDialog();
+
+        // Assert
+        expect(page.get('.popupBody').text()).not.toContain("won't be able to log in");
+    });
+
+    /**
+     * Saving twice before PHP replies is stopped, as the buttons are disabled while saving (edge)
+     */
+    it('disables the add buttons while saving', async () => {
+        // Arrange
+        moveStudents.mockReturnValue(new Promise(() => {}));
+        const page = await openAddStudentsDialog();
+        await page.findAll('.cohortDialogOption input')[0].setValue(true);
+
+        // Act
+        await page.get('.cohortDialogButtons .cohortPrimaryButton').trigger('click');
+        await flushPromises();
+
+        // Assert
+        expect(page.get('.cohortDialogButtons .cohortPrimaryButton').attributes('disabled')).toBeDefined();
+        expect(page.get('.cohortDialogButtons .cohortSecondaryButton').attributes('disabled')).toBeDefined();
+    });
+
+    /**
+     * The warning goes when an active cohort is chosen instead (boundary)
+     */
+    it('only warns while a disabled cohort is chosen', async () => {
+        // Arrange
+        const page = await openMoveDialog();
+        await page.get('#newCohort').setValue('cohort-8');
+        const warnedForDisabled = page.get('.popupBody').text().includes("won't be able to log in");
+
+        // Act
+        await page.get('#newCohort').setValue('cohort-5');
+
+        // Assert
+        expect(warnedForDisabled).toBe(true);
+        expect(page.get('.popupBody').text()).not.toContain("won't be able to log in");
+    });
+
+    /**
+     * The problem is linked to the box, so screen readers hear it with the field (normal)
+     */
+    it('links the problem to the new cohort box', async () => {
+        // Arrange
+        const page = await openMoveDialog();
+
+        // Act
+        await page.get('#moveStudentForm').trigger('submit');
+        await flushPromises();
+
+        // Assert
+        expect(page.get('#newCohort').attributes('aria-invalid')).toBe('true');
+        expect(page.get('#newCohort').attributes('aria-describedby')).toBe('moveStudentError');
+        expect(page.find('#moveStudentError').exists()).toBe(true);
+    });
+
+    /**
+     * Choosing a cohort and saving again clears the old problem (edge)
+     */
+    it('clears the problem once a cohort is chosen and saved', async () => {
+        // Arrange
+        moveStudents.mockResolvedValue(cohortsAfterMove());
+        const page = await openMoveDialog();
+        await page.get('#moveStudentForm').trigger('submit');
+        await flushPromises();
+        await page.get('#newCohort').setValue('cohort-5');
+
+        // Act
+        await page.get('#moveStudentForm').trigger('submit');
+        await flushPromises();
+
+        // Assert
+        expect(page.find('[role="alert"]').exists()).toBe(false);
+        expect(page.find('.popupDialog').exists()).toBe(false);
+    });
+
+    /**
+     * The save button is a real submit button, so pressing Enter works too (normal)
+     */
+    it('connects the remove and move button to the form', async () => {
+        // Arrange and Act
+        const page = await openMoveDialog();
+
+        // Assert
+        const moveButton = page.get('.cohortDialogButtons .cohortPrimaryButton');
+        expect(moveButton.text()).toBe('Remove and Move');
+        expect(moveButton.attributes('type')).toBe('submit');
+        expect(moveButton.attributes('form')).toBe('moveStudentForm');
+    });
+
+    /**
+     * A cohort created this visit can be chosen straight away (edge)
+     */
+    it('offers a newly created cohort as somewhere to move to', async () => {
+        // Arrange
+        createCohort.mockResolvedValue({
+            cohortID: 'cohort-new',
+            cohortName: 'New Cohort',
+            createdDate: '2026-11-03',
+            isActive: true,
+            students: [],
+            subjects: [],
+        });
+        const page = await openPage();
+        await page.get('.cohortCreateButton').trigger('click');
+        await page.get('#cohortName').setValue('New Cohort');
+        await page.get('#cohortForm').trigger('submit');
+        await flushPromises();
+        await page.findAll('.cohortTable')[0].get('[aria-label="Show details for DTS 2026"]').trigger('click');
+
+        // Act
+        await findButton(page, 'Remove from cohort: Joe Bloggs').trigger('click');
+
+        // Assert
+        expect(page.findAll('#newCohort option').map((option) => option.text())).toContain('New Cohort');
+    });
+
+    /**
+     * A lost connection isn't the cohort's fault, so the box isn't marked as wrong (error)
+     */
+    it('does not mark the new cohort as wrong when the connection fails', async () => {
+        // Arrange
+        moveStudents.mockRejectedValue(new Error('Network Error'));
+        const page = await openMoveDialog();
+        await page.get('#newCohort').setValue('cohort-5');
+
+        // Act
+        await page.get('#moveStudentForm').trigger('submit');
+        await flushPromises();
+
+        // Assert
+        expect(page.get('.popupDialog [role="alert"]').text()).toContain('Unable to move Joe Bloggs');
+        expect(page.get('#newCohort').attributes('aria-invalid')).toBeUndefined();
+        expect(page.get('#newCohort').attributes('aria-describedby')).toBeUndefined();
+    });
+
+    /**
+     * A student someone else has already moved is about the student, not the cohort chosen (error)
+     */
+    it('does not mark the new cohort as wrong when the student can no longer be moved', async () => {
+        // Arrange
+        moveStudents.mockRejectedValue({
+            response: { status: 400, data: { error: 'One of these students can no longer be moved here' } },
+        });
+        const page = await openMoveDialog();
+        await page.get('#newCohort').setValue('cohort-5');
+
+        // Act
+        await page.get('#moveStudentForm').trigger('submit');
+        await flushPromises();
+
+        // Assert
+        expect(page.get('.popupDialog [role="alert"]').text()).toContain('can no longer be moved here');
+        expect(page.get('#newCohort').attributes('aria-invalid')).toBeUndefined();
+    });
+
+    /**
+     * A cohort deleted since the page loaded is the chosen cohort's problem, so the box is marked (normal)
+     */
+    it('marks the new cohort as wrong when it no longer exists', async () => {
+        // Arrange
+        moveStudents.mockRejectedValue({
+            response: { status: 404, data: { error: 'Cohort not found', field: 'cohortID' } },
+        });
+        const page = await openMoveDialog();
+        await page.get('#newCohort').setValue('cohort-5');
+
+        // Act
+        await page.get('#moveStudentForm').trigger('submit');
+        await flushPromises();
+
+        // Assert
+        expect(page.get('#newCohort').attributes('aria-invalid')).toBe('true');
+        expect(page.get('#newCohort').attributes('aria-describedby')).toBe('moveStudentError');
+    });
+
+    /**
+     * Choosing a cohort clears the mark, even if the next save fails for another reason (edge)
+     */
+    it('clears the wrong cohort mark on the next save', async () => {
+        // Arrange
+        moveStudents.mockRejectedValue(new Error('Network Error'));
+        const page = await openMoveDialog();
+        await page.get('#moveStudentForm').trigger('submit');
+        await flushPromises();
+        const markedWithNoneChosen = page.get('#newCohort').attributes('aria-invalid');
+        await page.get('#newCohort').setValue('cohort-5');
+
+        // Act
+        await page.get('#moveStudentForm').trigger('submit');
+        await flushPromises();
+
+        // Assert
+        expect(markedWithNoneChosen).toBe('true');
+        expect(page.get('#newCohort').attributes('aria-invalid')).toBeUndefined();
     });
 });

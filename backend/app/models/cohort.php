@@ -280,6 +280,103 @@ class Cohort extends Model
     }
 
     /**
+     * Students in every other cohort, A to Z by last name, for the add students pop-up
+     *
+     * @return array<int, array<string, string>>
+     */
+    public static function getStudentsOutside(string $cohortID): array
+    {
+        $stmt = self::getDB()->prepare(
+            "SELECT Students.firstName, Students.lastName, Users.username, Cohorts.cohortName
+                FROM Students
+                JOIN Users ON Users.userID = Students.userID
+                JOIN Cohorts ON Cohorts.cohortID = Students.cohortID
+                WHERE Students.cohortID <> ?
+                ORDER BY Students.lastName, Students.firstName"
+        );
+        $stmt->execute([$cohortID]);
+
+        $students = [];
+        foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+            $students[] = [
+                'studentNumber' => $row['username'],
+                'name' => $row['firstName'] . ' ' . $row['lastName'],
+                'currentCohort' => $row['cohortName'],
+            ];
+        }
+
+        return $students;
+    }
+
+    /**
+     * Moves students into a cohort, all of them or none. A student's in one cohort, so this takes them out of the last
+     * Their account follows the new cohort: into a disabled one they're locked out like everyone else in it,
+     * out of a disabled one they can log in again, unless they were disabled for another reason
+     *
+     * @param array<int, string> $studentNumbers
+     * @return bool false if there's no cohort with this ID
+     * @throws \InvalidArgumentException if a student doesn't exist or is already in this cohort
+     */
+    public static function moveStudents(string $cohortID, array $studentNumbers): bool
+    {
+        $db = self::getDB();
+
+        // SQLite does not support FOR UPDATE.
+        $lockClause = $db->getAttribute(\PDO::ATTR_DRIVER_NAME) === 'mysql' ? ' FOR UPDATE' : '';
+
+        // always locked in the same order, so two admins moving some of the same students can't deadlock
+        sort($studentNumbers);
+
+        $db->beginTransaction();
+        try {
+            // locked inside the transaction, so the cohort can't be disabled or enabled while students move into it
+            // the database's own copy of the ID, MariaDB also matches other spellings of a UUID, like uppercase
+            $stmt = $db->prepare("SELECT cohortID, isActive FROM Cohorts WHERE cohortID = ? LIMIT 1" . $lockClause);
+            $stmt->execute([$cohortID]);
+            $cohort = $stmt->fetch(\PDO::FETCH_ASSOC);
+            if ($cohort === false) {
+                $db->rollBack();
+                return false;
+            }
+
+            // locks the student and their account, so another admin can't move them at the same time
+            $findStudent = $db->prepare(
+                "SELECT Students.userID, Students.cohortID FROM Students
+                    JOIN Users ON Users.userID = Students.userID
+                    WHERE Users.username = ? LIMIT 1" . $lockClause
+            );
+            $moveStudent = $db->prepare("UPDATE Students SET cohortID = ? WHERE userID = ?");
+            $updateAccount = $db->prepare(
+                (int) $cohort['isActive'] === 1
+                    ? "UPDATE Users SET isEnabled = 1, disabledByCohort = 0 WHERE disabledByCohort = 1 AND userID = ?"
+                    : "UPDATE Users SET isEnabled = 0, disabledByCohort = 1 WHERE isEnabled = 1 AND userID = ?"
+            );
+
+            foreach ($studentNumbers as $studentNumber) {
+                $findStudent->execute([$studentNumber]);
+                $student = $findStudent->fetch(\PDO::FETCH_ASSOC);
+
+                // the page can be out of date, someone else might have moved them already
+                if ($student === false || $student['cohortID'] === $cohort['cohortID']) {
+                    throw new \InvalidArgumentException(
+                        'One of these students can no longer be moved here. Reload the page and try again'
+                    );
+                }
+
+                $moveStudent->execute([$cohort['cohortID'], $student['userID']]);
+                $updateAccount->execute([$student['userID']]);
+            }
+
+            $db->commit();
+        } catch (\Throwable $e) {
+            $db->rollBack();
+            throw $e;
+        }
+
+        return true;
+    }
+
+    /**
      * Adds subjects to a cohort, all of them or none
      * A subject added to a disabled cohort is archived the same way as if it was there when the cohort was disabled
      *

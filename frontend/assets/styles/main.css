@@ -1518,6 +1518,11 @@ main.appMainFullScreen {
 }
 
 /* cohort form, assign subjects and remove subject pop-ups */
+.cohortDialogStudent {
+    font-size: var(--fontSizeBody);
+    font-weight: 700;
+}
+
 .cohortDialogLabel {
     display: block;
     margin-bottom: var(--spaceXs);

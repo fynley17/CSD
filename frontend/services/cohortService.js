@@ -67,3 +67,20 @@ export async function updateCohort(cohortID, cohortName, isActive) {
     const response = await api.put(`/admin/cohorts/${encodeURIComponent(cohortID)}`, { cohortName, isActive });
     return response.data;
 }
+
+/**
+ * Gets the students in other cohorts, each has studentNumber, name and currentCohort
+ */
+export async function getStudentsOutsideCohort(cohortID) {
+    const response = await api.get(`/admin/cohorts/${encodeURIComponent(cohortID)}/other-students`);
+    return response.data;
+}
+
+/**
+ * Moves students into a cohort, out of the one they're in now
+ * Gives back every cohort, as the cohorts they came from have changed too
+ */
+export async function moveStudents(cohortID, studentNumbers) {
+    const response = await api.post(`/admin/cohorts/${encodeURIComponent(cohortID)}/students`, { studentNumbers });
+    return response.data;
+}
