@@ -1,139 +1,318 @@
-
 <?php
 
 use App\Models\Model;
 use App\Models\Student;
 use PHPUnit\Framework\TestCase;
 
-class StudentGetAllTest extends TestCase
+final class StudentGetAllTest extends TestCase
 {
     private PDO $db;
 
     protected function setUp(): void
     {
-        // Arrange: Create an in-memory SQLite database.
+        // Arrange: create an isolated in-memory SQLite database.
         $this->db = new PDO('sqlite::memory:');
         $this->db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-        $this->db->exec("
-            CREATE TABLE Users (
-                userID INTEGER PRIMARY KEY,
-                username TEXT,
-                email TEXT,
-                accountType TEXT,
-                approvalStatus TEXT,
-                isEnabled INTEGER,
-                lastLogin TEXT
-            );
+        $this->db->exec(
+            'CREATE TABLE Users (
+                userID TEXT PRIMARY KEY,
+                username TEXT NOT NULL,
+                email TEXT NOT NULL,
+                accountType TEXT NOT NULL,
+                approvalStatus TEXT NOT NULL,
+                isEnabled INTEGER NOT NULL DEFAULT 1,
+                lastLogin TEXT NULL
+            )'
+        );
 
-            CREATE TABLE Students (
-                userID INTEGER PRIMARY KEY,
-                firstName TEXT,
-                lastName TEXT,
-                cohortID INTEGER
-            );
+        $this->db->exec(
+            'CREATE TABLE Cohorts (
+                cohortID TEXT PRIMARY KEY,
+                cohortName TEXT NOT NULL,
+                isActive INTEGER NOT NULL DEFAULT 1
+            )'
+        );
 
-            CREATE TABLE Cohorts (
-                cohortID INTEGER PRIMARY KEY,
-                cohortName TEXT
-            );
+        $this->db->exec(
+            'CREATE TABLE Students (
+                userID TEXT PRIMARY KEY,
+                firstName TEXT NOT NULL,
+                lastName TEXT NOT NULL,
+                points INTEGER NOT NULL DEFAULT 0,
+                cohortID TEXT NOT NULL
+            )'
+        );
 
-            CREATE TABLE Subjects (
-                subjectID INTEGER PRIMARY KEY,
-                subjectName TEXT,
-                cohortID INTEGER
-            );
-        ");
+        $this->db->exec(
+            'CREATE TABLE Subjects (
+                subjectID TEXT PRIMARY KEY,
+                subjectName TEXT NOT NULL,
+                cohortID TEXT NOT NULL
+            )'
+        );
 
-        // Inject the test database into the model.
-        $reflection = new ReflectionProperty(Model::class, 'db');
-        $reflection->setValue(null, $this->db);
+        // Give the Student model the temporary database connection.
+        $dbProperty = new ReflectionProperty(Model::class, 'db');
+        $dbProperty->setValue(null, $this->db);
+
+        // Arrange: create test cohorts.
+        $this->db->exec(
+            "INSERT INTO Cohorts (cohortID, cohortName) VALUES
+                ('cohort-1', 'Demo Cohort'),
+                ('cohort-2', 'Science Cohort')"
+        );
     }
 
     protected function tearDown(): void
     {
-        // Clean up the database connection.
-        $reflection = new ReflectionProperty(Model::class, 'db');
-        $reflection->setValue(null, null);
+        // Prevent other tests from reusing this connection.
+        $dbProperty = new ReflectionProperty(Model::class, 'db');
+        $dbProperty->setValue(null, null);
     }
 
-    public function testReturnsStudentsWithTheirCohortSubjectsAndStatuses(): void
-    {
-        // Arrange: Add cohorts.
-        $this->db->exec("
-            INSERT INTO Cohorts (cohortID, cohortName) VALUES
-            (1, 'Cohort A'),
-            (2, 'Cohort B')
-        ");
-
-        // Arrange: Add subjects.
-        $this->db->exec("
-            INSERT INTO Subjects (subjectID, subjectName, cohortID) VALUES
-            (1, 'Mathematics', 1),
-            (2, 'English', 1),
-            (3, 'Science', 2)
-        ");
-
-        // Arrange: Add student and non-student users.
-        $this->db->exec("
-            INSERT INTO Users
-                (userID, username, email, accountType, approvalStatus, isEnabled, lastLogin)
-            VALUES
-                (1, 'ws000001', 'alex@example.com', 'student', 'approved', 1, '2026-10-01'),
-                (2, 'ws000002', 'jamie@example.com', 'student', 'pending', 1, NULL),
-                (3, 'ws000003', 'taylor@example.com', 'student', 'approved', 0, NULL),
-                (4, 'admin001', 'admin@example.com', 'admin', 'approved', 1, NULL)
-        ");
-
-        // Arrange: Add student records.
-        $this->db->exec("
-            INSERT INTO Students (userID, firstName, lastName, cohortID) VALUES
-                (1, 'Alex', 'Morgan', 1),
-                (2, 'Jamie', 'Wilson', 2),
-                (3, 'Taylor', 'Smith', 1)
-        ");
-
-        // Act: Retrieve all students.
-        $students = Student::getAll();
-
-        // Assert: Only student accounts are returned, in surname order.
-        $this->assertCount(3, $students);
-        $this->assertSame(
-            ['ws000001', 'ws000003', 'ws000002'],
-            array_column($students, 'studentNumber')
+    private function insertStudent(
+        string $userID,
+        string $firstName,
+        string $lastName,
+        string $username,
+        string $email,
+        string $cohortID,
+        string $approvalStatus = 'approved',
+        int $isEnabled = 1,
+        ?string $lastLogin = null
+    ): void {
+        // Arrange: insert the student's user account.
+        $stmt = $this->db->prepare(
+            'INSERT INTO Users (
+                userID,
+                username,
+                email,
+                accountType,
+                approvalStatus,
+                isEnabled,
+                lastLogin
+            ) VALUES (?, ?, ?, ?, ?, ?, ?)'
         );
 
-        // Assert: Student details, cohort and subjects are returned.
-        $this->assertSame('Alex Morgan', $students[0]['name']);
-        $this->assertSame('Cohort A', $students[0]['cohort']);
-        $this->assertSame('English, Mathematics', $students[0]['subjects']);
-        $this->assertSame('alex@example.com', $students[0]['email']);
-        $this->assertSame('2026-10-01', $students[0]['lastLogin']);
+        $stmt->execute([
+            $userID,
+            $username,
+            $email,
+            'student',
+            $approvalStatus,
+            $isEnabled,
+            $lastLogin,
+        ]);
 
-        // Assert: Student statuses are correctly identified.
-        $this->assertSame('Active', $students[0]['status']);
-        $this->assertSame('Disabled', $students[1]['status']);
-        $this->assertSame('Pending', $students[2]['status']);
+        // Arrange: insert the matching student profile.
+        $stmt = $this->db->prepare(
+            'INSERT INTO Students (
+                userID,
+                firstName,
+                lastName,
+                cohortID
+            ) VALUES (?, ?, ?, ?)'
+        );
 
-        // Assert: The second student's details are correct.
-        $this->assertSame('Taylor Smith', $students[1]['name']);
-        $this->assertSame('Cohort A', $students[1]['cohort']);
-        $this->assertSame('English, Mathematics', $students[1]['subjects']);
+        $stmt->execute([
+            $userID,
+            $firstName,
+            $lastName,
+            $cohortID,
+        ]);
+    }
 
-        // Assert: The third student's details are correct.
-        $this->assertSame('Jamie Wilson', $students[2]['name']);
-        $this->assertSame('Cohort B', $students[2]['cohort']);
-        $this->assertSame('Science', $students[2]['subjects']);
+    public function testReturnsStudentsWithTheirDetailsAndCohorts(): void
+    {
+        // Arrange: create two students.
+        $this->insertStudent(
+            'student-1',
+            'Alex',
+            'Morgan',
+            'ws000001',
+            'alex@example.com',
+            'cohort-1'
+        );
+
+        $this->insertStudent(
+            'student-2',
+            'Jamie',
+            'Wilson',
+            'ws000002',
+            'jamie@example.com',
+            'cohort-2'
+        );
+
+        // Act: retrieve all students using the real Student model.
+        $students = Student::getAll();
+
+        // Assert: both students are returned.
+        self::assertCount(2, $students);
+
+        // Assert: students are ordered alphabetically by last name.
+        self::assertSame(
+            ['Alex Morgan', 'Jamie Wilson'],
+            array_column($students, 'name')
+        );
+
+        // Assert: student numbers and email addresses are returned.
+        self::assertSame('ws000001', $students[0]['studentNumber']);
+        self::assertSame('alex@example.com', $students[0]['email']);
+
+        // Assert: cohort names are included.
+        self::assertSame('Demo Cohort', $students[0]['cohort']);
+        self::assertSame('Science Cohort', $students[1]['cohort']);
+
+        // Assert: active students have the correct status.
+        self::assertSame('Active', $students[0]['status']);
+        self::assertSame('Active', $students[1]['status']);
+    }
+
+    public function testReturnsPendingAndDisabledStudentStatuses(): void
+    {
+        // Arrange: create a pending student.
+        $this->insertStudent(
+            'student-1',
+            'Alex',
+            'Morgan',
+            'ws000001',
+            'alex@example.com',
+            'cohort-1',
+            'pending'
+        );
+
+        // Arrange: create a disabled student.
+        $this->insertStudent(
+            'student-2',
+            'Jamie',
+            'Wilson',
+            'ws000002',
+            'jamie@example.com',
+            'cohort-1',
+            'approved',
+            0
+        );
+
+        // Act: retrieve all students.
+        $students = Student::getAll();
+
+        // Assert: both accounts are returned with their correct statuses.
+        self::assertCount(2, $students);
+        self::assertSame('Pending', $students[0]['status']);
+        self::assertSame('Disabled', $students[1]['status']);
+    }
+
+    public function testReturnsLastLoginInformation(): void
+    {
+        // Arrange: create a student with a previous login.
+        $lastLogin = '2026-11-01 10:30:00';
+
+        $this->insertStudent(
+            'student-1',
+            'Alex',
+            'Morgan',
+            'ws000001',
+            'alex@example.com',
+            'cohort-1',
+            'approved',
+            1,
+            $lastLogin
+        );
+
+        // Act: retrieve all students.
+        $students = Student::getAll();
+
+        // Assert: the last login date is returned.
+        self::assertCount(1, $students);
+        self::assertSame($lastLogin, $students[0]['lastLogin']);
+    }
+
+    public function testReturnsSubjectsForEachStudentsCohort(): void
+    {
+        // Arrange: create students in different cohorts.
+        $this->insertStudent(
+            'student-1',
+            'Alex',
+            'Morgan',
+            'ws000001',
+            'alex@example.com',
+            'cohort-1'
+        );
+
+        $this->insertStudent(
+            'student-2',
+            'Jamie',
+            'Wilson',
+            'ws000002',
+            'jamie@example.com',
+            'cohort-2'
+        );
+
+        // Arrange: assign subjects to each cohort.
+        $this->db->exec(
+            "INSERT INTO Subjects (subjectID, subjectName, cohortID) VALUES
+                ('subject-1', 'Mathematics', 'cohort-1'),
+                ('subject-2', 'English', 'cohort-1'),
+                ('subject-3', 'Science', 'cohort-2'),
+                ('subject-4', 'English', 'cohort-1')"
+        );
+
+        // Act: retrieve all students.
+        $students = Student::getAll();
+
+        // Assert: subjects are grouped by cohort.
+        self::assertSame(
+            'English, Mathematics',
+            $students[0]['subjects']
+        );
+
+        self::assertSame(
+            'Science',
+            $students[1]['subjects']
+        );
+
+        // Assert: duplicate subjects are not returned.
+        self::assertSame(
+            2,
+            count(explode(', ', $students[0]['subjects']))
+        );
+    }
+
+    public function testDoesNotReturnNonStudentAccounts(): void
+    {
+        // Arrange: create a lecturer account.
+        $this->db->exec(
+            "INSERT INTO Users (
+                userID,
+                username,
+                email,
+                accountType,
+                approvalStatus,
+                isEnabled
+            ) VALUES (
+                'lecturer-1',
+                'lecturer1',
+                'lecturer@example.com',
+                'lecturer',
+                'approved',
+                1
+            )"
+        );
+
+        // Act: retrieve all students.
+        $students = Student::getAll();
+
+        // Assert: lecturer accounts are excluded.
+        self::assertSame([], $students);
     }
 
     public function testReturnsAnEmptyArrayWhenThereAreNoStudents(): void
     {
-        // Arrange: No student records are inserted.
-
-        // Act: Retrieve all students.
+        // Act: retrieve all students from an empty database.
         $students = Student::getAll();
 
-        // Assert: An empty array is returned.
-        $this->assertSame([], $students);
+        // Assert: an empty array is returned.
+        self::assertSame([], $students);
     }
 }

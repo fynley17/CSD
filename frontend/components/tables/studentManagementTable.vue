@@ -1,23 +1,40 @@
 <script setup>
-import { onMounted, ref, nextTick } from 'vue';
+import { computed, onMounted, onUnmounted, ref, nextTick } from 'vue';
 import DataTable from 'datatables.net-vue3';
 import DataTablesCore from 'datatables.net-bs5';
 import 'datatables.net-bs5/css/dataTables.bootstrap5.css';
-import { getLecturerStudents } from '../../services/studentService';
+import Popup from '../common/popupDialog.vue';
+import {
+    getLecturerStudents,
+    updateStudentStatus,
+    approveStudent,
+    declineStudent,
+    deleteStudent,
+} from '../../services/studentService';
 
-// Register the Bootstrap 5 version of DataTables.
 DataTable.use(DataTablesCore);
 
-// Store the students returned by the backend, along with loading and error states.
 const students = ref([]);
 const loading = ref(true);
 const errorMessage = ref('');
+const actionError = ref('');
 
-// References used to access the DataTables instance and available cohort options.
+const deletePopup = ref(null);
+const declinePopup = ref(null);
+
+const studentToDelete = ref(null);
+const studentToDecline = ref(null);
+
+const deletingStudent = ref(false);
+const decliningStudent = ref(false);
+
+const pendingCount = computed(() => students.value.filter((student) => student.status === 'Pending').length);
+const emit = defineEmits(['edit']);
+
 const dataTable = ref(null);
+const tableWrapper = ref(null);
 const cohorts = ref([]);
 
-// Escape values before inserting them into DataTables-generated HTML.
 const escapeHtml = (value) =>
     String(value ?? '').replace(
         /[&<>"']/g,
@@ -31,7 +48,6 @@ const escapeHtml = (value) =>
             })[character],
     );
 
-// Define the columns displayed in the student management table.
 const columns = [
     {
         data: 'name',
@@ -51,7 +67,6 @@ const columns = [
     {
         data: 'status',
         title: 'Status',
-        // Display each student status using its corresponding badge styling.
         render: (value, type) => {
             if (type !== 'display') {
                 return value;
@@ -71,7 +86,6 @@ const columns = [
     {
         data: 'lastLogin',
         title: 'Last Login',
-        // Display 'Never' when the student has not logged in.
         render: (value, type) => (type === 'display' ? escapeHtml(value || 'Never') : value || 'Never'),
     },
     {
@@ -84,18 +98,14 @@ const columns = [
         title: 'Actions',
         orderable: false,
         searchable: false,
-        // Display different action buttons depending on the student's account status.
-        // These buttons are display-only; their functionality is handled in a later ticket.
         render: (data, type, row) => {
             if (type !== 'display') {
                 return '';
             }
 
-            // Escape database values before placing them in HTML attributes.
             const userID = escapeHtml(row.userID);
             const name = escapeHtml(row.name);
 
-            // Pending students can be approved or declined.
             if (row.status === 'Pending') {
                 return `
                     <button
@@ -119,7 +129,6 @@ const columns = [
                 `;
             }
 
-            // Disabled students can be edited, enabled or deleted.
             if (row.status === 'Disabled') {
                 return `
                     <button
@@ -152,7 +161,6 @@ const columns = [
                 `;
             }
 
-            // Active students can be edited, disabled or deleted.
             return `
                 <button
                     type="button"
@@ -186,7 +194,6 @@ const columns = [
     },
 ];
 
-// Configure DataTables sorting, pagination, searching and empty-state messages.
 const tableOptions = {
     searching: true,
     ordering: true,
@@ -206,7 +213,13 @@ const tableOptions = {
     },
 };
 
-// Filter the table by cohort, matching the complete cohort name.
+const refreshStudents = async () => {
+    students.value = await getLecturerStudents();
+    cohorts.value = [...new Set(students.value.map((student) => student.cohort).filter(Boolean))].sort((a, b) =>
+        a.localeCompare(b),
+    );
+};
+
 const filterByCohort = async (cohort) => {
     await nextTick();
 
@@ -214,13 +227,10 @@ const filterByCohort = async (cohort) => {
 
     if (tableApi) {
         const searchValue = cohort ? `^${cohort.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$` : '';
-
-        // Cohort is the sixth column (index 5); an empty value clears the filter.
         tableApi.column(5).search(searchValue, true, false).draw();
     }
 };
 
-// Filter the table by student account status.
 const filterByStatus = async (status) => {
     await nextTick();
 
@@ -228,13 +238,10 @@ const filterByStatus = async (status) => {
 
     if (tableApi) {
         const searchValue = status ? `^${status}$` : '';
-
-        // Status is the fourth column (index 3); an empty value clears the filter.
         tableApi.column(3).search(searchValue, true, false).draw();
     }
 };
 
-// Apply the search term across the table without clearing the other filters.
 const searchStudents = async (searchTerm) => {
     await nextTick();
 
@@ -245,43 +252,195 @@ const searchStudents = async (searchTerm) => {
     }
 };
 
-// Expose the cohort options and filter methods so the parent view can control the table.
 defineExpose({
     cohorts,
+    pendingCount,
     filterByCohort,
     filterByStatus,
     searchStudents,
+    refreshStudents,
 });
 
-// Retrieve student records when the table component is mounted.
-onMounted(async () => {
-    try {
-        students.value = await getLecturerStudents();
+const handleActionClick = async (event) => {
+    const button = event.target?.closest?.('button[data-action]');
 
-        // Build a sorted list of unique cohort names for the cohort filter.
-        cohorts.value = [...new Set(students.value.map((student) => student.cohort).filter(Boolean))].sort((a, b) =>
-            a.localeCompare(b),
-        );
+    if (!button || !tableWrapper.value?.contains(button)) {
+        return;
+    }
+
+    const action = button.dataset.action;
+    const userID = button.dataset.userId;
+
+    if (action === 'edit') {
+        const selectedStudent = students.value.find((student) => String(student.userID) === String(userID));
+
+        if (selectedStudent) {
+            emit('edit', selectedStudent);
+        } else {
+            actionError.value = 'Unable to find the selected student.';
+        }
+
+        return;
+    }
+
+    if (!userID) {
+        actionError.value = 'Unable to identify the selected student.';
+        return;
+    }
+
+    if (action === 'decline') {
+        studentToDecline.value = students.value.find((student) => String(student.userID) === String(userID));
+
+        if (!studentToDecline.value) {
+            actionError.value = 'Unable to find the selected student.';
+            return;
+        }
+
+        await nextTick();
+        declinePopup.value?.open();
+        return;
+    }
+
+    if (action === 'delete') {
+        studentToDelete.value = students.value.find((student) => String(student.userID) === String(userID));
+
+        if (!studentToDelete.value) {
+            actionError.value = 'Unable to find the selected student.';
+            return;
+        }
+
+        await nextTick();
+        deletePopup.value?.open();
+        return;
+    }
+
+    button.disabled = true;
+    actionError.value = '';
+
+    try {
+        switch (action) {
+            case 'enable':
+                await updateStudentStatus(userID, true);
+                break;
+
+            case 'disable':
+                await updateStudentStatus(userID, false);
+                break;
+
+            case 'approve':
+                await approveStudent(userID);
+                break;
+
+            default:
+                return;
+        }
+
+        await refreshStudents();
+    } catch (error) {
+        actionError.value = error.response?.data?.error || 'Unable to complete this action. Please try again.';
+    } finally {
+        button.disabled = false;
+    }
+};
+
+const confirmDeclineStudent = async () => {
+    if (!studentToDecline.value || decliningStudent.value) {
+        return;
+    }
+
+    decliningStudent.value = true;
+    actionError.value = '';
+
+    try {
+        await declineStudent(studentToDecline.value.userID);
+
+        declinePopup.value?.close();
+        await refreshStudents();
+    } catch (error) {
+        actionError.value =
+            error.response?.data?.error || 'Unable to decline the student application. Please try again.';
+    } finally {
+        decliningStudent.value = false;
+    }
+};
+
+const confirmDeleteStudent = async () => {
+    if (!studentToDelete.value || deletingStudent.value) {
+        return;
+    }
+
+    deletingStudent.value = true;
+    actionError.value = '';
+
+    try {
+        await deleteStudent(studentToDelete.value.userID);
+
+        deletePopup.value?.close();
+        await refreshStudents();
+    } catch (error) {
+        actionError.value = error.response?.data?.error || 'Unable to delete the student account. Please try again.';
+    } finally {
+        deletingStudent.value = false;
+    }
+};
+
+const closeDeclineModal = () => {
+    if (decliningStudent.value) {
+        return;
+    }
+
+    declinePopup.value?.close();
+};
+
+const closeDeleteModal = () => {
+    if (deletingStudent.value) {
+        return;
+    }
+
+    deletePopup.value?.close();
+};
+
+const handleDeclinePopupClose = () => {
+    if (!decliningStudent.value) {
+        studentToDecline.value = null;
+    }
+};
+
+const handleDeletePopupClose = () => {
+    if (!deletingStudent.value) {
+        studentToDelete.value = null;
+    }
+};
+
+onMounted(async () => {
+    tableWrapper.value?.addEventListener('click', handleActionClick);
+
+    try {
+        await refreshStudents();
     } catch {
         errorMessage.value = 'Unable to load students. Please try again later.';
     } finally {
-        // Hide the loading message whether the request succeeds or fails.
         loading.value = false;
     }
+});
+
+onUnmounted(() => {
+    tableWrapper.value?.removeEventListener('click', handleActionClick);
 });
 </script>
 
 <template>
-    <div class="studentTableWrapper">
-        <!-- Show a loading message while student records are being retrieved. -->
+    <div ref="tableWrapper" class="studentTableWrapper">
+        <p v-if="actionError" role="alert">
+            {{ actionError }}
+        </p>
+
         <p v-if="loading" role="status">Loading students...</p>
 
-        <!-- Show an error if the student records could not be loaded. -->
         <p v-else-if="errorMessage" role="alert">
             {{ errorMessage }}
         </p>
 
-        <!-- Display the student table once the data has loaded successfully. -->
         <div v-else class="tableResponsive">
             <DataTable
                 ref="dataTable"
@@ -291,18 +450,73 @@ onMounted(async () => {
                 class="table table-sm table-striped table-hover align-middle mb-0"
             />
         </div>
+
+        <!-- Decline confirmation popup -->
+        <Popup ref="declinePopup" title="Confirm Decline" @close="handleDeclinePopupClose">
+            <h3>Decline this application?</h3>
+
+            <p>Are you sure you want to decline and permanently remove this application?</p>
+
+            <p class="studentDeleteName">
+                {{ studentToDecline?.name }}
+            </p>
+
+            <template #buttons>
+                <button
+                    type="button"
+                    class="btn btn-outline-secondary"
+                    :disabled="decliningStudent"
+                    @click="closeDeclineModal"
+                >
+                    Cancel
+                </button>
+
+                <button
+                    type="button"
+                    class="btn btn-danger"
+                    :disabled="decliningStudent"
+                    @click="confirmDeclineStudent"
+                >
+                    {{ decliningStudent ? 'Declining...' : 'Confirm Decline' }}
+                </button>
+            </template>
+        </Popup>
+
+        <!-- Delete confirmation popup -->
+        <Popup ref="deletePopup" title="Confirm Delete" @close="handleDeletePopupClose">
+            <h3>Are you sure?</h3>
+
+            <p>Are you sure you want to delete this student? This action cannot be undone.</p>
+
+            <p class="studentDeleteName">
+                {{ studentToDelete?.name }}
+            </p>
+
+            <template #buttons>
+                <button
+                    type="button"
+                    class="btn btn-outline-secondary"
+                    :disabled="deletingStudent"
+                    @click="closeDeleteModal"
+                >
+                    Cancel
+                </button>
+
+                <button type="button" class="btn btn-danger" :disabled="deletingStudent" @click="confirmDeleteStudent">
+                    {{ deletingStudent ? 'Deleting...' : 'Confirm Delete' }}
+                </button>
+            </template>
+        </Popup>
     </div>
 </template>
 
 <style>
-/* Keep the table within the available page width. */
 .studentTableWrapper {
     width: 100%;
     min-width: 0;
     max-width: 100%;
 }
 
-/* Allow horizontal scrolling when the table is wider than the screen. */
 .studentTableWrapper .tableResponsive {
     display: block;
     width: 100%;
@@ -312,26 +526,22 @@ onMounted(async () => {
     overscroll-behavior-x: contain;
 }
 
-/* Maintain enough width for the table columns and their content. */
 .studentTableWrapper .tableResponsive table {
     width: 100%;
     min-width: 1000px;
     margin-bottom: 0;
 }
 
-/* Prevent column content from wrapping onto multiple lines. */
 .studentTableWrapper .tableResponsive th,
 .studentTableWrapper .tableResponsive td {
     white-space: nowrap;
     vertical-align: middle;
 }
 
-/* Give the action buttons enough room to display side by side. */
 .studentTableWrapper .tableResponsive td:last-child {
     min-width: 330px;
 }
 
-/* Shared styling for student account status badges. */
 .studentStatusBadge {
     display: inline-block;
     padding: var(--spaceXs) var(--spaceSm);
@@ -341,7 +551,6 @@ onMounted(async () => {
     line-height: 1.4;
 }
 
-/* Use different colours to distinguish each student status. */
 .studentStatusActive {
     color: var(--colorSurface);
     background-color: var(--colorSuccess);
@@ -357,7 +566,6 @@ onMounted(async () => {
     background-color: var(--colorTextSecondary);
 }
 
-/* Shared styling for the student action buttons. */
 .tableActionButton {
     min-height: 36px;
     padding: var(--spaceXs) var(--spaceSm);
@@ -366,7 +574,6 @@ onMounted(async () => {
     font-weight: 600;
 }
 
-/* Edit button styling. */
 .tableEditButton {
     color: var(--colorPrimary);
     background-color: var(--colorSurface);
@@ -379,7 +586,6 @@ onMounted(async () => {
     border-color: var(--colorPrimaryHover);
 }
 
-/* Approve and enable button styling. */
 .tableApproveButton,
 .tableEnableButton {
     color: var(--colorSurface);
@@ -387,7 +593,6 @@ onMounted(async () => {
     border: 1px solid var(--colorSuccess);
 }
 
-/* Both buttons use the success hover colour. */
 .tableApproveButton:hover,
 .tableEnableButton:hover {
     color: var(--colorSurface);
@@ -395,7 +600,6 @@ onMounted(async () => {
     border-color: var(--colorSuccessHover);
 }
 
-/* Disable button styling. */
 .tableDisableButton {
     color: var(--colorWarning);
     background-color: var(--colorSurface);
@@ -407,7 +611,6 @@ onMounted(async () => {
     background-color: var(--colorWarning);
 }
 
-/* Delete button styling. */
 .tableDeleteButton {
     color: var(--colorSurface);
     background-color: var(--colorError);
@@ -419,9 +622,14 @@ onMounted(async () => {
     border-color: var(--colorErrorHover);
 }
 
-/* Make keyboard focus clearly visible when navigating action buttons. */
 .tableActionButton:focus-visible {
     outline: 3px solid var(--colorFocus);
     outline-offset: 2px;
+}
+
+.studentDeleteName {
+    margin: var(--spaceXl) 0;
+    font-weight: 600;
+    text-align: center;
 }
 </style>
