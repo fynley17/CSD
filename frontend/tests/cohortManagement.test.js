@@ -923,7 +923,9 @@ describe('CohortManagement', () => {
      */
     it('shows the problem when the name is a duplicate', async () => {
         // Arrange
-        createCohort.mockRejectedValue({ response: { data: { error: 'A cohort with this name already exists' } } });
+        createCohort.mockRejectedValue({
+            response: { data: { error: 'A cohort with this name already exists', field: 'cohortName' } },
+        });
         const page = await openPage();
         await page.get('.cohortCreateButton').trigger('click');
         await cohortForm(page).name.setValue('DTS 2026');
@@ -1234,5 +1236,90 @@ describe('CohortManagement', () => {
         expect(actions.classList.contains('cohortActions')).toBe(true);
         expect(actions.parentElement.tagName).toBe('TD');
         expect(actions.parentElement.classList.contains('cohortActions')).toBe(false);
+    });
+
+    /**
+     * A refused name marks the name box as wrong and links it to the problem (normal)
+     */
+    it('marks the name as wrong when PHP refuses it', async () => {
+        // Arrange
+        updateCohort.mockRejectedValue({
+            response: { data: { error: 'A cohort with this name already exists', field: 'cohortName' } },
+        });
+        const page = await openPage();
+        await findButton(page, 'Edit DTS 2026').trigger('click');
+        await cohortForm(page).name.setValue('DTS 2025');
+
+        // Act
+        await cohortForm(page).form.trigger('submit');
+        await flushPromises();
+
+        // Assert
+        expect(cohortForm(page).name.attributes('aria-invalid')).toBe('true');
+        expect(cohortForm(page).name.attributes('aria-describedby')).toBe('cohortNameError');
+    });
+
+    /**
+     * A lost connection isn't the name's fault, so the box isn't marked as wrong (error)
+     */
+    it('does not mark the name as wrong when the connection fails', async () => {
+        // Arrange
+        createCohort.mockRejectedValue(new Error('Network Error'));
+        const page = await openPage();
+        await page.get('.cohortCreateButton').trigger('click');
+        await cohortForm(page).name.setValue('New Cohort');
+
+        // Act
+        await cohortForm(page).form.trigger('submit');
+        await flushPromises();
+
+        // Assert
+        expect(page.get('.popupDialog [role="alert"]').text()).toContain('Unable to save the cohort');
+        expect(cohortForm(page).name.attributes('aria-invalid')).toBeUndefined();
+        expect(cohortForm(page).name.attributes('aria-describedby')).toBeUndefined();
+    });
+
+    /**
+     * A server error that isn't about the name doesn't mark the box either (error)
+     */
+    it('does not mark the name as wrong for a server error', async () => {
+        // Arrange
+        updateCohort.mockRejectedValue({ response: { status: 500, data: { error: 'Unable to update the cohort' } } });
+        const page = await openPage();
+        await findButton(page, 'Edit DTS 2026').trigger('click');
+
+        // Act
+        await cohortForm(page).form.trigger('submit');
+        await flushPromises();
+
+        // Assert
+        expect(page.get('.popupDialog [role="alert"]').text()).toContain('Unable to update the cohort');
+        expect(cohortForm(page).name.attributes('aria-invalid')).toBeUndefined();
+    });
+
+    /**
+     * Fixing the name clears the mark, even if the next save fails for another reason (edge)
+     */
+    it('clears the wrong name mark on the next save', async () => {
+        // Arrange
+        createCohort.mockRejectedValueOnce({
+            response: { data: { error: 'A cohort with this name already exists', field: 'cohortName' } },
+        });
+        createCohort.mockRejectedValueOnce(new Error('Network Error'));
+        const page = await openPage();
+        await page.get('.cohortCreateButton').trigger('click');
+        await cohortForm(page).name.setValue('DTS 2026');
+        await cohortForm(page).form.trigger('submit');
+        await flushPromises();
+        const markedAfterRefusal = cohortForm(page).name.attributes('aria-invalid');
+        await cohortForm(page).name.setValue('New Cohort');
+
+        // Act
+        await cohortForm(page).form.trigger('submit');
+        await flushPromises();
+
+        // Assert
+        expect(markedAfterRefusal).toBe('true');
+        expect(cohortForm(page).name.attributes('aria-invalid')).toBeUndefined();
     });
 });

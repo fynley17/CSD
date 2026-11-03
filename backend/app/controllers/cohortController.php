@@ -122,7 +122,8 @@ class CohortController extends Controller
 
             $this->jsonResponse(Cohort::findForManagement($cohortID), 201);
         } catch (\InvalidArgumentException $e) {
-            $this->jsonResponse(['error' => $e->getMessage()], 400);
+            // only the name can be refused here, field tells the form which box to mark as wrong
+            $this->jsonResponse(['error' => $e->getMessage(), 'field' => 'cohortName'], 400);
         } catch (\Throwable $e) {
             error_log('Creating a cohort failed: ' . $e->getMessage());
             $this->jsonResponse(['error' => 'Unable to create the cohort'], 500);
@@ -149,7 +150,8 @@ class CohortController extends Controller
 
             $this->jsonResponse(Cohort::findForManagement($cohortID));
         } catch (\InvalidArgumentException $e) {
-            $this->jsonResponse(['error' => $e->getMessage()], 400);
+            // only the name can be refused here, field tells the form which box to mark as wrong
+            $this->jsonResponse(['error' => $e->getMessage(), 'field' => 'cohortName'], 400);
         } catch (\Throwable $e) {
             error_log('Updating a cohort failed: ' . $e->getMessage());
             $this->jsonResponse(['error' => 'Unable to update the cohort'], 500);
