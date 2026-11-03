@@ -206,11 +206,18 @@ class Subject extends Model
         }
 
         // same name is fine in a different cohort, e.g. Databases for 2 different years
+        $sql = 'SELECT 1 FROM Subjects WHERE LOWER(subjectName) = LOWER(?) AND cohortID = ?';
+        $values = [$subjectName, $cohortID];
+
         // the subject being edited doesn't count as its own duplicate
-        $stmt = self::getDB()->prepare(
-            'SELECT 1 FROM Subjects WHERE LOWER(subjectName) = LOWER(?) AND cohortID = ? AND subjectID <> ?'
-        );
-        $stmt->execute([$subjectName, $cohortID, $subjectID ?? '']);
+        // only added on edit, on create mariadb cant compare the uuid column to '' so nothing ever matched
+        if ($subjectID !== null) {
+            $sql .= ' AND subjectID <> ?';
+            $values[] = $subjectID;
+        }
+
+        $stmt = self::getDB()->prepare($sql);
+        $stmt->execute($values);
 
         if ($stmt->fetchColumn() !== false) {
             throw new \InvalidArgumentException('This cohort already has a subject with that name');
