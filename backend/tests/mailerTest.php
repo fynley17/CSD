@@ -113,4 +113,37 @@ final class MailerTest extends TestCase
         self::assertStringNotContainsString('<script>', $email['html']);
         self::assertStringContainsString('&lt;script&gt;', $email['html']);
     }
+
+    public function testStudentAccountEmailIncludesLoginDetails(): void
+    {
+        $email = Mailer::buildStudentAccountEmail(
+            'Fyn',
+            'ws123456',
+            'TemporaryPass123!'
+        );
+
+        self::assertSame(
+            'Your RevisionHub student account is ready',
+            $email['subject']
+        );
+        self::assertStringContainsString('Welcome to RevisionHub, Fyn', $email['html']);
+        self::assertStringContainsString('ws123456', $email['html']);
+        self::assertStringContainsString('TemporaryPass123!', $email['html']);
+        self::assertStringContainsString('ws123456', $email['text']);
+        self::assertStringContainsString('TemporaryPass123!', $email['text']);
+    }
+
+    public function testStudentAccountEmailEscapesHtml(): void
+    {
+        $email = Mailer::buildStudentAccountEmail(
+            '<script>alert(1)</script>',
+            '<username>',
+            '<password>'
+        );
+
+        self::assertStringNotContainsString('<script>', $email['html']);
+        self::assertStringContainsString('&lt;script&gt;', $email['html']);
+        self::assertStringContainsString('&lt;username&gt;', $email['html']);
+        self::assertStringContainsString('&lt;password&gt;', $email['html']);
+    }
 }

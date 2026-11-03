@@ -30,8 +30,32 @@ $router->addRoute(
 
 $router->addRoute(
     'PUT',
-    '/^\/api\/students\/status$/',
+    '/^\/api\/students\/([0-9a-zA-Z-]+)\/status$/',
     [new StudentController(), 'updateStudentStatus']
+);
+
+$router->addRoute(
+    'PUT',
+    '/^\/api\/students\/([0-9a-zA-Z-]+)\/approve$/',
+    [new StudentController(), 'approveStudent']
+);
+
+$router->addRoute(
+    'PUT',
+    '/^\/api\/students\/([0-9a-zA-Z-]+)\/decline$/',
+    [new StudentController(), 'declineStudent']
+);
+
+$router->addRoute(
+    'PUT',
+    '/^\/api\/students\/([0-9a-zA-Z-]+)$/',
+    [new StudentController(), 'updateStudent']
+);
+
+$router->addRoute(
+    'DELETE',
+    '/^\/api\/students\/([0-9a-zA-Z-]+)$/',
+    [new StudentController(), 'deleteStudent']
 );
 
 // Student registration.
@@ -41,38 +65,14 @@ $router->addRoute(
     [new StudentController(), 'registerStudent']
 );
 
-$router->addRoute(
-    'PUT',
-    '/^\/api\/students\/approve$/',
-    [new StudentController(), 'approveStudent']
-);
-
-$router->addRoute(
-    'PUT',
-    '/^\/api\/students\/decline$/',
-    [new StudentController(), 'declineStudent']
-);
-
-$router->addRoute(
-    'PUT',
-    '/^\/api\/students\/update$/',
-    [new StudentController(), 'updateStudent']
-);
-
-$router->addRoute(
-    'DELETE',
-    '/^\/api\/students$/',
-    [new StudentController(), 'deleteStudent']
-);
-
-// Cohorts.
+// Cohorts available to students.
 $router->addRoute(
     'GET',
     '/^\/api\/cohorts$/',
     [new CohortController(), 'getAllCohorts']
 );
 
-// Tests.
+// Student tests.
 $router->addRoute(
     'GET',
     '/^\/api\/tests$/',
@@ -91,6 +91,7 @@ $router->addRoute(
     [new TestController(), 'submitTest']
 );
 
+// Completed tests.
 $router->addRoute(
     'GET',
     '/^\/api\/tests\/completed$/',
@@ -103,14 +104,14 @@ $router->addRoute(
     [new ResultController(), 'getCompletedTestReview']
 );
 
-// Results.
+// Student results.
 $router->addRoute(
     'GET',
     '/^\/api\/results\/summary$/',
     [new ResultController(), 'getResultsSummary']
 );
 
-// Top students in the student's cohort, overall or for one subject (/api/leaderboard/{subjectID}).
+// Leaderboard.
 $router->addRoute(
     'GET',
     '/^\/api\/leaderboard(?:\/([0-9a-zA-Z-]+))?$/',
@@ -118,7 +119,6 @@ $router->addRoute(
 );
 
 // Admin dashboard routes.
-// Totals for the admin dashboard cards, admins only.
 $router->addRoute(
     'GET',
     '/^\/api\/admin\/dashboard-summary$/',
@@ -156,7 +156,7 @@ $router->addRoute(
     [new VerificationController(), 'changeEmail']
 );
 
-// Login, logout, session check and the anti-CSRF code.
+// Authentication and CSRF.
 $router->addRoute(
     'POST',
     '/^\/api\/login$/',
@@ -194,73 +194,62 @@ $router->addRoute(
     [new StudentController(), 'getRecentStudentActivity']
 );
 
-// Test management routes.
-
-// Return all tests for the lecturer/admin management page.
+// Lecturer test management.
 $router->addRoute(
     'GET',
     '/^\/api\/lecturer\/tests$/',
     [new TestController(), 'getAllForLecturer']
 );
 
-// Lecturer question management.
-// Return active subjects for the test creation and editing forms.
 $router->addRoute(
     'GET',
     '/^\/api\/lecturer\/test-subjects$/',
     [new TestController(), 'getActiveSubjects']
 );
 
-// Create a new test (lecturers only; administrators cannot create tests).
 $router->addRoute(
     'POST',
     '/^\/api\/lecturer\/tests$/',
     [new TestController(), 'createTest']
 );
 
-// Update an existing test.
 $router->addRoute(
     'PUT',
     '/^\/api\/lecturer\/tests\/([0-9a-zA-Z-]+)$/',
     [new TestController(), 'updateTest']
 );
 
-// Delete an existing test.
 $router->addRoute(
     'DELETE',
     '/^\/api\/lecturer\/tests\/([0-9a-zA-Z-]+)$/',
     [new TestController(), 'deleteTest']
 );
 
-// Question management routes for lecturers.
+// Lecturer question management.
 $router->addRoute(
     'GET',
     '/^\/api\/lecturer\/questions$/',
     [new QuestionController(), 'getAllForLecturer']
 );
 
-// Create a question for lecturer question management.
 $router->addRoute(
     'POST',
     '/^\/api\/lecturer\/questions$/',
     [new QuestionController(), 'createQuestion']
 );
 
-// Update an existing question.
 $router->addRoute(
     'PUT',
     '/^\/api\/lecturer\/questions\/([0-9a-zA-Z-]+)$/',
     [new QuestionController(), 'updateQuestion']
 );
 
-// Delete an existing question.
 $router->addRoute(
     'DELETE',
     '/^\/api\/lecturer\/questions\/([0-9a-zA-Z-]+)$/',
     [new QuestionController(), 'deleteQuestion']
 );
 
-// Return active subjects for lecturer question management.
 $router->addRoute(
     'GET',
     '/^\/api\/lecturer\/subjects$/',
@@ -268,28 +257,25 @@ $router->addRoute(
 );
 
 // Subjects.
-// Return all subjects for the admin dashboard, admins only.
 $router->addRoute(
     'GET',
     '/^\/api\/subjects$/',
     [new SubjectController(), 'getAllSubjects']
 );
 
-// Return all cohorts with their students and subjects for admin management.
+// Admin cohort management.
 $router->addRoute(
     'GET',
     '/^\/api\/admin\/cohorts$/',
     [new CohortController(), 'getCohortsForManagement']
 );
 
-// Enable or disable a cohort, admins only.
 $router->addRoute(
     'PUT',
     '/^\/api\/admin\/cohorts\/([0-9a-zA-Z-]+)\/status$/',
     [new CohortController(), 'updateCohortStatus']
 );
 
-// Create a cohort, or change its name and status, admins only.
 $router->addRoute(
     'POST',
     '/^\/api\/admin\/cohorts$/',
@@ -302,14 +288,13 @@ $router->addRoute(
     [new CohortController(), 'updateCohort']
 );
 
-// Delete an empty cohort, admins only.
 $router->addRoute(
     'DELETE',
     '/^\/api\/admin\/cohorts\/([0-9a-zA-Z-]+)$/',
     [new CohortController(), 'deleteCohort']
 );
 
-// Students in other cohorts for the add students pop-up, and moving students into a cohort, admins only.
+// Students in other cohorts and moving students into a cohort.
 $router->addRoute(
     'GET',
     '/^\/api\/admin\/cohorts\/([0-9a-zA-Z-]+)\/other-students$/',
@@ -322,7 +307,7 @@ $router->addRoute(
     [new CohortController(), 'moveStudents']
 );
 
-// Add subjects to a cohort or take one out, admins only.
+// Add or remove subjects from a cohort.
 $router->addRoute(
     'POST',
     '/^\/api\/admin\/cohorts\/([0-9a-zA-Z-]+)\/subjects$/',
@@ -335,7 +320,7 @@ $router->addRoute(
     [new CohortController(), 'removeSubject']
 );
 
-// Active subjects that aren't in a cohort, for the assign subjects pop-up, admins only.
+// Active subjects that aren't assigned to a cohort.
 $router->addRoute(
     'GET',
     '/^\/api\/admin\/subjects\/unassigned$/',

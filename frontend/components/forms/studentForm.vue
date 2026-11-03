@@ -37,7 +37,26 @@ async function loadCohorts() {
 
     try {
         const response = await api.get('/cohorts');
-        cohorts.value = Array.isArray(response.data) ? response.data : (response.data?.cohorts ?? []);
+        const availableCohorts = Array.isArray(response.data)
+            ? response.data
+            : (response.data?.cohorts ?? []);
+
+        // Keep the student's current cohort available when editing, even if it is inactive.
+        const currentCohortID = String(props.student?.cohortID ?? '');
+        const currentCohortIsAvailable = availableCohorts.some(
+            (cohort) => String(cohort.cohortID) === currentCohortID
+        );
+
+        if (isEditing.value && currentCohortID && !currentCohortIsAvailable) {
+            availableCohorts.push({
+                cohortID: props.student.cohortID,
+                cohortName: props.student.cohort
+                    ? `${props.student.cohort} (inactive)`
+                    : 'Current cohort (inactive)',
+            });
+        }
+
+        cohorts.value = availableCohorts;
     } catch {
         errorMessage.value = 'Unable to load cohorts. Please try again.';
     } finally {
@@ -205,7 +224,9 @@ onMounted(async () => {
                     </option>
                 </select>
 
-                <small v-if="!loadingCohorts && cohorts.length === 0"> No cohorts are currently available. </small>
+                <small v-if="!loadingCohorts && cohorts.length === 0">
+                    No cohorts are currently available.
+                </small>
             </div>
         </form>
 
