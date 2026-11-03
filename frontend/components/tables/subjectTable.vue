@@ -138,10 +138,14 @@ export default {
 
     computed: {
         /**
-         * Only the manage page gets the Actions column
+         * Only the manage page gets the Actions column.
+         * Each table gets its own copies, DataTable swaps '#actions' for this table's slot on the
+         * object itself, so shared ones kept the first table's buttons and stopped working when
+         * you came back to the page.
          */
         tableColumns() {
-            return this.manage ? columns.concat(actionColumn) : columns;
+            const shownColumns = this.manage ? columns.concat(actionColumn) : columns;
+            return shownColumns.map((column) => ({ ...column }));
         },
 
         /**
