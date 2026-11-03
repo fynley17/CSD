@@ -1,33 +1,51 @@
 <script setup>
-// Import Vue functions for component lifecycle, reactive state,
-// and waiting for Vue's updates before accessing the table.
-import { onMounted, ref, nextTick } from 'vue';
+// Import Vue functions for lifecycle management, reactive state and DOM updates.
+import { onMounted, onBeforeUnmount, ref, nextTick } from 'vue';
 
 // Import DataTables and its Bootstrap 5 integration and styling.
 import DataTable from 'datatables.net-vue3';
 import DataTablesCore from 'datatables.net-bs5';
 import 'datatables.net-bs5/css/dataTables.bootstrap5.css';
 
-// Import the service that retrieves the lecturer's tests.
-import { getLecturerTests } from '../../services/lecturerService';
+// Import the API function used to retrieve lecturer tests.
+import { getLecturerTests } from '../../services/testService';
 
 // Register Bootstrap 5 as the DataTables styling integration.
 DataTable.use(DataTablesCore);
 
-// Store the tests returned by the backend.
+// Emit selected tests to the parent management page.
+const emit = defineEmits(['edit', 'delete']);
+
+// Store tests returned by the backend.
 const tests = ref([]);
 
-// Track loading and error states so the user receives feedback.
+// Track loading and error states.
 const loading = ref(true);
 const errorMessage = ref('');
 
-// Store the DataTables component reference so its API can be accessed.
+// Store the DataTables component and wrapper references.
 const dataTable = ref(null);
+const tableWrapper = ref(null);
 
-// Store the unique subjects used to populate the subject dropdown.
+// Store unique subjects for the subject filter dropdown.
 const subjects = ref([]);
 
-// Define the columns displayed in the test management table.
+// Prevent HTML injection when test details are inserted into generated table buttons.
+const escapeHtml = (value) => {
+    return String(value ?? '').replace(
+        /[&<>"']/g,
+        (character) =>
+            ({
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#39;',
+            })[character],
+    );
+};
+
+// Configure the test table columns and the actions available for each test.
 const columns = [
     { data: 'testName', title: 'Test Name' },
     { data: 'subjectName', title: 'Subject' },
@@ -35,32 +53,48 @@ const columns = [
     {
         data: 'timeLimit',
         title: 'Time Limit',
-
-        // Display the time limit in minutes, or explain when no limit exists.
         render: (value) => (value === null ? 'No time limit' : `${value} minutes`),
+    },
+    {
+        data: 'isActive',
+        title: 'Status',
+        render: (value, type) => {
+            if (type !== 'display') {
+                return value ? 'Active' : 'Archived';
+            }
+
+            return value
+                ? '<span class="badge bg-success">Active</span>'
+                : '<span class="badge bg-secondary">Archived</span>';
+        },
     },
     {
         data: null,
         title: 'Actions',
-
-        // Exclude the Actions column from sorting and searching.
         orderable: false,
         searchable: false,
 
-        // Generate Edit and Delete buttons for each test row.
+        // Generate action buttons for active tests only.
         render: (data, type, row) => {
-            // Return no button markup for non-display operations.
             if (type !== 'display') {
                 return '';
             }
+
+            // Archived tests cannot be edited or deleted again.
+            if (!row.isActive) {
+                return '<span class="text-muted">No actions available</span>';
+            }
+
+            const testID = escapeHtml(row.testID);
+            const testName = escapeHtml(row.testName);
 
             return `
                 <button
                     type="button"
                     class="btn btn-sm tableEditButton tableActionButton me-2"
                     data-action="edit"
-                    data-test-id="${row.testID}"
-                    aria-label="Edit ${row.testName}"
+                    data-test-id="${testID}"
+                    aria-label="Edit ${testName}"
                 >
                     Edit
                 </button>
@@ -68,8 +102,8 @@ const columns = [
                     type="button"
                     class="btn btn-sm tableDeleteButton tableActionButton"
                     data-action="delete"
-                    data-test-id="${row.testID}"
-                    aria-label="Delete ${row.testName}"
+                    data-test-id="${testID}"
+                    aria-label="Delete ${testName}"
                 >
                     Delete
                 </button>
@@ -78,21 +112,15 @@ const columns = [
     },
 ];
 
-// Configure DataTables sorting, pagination and search behaviour.
+// Configure table searching, sorting, pagination and empty-state messages.
 const tableOptions = {
     searching: true,
     ordering: true,
-
-    // Display five tests per page without a page-size selector.
     paging: true,
     pageLength: 5,
     lengthChange: false,
-
-    // Sort tests alphabetically by test name when the table loads.
     order: [[0, 'asc']],
 
-    // Hide DataTables' default search placement because the parent
-    // component supplies a custom search input beside the subject filter.
     layout: {
         topStart: null,
         topEnd: null,
@@ -100,79 +128,129 @@ const tableOptions = {
         bottomEnd: 'paging',
     },
 
-    // Show helpful messages when the table has no matching results.
     language: {
         emptyTable: 'No tests to display.',
         zeroRecords: 'No tests match your filters.',
     },
 };
 
-// Filter the Subject column using DataTables' column-search API.
+// Reload tests from the API and rebuild the available subject filter options.
+const refreshTests = async () => {
+    try {
+        errorMessage.value = '';
+
+        const response = await getLecturerTests();
+
+        tests.value = response;
+
+        // Create a sorted list of unique subjects for the subject filter.
+        subjects.value = [...new Set(tests.value.map((test) => test.subjectName))]
+            .filter(Boolean)
+            .sort((a, b) => a.localeCompare(b));
+
+        await nextTick();
+    } catch (error) {
+        errorMessage.value = 'Unable to load tests. Please try again later.';
+        throw error;
+    }
+};
+
+// Handle clicks on the Edit and Delete buttons generated by DataTables.
+const handleTableClick = (event) => {
+    const target = event.target instanceof Element ? event.target : null;
+    const button = target?.closest('button[data-action]');
+
+    if (!button) {
+        return;
+    }
+
+    const action = button.dataset.action;
+    const rowElement = button.closest('tr');
+
+    if (!rowElement) {
+        return;
+    }
+
+    // Retrieve the test associated with the selected table row.
+    const tableApi = dataTable.value?.dt;
+    const selectedTest = tableApi?.row(rowElement).data();
+
+    if (!selectedTest) {
+        return;
+    }
+
+    // Additional protection against actions on archived tests.
+    if (!selectedTest.isActive) {
+        return;
+    }
+
+    // Notify the parent component which action was selected.
+    if (action === 'edit') {
+        emit('edit', selectedTest);
+    } else if (action === 'delete') {
+        emit('delete', selectedTest);
+    }
+};
+
+// Apply the selected subject filter to the Subject column.
 const filterBySubject = async (subject) => {
-    // Wait for Vue updates before accessing the DataTables instance.
     await nextTick();
 
     const tableApi = dataTable.value?.dt;
 
     if (tableApi) {
-        // Column index 1 is the Subject column.
-        // An empty subject clears this filter.
         tableApi.column(1).search(subject).draw();
     }
 };
 
-// Search the searchable columns using the custom search input
-// provided by the parent test management view.
+// Apply the search term across the table while preserving the subject filter.
 const searchTests = async (searchTerm) => {
     await nextTick();
 
     const tableApi = dataTable.value?.dt;
 
     if (tableApi) {
-        // Apply the text search while preserving the subject filter.
         tableApi.search(searchTerm).draw();
     }
 };
 
-// Expose the subject list and filtering functions to the parent view.
+// Expose data and functions so the parent management page can control the table.
 defineExpose({
     subjects,
     filterBySubject,
     searchTests,
+    refreshTests,
 });
 
-// Retrieve the lecturer's tests when the component is mounted.
+// Load tests and register the delegated click listener when the component mounts.
 onMounted(async () => {
-    try {
-        tests.value = await getLecturerTests();
+    tableWrapper.value?.addEventListener('click', handleTableClick);
 
-        // Extract unique subject names, remove empty values,
-        // and sort alphabetically for the dropdown.
-        subjects.value = [...new Set(tests.value.map((test) => test.subjectName))]
-            .filter(Boolean)
-            .sort((a, b) => a.localeCompare(b));
+    loading.value = true;
+
+    try {
+        await refreshTests();
     } catch {
-        // Show a user-friendly message if retrieving tests fails.
-        errorMessage.value = 'Unable to load tests. Please try again later.';
+        // The refresh function already stores the error message.
     } finally {
-        // Stop showing the loading message whether the request succeeds or fails.
         loading.value = false;
     }
+});
+
+// Remove the event listener when the component is destroyed.
+onBeforeUnmount(() => {
+    tableWrapper.value?.removeEventListener('click', handleTableClick);
 });
 </script>
 
 <template>
-    <!-- Keep the table inside a horizontally scrollable container. -->
-    <div class="testTableWrapper">
-        <!-- Announce loading status to users and assistive technologies. -->
+    <div ref="tableWrapper" class="testTableWrapper">
         <p v-if="loading" role="status">Loading tests...</p>
 
-        <!-- Display an accessible error message if loading fails. -->
         <p v-else-if="errorMessage" role="alert">
             {{ errorMessage }}
         </p>
 
-        <!-- Display the table after loading completes successfully. -->
         <div v-else class="tableResponsive">
             <DataTable
                 ref="dataTable"
@@ -186,14 +264,14 @@ onMounted(async () => {
 </template>
 
 <style>
-/* Keep the table within its parent and prevent it widening the page. */
+/* Keep the table within its available container width. */
 .testTableWrapper {
     width: 100%;
     min-width: 0;
     max-width: 100%;
 }
 
-/* Allow horizontal scrolling when the table exceeds the available width. */
+/* Allow horizontal scrolling when the table is wider than the screen. */
 .testTableWrapper .tableResponsive {
     display: block;
     width: 100%;
@@ -203,26 +281,26 @@ onMounted(async () => {
     overscroll-behavior-x: contain;
 }
 
-/* Maintain a readable table width instead of squeezing columns on mobile. */
+/* Maintain a readable minimum table width. */
 .testTableWrapper .tableResponsive table {
     width: 100%;
     min-width: 760px;
     margin-bottom: 0;
 }
 
-/* Keep headings and cell values on one line for easier reading. */
+/* Keep table content vertically aligned and prevent unwanted wrapping. */
 .testTableWrapper .tableResponsive th,
 .testTableWrapper .tableResponsive td {
     white-space: nowrap;
     vertical-align: middle;
 }
 
-/* Provide enough space for both action buttons in the final column. */
+/* Reserve enough space for the Edit and Delete buttons. */
 .testTableWrapper .tableResponsive td:last-child {
-    min-width: 150px;
+    min-width: 180px;
 }
 
-/* Shared styling for the Edit and Delete action buttons. */
+/* Shared styling for the table action buttons. */
 .tableActionButton {
     min-height: 36px;
     padding: var(--spaceXs) var(--spaceSm);
@@ -231,34 +309,32 @@ onMounted(async () => {
     font-weight: 600;
 }
 
-/* Style the Edit button with the primary theme colours. */
+/* Edit button styling. */
 .tableEditButton {
     color: var(--colorPrimary);
     background-color: var(--colorSurface);
     border: 1px solid var(--colorPrimary);
 }
 
-/* Change the Edit button colours on hover. */
 .tableEditButton:hover {
     color: var(--colorSurface);
     background-color: var(--colorPrimaryHover);
     border-color: var(--colorPrimaryHover);
 }
 
-/* Style the Delete button with the error theme colours. */
+/* Delete button styling. */
 .tableDeleteButton {
     color: var(--colorSurface);
     background-color: var(--colorError);
     border: 1px solid var(--colorError);
 }
 
-/* Change the Delete button colours on hover. */
 .tableDeleteButton:hover {
     background-color: var(--colorErrorHover);
     border-color: var(--colorErrorHover);
 }
 
-/* Make keyboard focus clearly visible on action buttons. */
+/* Provide a visible focus indicator for keyboard navigation. */
 .tableActionButton:focus-visible {
     outline: 3px solid var(--colorFocus);
     outline-offset: 2px;

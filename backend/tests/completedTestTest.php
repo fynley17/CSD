@@ -1,3 +1,4 @@
+
 <?php
 
 use App\Models\CompletedTest;
@@ -7,7 +8,7 @@ use PHPUnit\Framework\TestCase;
 
 final class CompletedTestTest extends TestCase
 {
-    // every question in test-1's pool, in the order they were drawn for the attempt
+    // Every question in test-1's pool, in the order they were drawn.
     private const ALL_QUESTIONS = ['question-2', 'question-1', 'question-3'];
 
     private \PDO $db;
@@ -24,18 +25,28 @@ final class CompletedTestTest extends TestCase
                 testDescription TEXT,
                 timeLimit INTEGER,
                 questionCount INTEGER,
-                subjectID TEXT NOT NULL
+                subjectID TEXT NOT NULL,
+                isActive INTEGER NOT NULL DEFAULT 1
             )'
         );
-        $this->db->exec('CREATE TABLE Subjects (
+
+        $this->db->exec(
+            'CREATE TABLE Subjects (
                 subjectID TEXT PRIMARY KEY,
                 subjectName TEXT NOT NULL,
                 cohortID TEXT,
                 isActive INTEGER NOT NULL DEFAULT 1
-            )');
-        $this->db->exec(
-            'CREATE TABLE Students (userID TEXT PRIMARY KEY, cohortID TEXT NOT NULL, points INTEGER NOT NULL DEFAULT 0)'
+            )'
         );
+
+        $this->db->exec(
+            'CREATE TABLE Students (
+                userID TEXT PRIMARY KEY,
+                cohortID TEXT NOT NULL,
+                points INTEGER NOT NULL DEFAULT 0
+            )'
+        );
+
         $this->db->exec(
             'CREATE TABLE Questions (
                 questionID TEXT PRIMARY KEY,
@@ -44,6 +55,7 @@ final class CompletedTestTest extends TestCase
                 percentageCorrect INTEGER NOT NULL DEFAULT 0
             )'
         );
+
         $this->db->exec(
             'CREATE TABLE Answers (
                 answerID TEXT PRIMARY KEY,
@@ -52,6 +64,7 @@ final class CompletedTestTest extends TestCase
                 isCorrect INTEGER NOT NULL DEFAULT 0
             )'
         );
+
         $this->db->exec(
             'CREATE TABLE CompletedTests (
                 completedID TEXT PRIMARY KEY,
@@ -63,6 +76,7 @@ final class CompletedTestTest extends TestCase
                 percentageCorrect REAL NOT NULL DEFAULT 0
             )'
         );
+
         $this->db->exec(
             'CREATE TABLE StudentAnswers (
                 completedID TEXT NOT NULL,
@@ -73,18 +87,39 @@ final class CompletedTestTest extends TestCase
             )'
         );
 
-        // test-1's pool is the three Web Apps questions, question-4 belongs to another subject
+        // Test-1's pool contains three Web Apps questions.
+        // Question-4 belongs to another subject.
         $this->db->exec(
             "INSERT INTO Subjects (subjectID, subjectName, cohortID) VALUES
                 ('subject-1', 'Web Apps', 'cohort-1'),
                 ('subject-2', 'Databases', 'cohort-1');
-             INSERT INTO Students VALUES ('student-1', 'cohort-1', 100), ('student-2', 'cohort-2', 0);
-             INSERT INTO Tests VALUES ('test-1', 'Web Apps Test', 'Review', 5, 10, 'subject-1');
+
+             INSERT INTO Students VALUES
+                ('student-1', 'cohort-1', 100),
+                ('student-2', 'cohort-2', 0);
+
+             INSERT INTO Tests (
+                testID,
+                testName,
+                testDescription,
+                timeLimit,
+                questionCount,
+                subjectID
+             ) VALUES (
+                'test-1',
+                'Web Apps Test',
+                'Review',
+                5,
+                10,
+                'subject-1'
+             );
+
              INSERT INTO Questions (questionID, subjectID, question) VALUES
                 ('question-1', 'subject-1', 'What is not a JS framework?'),
                 ('question-2', 'subject-1', 'What does HTML stand for?'),
                 ('question-3', 'subject-1', 'Which is a CSS unit?'),
                 ('question-4', 'subject-2', 'Which SQL statement reads data?');
+
              INSERT INTO Answers VALUES
                 ('a1', 'question-1', 'Django', 1),
                 ('a2', 'question-1', 'Vue', 0),
@@ -107,7 +142,7 @@ final class CompletedTestTest extends TestCase
 
     public function testDrawsOnlyFromTheSubjectsPoolWithoutCorrectAnswers(): void
     {
-        // Arrange: setUp() has filled the tables
+        // Arrange: setUp() has filled the tables.
 
         // Act
         $test = Test::getForStudent('test-1', 'student-1');
@@ -119,45 +154,65 @@ final class CompletedTestTest extends TestCase
         self::assertSame(3, $test['questionCount']);
         self::assertArrayNotHasKey('questionsPerAttempt', $test);
         self::assertArrayNotHasKey('subjectIsActive', $test);
+
         $questionIDs = array_column($test['questions'], 'questionID');
         sort($questionIDs);
-        self::assertSame(['question-1', 'question-2', 'question-3'], $questionIDs);
-        self::assertSame(['answerID', 'answerText'], array_keys($test['questions'][0]['answers'][0]));
+
+        self::assertSame(
+            ['question-1', 'question-2', 'question-3'],
+            $questionIDs
+        );
+
+        self::assertSame(
+            ['answerID', 'answerText'],
+            array_keys($test['questions'][0]['answers'][0])
+        );
+
         self::assertTrue($test['earnsPoints']);
     }
 
     public function testDrawsTheTestsQuestionCountAtRandomFromThePool(): void
     {
         // Arrange
-        $this->db->exec("UPDATE Tests SET questionCount = 2 WHERE testID = 'test-1'");
+        $this->db->exec(
+            "UPDATE Tests SET questionCount = 2 WHERE testID = 'test-1'"
+        );
 
         // Act
-        // enough draws that every question in the subject should come up at least once,
-        // and question-4 from the other subject never should
+        // Enough draws that every question should appear at least once.
         $tests = [];
+
         for ($i = 0; $i < 50; $i++) {
             $tests[] = Test::getForStudent('test-1', 'student-1');
         }
 
         // Assert
         $drawn = [];
+
         foreach ($tests as $test) {
             $questionIDs = array_column($test['questions'], 'questionID');
 
             self::assertSame(2, $test['questionCount']);
             self::assertCount(2, array_unique($questionIDs));
+
             $drawn = array_merge($drawn, $questionIDs);
         }
 
         $drawn = array_values(array_unique($drawn));
         sort($drawn);
-        self::assertSame(['question-1', 'question-2', 'question-3'], $drawn);
+
+        self::assertSame(
+            ['question-1', 'question-2', 'question-3'],
+            $drawn
+        );
     }
 
     public function testNeverDrawsMoreQuestionsThanThePoolHolds(): void
     {
         // Arrange
-        $this->db->exec("UPDATE Tests SET questionCount = 10 WHERE testID = 'test-1'");
+        $this->db->exec(
+            "UPDATE Tests SET questionCount = 10 WHERE testID = 'test-1'"
+        );
 
         // Act
         $test = Test::getForStudent('test-1', 'student-1');
@@ -169,7 +224,9 @@ final class CompletedTestTest extends TestCase
     public function testDoesNotLoadATestWhoseSubjectHasNoQuestions(): void
     {
         // Arrange
-        $this->db->exec("DELETE FROM Questions WHERE subjectID = 'subject-1'");
+        $this->db->exec(
+            "DELETE FROM Questions WHERE subjectID = 'subject-1'"
+        );
 
         // Act
         $test = Test::getForStudent('test-1', 'student-1');
@@ -180,7 +237,7 @@ final class CompletedTestTest extends TestCase
 
     public function testDoesNotLoadATestFromAnotherCohort(): void
     {
-        // Arrange: setUp() puts student-2 in another cohort and has no missing-test
+        // Arrange: student-2 is in another cohort.
 
         // Act
         $otherCohortTest = Test::getForStudent('test-1', 'student-2');
@@ -194,7 +251,23 @@ final class CompletedTestTest extends TestCase
     public function testDoesNotLoadATestWhoseSubjectIsArchived(): void
     {
         // Arrange
-        $this->db->exec("UPDATE Subjects SET isActive = 0 WHERE subjectID = 'subject-1'");
+        $this->db->exec(
+            "UPDATE Subjects SET isActive = 0 WHERE subjectID = 'subject-1'"
+        );
+
+        // Act
+        $test = Test::getForStudent('test-1', 'student-1');
+
+        // Assert
+        self::assertNull($test);
+    }
+
+    public function testDoesNotLoadAnArchivedTestForAStudent(): void
+    {
+        // Arrange
+        $this->db->exec(
+            "UPDATE Tests SET isActive = 0 WHERE testID = 'test-1'"
+        );
 
         // Act
         $test = Test::getForStudent('test-1', 'student-1');
@@ -206,14 +279,49 @@ final class CompletedTestTest extends TestCase
     public function testStartedAttemptCanStillBeHandedInAfterItsSubjectIsArchived(): void
     {
         // Arrange
-        $this->db->exec("UPDATE Subjects SET isActive = 0 WHERE subjectID = 'subject-1'");
+        $this->db->exec(
+            "UPDATE Subjects SET isActive = 0 WHERE subjectID = 'subject-1'"
+        );
 
         // Act
-        $result = CompletedTest::submit('student-1', 'test-1', self::ALL_QUESTIONS, ['question-1' => 'a1']);
+        $result = CompletedTest::submit(
+            'student-1',
+            'test-1',
+            self::ALL_QUESTIONS,
+            ['question-1' => 'a1']
+        );
 
         // Assert
         self::assertNotNull($result);
-        self::assertEquals(1, $this->db->query('SELECT COUNT(*) FROM CompletedTests')->fetchColumn());
+
+        self::assertEquals(
+            1,
+            $this->db->query('SELECT COUNT(*) FROM CompletedTests')->fetchColumn()
+        );
+    }
+
+    public function testStartedAttemptCanStillBeHandedInAfterItsTestIsArchived(): void
+    {
+        // Arrange
+        $this->db->exec(
+            "UPDATE Tests SET isActive = 0 WHERE testID = 'test-1'"
+        );
+
+        // Act
+        $result = CompletedTest::submit(
+            'student-1',
+            'test-1',
+            self::ALL_QUESTIONS,
+            ['question-1' => 'a1']
+        );
+
+        // Assert
+        self::assertNotNull($result);
+
+        self::assertEquals(
+            1,
+            $this->db->query('SELECT COUNT(*) FROM CompletedTests')->fetchColumn()
+        );
     }
 
     public function testStartedAttemptCanStillBeHandedInAfterItsSubjectIsRemovedFromTheCohort(): void
@@ -291,7 +399,7 @@ final class CompletedTestTest extends TestCase
     public function testMarksAndSavesTheAttempt(): void
     {
         // Arrange
-        // one correct, one incorrect, one unanswered
+        // One correct, one incorrect, one unanswered.
         $answers = [
             'question-1' => 'a1',
             'question-2' => 'b2',
@@ -299,7 +407,12 @@ final class CompletedTestTest extends TestCase
         ];
 
         // Act
-        $result = CompletedTest::submit('student-1', 'test-1', self::ALL_QUESTIONS, $answers);
+        $result = CompletedTest::submit(
+            'student-1',
+            'test-1',
+            self::ALL_QUESTIONS,
+            $answers
+        );
 
         // Assert
         self::assertSame(3, $result['questionCount']);
@@ -308,55 +421,112 @@ final class CompletedTestTest extends TestCase
         self::assertEquals(33.33, $result['percentageCorrect']);
         self::assertTrue($result['earnsPoints']);
 
-        // the review is in question order and now shows which answer is correct
+        // The review is in question order and shows which answer is correct.
         $review = $result['questions'];
-        self::assertSame(['question-2', 'question-1', 'question-3'], array_column($review, 'questionID'));
-        self::assertSame([false, true, false], array_column($review, 'isCorrect'));
-        self::assertSame([-10, 30, 0], array_column($review, 'pointsAwarded'));
+
+        self::assertSame(
+            ['question-2', 'question-1', 'question-3'],
+            array_column($review, 'questionID')
+        );
+
+        self::assertSame(
+            [false, true, false],
+            array_column($review, 'isCorrect')
+        );
+
+        self::assertSame(
+            [-10, 30, 0],
+            array_column($review, 'pointsAwarded')
+        );
+
         self::assertTrue($review[0]['answers'][0]['isCorrect']);
 
-        $saved = $this->db->query('SELECT * FROM CompletedTests')->fetch(\PDO::FETCH_ASSOC);
+        $saved = $this->db->query(
+            'SELECT * FROM CompletedTests'
+        )->fetch(\PDO::FETCH_ASSOC);
+
         self::assertSame($result['completedID'], $saved['completedID']);
         self::assertSame('student-1', $saved['userID']);
         self::assertEquals(20, $saved['pointsEarned']);
 
         $answers = $this->db->query(
-            'SELECT questionID, selectedAnswerID, pointsAwarded FROM StudentAnswers ORDER BY questionID'
+            'SELECT questionID, selectedAnswerID, pointsAwarded
+             FROM StudentAnswers
+             ORDER BY questionID'
         )->fetchAll(\PDO::FETCH_NUM);
+
         self::assertEquals(
-            [['question-1', 'a1', 30], ['question-2', 'b2', -10], ['question-3', null, 0]],
+            [
+                ['question-1', 'a1', 30],
+                ['question-2', 'b2', -10],
+                ['question-3', null, 0],
+            ],
             $answers
         );
 
-        $points = $this->db->query("SELECT points FROM Students WHERE userID = 'student-1'")->fetchColumn();
+        $points = $this->db->query(
+            "SELECT points FROM Students WHERE userID = 'student-1'"
+        )->fetchColumn();
+
         self::assertEquals(120, $points);
     }
 
     public function testUpdatesEachQuestionsPercentageCorrectAcrossAttempts(): void
     {
         // Arrange
-        // student-2's cohort can see the test too for this check
-        $this->db->exec("UPDATE Students SET cohortID = 'cohort-1' WHERE userID = 'student-2'");
+        // Student-2's cohort can see the test too for this check.
+        $this->db->exec(
+            "UPDATE Students SET cohortID = 'cohort-1' WHERE userID = 'student-2'"
+        );
 
         // Act
-        CompletedTest::submit('student-1', 'test-1', self::ALL_QUESTIONS, ['question-1' => 'a1', 'question-2' => 'b2']);
+        CompletedTest::submit(
+            'student-1',
+            'test-1',
+            self::ALL_QUESTIONS,
+            ['question-1' => 'a1', 'question-2' => 'b2']
+        );
+
         $afterFirstAttempt = $this->percentages();
 
-        // 1 of 2 right for question-1, 1 of 2 for question-2, 2 of 3 for question-3,
-        // and the unanswered question-3 from the first attempt isn't counted
+        // Question-3 is unanswered in the first attempt, so it isn't counted.
         CompletedTest::submit(
             'student-2',
             'test-1',
             self::ALL_QUESTIONS,
-            ['question-1' => 'a2', 'question-2' => 'b1', 'question-3' => 'c1']
+            [
+                'question-1' => 'a2',
+                'question-2' => 'b1',
+                'question-3' => 'c1',
+            ]
         );
-        CompletedTest::submit('student-2', 'test-1', self::ALL_QUESTIONS, ['question-3' => 'c1']);
-        CompletedTest::submit('student-1', 'test-1', self::ALL_QUESTIONS, ['question-3' => 'c2']);
+
+        CompletedTest::submit(
+            'student-2',
+            'test-1',
+            self::ALL_QUESTIONS,
+            ['question-3' => 'c1']
+        );
+
+        CompletedTest::submit(
+            'student-1',
+            'test-1',
+            self::ALL_QUESTIONS,
+            ['question-3' => 'c2']
+        );
+
         $afterEveryAttempt = $this->percentages();
 
         // Assert
-        self::assertSame(['question-1' => 100, 'question-2' => 0, 'question-3' => 0], $afterFirstAttempt);
-        self::assertSame(['question-1' => 50, 'question-2' => 50, 'question-3' => 67], $afterEveryAttempt);
+        self::assertSame(
+            ['question-1' => 100, 'question-2' => 0, 'question-3' => 0],
+            $afterFirstAttempt
+        );
+
+        self::assertSame(
+            ['question-1' => 50, 'question-2' => 50, 'question-3' => 67],
+            $afterEveryAttempt
+        );
     }
 
     /**
@@ -365,15 +535,19 @@ final class CompletedTestTest extends TestCase
     private function percentages(): array
     {
         $rows = $this->db->query(
-            "SELECT questionID, percentageCorrect FROM Questions WHERE subjectID = 'subject-1' ORDER BY questionID"
+            "SELECT questionID, percentageCorrect
+             FROM Questions
+             WHERE subjectID = 'subject-1'
+             ORDER BY questionID"
         );
+
         return array_map('intval', $rows->fetchAll(\PDO::FETCH_KEY_PAIR));
     }
 
     public function testOnlyMarksTheQuestionsDrawnForTheAttempt(): void
     {
         // Arrange
-        // question-1 wasn't drawn, so its answer is ignored rather than earning points
+        // Question-1 wasn't drawn, so its answer is ignored.
         $answers = [
             'question-1' => 'a1',
             'question-2' => 'b1',
@@ -381,26 +555,42 @@ final class CompletedTestTest extends TestCase
         ];
 
         // Act
-        $result = CompletedTest::submit('student-1', 'test-1', ['question-3', 'question-2'], $answers);
+        $result = CompletedTest::submit(
+            'student-1',
+            'test-1',
+            ['question-3', 'question-2'],
+            $answers
+        );
 
         // Assert
         self::assertSame(2, $result['questionCount']);
         self::assertSame(2, $result['correctCount']);
         self::assertSame(60, $result['pointsEarned']);
         self::assertEquals(100, $result['percentageCorrect']);
-        self::assertSame(['question-3', 'question-2'], array_column($result['questions'], 'questionID'));
-        self::assertEquals(2, $this->db->query('SELECT COUNT(*) FROM StudentAnswers')->fetchColumn());
+
+        self::assertSame(
+            ['question-3', 'question-2'],
+            array_column($result['questions'], 'questionID')
+        );
+
+        self::assertEquals(
+            2,
+            $this->db->query('SELECT COUNT(*) FROM StudentAnswers')->fetchColumn()
+        );
     }
 
     public function testRejectsAnAttemptWithNoQuestionsFromTheTestsSubject(): void
     {
-        // Arrange: setUp() puts question-4 in another subject
-
-        // Assert: PHPUnit has to be told which exception to expect before the Act
+        // Arrange: question-4 belongs to another subject.
         $this->expectException(\InvalidArgumentException::class);
 
         // Act
-        CompletedTest::submit('student-1', 'test-1', ['question-4'], ['question-4' => 'd1']);
+        CompletedTest::submit(
+            'student-1',
+            'test-1',
+            ['question-4'],
+            ['question-4' => 'd1']
+        );
     }
 
     public function testMissingAnswersCountAsUnanswered(): void
@@ -409,12 +599,21 @@ final class CompletedTestTest extends TestCase
         $noAnswers = [];
 
         // Act
-        $result = CompletedTest::submit('student-1', 'test-1', self::ALL_QUESTIONS, $noAnswers);
+        $result = CompletedTest::submit(
+            'student-1',
+            'test-1',
+            self::ALL_QUESTIONS,
+            $noAnswers
+        );
 
         // Assert
         self::assertSame(0, $result['correctCount']);
         self::assertSame(0, $result['pointsEarned']);
-        self::assertSame([null, null, null], array_column($result['questions'], 'selectedAnswerID'));
+
+        self::assertSame(
+            [null, null, null],
+            array_column($result['questions'], 'selectedAnswerID')
+        );
     }
 
     public function testEachRetakeIsSavedAsItsOwnAttempt(): void
@@ -423,66 +622,138 @@ final class CompletedTestTest extends TestCase
         $answers = ['question-1' => 'a1'];
 
         // Act
-        $first = CompletedTest::submit('student-1', 'test-1', self::ALL_QUESTIONS, $answers);
-        $second = CompletedTest::submit('student-1', 'test-1', self::ALL_QUESTIONS, $answers);
+        $first = CompletedTest::submit(
+            'student-1',
+            'test-1',
+            self::ALL_QUESTIONS,
+            $answers
+        );
+
+        $second = CompletedTest::submit(
+            'student-1',
+            'test-1',
+            self::ALL_QUESTIONS,
+            $answers
+        );
 
         // Assert
         self::assertNotSame($first['completedID'], $second['completedID']);
+
         self::assertMatchesRegularExpression(
             '/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/',
             $first['completedID']
         );
-        self::assertEquals(2, $this->db->query('SELECT COUNT(*) FROM CompletedTests')->fetchColumn());
+
+        self::assertEquals(
+            2,
+            $this->db->query('SELECT COUNT(*) FROM CompletedTests')->fetchColumn()
+        );
     }
 
     public function testCanRetakeAfterFullMarksButEarnsNoMorePoints(): void
     {
         // Arrange
-        $fullMarks = ['question-1' => 'a1', 'question-2' => 'b1', 'question-3' => 'c1'];
-        $oneRight = ['question-1' => 'a1', 'question-2' => 'b2'];
+        $fullMarks = [
+            'question-1' => 'a1',
+            'question-2' => 'b1',
+            'question-3' => 'c1',
+        ];
+
+        $oneRight = [
+            'question-1' => 'a1',
+            'question-2' => 'b2',
+        ];
 
         // Act
-        $result = CompletedTest::submit('student-1', 'test-1', self::ALL_QUESTIONS, $fullMarks);
+        $result = CompletedTest::submit(
+            'student-1',
+            'test-1',
+            self::ALL_QUESTIONS,
+            $fullMarks
+        );
+
         $test = Test::getForStudent('test-1', 'student-1');
-        $retake = CompletedTest::submit('student-1', 'test-1', self::ALL_QUESTIONS, $oneRight);
+
+        $retake = CompletedTest::submit(
+            'student-1',
+            'test-1',
+            self::ALL_QUESTIONS,
+            $oneRight
+        );
 
         // Assert
         self::assertEquals(100, $result['percentageCorrect']);
         self::assertSame(90, $result['pointsEarned']);
 
-        // the test can still be opened, but it says the attempt won't earn points
+        // The test can still be opened, but says the attempt won't earn points.
         self::assertNotNull($test);
         self::assertFalse($test['earnsPoints']);
 
-        // the retake is marked and saved, every question scores 0 whether right or wrong
+        // The retake is marked and saved, but every question scores 0.
         self::assertFalse($retake['earnsPoints']);
         self::assertSame(1, $retake['correctCount']);
         self::assertEquals(33.33, $retake['percentageCorrect']);
         self::assertSame(0, $retake['pointsEarned']);
-        self::assertSame([0, 0, 0], array_column($retake['questions'], 'pointsAwarded'));
-        // review is in the drawn order: question-2 (wrong), question-1 (right), question-3 (blank)
-        self::assertSame([false, true, false], array_column($retake['questions'], 'isCorrect'));
 
-        self::assertEquals(2, $this->db->query('SELECT COUNT(*) FROM CompletedTests')->fetchColumn());
+        self::assertSame(
+            [0, 0, 0],
+            array_column($retake['questions'], 'pointsAwarded')
+        );
+
+        // Review is in the drawn order.
+        self::assertSame(
+            [false, true, false],
+            array_column($retake['questions'], 'isCorrect')
+        );
+
+        self::assertEquals(
+            2,
+            $this->db->query('SELECT COUNT(*) FROM CompletedTests')->fetchColumn()
+        );
+
         $saved = $this->db->query(
-            "SELECT pointsAwarded FROM StudentAnswers WHERE completedID = '{$retake['completedID']}'"
+            "SELECT pointsAwarded
+             FROM StudentAnswers
+             WHERE completedID = '{$retake['completedID']}'"
         )->fetchAll(\PDO::FETCH_COLUMN);
+
         self::assertEquals([0, 0, 0], $saved);
 
-        // only the first attempt's points were added to the student's total
-        $points = $this->db->query("SELECT points FROM Students WHERE userID = 'student-1'")->fetchColumn();
+        // Only the first attempt's points were added to the student's total.
+        $points = $this->db->query(
+            "SELECT points FROM Students WHERE userID = 'student-1'"
+        )->fetchColumn();
+
         self::assertEquals(190, $points);
     }
 
     public function testFullMarksOnAnotherStudentsAttemptDoesNotStopYourPoints(): void
     {
         // Arrange
-        $this->db->exec("UPDATE Students SET cohortID = 'cohort-1' WHERE userID = 'student-2'");
-        $answers = ['question-1' => 'a1', 'question-2' => 'b1', 'question-3' => 'c1'];
-        CompletedTest::submit('student-2', 'test-1', self::ALL_QUESTIONS, $answers);
+        $this->db->exec(
+            "UPDATE Students SET cohortID = 'cohort-1' WHERE userID = 'student-2'"
+        );
+
+        $answers = [
+            'question-1' => 'a1',
+            'question-2' => 'b1',
+            'question-3' => 'c1',
+        ];
+
+        CompletedTest::submit(
+            'student-2',
+            'test-1',
+            self::ALL_QUESTIONS,
+            $answers
+        );
 
         // Act
-        $result = CompletedTest::submit('student-1', 'test-1', self::ALL_QUESTIONS, $answers);
+        $result = CompletedTest::submit(
+            'student-1',
+            'test-1',
+            self::ALL_QUESTIONS,
+            $answers
+        );
 
         // Assert
         self::assertTrue($result['earnsPoints']);
@@ -497,14 +768,23 @@ final class CompletedTestTest extends TestCase
 
         // Act
         try {
-            CompletedTest::submit('student-1', 'test-1', self::ALL_QUESTIONS, $answers);
+            CompletedTest::submit(
+                'student-1',
+                'test-1',
+                self::ALL_QUESTIONS,
+                $answers
+            );
         } catch (\InvalidArgumentException $caught) {
             $exception = $caught;
         }
 
         // Assert
         self::assertInstanceOf(\InvalidArgumentException::class, $exception);
-        // nothing is saved when the submission is rejected
-        self::assertEquals(0, $this->db->query('SELECT COUNT(*) FROM CompletedTests')->fetchColumn());
+
+        // Nothing is saved when the submission is rejected.
+        self::assertEquals(
+            0,
+            $this->db->query('SELECT COUNT(*) FROM CompletedTests')->fetchColumn()
+        );
     }
 }

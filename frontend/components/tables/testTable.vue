@@ -8,7 +8,7 @@ import DataTablesCore from 'datatables.net-bs5';
 import 'datatables.net-bs5/css/dataTables.bootstrap5.css';
 
 // Import the service that retrieves all tests for the lecturer dashboard.
-import { getLecturerTests } from '../../services/lecturerService';
+import { getLecturerTests } from '../../services/testService';
 
 // Register the Bootstrap 5 version of DataTables with the Vue component.
 DataTable.use(DataTablesCore);
