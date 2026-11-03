@@ -121,7 +121,7 @@ class Student extends User
         }
 
         // The cohort name is also needed for the welcome email.
-        $stmt = $db->prepare("SELECT cohortID, cohortName FROM Cohorts WHERE cohortID = ? LIMIT 1");
+        $stmt = $db->prepare("SELECT cohortID, cohortName FROM Cohorts WHERE cohortID = ? AND isActive = 1 LIMIT 1");
         $stmt->execute([$cohortID]);
         $cohort = $stmt->fetch(\PDO::FETCH_ASSOC);
         if ($cohort === false) {
@@ -175,7 +175,8 @@ class Student extends User
     public static function findVerificationDetails(string $userID): ?array
     {
         $stmt = self::getDB()->prepare(
-            "SELECT Users.email, Users.isEmailVerified, Students.firstName, Students.lastName, Cohorts.cohortName "
+            "SELECT Users.email, Users.isEmailVerified, Users.isEnabled, Students.firstName, Students.lastName, "
+            . "Cohorts.cohortName "
             . "FROM Users "
             . "JOIN Students ON Students.userID = Users.userID "
             . "JOIN Cohorts ON Cohorts.cohortID = Students.cohortID "
@@ -189,6 +190,7 @@ class Student extends User
         }
 
         $row['isEmailVerified'] = (bool) $row['isEmailVerified'];
+        $row['isEnabled'] = (bool) $row['isEnabled'];
         return $row;
     }
 

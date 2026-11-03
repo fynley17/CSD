@@ -1448,6 +1448,7 @@ main.appMainFullScreen {
 
 .cohortActions {
     display: flex;
+    align-items: center;
     gap: var(--spaceSm);
 }
 

@@ -35,20 +35,36 @@
             </button>
         </div>
 
-        <h2>Students in each cohort</h2>
-        <CohortStudentsTable :cohorts="visibleCohorts" />
+        <div v-if="saveError" class="alert alert-danger mt-3 mb-0" role="alert">
+            <strong>There is a problem:</strong> {{ saveError }}
+        </div>
 
-        <h2>Subjects for each cohort</h2>
-        <CohortSubjectsTable :cohorts="visibleCohorts" />
+        <p v-if="isLoading" class="text-center py-4 mb-0" role="status">Loading cohorts</p>
+
+        <div v-else-if="loadError" class="alert alert-danger mt-3 mb-0" role="alert">
+            <strong>There is a problem:</strong> {{ loadError }}
+        </div>
+
+        <template v-else>
+            <h2>Students in each cohort</h2>
+            <CohortStudentsTable :cohorts="visibleCohorts" @toggleStatus="toggleStatus" />
+
+            <h2>Subjects for each cohort</h2>
+            <CohortSubjectsTable :cohorts="visibleCohorts" />
+        </template>
     </section>
 </template>
 
 <script setup>
-import { computed, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import CohortStudentsTable from '../components/tables/cohortStudentsTable.vue';
 import CohortSubjectsTable from '../components/tables/cohortSubjectsTable.vue';
-import { sampleCohorts } from '../utils/sampleCohorts';
+import { getCohorts, setCohortActive } from '../services/cohortService';
 
+const allCohorts = ref([]);
+const isLoading = ref(true);
+const loadError = ref('');
+const saveError = ref('');
 const searchText = ref('');
 const statusFilter = ref('');
 const sortBy = ref('');
@@ -64,7 +80,7 @@ const sorters = {
 // the search, filter and sort apply to both tables
 const visibleCohorts = computed(() => {
     const search = searchText.value.trim().toLowerCase();
-    const cohorts = sampleCohorts.filter(
+    const cohorts = allCohorts.value.filter(
         (cohort) =>
             cohort.cohortName.toLowerCase().includes(search) &&
             (statusFilter.value === '' || cohort.isActive === (statusFilter.value === 'active')),
@@ -72,6 +88,28 @@ const visibleCohorts = computed(() => {
 
     return sortBy.value ? cohorts.sort(sorters[sortBy.value]) : cohorts;
 });
+
+onMounted(async () => {
+    try {
+        allCohorts.value = await getCohorts();
+    } catch (error) {
+        // PHP's message if it sent one, otherwise a plain one
+        loadError.value = error.response?.data?.error || 'Unable to load the cohorts';
+    } finally {
+        isLoading.value = false;
+    }
+});
+
+// the screen only changes once PHP confirms it's saved, so it never shows a status the database doesn't have
+async function toggleStatus(cohort) {
+    saveError.value = '';
+
+    try {
+        Object.assign(cohort, await setCohortActive(cohort.cohortID, !cohort.isActive));
+    } catch (error) {
+        saveError.value = error.response?.data?.error || `Unable to update ${cohort.cohortName}`;
+    }
+}
 </script>
 
 <style scoped>

@@ -51,7 +51,7 @@ class Subject extends Model
      *
      * @return array<string, string> subjectID => names
      */
-    private static function getLecturerNames(): array
+    public static function getLecturerNames(): array
     {
         $sql = "
             SELECT LecturerSubjects.subjectID, Lecturer.firstName, Lecturer.lastName
