@@ -102,4 +102,25 @@ describe('SubjectForm', () => {
         expect(wrapper.get('[role="alert"]').text()).toBe('There is a problem: ' + message);
         expect(wrapper.emitted('saved')).toBeUndefined();
     });
+
+    /**
+     * the subjects cohort is disabled so its not in the list, it gets put back so the box isnt blank (boundary)
+     */
+    it('keeps the cohort of a subject whose cohort is disabled', async () => {
+        // Arrange
+        const row = {
+            subjectID: 'subject-1',
+            subjectName: 'Test Databases',
+            cohortID: 'cohort-9',
+            cohortName: 'Disabled Cohort',
+            lecturerIDs: [],
+        };
+
+        // Act
+        const wrapper = await openForm(row);
+
+        // Assert
+        expect(wrapper.get('#subjectCohort').element.value).toBe('cohort-9');
+        expect(wrapper.text()).toContain('Disabled Cohort');
+    });
 });

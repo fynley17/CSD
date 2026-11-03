@@ -49,6 +49,10 @@ export default {
             // get the lists fresh each time in case someone added a lecturer or cohort meanwhile
             try {
                 this.cohorts = await getCohorts();
+                // a disabled cohort isnt in the list, so add the subjects own one back or the box shows blank
+                if (subject !== null && !this.cohorts.some((cohort) => cohort.cohortID === subject.cohortID)) {
+                    this.cohorts.push({ cohortID: subject.cohortID, cohortName: subject.cohortName });
+                }
                 this.lecturers = await getLecturerOptions();
             } catch (error) {
                 this.errorMessage = error.response?.data?.error || 'Unable to load the cohorts and lecturers';
