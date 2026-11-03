@@ -21,8 +21,21 @@ final class LecturerManagementTest extends TestCase
     {
         $this->db = new \PDO('sqlite::memory:');
         $this->db->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
-        $this->db->exec('CREATE TABLE Users (userID TEXT PRIMARY KEY, isEnabled INTEGER NOT NULL)');
-        $this->db->exec("INSERT INTO Users VALUES ('admin-id', 1), ('lecturer-id', 1), ('other-id', 1)");
+        $this->db->exec(
+            'CREATE TABLE Users (userID TEXT PRIMARY KEY, username TEXT NOT NULL, email TEXT NOT NULL, '
+            . 'isEnabled INTEGER NOT NULL)'
+        );
+        $this->db->exec(
+            "INSERT INTO Users VALUES ('admin-id', 'adm01', 'adm01@example.test', 1), "
+            . "('lecturer-id', 'lec01', 'lec01@example.test', 1), ('other-id', 'lec02', 'lec02@example.test', 1)"
+        );
+        $this->db->exec(
+            'CREATE TABLE Lecturer (userID TEXT PRIMARY KEY, firstName TEXT NOT NULL, lastName TEXT NOT NULL)'
+        );
+        $this->db->exec(
+            "INSERT INTO Lecturer VALUES ('admin-id', 'Test', 'Admin'), ('lecturer-id', 'Test', 'One'), "
+            . "('other-id', 'Test', 'Two')"
+        );
 
         // points the models at the pretend database instead of the real one
         $dbProperty = new \ReflectionProperty(Model::class, 'db');
@@ -94,6 +107,81 @@ final class LecturerManagementTest extends TestCase
     }
 
     /**
+     * Edit saves the new details, the spaces are trimmed and the email goes lowercase (normal)
+     */
+    public function testSavesTheEditedDetails(): void
+    {
+        // Arrange
+        $admin = new Administrator($this->makeRow('admin-id', 'admin'));
+        $lecturer = new Lecturer($this->makeRow('lecturer-id', 'lecturer'));
+        $details = [
+            'firstName' => ' Jason ',
+            'lastName' => 'Hill',
+            'staffID' => 'L1002',
+            'email' => 'Jason.Hill@Example.test',
+        ];
+
+        // Act
+        $admin->editLecturer($lecturer, $details);
+
+        // Assert
+        $this->assertSame(
+            ['username' => 'L1002', 'email' => 'jason.hill@example.test', 'firstName' => 'Jason', 'lastName' => 'Hill'],
+            $this->getAccount('lecturer-id')
+        );
+    }
+
+    /**
+     * Saving with the lecturer's own staff ID and email still works, they don't clash with themselves (boundary)
+     */
+    public function testAllowsKeepingTheSameStaffIdAndEmail(): void
+    {
+        // Arrange
+        $admin = new Administrator($this->makeRow('admin-id', 'admin'));
+        $lecturer = new Lecturer($this->makeRow('lecturer-id', 'lecturer'));
+        $details = [
+            'firstName' => 'Changed',
+            'lastName' => 'One',
+            'staffID' => 'lec01',
+            'email' => 'lec01@example.test',
+        ];
+
+        // Act
+        $admin->editLecturer($lecturer, $details);
+
+        // Assert
+        $this->assertSame('Changed', $this->getAccount('lecturer-id')['firstName']);
+    }
+
+    /**
+     * A staff ID another lecturer already has is refused and nothing is saved (error)
+     */
+    public function testRefusesAStaffIdThatIsAlreadyTaken(): void
+    {
+        // Arrange
+        $admin = new Administrator($this->makeRow('admin-id', 'admin'));
+        $lecturer = new Lecturer($this->makeRow('lecturer-id', 'lecturer'));
+        $details = [
+            'firstName' => 'Changed',
+            'lastName' => 'One',
+            'staffID' => 'lec02',
+            'email' => 'new@example.test',
+        ];
+        $message = '';
+
+        // Act
+        try {
+            $admin->editLecturer($lecturer, $details);
+        } catch (\InvalidArgumentException $e) {
+            $message = $e->getMessage();
+        }
+
+        // Assert
+        $this->assertSame('An account with this staff ID already exists', $message);
+        $this->assertSame('lec01', $this->getAccount('lecturer-id')['username']);
+    }
+
+    /**
      * A made up Users row, same keys the real query gives, the password is just filler
      */
     private function makeRow(string $userID, string $accountType): array
@@ -120,5 +208,19 @@ final class LecturerManagementTest extends TestCase
         $stmt->execute([$userID]);
 
         return (int) $stmt->fetchColumn();
+    }
+
+    /**
+     * Reads the saved login details and names of one lecturer so the test checks what was really saved
+     */
+    private function getAccount(string $userID): array
+    {
+        $stmt = $this->db->prepare(
+            'SELECT Users.username, Users.email, Lecturer.firstName, Lecturer.lastName '
+            . 'FROM Users JOIN Lecturer ON Lecturer.userID = Users.userID WHERE Users.userID = ?'
+        );
+        $stmt->execute([$userID]);
+
+        return $stmt->fetch(\PDO::FETCH_ASSOC);
     }
 }
