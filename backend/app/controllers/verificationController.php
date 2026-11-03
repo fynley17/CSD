@@ -23,6 +23,7 @@ class VerificationController extends Controller
     private const WAIT_BEFORE_RESEND = 'Wait a minute before asking for another email';
     private const EMAIL_NOT_SENT = 'We could not send the email. Try again later';
     private const MISSING_EMAIL = 'Enter your email address';
+    private const ACCOUNT_DISABLED = 'Your account has been disabled. Contact your lecturer or an administrator';
 
     /**
      * POST /api/verify-email, checks the code from the email link and verifies the account
@@ -45,12 +46,17 @@ class VerificationController extends Controller
                 $this->jsonResponse(['error' => self::EXPIRED_LINK], 400);
             }
 
+            // a disabled account can't verify, the link stays usable until it expires if they're enabled again
+            $student = Student::findVerificationDetails($verification['userID']);
+            if ($student !== null && !$student['isEnabled']) {
+                $this->jsonResponse(['error' => self::ACCOUNT_DISABLED], 403);
+            }
+
             // the session is left alone, so if the check your email page is still open it shows them as verified
             // it can't be used for anything else now, resend and change email both stop once it's verified
             EmailVerification::markVerified($verification['userID']);
 
             // the address is confirmed now, so it's safe to send their name and cohort to it
-            $student = Student::findVerificationDetails($verification['userID']);
             if ($student !== null) {
                 Mailer::sendWelcomeEmail(
                     $student['email'],
@@ -142,14 +148,15 @@ class VerificationController extends Controller
     }
 
     /**
-     * Finds the unverified account this browser registered or logged in to, stops with a 401 if there isn't one
+     * Finds the unverified account this browser registered or logged in to
+     * Stops with a 401 if there isn't one, or it's been disabled since
      */
     private function findPendingStudent(): array
     {
         $userID = Authentication::getPendingVerificationUserID();
         $student = $userID === null ? null : Student::findVerificationDetails($userID);
 
-        if ($student === null) {
+        if ($student === null || !$student['isEnabled']) {
             Authentication::clearPendingVerification();
             $this->jsonResponse(['error' => self::NO_PENDING_ACCOUNT], 401);
         }

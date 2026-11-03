@@ -227,6 +227,25 @@ final class UserTest extends TestCase
     }
 
     /**
+     * Disabled shows even if the account isn't verified or approved yet (edge)
+     * the login controller checks this first, so they can't get to the check your email page
+     */
+    public function testDisabledIsReportedBeforeVerificationOrApproval(): void
+    {
+        // Arrange
+        $enabledUser = $this->makeUser();
+        $disabledUser = $this->makeUser(['isEnabled' => 0, 'isEmailVerified' => 0, 'approvalStatus' => 'pending']);
+
+        // Act
+        $enabledResult = $enabledUser->isDisabled();
+        $disabledResult = $disabledUser->isDisabled();
+
+        // Assert
+        self::assertFalse($enabledResult);
+        self::assertTrue($disabledResult);
+    }
+
+    /**
      * Getters give back the right details (normal)
      * these are what end up in the session and the /api/current-user reply
      */
