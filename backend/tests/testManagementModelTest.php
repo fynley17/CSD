@@ -46,6 +46,19 @@ final class TestManagementModelTest extends TestCase
         );
 
         $this->db->exec(
+            'CREATE TABLE Questions (
+                questionID TEXT PRIMARY KEY,
+                subjectID TEXT NOT NULL
+            )'
+        );
+
+        $this->db->exec(
+            "INSERT INTO Questions (questionID, subjectID) VALUES
+                ('question-1', 'subject-1'),
+                ('question-2', 'subject-1')"
+        );
+
+        $this->db->exec(
             'CREATE TABLE CompletedTests (
                 testID TEXT NOT NULL,
                 userID TEXT NOT NULL,
@@ -97,6 +110,18 @@ final class TestManagementModelTest extends TestCase
         self::assertSame(
             ['2026 Computing', '2025 Computing'],
             array_column($subjects, 'cohortName')
+        );
+    }
+
+    public function testActiveSubjectsIncludeQuestionPoolSize(): void
+    {
+        // Act
+        $subjects = Test::getActiveSubjects();
+
+        // Assert, Cyber Security has no questions so the test form can warn about it
+        self::assertSame(
+            ['Cyber Security' => 0, 'Web Applications' => 2],
+            array_column($subjects, 'questionPoolSize', 'subjectName')
         );
     }
 
