@@ -97,6 +97,13 @@ class SubjectController extends Controller
             $this->jsonResponse(['error' => 'The subject details are not valid'], 400);
         }
 
+        // each lecturer ID has to be text too, a list inside the list would crash the save
+        foreach ($data['lecturerIDs'] as $lecturerID) {
+            if (!is_string($lecturerID)) {
+                $this->jsonResponse(['error' => 'The subject details are not valid'], 400);
+            }
+        }
+
         try {
             $saved = Subject::save($subjectID, $data['subjectName'], $data['cohortID'], $data['lecturerIDs']);
             if (!$saved) {
