@@ -3,12 +3,22 @@
 // each test is laid out Arrange (pick what PHP sends back), Act (call the service), Assert (check the answer)
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import api from '../services/api';
-import { getDashboardSummary, getRecentLecturers } from '../services/administratorService';
+import {
+    deleteLecturer,
+    getDashboardSummary,
+    getLecturers,
+    getRecentLecturers,
+    setLecturerEnabled,
+    updateLecturer,
+} from '../services/administratorService';
 
 // swaps the real axios setup for a pretend one, so no PHP is needed
 vi.mock('../services/api', () => ({
     default: {
         get: vi.fn(),
+        put: vi.fn(),
+        patch: vi.fn(),
+        delete: vi.fn(),
     },
 }));
 
@@ -71,5 +81,69 @@ describe('administratorService', () => {
         // Assert
         expect(api.get).toHaveBeenCalledWith('/admin/recent-lecturers');
         expect(recentLecturers).toEqual(lecturers);
+    });
+
+    /**
+     * The management page asks for every lecturer, not the dashboard's 5 (normal)
+     */
+    it('gets every lecturer from the lecturers address', async () => {
+        // Arrange
+        const lecturers = [{ userID: 'lecturer-1', name: 'Test Lecturer', staffID: 'L1001', isEnabled: true }];
+        vi.mocked(api.get).mockResolvedValue({ data: lecturers });
+
+        // Act
+        const allLecturers = await getLecturers();
+
+        // Assert
+        expect(api.get).toHaveBeenCalledWith('/admin/lecturers');
+        expect(allLecturers).toEqual(lecturers);
+    });
+
+    /**
+     * Edit sends the form details to that lecturer's address with PUT (normal)
+     */
+    it('sends the edited details to the lecturer address', async () => {
+        // Arrange
+        const details = { firstName: 'Test', lastName: 'Lecturer', staffID: 'L1001', email: 'test@example.test' };
+        vi.mocked(api.put).mockResolvedValue({ data: { message: 'Changes saved' } });
+
+        // Act
+        const reply = await updateLecturer('lecturer-1', details);
+
+        // Assert
+        expect(api.put).toHaveBeenCalledWith('/admin/lecturers/lecturer-1', details);
+        expect(reply).toEqual({ message: 'Changes saved' });
+    });
+
+    /**
+     * Disable sends isEnabled false, enable and Undo use the same call with true (normal)
+     */
+    it('sends isEnabled to the enabled address', async () => {
+        // Arrange
+        vi.mocked(api.patch).mockResolvedValue({ data: { message: 'Status updated' } });
+
+        // Act
+        await setLecturerEnabled('lecturer-1', false);
+
+        // Assert
+        expect(api.patch).toHaveBeenCalledWith('/admin/lecturers/lecturer-1/enabled', { isEnabled: false });
+    });
+
+    /**
+     * A refused delete isn't hidden, the pop-up needs PHP's message to show it (error)
+     */
+    it('passes a refused delete on to the page', async () => {
+        // Arrange
+        const refused = {
+            response: { status: 400, data: { error: "Administrator accounts can't be changed on this page" } },
+        };
+        vi.mocked(api.delete).mockRejectedValue(refused);
+
+        // Act
+        const request = deleteLecturer('admin-1');
+
+        // Assert
+        expect(api.delete).toHaveBeenCalledWith('/admin/lecturers/admin-1');
+        await expect(request).rejects.toBe(refused);
     });
 });
