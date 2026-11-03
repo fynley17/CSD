@@ -1296,6 +1296,102 @@ final class CohortManagementTest extends TestCase
         }
     }
 
+    /**
+     * The cohort and each student are read locked inside the transaction, before anyone is moved (normal)
+     * stops the cohort being toggled, or the same student being moved by someone else, part way through
+     * the race itself needs two MariaDB connections, so this pretends to be MariaDB and checks the queries
+     */
+    public function testMoveLocksTheCohortAndStudentsInsideItsTransaction(): void
+    {
+        // Arrange: a connection that says it's MariaDB and notes each query it runs, with the same tables as setUp()
+        $recordingDB = new class ('sqlite::memory:') extends PDO {
+            /** @var array<int, array{sql: string, inTransaction: bool}> */
+            public array $queries = [];
+
+            public function getAttribute(int $attribute): mixed
+            {
+                return $attribute === PDO::ATTR_DRIVER_NAME ? 'mysql' : parent::getAttribute($attribute);
+            }
+
+            public function prepare(string $query, array $options = []): PDOStatement|false
+            {
+                $this->queries[] = ['sql' => $query, 'inTransaction' => $this->inTransaction()];
+
+                // SQLite can't run FOR UPDATE, it's only noted
+                return parent::prepare(str_replace(' FOR UPDATE', '', $query), $options);
+            }
+        };
+        $recordingDB->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        foreach (['Cohorts', 'Students', 'Users'] as $table) {
+            $create = $this->db->query("SELECT sql FROM sqlite_master WHERE name = '$table'")->fetchColumn();
+            $recordingDB->exec($create);
+        }
+        $recordingDB->exec(
+            "INSERT INTO Cohorts (cohortID, cohortName, createdDate, isActive)
+                VALUES ('cohort-1', 'Test Beta', '2026-09-01', 1), ('cohort-2', 'Test Alpha', '2025-09-01', 0);
+             INSERT INTO Students (userID, firstName, lastName, cohortID) VALUES ('user-1', 'Sam', 'One', 'cohort-1');
+             INSERT INTO Users (userID, username, email, isEnabled, approvalStatus)
+                VALUES ('user-1', 'ws000001', 'a@example.test', 1, 'approved')"
+        );
+        (new ReflectionProperty(Model::class, 'db'))->setValue(null, $recordingDB);
+
+        // Act
+        Cohort::moveStudents('cohort-2', ['ws000001']);
+
+        // Assert
+        $reads = array_values(array_filter($recordingDB->queries, fn ($query) => str_starts_with(
+            ltrim($query['sql']),
+            'SELECT'
+        )));
+        $this->assertStringContainsString('FROM Cohorts', $reads[0]['sql']);
+        $this->assertStringContainsString('FROM Students', $reads[1]['sql']);
+        foreach ($reads as $read) {
+            $this->assertStringEndsWith(' FOR UPDATE', $read['sql']);
+            $this->assertTrue($read['inTransaction']);
+        }
+        $isEnabled = $recordingDB->query("SELECT isEnabled FROM Users WHERE userID = 'user-1'")->fetchColumn();
+        $this->assertSame(0, (int) $isEnabled);
+    }
+
+    /**
+     * Students are moved in student number order, whatever order they're sent in (normal)
+     * locking in the same order means two admins moving some of the same students can't deadlock
+     */
+    public function testMovesStudentsInStudentNumberOrder(): void
+    {
+        // Arrange: a trigger notes the order the students are moved in
+        $this->db->exec("UPDATE Cohorts SET isActive = 1");
+        $this->addStudent('ws000002', 'Sam', 'Two', 'cohort-1', 1, 'approved', null);
+        $this->addStudent('ws000001', 'Sam', 'One', 'cohort-1', 1, 'approved', null);
+        $this->db->exec('CREATE TABLE MoveOrder (position INTEGER PRIMARY KEY, userID TEXT)');
+        $this->db->exec(
+            "CREATE TRIGGER noteMove AFTER UPDATE OF cohortID ON Students
+                BEGIN INSERT INTO MoveOrder (userID) VALUES (NEW.userID); END"
+        );
+
+        // Act
+        Cohort::moveStudents('cohort-2', ['ws000002', 'ws000001']);
+
+        // Assert
+        $order = $this->db->query('SELECT userID FROM MoveOrder ORDER BY position')->fetchAll(PDO::FETCH_COLUMN);
+        $this->assertSame(['ws000001', 'ws000002'], $order);
+    }
+
+    /**
+     * An unknown cohort doesn't leave a transaction open, now that the cohort is read inside one (error)
+     */
+    public function testMovingIntoAnUnknownCohortClosesItsTransaction(): void
+    {
+        // Arrange
+        $this->addStudent('ws000001', 'Sam', 'One', 'cohort-1', 1, 'approved', null);
+
+        // Act
+        Cohort::moveStudents('cohort-missing', ['ws000001']);
+
+        // Assert
+        $this->assertFalse($this->db->inTransaction());
+    }
+
     private function subjectCohort(string $subjectID): ?string
     {
         $stmt = $this->db->prepare('SELECT cohortID FROM Subjects WHERE subjectID = ?');

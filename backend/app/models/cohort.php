@@ -321,28 +321,37 @@ class Cohort extends Model
     {
         $db = self::getDB();
 
-        // the database's own copy of the ID, MariaDB also matches other spellings of a UUID, like uppercase
-        $stmt = $db->prepare("SELECT cohortID, isActive FROM Cohorts WHERE cohortID = ? LIMIT 1");
-        $stmt->execute([$cohortID]);
-        $cohort = $stmt->fetch(\PDO::FETCH_ASSOC);
-        if ($cohort === false) {
-            return false;
-        }
+        // SQLite does not support FOR UPDATE.
+        $lockClause = $db->getAttribute(\PDO::ATTR_DRIVER_NAME) === 'mysql' ? ' FOR UPDATE' : '';
 
-        $findStudent = $db->prepare(
-            "SELECT Students.userID, Students.cohortID FROM Students
-                JOIN Users ON Users.userID = Students.userID
-                WHERE Users.username = ? LIMIT 1"
-        );
-        $moveStudent = $db->prepare("UPDATE Students SET cohortID = ? WHERE userID = ?");
-        $updateAccount = $db->prepare(
-            (int) $cohort['isActive'] === 1
-                ? "UPDATE Users SET isEnabled = 1, disabledByCohort = 0 WHERE disabledByCohort = 1 AND userID = ?"
-                : "UPDATE Users SET isEnabled = 0, disabledByCohort = 1 WHERE isEnabled = 1 AND userID = ?"
-        );
+        // always locked in the same order, so two admins moving some of the same students can't deadlock
+        sort($studentNumbers);
 
         $db->beginTransaction();
         try {
+            // locked inside the transaction, so the cohort can't be disabled or enabled while students move into it
+            // the database's own copy of the ID, MariaDB also matches other spellings of a UUID, like uppercase
+            $stmt = $db->prepare("SELECT cohortID, isActive FROM Cohorts WHERE cohortID = ? LIMIT 1" . $lockClause);
+            $stmt->execute([$cohortID]);
+            $cohort = $stmt->fetch(\PDO::FETCH_ASSOC);
+            if ($cohort === false) {
+                $db->rollBack();
+                return false;
+            }
+
+            // locks the student and their account, so another admin can't move them at the same time
+            $findStudent = $db->prepare(
+                "SELECT Students.userID, Students.cohortID FROM Students
+                    JOIN Users ON Users.userID = Students.userID
+                    WHERE Users.username = ? LIMIT 1" . $lockClause
+            );
+            $moveStudent = $db->prepare("UPDATE Students SET cohortID = ? WHERE userID = ?");
+            $updateAccount = $db->prepare(
+                (int) $cohort['isActive'] === 1
+                    ? "UPDATE Users SET isEnabled = 1, disabledByCohort = 0 WHERE disabledByCohort = 1 AND userID = ?"
+                    : "UPDATE Users SET isEnabled = 0, disabledByCohort = 1 WHERE isEnabled = 1 AND userID = ?"
+            );
+
             foreach ($studentNumbers as $studentNumber) {
                 $findStudent->execute([$studentNumber]);
                 $student = $findStudent->fetch(\PDO::FETCH_ASSOC);
