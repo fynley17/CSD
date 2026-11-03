@@ -31,9 +31,11 @@ final class SubjectSaveTest extends TestCase
         );
 
         $this->db->exec('CREATE TABLE Cohorts (cohortID TEXT PRIMARY KEY, cohortName TEXT NOT NULL)');
+        $this->db->exec('CREATE TABLE Tests (testID TEXT PRIMARY KEY, subjectID TEXT NOT NULL)');
 
         // every test can use this cohort and these 2 lecturers
         $this->db->exec("INSERT INTO Cohorts VALUES ('cohort-1', 'Test Cohort')");
+        $this->db->exec("INSERT INTO Cohorts VALUES ('cohort-2', 'Second Cohort')");
         $this->db->exec("INSERT INTO Lecturer VALUES ('lecturer-1', 'Zoe', 'Younger')");
         $this->db->exec("INSERT INTO Lecturer VALUES ('lecturer-2', 'Alex', 'Adams')");
 
@@ -126,6 +128,56 @@ final class SubjectSaveTest extends TestCase
 
         // Act
         Subject::save(null, 'Test Databases', 'cohort-1', ['lecturer-1', 'lecturer-9']);
+    }
+
+    /**
+     * A subject with tests can't be moved to another cohort (error)
+     */
+    public function testRejectsMovingASubjectThatHasTests(): void
+    {
+        // Arrange
+        $this->db->exec("INSERT INTO Subjects VALUES ('subject-1', 'Test Databases', 'cohort-1', 1)");
+        $this->db->exec("INSERT INTO Tests VALUES ('test-1', 'subject-1')");
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('A subject with tests cannot move to another cohort');
+
+        // Act
+        Subject::save('subject-1', 'Test Databases', 'cohort-2', []);
+    }
+
+    /**
+     * A subject with tests can still be renamed while it stays in its cohort (normal)
+     */
+    public function testRenamesASubjectThatHasTests(): void
+    {
+        // Arrange
+        $this->db->exec("INSERT INTO Subjects VALUES ('subject-1', 'Test Databases', 'cohort-1', 1)");
+        $this->db->exec("INSERT INTO Tests VALUES ('test-1', 'subject-1')");
+
+        // Act
+        $saved = Subject::save('subject-1', 'Test Networks', 'cohort-1', []);
+
+        // Assert
+        $name = $this->db->query('SELECT subjectName FROM Subjects')->fetchColumn();
+        $this->assertTrue($saved);
+        $this->assertSame('Test Networks', $name);
+    }
+
+    /**
+     * A subject with no tests can move to another cohort (boundary)
+     */
+    public function testMovesASubjectThatHasNoTests(): void
+    {
+        // Arrange
+        $this->db->exec("INSERT INTO Subjects VALUES ('subject-1', 'Test Databases', 'cohort-1', 1)");
+
+        // Act
+        $saved = Subject::save('subject-1', 'Test Databases', 'cohort-2', []);
+
+        // Assert
+        $cohort = $this->db->query('SELECT cohortID FROM Subjects')->fetchColumn();
+        $this->assertTrue($saved);
+        $this->assertSame('cohort-2', $cohort);
     }
 
     /**

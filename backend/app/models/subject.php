@@ -133,6 +133,7 @@ class Subject extends Model
         $subjectName = trim($subjectName);
         self::checkName($subjectName, $cohortID, $subjectID);
         self::checkCohortAndLecturers($cohortID, $lecturerIDs);
+        self::checkCohortLocked($subjectID, $cohortID);
 
         if ($subjectID !== null && !self::exists($subjectID)) {
             return false;
@@ -245,6 +246,30 @@ class Subject extends Model
 
         if ($stmt->fetchColumn() !== false) {
             throw new \InvalidArgumentException('This cohort already has a subject with that name');
+        }
+    }
+
+    /**
+     * A subject that has tests stays in its cohort, moving it would move the tests to the new cohort's students
+     *
+     * @throws \InvalidArgumentException with the message the form shows
+     */
+    private static function checkCohortLocked(?string $subjectID, string $cohortID): void
+    {
+        // a new subject has no tests yet
+        if ($subjectID === null) {
+            return;
+        }
+
+        // finds the subject only if it's in another cohort and has at least one test
+        $stmt = self::getDB()->prepare(
+            'SELECT 1 FROM Subjects WHERE subjectID = ? AND cohortID <> ? '
+            . 'AND EXISTS (SELECT 1 FROM Tests WHERE Tests.subjectID = Subjects.subjectID)'
+        );
+        $stmt->execute([$subjectID, $cohortID]);
+
+        if ($stmt->fetchColumn() !== false) {
+            throw new \InvalidArgumentException('A subject with tests cannot move to another cohort');
         }
     }
 
