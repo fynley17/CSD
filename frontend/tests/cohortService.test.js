@@ -113,6 +113,66 @@ describe('cohortService', () => {
     });
 
     /**
+     * Odd characters in an ID can't change which address gets called (edge)
+     */
+    it('makes IDs safe to put in an address', async () => {
+        // Arrange
+        vi.mocked(api.delete).mockResolvedValue({ data: {} });
+
+        // Act
+        await deleteCohort('../students');
+        await removeSubject('a/b', 'c?d');
+
+        // Assert
+        expect(api.delete).toHaveBeenCalledWith('/admin/cohorts/..%2Fstudents');
+        expect(api.delete).toHaveBeenCalledWith('/admin/cohorts/a%2Fb/subjects/c%3Fd');
+    });
+
+    /**
+     * A refused remove gets passed on so the pop-up can show PHP's message (error)
+     */
+    it('passes a refused remove on to the page', async () => {
+        // Arrange
+        const refused = { response: { status: 404, data: { error: 'That subject is not in this cohort' } } };
+        vi.mocked(api.delete).mockRejectedValue(refused);
+
+        // Act
+        const request = removeSubject('cohort-1', 'subject-1');
+
+        // Assert
+        await expect(request).rejects.toBe(refused);
+    });
+
+    /**
+     * Odd characters in the ID can't change which cohort's status is saved (edge)
+     */
+    it('makes the ID safe when saving a status', async () => {
+        // Arrange
+        vi.mocked(api.put).mockResolvedValue({ data: {} });
+
+        // Act
+        await setCohortActive('../students', true);
+
+        // Assert
+        expect(api.put).toHaveBeenCalledWith('/admin/cohorts/..%2Fstudents/status', { isActive: true });
+    });
+
+    /**
+     * A refused save gets passed on so the page can show PHP's message (error)
+     */
+    it('passes a refused save on to the page', async () => {
+        // Arrange
+        const refused = { response: { status: 404, data: { error: 'Cohort not found' } } };
+        vi.mocked(api.put).mockRejectedValue(refused);
+
+        // Act
+        const request = setCohortActive('cohort-1', false);
+
+        // Assert
+        await expect(request).rejects.toBe(refused);
+    });
+
+    /**
      * Calls the address for that cohort (normal)
      */
     it('deletes a cohort', async () => {
@@ -125,6 +185,21 @@ describe('cohortService', () => {
         // Assert
         expect(api.delete).toHaveBeenCalledWith('/admin/cohorts/cohort-1');
         expect(result).toEqual({ message: 'Cohort deleted' });
+    });
+
+    /**
+     * A refused delete gets passed on so the pop-up can show PHP's message (error)
+     */
+    it('passes a refused delete on to the page', async () => {
+        // Arrange
+        const refused = { response: { status: 409, data: { error: 'This cohort still has students' } } };
+        vi.mocked(api.delete).mockRejectedValue(refused);
+
+        // Act
+        const request = deleteCohort('cohort-1');
+
+        // Assert
+        await expect(request).rejects.toBe(refused);
     });
 
     /**
@@ -157,37 +232,6 @@ describe('cohortService', () => {
         // Assert
         expect(api.put).toHaveBeenCalledWith('/admin/cohorts/cohort-1', { cohortName: 'New Name', isActive: false });
         expect(result).toEqual(cohort);
-    });
-
-    /**
-     * Odd characters in an ID can't change which address gets called (edge)
-     */
-    it('makes IDs safe to put in an address', async () => {
-        // Arrange
-        vi.mocked(api.delete).mockResolvedValue({ data: {} });
-
-        // Act
-        await deleteCohort('../students');
-        await removeSubject('a/b', 'c?d');
-
-        // Assert
-        expect(api.delete).toHaveBeenCalledWith('/admin/cohorts/..%2Fstudents');
-        expect(api.delete).toHaveBeenCalledWith('/admin/cohorts/a%2Fb/subjects/c%3Fd');
-    });
-
-    /**
-     * A refused delete gets passed on so the pop-up can show PHP's message (error)
-     */
-    it('passes a refused delete on to the page', async () => {
-        // Arrange
-        const refused = { response: { status: 409, data: { error: 'This cohort still has students' } } };
-        vi.mocked(api.delete).mockRejectedValue(refused);
-
-        // Act
-        const request = deleteCohort('cohort-1');
-
-        // Assert
-        await expect(request).rejects.toBe(refused);
     });
 
     /**

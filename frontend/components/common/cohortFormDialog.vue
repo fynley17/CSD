@@ -12,8 +12,8 @@
                 maxlength="50"
                 autocomplete="off"
                 required
-                :aria-invalid="errorMessage ? 'true' : null"
-                :aria-describedby="errorMessage ? 'cohortNameError' : null"
+                :aria-invalid="isNameInvalid ? 'true' : null"
+                :aria-describedby="isNameInvalid ? 'cohortNameError' : null"
             />
 
             <label class="cohortDialogLabel mt-3" for="cohortStatus">Status</label>
@@ -70,6 +70,8 @@ const cohortName = ref(props.cohort?.cohortName ?? '');
 const status = ref(props.cohort && !props.cohort.isActive ? 'disabled' : 'enabled');
 const isSaving = ref(false);
 const errorMessage = ref('');
+// only a problem with the name marks the box as wrong, not a lost connection or a server error
+const isNameInvalid = ref(false);
 
 onMounted(() => {
     dialog.value.open();
@@ -78,10 +80,12 @@ onMounted(() => {
 
 async function save() {
     errorMessage.value = '';
+    isNameInvalid.value = false;
 
     // PHP checks this too, this just saves a trip for the most common mistake
     if (cohortName.value.trim() === '') {
         errorMessage.value = 'Enter a cohort name';
+        isNameInvalid.value = true;
         return;
     }
 
@@ -96,6 +100,7 @@ async function save() {
         dialog.value.close();
     } catch (error) {
         errorMessage.value = error.response?.data?.error || 'Unable to save the cohort';
+        isNameInvalid.value = error.response?.data?.field === 'cohortName';
     } finally {
         isSaving.value = false;
     }
