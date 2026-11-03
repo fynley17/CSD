@@ -19,7 +19,8 @@ CREATE TABLE `Cohorts` (
   -- Cohort IDs are selected by the registration form and stored against each student.
   `cohortID` uuid NOT NULL DEFAULT uuid(),
   `cohortName` varchar(50) NOT NULL,
-  `isActive` tinyint(1) NOT NULL DEFAULT 1 COMMENT '1 = active, 0 = disabled'
+  `isActive` tinyint(1) NOT NULL DEFAULT 1 COMMENT '1 = active, 0 = disabled',
+  `createdDate` date NOT NULL DEFAULT curdate()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE `CompletedTests` (
@@ -77,8 +78,9 @@ CREATE TABLE `Students` (
 CREATE TABLE `Subjects` (
   `subjectID` uuid NOT NULL DEFAULT uuid(),
   `subjectName` varchar(100) NOT NULL,
-  `cohortID` uuid NOT NULL,
-  `isActive` tinyint(1) NOT NULL DEFAULT 1 COMMENT '1 = active, 0 = archived'
+  `cohortID` uuid DEFAULT NULL COMMENT 'NULL = not assigned to a cohort',
+  `isActive` tinyint(1) NOT NULL DEFAULT 1 COMMENT '1 = active, 0 = archived',
+  `archivedByCohort` tinyint(1) NOT NULL DEFAULT 0 COMMENT '1 = archived because its cohort was disabled'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE `Tests` (
@@ -102,6 +104,7 @@ CREATE TABLE `Users` (
   `accountType` enum('student','lecturer','admin') NOT NULL DEFAULT 'student',
   `approvalStatus` enum('pending','approved') NOT NULL DEFAULT 'pending',
   `isEnabled` tinyint(1) NOT NULL DEFAULT 1 COMMENT '1 = can sign in, 0 = disabled',
+  `disabledByCohort` tinyint(1) NOT NULL DEFAULT 0 COMMENT '1 = disabled because their cohort was disabled',
   `isEmailVerified` tinyint(1) NOT NULL DEFAULT 1 COMMENT '0 = registered but the email link not clicked yet',
   `timestamp` timestamp NOT NULL DEFAULT current_timestamp() COMMENT 'Account creation time',
   `lastLogin` datetime DEFAULT NULL,
@@ -117,7 +120,8 @@ ALTER TABLE `Answers`
   ADD KEY `idx_answers_question` (`questionID`);
 
 ALTER TABLE `Cohorts`
-  ADD PRIMARY KEY (`cohortID`);
+  ADD PRIMARY KEY (`cohortID`),
+  ADD UNIQUE KEY `uq_cohorts_name` (`cohortName`);
 
 ALTER TABLE `CompletedTests`
   ADD PRIMARY KEY (`completedID`),

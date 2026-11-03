@@ -1,3 +1,4 @@
+
 <?php
 
 use App\Models\Model;
@@ -22,14 +23,17 @@ final class TestAllForLecturerTest extends TestCase
             )'
         );
 
-        // Create the minimum Tests table structure required by the query.
+        // Create the Tests table with all columns required by the model.
         $this->db->exec(
             'CREATE TABLE Tests (
                 testID TEXT PRIMARY KEY,
                 testName TEXT NOT NULL,
                 subjectID TEXT NOT NULL,
+                testDescription TEXT NULL,
+                dueDate TEXT NULL,
                 questionCount INTEGER NOT NULL DEFAULT 10,
-                timeLimit INTEGER NULL
+                timeLimit INTEGER NULL,
+                isActive INTEGER NOT NULL DEFAULT 1
             )'
         );
 
@@ -62,7 +66,7 @@ final class TestAllForLecturerTest extends TestCase
                 ('subject-2', 'Science')"
         );
 
-        // Arrange: create one test whose subject has questions and one whose subject has none.
+        // Arrange: create two tests.
         $this->db->exec(
             "INSERT INTO Tests (testID, testName, subjectID, questionCount, timeLimit) VALUES
                 ('test-1', 'Algebra Test', 'subject-1', 2, 30),
@@ -87,17 +91,52 @@ final class TestAllForLecturerTest extends TestCase
             array_column($tests, 'testName')
         );
 
-        // Assert: the first test has the correct subject and asks 2 of its 3 pool questions.
+        // Assert: the first test has the correct subject and question count.
         self::assertSame('Mathematics', $tests[0]['subjectName']);
         self::assertSame(2, $tests[0]['questionCount']);
         self::assertSame(30, $tests[0]['timeLimit']);
 
-        // Assert: tests without questions are still returned.
+        // Assert: tests without questions are still returned with their configured question count.
         self::assertSame('Science', $tests[1]['subjectName']);
-        self::assertSame(0, $tests[1]['questionCount']);
+        self::assertSame(5, $tests[1]['questionCount']);
+        self::assertSame(0, $tests[1]['questionPoolSize']);
 
         // Assert: an untimed test returns null for its time limit.
         self::assertNull($tests[1]['timeLimit']);
+
+        // Assert: both tests are active by default.
+        self::assertTrue($tests[0]['isActive']);
+        self::assertTrue($tests[1]['isActive']);
+    }
+
+    public function testReturnsArchivedTestsToLecturers(): void
+    {
+        // Arrange: create a subject.
+        $this->db->exec(
+            "INSERT INTO Subjects (subjectID, subjectName)
+             VALUES ('subject-1', 'Mathematics')"
+        );
+
+        // Arrange: create one active test and one archived test.
+        $this->db->exec(
+            "INSERT INTO Tests (testID, testName, subjectID, isActive) VALUES
+                ('test-1', 'Active Test', 'subject-1', 1),
+                ('test-2', 'Archived Test', 'subject-1', 0)"
+        );
+
+        // Act: retrieve all tests for the lecturer.
+        $tests = Test::getAllForLecturer();
+
+        // Assert: both active and archived tests are returned.
+        self::assertCount(2, $tests);
+        self::assertSame(
+            ['Active Test', 'Archived Test'],
+            array_column($tests, 'testName')
+        );
+
+        // Assert: the active status is returned as a boolean.
+        self::assertTrue($tests[0]['isActive']);
+        self::assertFalse($tests[1]['isActive']);
     }
 
     public function testReturnsAnEmptyArrayWhenThereAreNoTests(): void
