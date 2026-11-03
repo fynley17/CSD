@@ -336,4 +336,20 @@ $router->addRoute(
     [new SubjectController(), 'getUnassignedSubjects']
 );
 
+// lecturers for the pick list on the subject form, admins only
+$router->addRoute('GET', '/^\/api\/subjects\/lecturers$/', [new SubjectController(), 'getLecturerOptions']);
+
+// add a subject, admins only
+$router->addRoute('POST', '/^\/api\/subjects$/', [new SubjectController(), 'createSubject']);
+
+// edit a subject, admins only
+$router->addRoute('PUT', '/^\/api\/subjects\/([0-9a-zA-Z-]+)$/', [new SubjectController(), 'updateSubject']);
+
+// archive or restore a subject, admins only
+$router->addRoute(
+    'PATCH',
+    '/^\/api\/subjects\/([0-9a-zA-Z-]+)\/active$/',
+    [new SubjectController(), 'setSubjectActive']
+);
+
 return $router;

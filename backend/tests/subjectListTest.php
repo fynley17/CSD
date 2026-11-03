@@ -6,7 +6,7 @@ use PHPUnit\Framework\TestCase;
 
 /**
  * Tests for Subject::getAll(), what the admin dashboard subjects table gets
- * Each test has its own database in memory, the real one is never touched
+ * Each test has its own database in memory, the real one is not used
  * Laid out Arrange, Act, Assert
  */
 final class SubjectListTest extends TestCase
@@ -64,9 +64,12 @@ final class SubjectListTest extends TestCase
         $this->assertSame(
             [
                 [
+                    'subjectID' => 'subject-1',
                     'subjectName' => 'Test Databases',
+                    'cohortID' => 'cohort-1',
                     'cohortName' => 'Test Cohort',
                     'testCount' => 2,
+                    'lecturerIDs' => ['lecturer-1'],
                     'lecturerNames' => 'Sample Lecturer',
                     'isActive' => true,
                 ],
