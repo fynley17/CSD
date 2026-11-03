@@ -33,7 +33,7 @@ final class LeaderboardModelTest extends TestCase
             'CREATE TABLE Subjects (
                 subjectID TEXT PRIMARY KEY,
                 subjectName TEXT NOT NULL,
-                cohortID TEXT NOT NULL,
+                cohortID TEXT,
                 isActive INTEGER NOT NULL
             )'
         );
@@ -154,6 +154,45 @@ final class LeaderboardModelTest extends TestCase
             $students[0]
         );
         self::assertFalse($students[1]['isCurrentStudent']);
+    }
+
+    public function testStudentStaysOnOverallAfterTheirOnlySubjectIsRemovedFromTheCohort(): void
+    {
+        // Arrange: cyber is the only subject Sam and Rae have taken a test in
+        $this->db->exec("UPDATE Subjects SET cohortID = NULL WHERE subjectID = 'cyber'");
+
+        // Act
+        $students = Leaderboard::getTopStudents('s1');
+
+        // Assert
+        self::assertSame(['Sam G.', 'Alex B.', 'Jo W.', 'Kai B.', 'Rae G.'], array_column($students, 'name'));
+        self::assertSame([500, 300, 200, 200, 100], array_column($students, 'points'));
+        self::assertSame(1, $students[0]['testsTaken']);
+        self::assertEqualsWithDelta(90.0, $students[0]['averageScore'], 0.01);
+    }
+
+    public function testStudentStaysOnOverallAfterTheirSubjectMovesToAnotherCohort(): void
+    {
+        // Arrange
+        $this->db->exec("UPDATE Subjects SET cohortID = 'cohort-2' WHERE subjectID = 'cyber'");
+
+        // Act
+        $students = Leaderboard::getTopStudents('s1');
+
+        // Assert
+        self::assertContains('Sam G.', array_column($students, 'name'));
+    }
+
+    public function testMovedSubjectDoesNotBringOtherCohortsStudentsOntoTheBoard(): void
+    {
+        // Arrange: Max took a maths test, and maths now belongs to s1's cohort
+        $this->db->exec("UPDATE Subjects SET cohortID = 'cohort-1' WHERE subjectID = 'maths'");
+
+        // Act
+        $students = Leaderboard::getTopStudents('s1', 'maths');
+
+        // Assert
+        self::assertSame([], $students);
     }
 
     public function testDoesNotSendStudentIDsOrSurnames(): void

@@ -30,7 +30,7 @@
                 </select>
             </label>
 
-            <button type="button" class="cohortPrimaryButton cohortCreateButton">
+            <button type="button" class="cohortPrimaryButton cohortCreateButton" @click="openCohortForm(null)">
                 <span aria-hidden="true">+</span> Create Cohort
             </button>
         </div>
@@ -47,16 +47,79 @@
 
         <template v-else>
             <h2>Students in each cohort</h2>
-            <CohortStudentsTable :cohorts="visibleCohorts" @toggleStatus="toggleStatus" />
+            <CohortStudentsTable
+                :cohorts="visibleCohorts"
+                @edit="openCohortForm"
+                @toggleStatus="toggleStatus"
+                @delete="deletingCohort = $event"
+                @addStudents="addingToCohort = $event"
+                @moveStudent="(cohort, student) => (moving = { cohort, student })"
+            />
 
             <h2>Subjects for each cohort</h2>
-            <CohortSubjectsTable :cohorts="visibleCohorts" />
+            <CohortSubjectsTable
+                :cohorts="visibleCohorts"
+                @assign="assigningCohort = $event"
+                @remove="(cohort, subject) => (removing = { cohort, subject })"
+            />
         </template>
+
+        <AddStudentsDialog
+            v-if="addingToCohort"
+            :cohort="addingToCohort"
+            @saved="updateCohorts"
+            @close="addingToCohort = null"
+        />
+
+        <MoveStudentDialog
+            v-if="moving"
+            :cohort="moving.cohort"
+            :student="moving.student"
+            :cohorts="allCohorts"
+            @saved="updateCohorts"
+            @close="moving = null"
+        />
+
+        <CohortFormDialog
+            v-if="isCohortFormOpen"
+            :cohort="editingCohort"
+            @saved="saveCohort"
+            @close="isCohortFormOpen = false"
+        />
+
+        <AssignSubjectsDialog
+            v-if="assigningCohort"
+            :cohort="assigningCohort"
+            @saved="updateCohort(assigningCohort, $event)"
+            @close="assigningCohort = null"
+        />
+
+        <RemoveSubjectDialog
+            v-if="removing"
+            :cohort="removing.cohort"
+            :subject="removing.subject"
+            @saved="updateCohort(removing.cohort, $event)"
+            @close="removing = null"
+        />
+
+        <DeleteCohortDialog
+            v-if="deletingCohort"
+            :cohort="deletingCohort"
+            @deleted="removeCohort"
+            @disabled="updateCohort(deletingCohort, $event)"
+            @close="deletingCohort = null"
+        />
     </section>
 </template>
 
 <script setup>
 import { computed, onMounted, ref } from 'vue';
+import AddStudentsDialog from '../components/common/addStudentsDialog.vue';
+import AssignSubjectsDialog from '../components/common/assignSubjectsDialog.vue';
+import CohortFormDialog from '../components/common/cohortFormDialog.vue';
+import DeleteCohortDialog from '../components/common/deleteCohortDialog.vue';
+import MoveStudentDialog from '../components/common/moveStudentDialog.vue';
+import RemoveSubjectDialog from '../components/common/removeSubjectDialog.vue';
 import CohortStudentsTable from '../components/tables/cohortStudentsTable.vue';
 import CohortSubjectsTable from '../components/tables/cohortSubjectsTable.vue';
 import { getCohorts, setCohortActive } from '../services/cohortService';
@@ -68,6 +131,14 @@ const saveError = ref('');
 const searchText = ref('');
 const statusFilter = ref('');
 const sortBy = ref('');
+// which pop-up is open, null when it's closed
+const addingToCohort = ref(null);
+const moving = ref(null);
+const isCohortFormOpen = ref(false);
+const editingCohort = ref(null);
+const assigningCohort = ref(null);
+const removing = ref(null);
+const deletingCohort = ref(null);
 
 const sorters = {
     nameAsc: (a, b) => a.cohortName.localeCompare(b.cohortName),
@@ -99,6 +170,40 @@ onMounted(async () => {
         isLoading.value = false;
     }
 });
+
+// changed in place rather than replaced, so the table stays on the same page with the same rows open
+function updateCohort(cohort, savedCohort) {
+    Object.assign(cohort, savedCohort);
+}
+
+// moving students changes two cohorts, so PHP sends them all and each is updated in place
+function updateCohorts(savedCohorts) {
+    savedCohorts.forEach((savedCohort) => {
+        const cohort = allCohorts.value.find((current) => current.cohortID === savedCohort.cohortID);
+        if (cohort) {
+            updateCohort(cohort, savedCohort);
+        }
+    });
+}
+
+// null creates a new cohort
+function openCohortForm(cohort) {
+    editingCohort.value = cohort;
+    isCohortFormOpen.value = true;
+}
+
+// a new cohort goes at the top of the list so it can be seen straight away
+function saveCohort(savedCohort) {
+    if (editingCohort.value) {
+        updateCohort(editingCohort.value, savedCohort);
+    } else {
+        allCohorts.value = [savedCohort, ...allCohorts.value];
+    }
+}
+
+function removeCohort(deletedCohort) {
+    allCohorts.value = allCohorts.value.filter((cohort) => cohort.cohortID !== deletedCohort.cohortID);
+}
 
 // the screen only changes once PHP confirms it's saved, so it never shows a status the database doesn't have
 async function toggleStatus(cohort) {

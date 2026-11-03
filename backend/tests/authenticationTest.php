@@ -1,6 +1,8 @@
 <?php
 
 use App\Helpers\Authentication;
+use App\Models\Student;
+use PHPUnit\Framework\Attributes\RunInSeparateProcess;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -17,6 +19,35 @@ final class AuthenticationTest extends TestCase
     private function makeToken(): string
     {
         return bin2hex(random_bytes(32));
+    }
+
+    /**
+     * Logging in clears tests started on the session, so they can't carry over to another account (edge)
+     * in its own process, as starting a session sends headers
+     */
+    #[RunInSeparateProcess]
+    public function testLoginClearsStartedTestAttempts(): void
+    {
+        // Arrange
+        Authentication::saveTestAttempt('test-1', ['question-1']);
+        $row = [
+            'userID' => 'user-2',
+            'username' => 'ws000002',
+            'password' => 'hash',
+            'accountType' => 'student',
+            'approvalStatus' => 'approved',
+            'isEnabled' => 1,
+            'isEmailVerified' => 1,
+            'failedAttempts' => 0,
+            'lockedUntil' => null,
+        ];
+        $user = new Student($row);
+
+        // Act
+        (new Authentication())->saveLogin($user);
+
+        // Assert
+        self::assertNull(Authentication::getTestAttempt('test-1'));
     }
 
     /**

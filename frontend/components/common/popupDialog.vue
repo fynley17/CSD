@@ -39,13 +39,9 @@ export default {
 </template>
 
 <style scoped>
-/* only while open, a display on .popupDialog would override the browser hiding the closed dialog */
-.popupDialog[open] {
-    display: flex;
-    flex-direction: column;
-}
-
 .popupDialog {
+    display: none;
+    flex-direction: column;
     width: min(650px, calc(100vw - 32px));
     max-width: 650px;
     max-height: calc(100vh - 40px);
@@ -79,6 +75,10 @@ export default {
     background: var(--colorText);
     opacity: 0.72;
     backdrop-filter: blur(4px);
+}
+
+.popupDialog[open] {
+    display: flex;
 }
 
 @media (max-width: 639px) {

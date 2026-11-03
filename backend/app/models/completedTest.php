@@ -22,13 +22,13 @@ class CompletedTest extends Model
      *                              they were asked. Only these are marked, whatever the browser sends.
      * @param array $submittedAnswers questionID => answerID, or null for a question left unanswered
      *                                (e.g. the timer ran out). Missing questions also count as unanswered.
-     * @return array|null the marked test for the results screen, null if the student can't take this test
+     * @return array|null the marked test for the results screen, null if the test no longer exists
      * @throws \InvalidArgumentException if an answer doesn't belong to its question
      */
     public static function submit(string $userID, string $testID, array $questionIDs, array $submittedAnswers): ?array
     {
-        // reuse the cohort check so a student can't submit a test they couldn't open
-        $test = Test::findForStudent($testID, $userID);
+        // the cohort was checked when the attempt started, so removing its subject since then doesn't lose the attempt
+        $test = Test::findStartedByStudent($testID, $userID);
         if ($test === null) {
             return null;
         }

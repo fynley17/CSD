@@ -68,10 +68,12 @@ import { getSubjects } from '../../services/subjectService';
 DataTable.use(DataTablesCore);
 
 // render.text() = names show as plain text (stops HTML typed into a name from running)
-// defaultContent shows when a subject has no lecturer
+// defaultContent shows when a subject has no cohort or lecturer
 const columns = [
     { data: 'subjectName', title: 'Subject', render: DataTablesCore.render.text() },
-    { data: 'cohortName', title: 'Cohort', render: DataTablesCore.render.text() },
+    // Cohort and Tests hidden under 576px so it fits on a phone
+    { data: 'cohortName', title: 'Cohort', render: DataTablesCore.render.text(), defaultContent: 'Not assigned' },
+
     { data: 'testCount', title: 'Tests' },
     {
         data: 'lecturerNames',
