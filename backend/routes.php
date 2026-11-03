@@ -263,6 +263,31 @@ $router->addRoute(
     [new SubjectController(), 'getAllSubjects']
 );
 
+// Subject management.
+$router->addRoute(
+    'GET',
+    '/^\/api\/subjects\/lecturers$/',
+    [new SubjectController(), 'getLecturerOptions']
+);
+
+$router->addRoute(
+    'POST',
+    '/^\/api\/subjects$/',
+    [new SubjectController(), 'createSubject']
+);
+
+$router->addRoute(
+    'PUT',
+    '/^\/api\/subjects\/([0-9a-zA-Z-]+)$/',
+    [new SubjectController(), 'updateSubject']
+);
+
+$router->addRoute(
+    'PATCH',
+    '/^\/api\/subjects\/([0-9a-zA-Z-]+)\/active$/',
+    [new SubjectController(), 'setSubjectActive']
+);
+
 // Admin cohort management.
 $router->addRoute(
     'GET',

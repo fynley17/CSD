@@ -1799,3 +1799,41 @@ main.appMainFullScreen {
         height: 160px;
     }
 }
+
+/* house style buttons, slate blue (secondary = slate blue outline on white) */
+[class~='btn-primary'] {
+    --bs-btn-bg: var(--colorPrimary);
+    --bs-btn-border-color: var(--colorPrimary);
+    --bs-btn-hover-bg: var(--colorPrimaryHover);
+    --bs-btn-hover-border-color: var(--colorPrimaryHover);
+    --bs-btn-active-bg: var(--colorPrimaryHover);
+    --bs-btn-active-border-color: var(--colorPrimaryHover);
+    --bs-btn-disabled-bg: var(--colorPrimary);
+    --bs-btn-disabled-border-color: var(--colorPrimary);
+}
+
+[class~='btn-outline-primary'] {
+    --bs-btn-color: var(--colorPrimary);
+    --bs-btn-border-color: var(--colorPrimary);
+    --bs-btn-hover-bg: var(--colorPrimary);
+    --bs-btn-hover-border-color: var(--colorPrimary);
+    --bs-btn-active-bg: var(--colorPrimary);
+    --bs-btn-active-border-color: var(--colorPrimary);
+
+    /* disabled = house style grey, not bootstrap's see through version */
+    --bs-btn-disabled-bg: var(--colorDisabled);
+    --bs-btn-disabled-border-color: var(--colorDisabled);
+    --bs-btn-disabled-color: var(--colorTextSecondary);
+    --bs-btn-disabled-opacity: 1;
+}
+
+/* size and shape for the admin management pages, 44px high or 36px inside a table */
+.adminPage [class~='btn'] {
+    min-height: 44px;
+    border-radius: var(--radiusSm);
+    font-weight: 600;
+}
+
+.adminPage .adminTable [class~='btn'] {
+    min-height: 36px;
+}

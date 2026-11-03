@@ -2,12 +2,15 @@
 // laid out Arrange, Act, Assert
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import api from '../services/api';
-import { getSubjects } from '../services/subjectService';
+import { createSubject, getSubjects, setSubjectActive, updateSubject } from '../services/subjectService';
 
 // pretend api.js, no PHP needed
 vi.mock('../services/api', () => ({
     default: {
         get: vi.fn(),
+        post: vi.fn(),
+        put: vi.fn(),
+        patch: vi.fn(),
     },
 }));
 
@@ -53,5 +56,26 @@ describe('subjectService', () => {
 
         // Assert
         await expect(request).rejects.toBe(refused);
+    });
+
+    /**
+     * Create, edit and archive each use the right method and address (normal)
+     */
+    it('sends create, edit and archive to the right addresses', async () => {
+        // Arrange
+        vi.mocked(api.post).mockResolvedValue({ data: { message: 'Subject saved' } });
+        vi.mocked(api.put).mockResolvedValue({ data: { message: 'Subject saved' } });
+        vi.mocked(api.patch).mockResolvedValue({ data: { message: 'Subject updated' } });
+        const details = { subjectName: 'Test Databases', cohortID: 'cohort-1', lecturerIDs: ['lecturer-1'] };
+
+        // Act
+        await createSubject(details);
+        await updateSubject('subject-1', details);
+        await setSubjectActive('subject-1', false);
+
+        // Assert
+        expect(api.post).toHaveBeenCalledWith('/subjects', details);
+        expect(api.put).toHaveBeenCalledWith('/subjects/subject-1', details);
+        expect(api.patch).toHaveBeenCalledWith('/subjects/subject-1/active', { isActive: false });
     });
 });
