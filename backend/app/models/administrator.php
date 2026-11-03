@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Helpers\Validation;
+
 /**
  * Administrator, extends Lecturer because an admin can do every lecturer job as well
  * and they manage subjects and lecturer accounts
@@ -132,4 +134,77 @@ class Administrator extends Lecturer
         }
     }
 
+    /**
+     * Saves the changes from the Edit Lecturer pop-up
+     *
+     * @param array $details firstName, lastName, staffID and email as typed in the form
+     * @throws \InvalidArgumentException with a message for the page if something typed isn't allowed
+     */
+    public function editLecturer(Lecturer $lecturer, array $details): void
+    {
+        $this->checkCanManage($lecturer);
+
+        $firstName = self::readField($details, 'firstName');
+        $lastName = self::readField($details, 'lastName');
+        $staffID = self::readField($details, 'staffID');
+        $email = strtolower(self::readField($details, 'email'));
+
+        if (!Validation::isValidName($firstName)) {
+            throw new \InvalidArgumentException('Enter a first name using letters, spaces, hyphens or apostrophes');
+        }
+        if (!Validation::isValidName($lastName)) {
+            throw new \InvalidArgumentException('Enter a last name using letters, spaces, hyphens or apostrophes');
+        }
+        if (!Validation::isValidStaffId($staffID)) {
+            throw new \InvalidArgumentException('Staff ID must be 3 to 8 letters or numbers, like L1001');
+        }
+        if (!Validation::isValidEmail($email)) {
+            throw new \InvalidArgumentException('Enter an email address in the correct format, like name@example.com');
+        }
+
+        $db = self::getDB();
+        $userID = $lecturer->getUserID();
+
+        // their own row is left out so saving without changing the staff ID or email still works
+        $stmt = $db->prepare('SELECT 1 FROM Users WHERE username = ? AND userID <> ? LIMIT 1');
+        $stmt->execute([$staffID, $userID]);
+        if ($stmt->fetchColumn() !== false) {
+            throw new \InvalidArgumentException('An account with this staff ID already exists');
+        }
+
+        $stmt = $db->prepare('SELECT 1 FROM Users WHERE email = ? AND userID <> ? LIMIT 1');
+        $stmt->execute([$email, $userID]);
+        if ($stmt->fetchColumn() !== false) {
+            throw new \InvalidArgumentException('An account with this email address already exists');
+        }
+
+        // names are in Lecturer and the login details are in Users, both change or neither does
+        $db->beginTransaction();
+        try {
+            $stmt = $db->prepare('UPDATE Users SET username = ?, email = ? WHERE userID = ?');
+            $stmt->execute([$staffID, $email, $userID]);
+
+            $stmt = $db->prepare('UPDATE Lecturer SET firstName = ?, lastName = ? WHERE userID = ?');
+            $stmt->execute([$firstName, $lastName, $userID]);
+
+            $db->commit();
+        } catch (\Throwable $e) {
+            if ($db->inTransaction()) {
+                $db->rollBack();
+            }
+            throw $e;
+        }
+    }
+
+    /**
+     * Gets one text box from the form with the spaces trimmed off, missing or not text gives ''
+     */
+    private static function readField(array $details, string $key): string
+    {
+        if (!isset($details[$key]) || !is_string($details[$key])) {
+            return '';
+        }
+
+        return trim($details[$key]);
+    }
 }

@@ -131,6 +131,11 @@ $router->addRoute(
 // lecturer management page, every lecturer and the disable or enable buttons, admins only
 $router->addRoute('GET', '/^\\/api\\/admin\\/lecturers$/', [new AdministratorController(), 'getLecturers']);
 $router->addRoute(
+    'PUT',
+    '/^\\/api\\/admin\\/lecturers\\/([0-9a-zA-Z-]+)$/',
+    [new AdministratorController(), 'updateLecturer']
+);
+$router->addRoute(
     'PATCH',
     '/^\\/api\\/admin\\/lecturers\\/([0-9a-zA-Z-]+)\\/enabled$/',
     [new AdministratorController(), 'setLecturerEnabled']
