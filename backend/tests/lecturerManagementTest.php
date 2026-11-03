@@ -115,10 +115,10 @@ final class LecturerManagementTest extends TestCase
         $admin = new Administrator($this->makeRow('admin-id', 'admin'));
         $lecturer = new Lecturer($this->makeRow('lecturer-id', 'lecturer'));
         $details = [
-            'firstName' => ' Jason ',
-            'lastName' => 'Hill',
+            'firstName' => ' Edited ',
+            'lastName' => 'Lecturer',
             'staffID' => 'L1002',
-            'email' => 'Jason.Hill@Example.test',
+            'email' => 'Edited.Lecturer@Example.test',
         ];
 
         // Act
@@ -126,7 +126,12 @@ final class LecturerManagementTest extends TestCase
 
         // Assert
         $this->assertSame(
-            ['username' => 'L1002', 'email' => 'jason.hill@example.test', 'firstName' => 'Jason', 'lastName' => 'Hill'],
+            [
+                'username' => 'L1002',
+                'email' => 'edited.lecturer@example.test',
+                'firstName' => 'Edited',
+                'lastName' => 'Lecturer',
+            ],
             $this->getAccount('lecturer-id')
         );
     }
