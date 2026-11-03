@@ -4,13 +4,22 @@
 // laid out Arrange (open the page), Act (use it), Assert (check the screen)
 import { flushPromises, mount } from '@vue/test-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { getCohorts, setCohortActive } from '../services/cohortService';
+import {
+    assignSubjects,
+    getCohorts,
+    getUnassignedSubjects,
+    removeSubject,
+    setCohortActive,
+} from '../services/cohortService';
 import CohortManagement from '../views/cohortManagement.vue';
 import { sampleCohorts } from './sampleCohorts';
 
 vi.mock('../services/cohortService', () => ({
     getCohorts: vi.fn(),
     setCohortActive: vi.fn(),
+    getUnassignedSubjects: vi.fn(),
+    assignSubjects: vi.fn(),
+    removeSubject: vi.fn(),
 }));
 
 /**
@@ -39,6 +48,18 @@ function findButton(page, label) {
 describe('CohortManagement', () => {
     beforeEach(() => {
         vi.clearAllMocks();
+        // jsdom has no showModal(), so a stand-in opens and closes the pop-ups
+        HTMLDialogElement.prototype.showModal = vi.fn(function showModal() {
+            this.setAttribute('open', '');
+        });
+        HTMLDialogElement.prototype.close = vi.fn(function close() {
+            this.removeAttribute('open');
+            this.dispatchEvent(new Event('close'));
+        });
+        getUnassignedSubjects.mockResolvedValue([
+            { subjectID: 'subject-8', subjectName: 'Artificial Intelligence', testCount: 3 },
+            { subjectID: 'subject-9', subjectName: 'Project Management', testCount: 1 },
+        ]);
         getCohorts.mockResolvedValue(structuredClone(sampleCohorts));
         setCohortActive.mockImplementation(async (cohortID, isActive) => ({
             ...structuredClone(sampleCohorts.find((cohort) => cohort.cohortID === cohortID)),
@@ -338,6 +359,170 @@ describe('CohortManagement', () => {
     });
 
     /**
+     * Opens a cohort's subjects and the assign pop-up, DTS 2026 is the first cohort
+     */
+    async function openAssignDialog() {
+        const page = await openPage();
+        await page.findAll('.cohortTable')[1].get('[aria-label="Show details for DTS 2026"]').trigger('click');
+        await findButton(page, 'Assign subjects to DTS 2026').trigger('click');
+        await flushPromises();
+
+        return page;
+    }
+
+    async function openRemoveDialog() {
+        const page = await openPage();
+        await page.findAll('.cohortTable')[1].get('[aria-label="Show details for DTS 2026"]').trigger('click');
+        await findButton(page, 'Remove from cohort: Web Applications').trigger('click');
+        await flushPromises();
+
+        return page;
+    }
+
+    /**
+     * The pop-up lists the subjects PHP says are unassigned, with nothing chosen yet (normal)
+     */
+    it('lists the unassigned subjects in the assign pop-up', async () => {
+        // Arrange and Act
+        const page = await openAssignDialog();
+
+        // Assert
+        expect(page.get('.popupTitle').text()).toBe('Assign Subjects to DTS 2026');
+        expect(page.findAll('.cohortDialogOption').map((option) => option.text())).toEqual([
+            'Artificial Intelligence',
+            'Project Management',
+        ]);
+        expect(page.get('.cohortDialogButtons .cohortPrimaryButton').attributes('disabled')).toBeDefined();
+    });
+
+    /**
+     * Searching narrows the list without losing what's already chosen (edge)
+     */
+    it('keeps a chosen subject when a search hides it', async () => {
+        // Arrange
+        const page = await openAssignDialog();
+        await page.findAll('.cohortDialogOption input')[0].setValue(true);
+
+        // Act
+        await page.get('.cohortDialogSearch').setValue('project');
+
+        // Assert
+        expect(page.findAll('.cohortDialogOption').map((option) => option.text())).toEqual(['Project Management']);
+        expect(page.get('.cohortDialogButtons .cohortPrimaryButton').text()).toBe('Assign 1 Subject');
+    });
+
+    /**
+     * Assigning saves the chosen subjects, updates the table and closes the pop-up (normal)
+     */
+    it('assigns the chosen subjects', async () => {
+        // Arrange
+        assignSubjects.mockResolvedValue({
+            subjects: [
+                {
+                    subjectID: 'subject-8',
+                    subjectName: 'Artificial Intelligence',
+                    testCount: 3,
+                    lecturerNames: null,
+                    isActive: true,
+                },
+            ],
+        });
+        const page = await openAssignDialog();
+        await page.findAll('.cohortDialogOption input')[0].setValue(true);
+
+        // Act
+        await page.get('.cohortDialogButtons .cohortPrimaryButton').trigger('click');
+        await flushPromises();
+
+        // Assert
+        expect(assignSubjects).toHaveBeenCalledWith('cohort-1', ['subject-8']);
+        expect(page.find('.popupDialog').exists()).toBe(false);
+        expect(page.get('.cohortDetailsTable tbody th').text()).toBe('Artificial Intelligence');
+    });
+
+    /**
+     * The pop-up stays open and shows the problem if assigning fails (error)
+     */
+    it('shows a problem when assigning fails', async () => {
+        // Arrange
+        assignSubjects.mockRejectedValue({ response: { data: { error: 'No longer available' } } });
+        const page = await openAssignDialog();
+        await page.findAll('.cohortDialogOption input')[0].setValue(true);
+
+        // Act
+        await page.get('.cohortDialogButtons .cohortPrimaryButton').trigger('click');
+        await flushPromises();
+
+        // Assert
+        expect(page.get('.popupDialog [role="alert"]').text()).toContain('No longer available');
+    });
+
+    /**
+     * With nothing to assign the pop-up says so (boundary)
+     */
+    it('says when there are no unassigned subjects', async () => {
+        // Arrange
+        getUnassignedSubjects.mockResolvedValue([]);
+
+        // Act
+        const page = await openAssignDialog();
+
+        // Assert
+        expect(page.get('.popupBody').text()).toContain('There are no unassigned subjects to add');
+    });
+
+    /**
+     * The remove pop-up names the subject, cohort and test count (normal)
+     */
+    it('asks before removing a subject', async () => {
+        // Arrange and Act
+        const page = await openRemoveDialog();
+
+        // Assert
+        expect(page.get('.popupTitle').text()).toBe('Remove Subject?');
+        expect(page.get('.cohortDialogConfirm h3').text()).toBe('Web Applications');
+        expect(page.get('.cohortDialogConfirm').text()).toContain(
+            "Students in DTS 2026 will no longer see this subject's 6 tests",
+        );
+        expect(removeSubject).not.toHaveBeenCalled();
+    });
+
+    /**
+     * Cancel closes the pop-up without removing anything (edge)
+     */
+    it('leaves the subject in place when cancelled', async () => {
+        // Arrange
+        const page = await openRemoveDialog();
+
+        // Act
+        await page.get('.cohortDialogButtons .cohortSecondaryButton').trigger('click');
+
+        // Assert
+        expect(removeSubject).not.toHaveBeenCalled();
+        expect(page.find('.popupDialog').exists()).toBe(false);
+    });
+
+    /**
+     * Confirming removes the subject and updates the table (normal)
+     */
+    it('removes the subject once confirmed', async () => {
+        // Arrange
+        removeSubject.mockResolvedValue({ subjects: [] });
+        const page = await openRemoveDialog();
+
+        // Act
+        await page.get('.cohortDialogButtons .cohortPrimaryButton').trigger('click');
+        await flushPromises();
+
+        // Assert
+        expect(removeSubject).toHaveBeenCalledWith('cohort-1', 'subject-1');
+        expect(page.find('.popupDialog').exists()).toBe(false);
+        expect(page.findAll('.cohortDetailsEmpty').map((text) => text.text())).toContain(
+            'No subjects for this cohort yet',
+        );
+    });
+
+    /**
      * The date and time from the database are shown the way the page writes dates (normal)
      */
     it('shows the last login as day, month, year and time', async () => {
@@ -390,6 +575,90 @@ describe('CohortManagement', () => {
         const row = page.get('.cohortDetailsTable tbody tr');
         expect(row.text()).toContain('Not assigned');
         expect(row.get('.statusPill').text()).toBe('Archived');
+    });
+
+    /**
+     * The button counts what's chosen, and only says Subject for one (boundary)
+     */
+    it('counts the chosen subjects on the assign button', async () => {
+        // Arrange
+        const page = await openAssignDialog();
+        const options = page.findAll('.cohortDialogOption input');
+        const assignButton = page.get('.cohortDialogButtons .cohortPrimaryButton');
+        const labelWithNone = assignButton.text();
+
+        // Act
+        await options[0].setValue(true);
+        const labelWithOne = assignButton.text();
+        await options[1].setValue(true);
+        const labelWithTwo = assignButton.text();
+
+        // Assert
+        expect(labelWithNone).toBe('Assign Subjects');
+        expect(labelWithOne).toBe('Assign 1 Subject');
+        expect(labelWithTwo).toBe('Assign 2 Subjects');
+    });
+
+    /**
+     * A search with no match says so, rather than showing an empty table (edge)
+     */
+    it('says when no subject matches the search', async () => {
+        // Arrange
+        const page = await openAssignDialog();
+
+        // Act
+        await page.get('.cohortDialogSearch').setValue('zzz');
+
+        // Assert
+        expect(page.get('.cohortDialogTable tbody').text()).toBe('No subjects match your search');
+    });
+
+    /**
+     * A problem loading the subjects shows in the pop-up (error)
+     */
+    it('shows a problem when the unassigned subjects cannot load', async () => {
+        // Arrange
+        getUnassignedSubjects.mockRejectedValue(new Error('Network Error'));
+
+        // Act
+        const page = await openAssignDialog();
+
+        // Assert
+        expect(page.get('.popupDialog [role="alert"]').text()).toContain('Unable to load the subjects');
+        expect(page.get('.popupBody').text()).not.toContain('There are no unassigned subjects');
+    });
+
+    /**
+     * One test isn't written as tests (boundary)
+     */
+    it('writes a single test correctly in the remove pop-up', async () => {
+        // Arrange
+        const cohorts = structuredClone(sampleCohorts);
+        cohorts[0].subjects[0].testCount = 1;
+        getCohorts.mockResolvedValue(cohorts);
+
+        // Act
+        const page = await openRemoveDialog();
+
+        // Assert
+        expect(page.get('.cohortDialogConfirm').text()).toContain("this subject's 1 test.");
+    });
+
+    /**
+     * The pop-up stays open and the subject stays listed if removing fails (error)
+     */
+    it('shows a problem when removing fails', async () => {
+        // Arrange
+        removeSubject.mockRejectedValue({ response: { data: { error: 'That subject is not in this cohort' } } });
+        const page = await openRemoveDialog();
+
+        // Act
+        await page.get('.cohortDialogButtons .cohortPrimaryButton').trigger('click');
+        await flushPromises();
+
+        // Assert
+        expect(page.get('.popupDialog [role="alert"]').text()).toContain('That subject is not in this cohort');
+        expect(page.get('.cohortDetailsTable tbody th').text()).toBe('Web Applications');
     });
 
     /**

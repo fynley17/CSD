@@ -117,6 +117,79 @@ class Cohort extends Model
     }
 
     /**
+     * Adds subjects to a cohort, all of them or none
+     * A subject added to a disabled cohort is archived the same way as if it was there when the cohort was disabled
+     *
+     * @param array<int, string> $subjectIDs
+     * @return bool false if there's no cohort with this ID
+     * @throws \InvalidArgumentException if a subject is archived or already in a cohort
+     */
+    public static function assignSubjects(string $cohortID, array $subjectIDs): bool
+    {
+        $db = self::getDB();
+
+        // SQLite does not support FOR UPDATE.
+        $lockClause = $db->getAttribute(\PDO::ATTR_DRIVER_NAME) === 'mysql' ? ' FOR UPDATE' : '';
+
+        $db->beginTransaction();
+        try {
+            // read inside the transaction and locked, so the cohort can't be disabled or enabled
+            // between reading its status and saving the subjects, which would leave them in the wrong state
+            $stmt = $db->prepare("SELECT isActive FROM Cohorts WHERE cohortID = ? LIMIT 1" . $lockClause);
+            $stmt->execute([$cohortID]);
+            $cohortIsActive = $stmt->fetchColumn();
+            if ($cohortIsActive === false) {
+                $db->rollBack();
+                return false;
+            }
+            $cohortIsActive = (int) $cohortIsActive === 1;
+
+            $stmt = $db->prepare(
+                "UPDATE Subjects SET cohortID = ?, isActive = ?, archivedByCohort = ?
+                    WHERE subjectID = ? AND cohortID IS NULL AND isActive = 1"
+            );
+
+            foreach ($subjectIDs as $subjectID) {
+                $stmt->execute([$cohortID, $cohortIsActive ? 1 : 0, $cohortIsActive ? 0 : 1, $subjectID]);
+
+                // nothing changed means someone else got there first, or the ID isn't an unassigned subject
+                if ($stmt->rowCount() !== 1) {
+                    throw new \InvalidArgumentException(
+                        'One of these subjects is no longer available. Reload the page and try again'
+                    );
+                }
+            }
+
+            $db->commit();
+        } catch (\Throwable $e) {
+            $db->rollBack();
+            throw $e;
+        }
+
+        return true;
+    }
+
+    /**
+     * Takes a subject out of a cohort, its tests and past results stay with the subject
+     * If only the cohort being disabled archived it, it becomes active again ready to be assigned elsewhere
+     *
+     * @return bool false if the subject isn't in this cohort
+     */
+    public static function removeSubject(string $cohortID, string $subjectID): bool
+    {
+        $stmt = self::getDB()->prepare(
+            "UPDATE Subjects
+                SET cohortID = NULL,
+                    isActive = CASE WHEN archivedByCohort = 1 THEN 1 ELSE isActive END,
+                    archivedByCohort = 0
+                WHERE subjectID = ? AND cohortID = ?"
+        );
+        $stmt->execute([$subjectID, $cohortID]);
+
+        return $stmt->rowCount() === 1;
+    }
+
+    /**
      * @return array<string, array<int, array<string, mixed>>> cohortID => students, A to Z by last name
      */
     private static function getStudentsByCohort(): array

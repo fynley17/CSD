@@ -26,4 +26,19 @@ class SubjectController extends Controller
             $this->jsonResponse(['error' => 'Unable to load the subjects'], 500);
         }
     }
+
+    /**
+     * Sends the subjects that can be added to a cohort to the assign subjects pop-up
+     */
+    public function getUnassignedSubjects(): void
+    {
+        Authentication::requireRole(['admin']);
+
+        try {
+            $this->jsonResponse(Subject::getUnassigned());
+        } catch (\Throwable $e) {
+            error_log('Loading the unassigned subjects failed: ' . $e->getMessage());
+            $this->jsonResponse(['error' => 'Unable to load the subjects'], 500);
+        }
+    }
 }

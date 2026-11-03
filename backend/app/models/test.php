@@ -499,10 +499,34 @@ class Test extends Model
      * Checks the student's cohort against the test's subject cohort,
      * preventing students from accessing another cohort's test by changing the test ID.
      */
-    public static function findForStudent(
-        string $testID,
-        string $userID
-    ): ?array {
+    public static function findForStudent(string $testID, string $userID): ?array
+    {
+        // Same checks as getAvailableForStudents(), so a student can't open another
+        // cohort's test, or one whose subject has no questions, by typing its ID into the URL.
+        return self::findTest($testID, $userID, true);
+    }
+
+    /**
+     * Finds a test the student has already started, for handing it in.
+     * There's no cohort check, so an attempt still counts if its subject has left their cohort since it started.
+     * Only call this with an attempt from the student's session, startTest only saves one after the cohort check.
+     *
+     * @return array|null null if the test doesn't exist or has no questions
+     */
+    public static function findStartedByStudent(string $testID, string $userID): ?array
+    {
+        return self::findTest($testID, $userID, false);
+    }
+
+    /**
+     * The shared query behind findForStudent() and findStartedByStudent()
+     */
+    private static function findTest(string $testID, string $userID, bool $checkCohort): ?array
+    {
+        $cohortCheck = $checkCohort
+            ? "INNER JOIN Students AS student ON student.cohortID = s.cohortID AND student.userID = ?"
+            : '';
+
         $stmt = self::getDB()->prepare(
             "SELECT
                 t.testID,
@@ -516,15 +540,12 @@ class Test extends Model
                 NOT " . self::FULL_MARKS_ATTEMPT . " AS earnsPoints
             FROM Tests AS t
             INNER JOIN Subjects AS s ON s.subjectID = t.subjectID
-            INNER JOIN Students AS student ON student.cohortID = s.cohortID
+            $cohortCheck
             WHERE t.testID = ?
-                AND student.userID = ?
-                AND " . self::POOL_SIZE . " > 0"
+            AND " . self::POOL_SIZE . " > 0"
         );
-
-        // The first placeholder belongs to the full marks check.
-        $stmt->execute([$userID, $testID, $userID]);
-
+        // the first ? is the full marks check in the SELECT
+        $stmt->execute($checkCohort ? [$userID, $userID, $testID] : [$userID, $testID]);
         $test = $stmt->fetch(\PDO::FETCH_ASSOC);
 
         if ($test === false) {
