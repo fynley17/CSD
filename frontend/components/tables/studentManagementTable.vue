@@ -444,12 +444,7 @@ onUnmounted(() => {
                     Cancel
                 </button>
 
-                <button
-                    type="button"
-                    class="btn btn-danger"
-                    :disabled="deletingStudent"
-                    @click="confirmDeleteStudent"
-                >
+                <button type="button" class="btn btn-danger" :disabled="deletingStudent" @click="confirmDeleteStudent">
                     {{
                         deletingStudent
                             ? 'Processing...'
