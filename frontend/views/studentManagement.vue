@@ -1,6 +1,8 @@
 <script setup>
-import { computed, ref, onMounted } from 'vue';
+import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { getCurrentUser } from '../services/authService';
+import StudentManagementTable from '../components/tables/studentManagementTable.vue';
+import StudentForm from '../components/forms/studentForm.vue';
 
 const currentUser = ref(null);
 
@@ -9,8 +11,6 @@ const canCreateStudent = computed(() => currentUser.value?.accountType === 'lect
 onMounted(async () => {
     currentUser.value = await getCurrentUser();
 });
-import StudentManagementTable from '../components/tables/studentManagementTable.vue';
-import StudentForm from '../components/forms/studentForm.vue';
 
 // Reference the student table component so the parent view can access its filters.
 const studentManagementTable = ref(null);
@@ -27,9 +27,34 @@ const selectedStudent = ref(null);
 // Change this key to reload the student table after a successful save.
 const tableKey = ref(0);
 
+// Store the warning displayed when student login emails fail.
+const warningMessage = ref('');
+let messageTimeout = null;
+
 // Retrieve the available cohort options from the student table component.
 const cohorts = computed(() => studentManagementTable.value?.cohorts ?? []);
 const pendingCount = computed(() => studentManagementTable.value?.pendingCount ?? 0);
+
+// Display a temporary warning notification.
+function showWarning(message) {
+    warningMessage.value = message;
+
+    if (messageTimeout) {
+        clearTimeout(messageTimeout);
+    }
+
+    messageTimeout = setTimeout(() => {
+        warningMessage.value = '';
+        messageTimeout = null;
+    }, 10000);
+}
+
+// Clear the notification timeout when leaving the page.
+onUnmounted(() => {
+    if (messageTimeout) {
+        clearTimeout(messageTimeout);
+    }
+});
 
 // Show only students whose applications are awaiting approval.
 const showPendingApplications = () => {
@@ -70,14 +95,24 @@ const closeStudentForm = () => {
     selectedStudent.value = null;
 };
 
-// Refresh the table after a student has been created or updated.
-const handleStudentSaved = () => {
+// Refresh the table and warn the lecturer if the login email failed.
+const handleStudentSaved = (response) => {
     tableKey.value += 1;
+
+    if (response?.emailSent === false) {
+        showWarning('Student account created successfully, but the login details email could not be sent.');
+    }
 };
 </script>
 
 <template>
     <main class="studentManagement">
+        <!-- Warn the lecturer when student login details could not be emailed. -->
+        <div v-if="warningMessage" class="studentManagementToast" role="alert" aria-live="assertive">
+            <span aria-hidden="true">!</span>
+            {{ warningMessage }}
+        </div>
+
         <!-- Display the page title, description and Student Applications button. -->
         <div class="pageHeading">
             <div>
@@ -148,6 +183,25 @@ const handleStudentSaved = () => {
     padding: var(--space2xl) var(--spaceLg);
     color: var(--colorText);
     font-family: var(--fontBody);
+}
+
+/* Display the temporary email failure warning. */
+.studentManagementToast {
+    position: fixed;
+    z-index: 1100;
+    top: var(--spaceLg);
+    right: var(--spaceLg);
+    display: flex;
+    align-items: center;
+    gap: var(--spaceSm);
+    width: max-content;
+    max-width: min(450px, calc(100vw - 2 * var(--spaceLg)));
+    padding: var(--spaceMd) var(--spaceLg);
+    border: 2px solid var(--colorError);
+    border-radius: var(--radiusSm);
+    background: var(--colorSurface);
+    color: var(--colorError);
+    font-weight: 600;
 }
 
 /* Arrange the page heading and applications button. */
