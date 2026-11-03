@@ -534,6 +534,57 @@ final class CohortManagementTest extends TestCase
         $this->assertFalse($this->db->inTransaction());
     }
 
+    /**
+     * The cohort's status is read locked and inside the transaction, before any subject is saved (normal)
+     * stops the cohort being disabled or enabled between reading its status and saving the subjects
+     * the race itself needs two MariaDB connections, so this pretends to be MariaDB and checks the queries
+     */
+    public function testAssignLocksTheCohortStatusInsideItsTransaction(): void
+    {
+        // Arrange: a connection that says it's MariaDB and notes each query, with the same tables as setUp()
+        $recordingDB = new class ('sqlite::memory:') extends PDO {
+            /** @var array<int, array{sql: string, inTransaction: bool}> */
+            public array $queries = [];
+
+            public function getAttribute(int $attribute): mixed
+            {
+                return $attribute === PDO::ATTR_DRIVER_NAME ? 'mysql' : parent::getAttribute($attribute);
+            }
+
+            public function prepare(string $query, array $options = []): PDOStatement|false
+            {
+                $this->queries[] = ['sql' => $query, 'inTransaction' => $this->inTransaction()];
+
+                // SQLite can't run FOR UPDATE, it's only noted
+                return parent::prepare(str_replace(' FOR UPDATE', '', $query), $options);
+            }
+        };
+        $recordingDB->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        foreach (['Cohorts', 'Subjects'] as $table) {
+            $create = $this->db->query("SELECT sql FROM sqlite_master WHERE name = '$table'")->fetchColumn();
+            $recordingDB->exec($create);
+        }
+        $recordingDB->exec(
+            "INSERT INTO Cohorts (cohortID, cohortName, createdDate, isActive)
+                VALUES ('cohort-2', 'Test Alpha', '2025-09-01', 0);
+             INSERT INTO Subjects (subjectID, subjectName, cohortID, isActive) VALUES ('subject-1', 'Test', NULL, 1)"
+        );
+        (new ReflectionProperty(Model::class, 'db'))->setValue(null, $recordingDB);
+
+        // Act
+        Cohort::assignSubjects('cohort-2', ['subject-1']);
+
+        // Assert
+        $statusRead = $recordingDB->queries[0];
+        $subjectSave = $recordingDB->queries[1];
+        $this->assertStringContainsString('SELECT isActive FROM Cohorts', $statusRead['sql']);
+        $this->assertStringEndsWith(' FOR UPDATE', $statusRead['sql']);
+        $this->assertTrue($statusRead['inTransaction']);
+        $this->assertStringStartsWith('UPDATE Subjects', $subjectSave['sql']);
+        $isActive = $recordingDB->query("SELECT isActive FROM Subjects WHERE subjectID = 'subject-1'")->fetchColumn();
+        $this->assertSame(0, (int) $isActive);
+    }
+
     private function subjectCohort(string $subjectID): ?string
     {
         $stmt = $this->db->prepare('SELECT cohortID FROM Subjects WHERE subjectID = ?');
