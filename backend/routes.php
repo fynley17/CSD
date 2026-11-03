@@ -162,13 +162,20 @@ $router->addRoute(
     [new AdministratorController(), 'getRecentLecturers']
 );
 
-// every cohort with its students and subjects for cohort management, admins only
-$router->addRoute('GET', '/^\/api\/admin\/cohorts$/', [new CohortController(), 'getCohortsForManagement']);
+// Return all subjects for the admin dashboard, admins only.
+$router->addRoute('GET', '/^\\/api\\/subjects$/', [new SubjectController(), 'getAllSubjects']);
 
-// disable or enable a cohort, admins only
+// Return all cohorts with their students and subjects for admin management.
+$router->addRoute(
+    'GET',
+    '/^\\/api\\/admin\\/cohorts$/',
+    [new CohortController(), 'getCohortsForManagement']
+);
+
+// Enable or disable a cohort, admins only.
 $router->addRoute(
     'PUT',
-    '/^\/api\/admin\/cohorts\/([0-9a-zA-Z-]+)\/status$/',
+    '/^\\/api\\/admin\\/cohorts\\/([0-9a-zA-Z-]+)\\/status$/',
     [new CohortController(), 'updateCohortStatus']
 );
 
@@ -178,19 +185,20 @@ $router->addRoute('DELETE', '/^\/api\/admin\/cohorts\/([0-9a-zA-Z-]+)$/', [new C
 // add subjects to a cohort or take one out, admins only
 $router->addRoute(
     'POST',
-    '/^\/api\/admin\/cohorts\/([0-9a-zA-Z-]+)\/subjects$/',
+    '/^\\/api\\/admin\\/cohorts\\/([0-9a-zA-Z-]+)\\/subjects$/',
     [new CohortController(), 'assignSubjects']
 );
 $router->addRoute(
     'DELETE',
-    '/^\/api\/admin\/cohorts\/([0-9a-zA-Z-]+)\/subjects\/([0-9a-zA-Z-]+)$/',
+    '/^\\/api\\/admin\\/cohorts\\/([0-9a-zA-Z-]+)\\/subjects\\/([0-9a-zA-Z-]+)$/',
     [new CohortController(), 'removeSubject']
 );
 
 // active subjects that aren't in a cohort, for the assign subjects pop-up, admins only
-$router->addRoute('GET', '/^\/api\/admin\/subjects\/unassigned$/', [new SubjectController(), 'getUnassignedSubjects']);
-
-// every subject for the admin dashboard table, admins only
-$router->addRoute('GET', '/^\/api\/subjects$/', [new SubjectController(), 'getAllSubjects']);
+$router->addRoute(
+    'GET',
+    '/^\\/api\\/admin\\/subjects\\/unassigned$/',
+    [new SubjectController(), 'getUnassignedSubjects']
+);
 
 return $router;

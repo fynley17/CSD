@@ -518,6 +518,153 @@ final class CohortManagementTest extends TestCase
     }
 
     /**
+     * An unknown cohort doesn't leave a transaction open, now that the status is read inside one (error)
+     * the race itself needs two MariaDB connections, SQLite has no FOR UPDATE, so it can't be tested here
+     */
+    public function testAssigningToAnUnknownCohortClosesItsTransaction(): void
+    {
+        // Arrange
+        $this->addSubject('subject-1', null, 1);
+
+        // Act
+        $result = Cohort::assignSubjects('cohort-missing', ['subject-1']);
+
+        // Assert
+        $this->assertFalse($result);
+        $this->assertFalse($this->db->inTransaction());
+    }
+
+    /**
+     * The cohort's status is read locked and inside the transaction, before any subject is saved (normal)
+     * stops the cohort being disabled or enabled between reading its status and saving the subjects
+     * the race itself needs two MariaDB connections, so this pretends to be MariaDB and checks the queries
+     */
+    public function testAssignLocksTheCohortStatusInsideItsTransaction(): void
+    {
+        // Arrange: a connection that says it's MariaDB and notes each query, with the same tables as setUp()
+        $recordingDB = new class ('sqlite::memory:') extends PDO {
+            /** @var array<int, array{sql: string, inTransaction: bool}> */
+            public array $queries = [];
+
+            public function getAttribute(int $attribute): mixed
+            {
+                return $attribute === PDO::ATTR_DRIVER_NAME ? 'mysql' : parent::getAttribute($attribute);
+            }
+
+            public function prepare(string $query, array $options = []): PDOStatement|false
+            {
+                $this->queries[] = ['sql' => $query, 'inTransaction' => $this->inTransaction()];
+
+                // SQLite can't run FOR UPDATE, it's only noted
+                return parent::prepare(str_replace(' FOR UPDATE', '', $query), $options);
+            }
+        };
+        $recordingDB->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        foreach (['Cohorts', 'Subjects'] as $table) {
+            $create = $this->db->query("SELECT sql FROM sqlite_master WHERE name = '$table'")->fetchColumn();
+            $recordingDB->exec($create);
+        }
+        $recordingDB->exec(
+            "INSERT INTO Cohorts (cohortID, cohortName, createdDate, isActive)
+                VALUES ('cohort-2', 'Test Alpha', '2025-09-01', 0);
+             INSERT INTO Subjects (subjectID, subjectName, cohortID, isActive) VALUES ('subject-1', 'Test', NULL, 1)"
+        );
+        (new ReflectionProperty(Model::class, 'db'))->setValue(null, $recordingDB);
+
+        // Act
+        Cohort::assignSubjects('cohort-2', ['subject-1']);
+
+        // Assert
+        $statusRead = $recordingDB->queries[0];
+        $subjectSave = $recordingDB->queries[1];
+        $this->assertStringContainsString('SELECT isActive FROM Cohorts', $statusRead['sql']);
+        $this->assertStringEndsWith(' FOR UPDATE', $statusRead['sql']);
+        $this->assertTrue($statusRead['inTransaction']);
+        $this->assertStringStartsWith('UPDATE Subjects', $subjectSave['sql']);
+        $isActive = $recordingDB->query("SELECT isActive FROM Subjects WHERE subjectID = 'subject-1'")->fetchColumn();
+        $this->assertSame(0, (int) $isActive);
+    }
+
+    /**
+     * Enabling one cohort doesn't bring back students or subjects from another disabled cohort (edge)
+     */
+    public function testEnablingOneCohortLeavesAnotherDisabledCohortAlone(): void
+    {
+        // Arrange
+        $this->addStudent('user-1', 'Sam', 'Beta', 'cohort-1', 1, 'approved', null);
+        $this->addStudent('user-2', 'Sam', 'Alpha', 'cohort-2', 1, 'approved', null);
+        $this->addSubject('subject-1', 'cohort-1', 1);
+        $this->addSubject('subject-2', 'cohort-2', 1);
+        Cohort::setActive('cohort-1', false);
+        Cohort::setActive('cohort-2', false);
+
+        // Act
+        Cohort::setActive('cohort-1', true);
+
+        // Assert
+        $this->assertSame(1, $this->userIsEnabled('user-1'));
+        $this->assertSame(0, $this->userIsEnabled('user-2'));
+        $this->assertSame(1, $this->subjectIsActive('subject-1'));
+        $this->assertSame(0, $this->subjectIsActive('subject-2'));
+    }
+
+    /**
+     * Enabling a cohort that was never disabled changes nothing (boundary)
+     */
+    public function testEnablingAnActiveCohortLeavesADisabledStudentAlone(): void
+    {
+        // Arrange
+        $this->addStudent('user-1', 'Sam', 'Banned', 'cohort-1', 0, 'approved', null);
+
+        // Act
+        Cohort::setActive('cohort-1', true);
+
+        // Assert
+        $this->assertSame(0, $this->userIsEnabled('user-1'));
+    }
+
+    /**
+     * Finding a cohort shows the status and students as they are after disabling it (normal)
+     */
+    public function testFindingACohortShowsItAfterDisabling(): void
+    {
+        // Arrange
+        $this->addStudent('user-1', 'Sam', 'Inside', 'cohort-1', 1, 'approved', null);
+        Cohort::setActive('cohort-1', false);
+
+        // Act
+        $cohort = Cohort::findForManagement('cohort-1');
+
+        // Assert
+        $this->assertFalse($cohort['isActive']);
+        $this->assertSame('Disabled', $cohort['students'][0]['status']);
+    }
+
+    /**
+     * Registering into a disabled cohort is refused, even if the form was opened before it was disabled (error)
+     */
+    public function testRegisteringIntoADisabledCohortIsRefused(): void
+    {
+        // Arrange: setUp() disables cohort-2, the Users table is empty
+        $data = [
+            'firstName' => 'Sam',
+            'lastName' => 'Sample',
+            'email' => 'sam@example.test',
+            'studentNumber' => 'ws000001',
+            'password' => 'Sample123!',
+            'confirmPassword' => 'Sample123!',
+            'cohortID' => 'cohort-2',
+        ];
+
+        // Assert: PHPUnit has to be told which exception to expect before the Act
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('The selected cohort was not found');
+
+        // Act
+        Student::register($data);
+    }
+
+    /**
      * An empty cohort is deleted and the others stay (normal)
      */
     public function testDeletesAnEmptyCohort(): void

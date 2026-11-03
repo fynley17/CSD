@@ -513,6 +513,177 @@ describe('CohortManagement', () => {
     });
 
     /**
+     * The date and time from the database are shown the way the page writes dates (normal)
+     */
+    it('shows the last login as day, month, year and time', async () => {
+        // Arrange
+        const cohorts = structuredClone(sampleCohorts);
+        cohorts[0].students[0].lastLogin = '2026-09-29 09:42:10';
+        getCohorts.mockResolvedValue(cohorts);
+        const page = await openPage();
+
+        // Act
+        await page.findAll('.cohortTable')[0].get('[aria-label="Show details for DTS 2026"]').trigger('click');
+
+        // Assert
+        expect(page.get('.cohortDetailsTable tbody tr').text()).toContain('29/09/2026 09:42');
+    });
+
+    /**
+     * A student who has never logged in says so (boundary)
+     */
+    it('shows Never for a student with no last login', async () => {
+        // Arrange
+        const cohorts = structuredClone(sampleCohorts);
+        cohorts[0].students[0].lastLogin = null;
+        getCohorts.mockResolvedValue(cohorts);
+        const page = await openPage();
+
+        // Act
+        await page.findAll('.cohortTable')[0].get('[aria-label="Show details for DTS 2026"]').trigger('click');
+
+        // Assert
+        expect(page.get('.cohortDetailsTable tbody tr').text()).toContain('Never');
+    });
+
+    /**
+     * Each subject shows its status, and says when it has no lecturer (normal)
+     */
+    it('shows an archived subject with no lecturer', async () => {
+        // Arrange
+        const cohorts = structuredClone(sampleCohorts);
+        cohorts[0].subjects = [
+            { subjectID: 'subject-1', subjectName: 'Test', testCount: 0, lecturerNames: null, isActive: false },
+        ];
+        getCohorts.mockResolvedValue(cohorts);
+        const page = await openPage();
+
+        // Act
+        await page.findAll('.cohortTable')[1].get('[aria-label="Show details for DTS 2026"]').trigger('click');
+
+        // Assert
+        const row = page.get('.cohortDetailsTable tbody tr');
+        expect(row.text()).toContain('Not assigned');
+        expect(row.get('.statusPill').text()).toBe('Archived');
+    });
+
+    /**
+     * The button counts what's chosen, and only says Subject for one (boundary)
+     */
+    it('counts the chosen subjects on the assign button', async () => {
+        // Arrange
+        const page = await openAssignDialog();
+        const options = page.findAll('.cohortDialogOption input');
+        const assignButton = page.get('.cohortDialogButtons .cohortPrimaryButton');
+        const labelWithNone = assignButton.text();
+
+        // Act
+        await options[0].setValue(true);
+        const labelWithOne = assignButton.text();
+        await options[1].setValue(true);
+        const labelWithTwo = assignButton.text();
+
+        // Assert
+        expect(labelWithNone).toBe('Assign Subjects');
+        expect(labelWithOne).toBe('Assign 1 Subject');
+        expect(labelWithTwo).toBe('Assign 2 Subjects');
+    });
+
+    /**
+     * A search with no match says so, rather than showing an empty table (edge)
+     */
+    it('says when no subject matches the search', async () => {
+        // Arrange
+        const page = await openAssignDialog();
+
+        // Act
+        await page.get('.cohortDialogSearch').setValue('zzz');
+
+        // Assert
+        expect(page.get('.cohortDialogTable tbody').text()).toBe('No subjects match your search');
+    });
+
+    /**
+     * A problem loading the subjects shows in the pop-up (error)
+     */
+    it('shows a problem when the unassigned subjects cannot load', async () => {
+        // Arrange
+        getUnassignedSubjects.mockRejectedValue(new Error('Network Error'));
+
+        // Act
+        const page = await openAssignDialog();
+
+        // Assert
+        expect(page.get('.popupDialog [role="alert"]').text()).toContain('Unable to load the subjects');
+        expect(page.get('.popupBody').text()).not.toContain('There are no unassigned subjects');
+    });
+
+    /**
+     * One test isn't written as tests (boundary)
+     */
+    it('writes a single test correctly in the remove pop-up', async () => {
+        // Arrange
+        const cohorts = structuredClone(sampleCohorts);
+        cohorts[0].subjects[0].testCount = 1;
+        getCohorts.mockResolvedValue(cohorts);
+
+        // Act
+        const page = await openRemoveDialog();
+
+        // Assert
+        expect(page.get('.cohortDialogConfirm').text()).toContain("this subject's 1 test.");
+    });
+
+    /**
+     * The pop-up stays open and the subject stays listed if removing fails (error)
+     */
+    it('shows a problem when removing fails', async () => {
+        // Arrange
+        removeSubject.mockRejectedValue({ response: { data: { error: 'That subject is not in this cohort' } } });
+        const page = await openRemoveDialog();
+
+        // Act
+        await page.get('.cohortDialogButtons .cohortPrimaryButton').trigger('click');
+        await flushPromises();
+
+        // Assert
+        expect(page.get('.popupDialog [role="alert"]').text()).toContain('That subject is not in this cohort');
+        expect(page.get('.cohortDetailsTable tbody th').text()).toBe('Web Applications');
+    });
+
+    /**
+     * The delete button has the same look as on student management (normal)
+     */
+    it('styles the action buttons like the rest of the site', async () => {
+        // Arrange and Act
+        const page = await openPage();
+
+        // Assert
+        expect(findButton(page, 'Delete DTS 2026').classes()).toContain('tableDeleteButton');
+        expect(findButton(page, 'Disable DTS 2026').classes()).toContain('tableDisableButton');
+    });
+
+    /**
+     * The problem from the last save clears when the next one works (edge)
+     */
+    it('clears the save problem once a later save works', async () => {
+        // Arrange
+        setCohortActive.mockRejectedValueOnce(new Error('Network Error'));
+        const page = await openPage();
+        await findButton(page, 'Disable DTS 2026').trigger('click');
+        await flushPromises();
+        const problem = page.get('[role="alert"]').text();
+
+        // Act
+        await findButton(page, 'Disable DTS 2026').trigger('click');
+        await flushPromises();
+
+        // Assert
+        expect(problem).toContain('Unable to update DTS 2026');
+        expect(page.find('[role="alert"]').exists()).toBe(false);
+    });
+
+    /**
      * An empty cohort asks for confirmation before anything is deleted (normal)
      */
     it('asks before deleting an empty cohort', async () => {
@@ -654,145 +825,6 @@ describe('CohortManagement', () => {
     });
 
     /**
-     * The date and time from the database are shown the way the page writes dates (normal)
-     */
-    it('shows the last login as day, month, year and time', async () => {
-        // Arrange
-        const cohorts = structuredClone(sampleCohorts);
-        cohorts[0].students[0].lastLogin = '2026-09-29 09:42:10';
-        getCohorts.mockResolvedValue(cohorts);
-        const page = await openPage();
-
-        // Act
-        await page.findAll('.cohortTable')[0].get('[aria-label="Show details for DTS 2026"]').trigger('click');
-
-        // Assert
-        expect(page.get('.cohortDetailsTable tbody tr').text()).toContain('29/09/2026 09:42');
-    });
-
-    /**
-     * A student who has never logged in says so (boundary)
-     */
-    it('shows Never for a student with no last login', async () => {
-        // Arrange
-        const cohorts = structuredClone(sampleCohorts);
-        cohorts[0].students[0].lastLogin = null;
-        getCohorts.mockResolvedValue(cohorts);
-        const page = await openPage();
-
-        // Act
-        await page.findAll('.cohortTable')[0].get('[aria-label="Show details for DTS 2026"]').trigger('click');
-
-        // Assert
-        expect(page.get('.cohortDetailsTable tbody tr').text()).toContain('Never');
-    });
-
-    /**
-     * Each subject shows its status, and says when it has no lecturer (normal)
-     */
-    it('shows an archived subject with no lecturer', async () => {
-        // Arrange
-        const cohorts = structuredClone(sampleCohorts);
-        cohorts[0].subjects = [
-            { subjectID: 'subject-1', subjectName: 'Test', testCount: 0, lecturerNames: null, isActive: false },
-        ];
-        getCohorts.mockResolvedValue(cohorts);
-        const page = await openPage();
-
-        // Act
-        await page.findAll('.cohortTable')[1].get('[aria-label="Show details for DTS 2026"]').trigger('click');
-
-        // Assert
-        const row = page.get('.cohortDetailsTable tbody tr');
-        expect(row.text()).toContain('Not assigned');
-        expect(row.get('.statusPill').text()).toBe('Archived');
-    });
-
-    /**
-     * The button counts what's chosen, and only says Subject for one (boundary)
-     */
-    it('counts the chosen subjects on the assign button', async () => {
-        // Arrange
-        const page = await openAssignDialog();
-        const options = page.findAll('.cohortDialogOption input');
-        const assignButton = page.get('.cohortDialogButtons .cohortPrimaryButton');
-        const labelWithNone = assignButton.text();
-
-        // Act
-        await options[0].setValue(true);
-        const labelWithOne = assignButton.text();
-        await options[1].setValue(true);
-        const labelWithTwo = assignButton.text();
-
-        // Assert
-        expect(labelWithNone).toBe('Assign Subjects');
-        expect(labelWithOne).toBe('Assign 1 Subject');
-        expect(labelWithTwo).toBe('Assign 2 Subjects');
-    });
-
-    /**
-     * A search with no match says so, rather than showing an empty table (edge)
-     */
-    it('says when no subject matches the search', async () => {
-        // Arrange
-        const page = await openAssignDialog();
-
-        // Act
-        await page.get('.cohortDialogSearch').setValue('zzz');
-
-        // Assert
-        expect(page.get('.cohortDialogTable tbody').text()).toBe('No subjects match your search');
-    });
-
-    /**
-     * A problem loading the subjects shows in the pop-up (error)
-     */
-    it('shows a problem when the unassigned subjects cannot load', async () => {
-        // Arrange
-        getUnassignedSubjects.mockRejectedValue(new Error('Network Error'));
-
-        // Act
-        const page = await openAssignDialog();
-
-        // Assert
-        expect(page.get('.popupDialog [role="alert"]').text()).toContain('Unable to load the subjects');
-        expect(page.get('.popupBody').text()).not.toContain('There are no unassigned subjects');
-    });
-
-    /**
-     * One test isn't written as tests (boundary)
-     */
-    it('writes a single test correctly in the remove pop-up', async () => {
-        // Arrange
-        const cohorts = structuredClone(sampleCohorts);
-        cohorts[0].subjects[0].testCount = 1;
-        getCohorts.mockResolvedValue(cohorts);
-
-        // Act
-        const page = await openRemoveDialog();
-
-        // Assert
-        expect(page.get('.cohortDialogConfirm').text()).toContain("this subject's 1 test.");
-    });
-
-    /**
-     * The pop-up stays open and the subject stays listed if removing fails (error)
-     */
-    it('shows a problem when removing fails', async () => {
-        // Arrange
-        removeSubject.mockRejectedValue({ response: { data: { error: 'That subject is not in this cohort' } } });
-        const page = await openRemoveDialog();
-
-        // Act
-        await page.get('.cohortDialogButtons .cohortPrimaryButton').trigger('click');
-        await flushPromises();
-
-        // Assert
-        expect(page.get('.popupDialog [role="alert"]').text()).toContain('That subject is not in this cohort');
-        expect(page.get('.cohortDetailsTable tbody th').text()).toBe('Web Applications');
-    });
-
-    /**
      * One student and no subjects are written correctly in the offer (boundary)
      */
     it('writes a single student correctly in the delete pop-up', async () => {
@@ -826,241 +858,5 @@ describe('CohortManagement', () => {
         // Assert
         expect(page.get('.popupDialog [role="alert"]').text()).toContain('Unable to disable DTS 2026');
         expect(findButton(page, 'Disable DTS 2026').text()).toBe('Disable');
-    });
-
-    /**
-     * The delete button has the same look as on student management (normal)
-     */
-    it('styles the action buttons like the rest of the site', async () => {
-        // Arrange and Act
-        const page = await openPage();
-
-        // Assert
-        expect(findButton(page, 'Delete DTS 2026').classes()).toContain('tableDeleteButton');
-        expect(findButton(page, 'Disable DTS 2026').classes()).toContain('tableDisableButton');
-    });
-
-    /**
-     * Disabling a cohort updates both tables and offers Enable instead (normal)
-     */
-    it('disables a cohort and swaps the button to Enable', async () => {
-        // Arrange
-        const page = await openPage();
-        const firstPills = () => page.findAll('.cohortTable').map((table) => table.get('.statusPill').text());
-
-        // Act
-        await findButton(page, 'Disable DTS 2026').trigger('click');
-        await flushPromises();
-
-        // Assert
-        expect(findButton(page, 'Enable DTS 2026').text()).toBe('Enable');
-        expect(findButton(page, 'Enable DTS 2026').classes()).toContain('tableEnableButton');
-        expect(firstPills()).toEqual(['Disabled', 'Disabled']);
-    });
-
-    /**
-     * Enabling a disabled cohort puts it back to active (normal)
-     */
-    it('enables a cohort again', async () => {
-        // Arrange
-        const page = await openPage();
-        await findButton(page, 'Disable DTS 2026').trigger('click');
-        await flushPromises();
-
-        // Act
-        await findButton(page, 'Enable DTS 2026').trigger('click');
-        await flushPromises();
-
-        // Assert
-        expect(findButton(page, 'Disable DTS 2026').classes()).toContain('tableDisableButton');
-    });
-
-    /**
-     * Changing a status doesn't send the user back to the first page (boundary)
-     */
-    it('stays on the same page after disabling a cohort', async () => {
-        // Arrange
-        const page = await openPage();
-        await findButton(page, 'Next page').trigger('click');
-        const summary = page.findAll('.cohortPagingSummary')[0].text();
-        const cohortName = cohortNames(page, 0)[0];
-
-        // Act
-        await findButton(page, `Disable ${cohortName}`).trigger('click');
-        await flushPromises();
-
-        // Assert
-        expect(page.findAll('.cohortPagingSummary')[0].text()).toBe(summary);
-    });
-
-    /**
-     * A cohort disabled while filtering by Active leaves the list (edge)
-     */
-    it('removes a newly disabled cohort from the active filter', async () => {
-        // Arrange
-        const page = await openPage();
-        await page.findAll('select')[0].setValue('active');
-
-        // Act
-        await findButton(page, 'Disable DTS 2026').trigger('click');
-        await flushPromises();
-
-        // Assert
-        expect(cohortNames(page, 0)).not.toContain('DTS 2026');
-    });
-
-    /**
-     * The new status is sent to PHP with the cohort's ID (normal)
-     */
-    it('saves the new status', async () => {
-        // Arrange
-        const page = await openPage();
-
-        // Act
-        await findButton(page, 'Disable DTS 2026').trigger('click');
-        await flushPromises();
-
-        // Assert
-        expect(setCohortActive).toHaveBeenCalledWith('cohort-1', false);
-    });
-
-    /**
-     * The students PHP sends back replace the old ones, so their new status shows (normal)
-     */
-    it('shows the students as disabled once the cohort is disabled', async () => {
-        // Arrange
-        setCohortActive.mockResolvedValue({
-            isActive: false,
-            students: [
-                { studentNumber: 'WS1', name: 'Joe Bloggs', email: 'a@b.c', lastLogin: null, status: 'Disabled' },
-            ],
-        });
-        const page = await openPage();
-        await findButton(page, 'Show details for DTS 2026').trigger('click');
-
-        // Act
-        await findButton(page, 'Disable DTS 2026').trigger('click');
-        await flushPromises();
-
-        // Assert
-        expect(page.get('.cohortDetailsTable tbody .statusPill').text()).toBe('Disabled');
-    });
-
-    /**
-     * The status stays as it was and the problem shows if saving fails (error)
-     */
-    it('keeps the old status when saving fails', async () => {
-        // Arrange
-        setCohortActive.mockRejectedValue({ response: { data: { error: 'Unable to update the cohort' } } });
-        const page = await openPage();
-
-        // Act
-        await findButton(page, 'Disable DTS 2026').trigger('click');
-        await flushPromises();
-
-        // Assert
-        expect(findButton(page, 'Disable DTS 2026').text()).toBe('Disable');
-        expect(page.get('[role="alert"]').text()).toContain('Unable to update the cohort');
-    });
-
-    /**
-     * A problem loading the cohorts shows instead of the tables (error)
-     */
-    it('shows a message when the cohorts cannot load', async () => {
-        // Arrange
-        getCohorts.mockRejectedValue(new Error('Network Error'));
-
-        // Act
-        const page = await openPage();
-
-        // Assert
-        expect(page.get('[role="alert"]').text()).toContain('Unable to load the cohorts');
-        expect(page.find('.cohortTable').exists()).toBe(false);
-    });
-
-    /**
-     * The date and time from the database are shown the way the page writes dates (normal)
-     */
-    it('shows the last login as day, month, year and time', async () => {
-        // Arrange
-        const cohorts = structuredClone(sampleCohorts);
-        cohorts[0].students[0].lastLogin = '2026-09-29 09:42:10';
-        getCohorts.mockResolvedValue(cohorts);
-        const page = await openPage();
-
-        // Act
-        await page.findAll('.cohortTable')[0].get('[aria-label="Show details for DTS 2026"]').trigger('click');
-
-        // Assert
-        expect(page.get('.cohortDetailsTable tbody tr').text()).toContain('29/09/2026 09:42');
-    });
-
-    /**
-     * A student who has never logged in says so (boundary)
-     */
-    it('shows Never for a student with no last login', async () => {
-        // Arrange
-        const cohorts = structuredClone(sampleCohorts);
-        cohorts[0].students[0].lastLogin = null;
-        getCohorts.mockResolvedValue(cohorts);
-        const page = await openPage();
-
-        // Act
-        await page.findAll('.cohortTable')[0].get('[aria-label="Show details for DTS 2026"]').trigger('click');
-
-        // Assert
-        expect(page.get('.cohortDetailsTable tbody tr').text()).toContain('Never');
-    });
-
-    /**
-     * Each subject shows its status, and says when it has no lecturer (normal)
-     */
-    it('shows an archived subject with no lecturer', async () => {
-        // Arrange
-        const cohorts = structuredClone(sampleCohorts);
-        cohorts[0].subjects = [
-            { subjectID: 'subject-1', subjectName: 'Test', testCount: 0, lecturerNames: null, isActive: false },
-        ];
-        getCohorts.mockResolvedValue(cohorts);
-        const page = await openPage();
-
-        // Act
-        await page.findAll('.cohortTable')[1].get('[aria-label="Show details for DTS 2026"]').trigger('click');
-
-        // Assert
-        const row = page.get('.cohortDetailsTable tbody tr');
-        expect(row.text()).toContain('Not assigned');
-        expect(row.get('.statusPill').text()).toBe('Archived');
-    });
-
-    /**
-     * The disable button has the same look as on student management (normal)
-     */
-    it('styles the action buttons like the rest of the site', async () => {
-        // Arrange and Act
-        const page = await openPage();
-
-        // Assert
-        expect(findButton(page, 'Disable DTS 2026').classes()).toContain('tableDisableButton');
-    });
-
-    /**
-     * The problem from the last save clears when the next one works (edge)
-     */
-    it('clears the save problem once a later save works', async () => {
-        // Arrange
-        setCohortActive.mockRejectedValueOnce(new Error('Network Error'));
-        const page = await openPage();
-        await findButton(page, 'Disable DTS 2026').trigger('click');
-        await flushPromises();
-        const problem = page.get('[role="alert"]').text();
-
-        // Act
-        await findButton(page, 'Disable DTS 2026').trigger('click');
-        await flushPromises();
-
-        // Assert
-        expect(problem).toContain('Unable to update DTS 2026');
-        expect(page.find('[role="alert"]').exists()).toBe(false);
     });
 });
