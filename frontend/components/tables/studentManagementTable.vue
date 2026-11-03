@@ -3,6 +3,7 @@ import { computed, onMounted, onUnmounted, ref, nextTick } from 'vue';
 import DataTable from 'datatables.net-vue3';
 import DataTablesCore from 'datatables.net-bs5';
 import 'datatables.net-bs5/css/dataTables.bootstrap5.css';
+import Popup from '../common/popupDialog.vue';
 import {
     getLecturerStudents,
     updateStudentStatus,
@@ -19,6 +20,9 @@ const students = ref([]);
 const loading = ref(true);
 const errorMessage = ref('');
 const actionError = ref('');
+const deletePopup = ref(null);
+const studentToDelete = ref(null);
+const deletingStudent = ref(false);
 
 // Count the student applications that are awaiting approval.
 const pendingCount = computed(() => students.value.filter((student) => student.status === 'Pending').length);
@@ -312,11 +316,17 @@ const handleActionClick = async (event) => {
         return;
     }
 
-    // Confirm before permanently deleting a student account.
-    if (
-        action === 'delete' &&
-        !window.confirm('Are you sure you want to permanently delete this student account and its records?')
-    ) {
+    // Open the custom confirmation modal before deleting a student.
+    if (action === 'delete') {
+        studentToDelete.value = students.value.find((student) => String(student.userID) === String(userID));
+
+        if (!studentToDelete.value) {
+            actionError.value = 'Unable to find the selected student.';
+            return;
+        }
+
+        await nextTick();
+        deletePopup.value?.open();
         return;
     }
 
@@ -341,10 +351,6 @@ const handleActionClick = async (event) => {
                 await declineStudent(userID);
                 break;
 
-            case 'delete':
-                await deleteStudent(userID);
-                break;
-
             default:
                 return;
         }
@@ -355,6 +361,42 @@ const handleActionClick = async (event) => {
         actionError.value = error.response?.data?.error || 'Unable to complete this action. Please try again.';
     } finally {
         button.disabled = false;
+    }
+};
+
+// Permanently delete the selected student after confirmation.
+const confirmDeleteStudent = async () => {
+    if (!studentToDelete.value || deletingStudent.value) {
+        return;
+    }
+
+    deletingStudent.value = true;
+    actionError.value = '';
+
+    try {
+        await deleteStudent(studentToDelete.value.userID);
+        deletePopup.value?.close();
+        await refreshStudents();
+    } catch (error) {
+        actionError.value = error.response?.data?.error || 'Unable to delete the student. Please try again.';
+    } finally {
+        deletingStudent.value = false;
+    }
+};
+
+// Close the confirmation popup without deleting the student.
+const closeDeleteModal = () => {
+    if (deletingStudent.value) {
+        return;
+    }
+
+    deletePopup.value?.close();
+};
+
+// Clear the selected student when the popup has finished closing.
+const handleDeletePopupClose = () => {
+    if (!deletingStudent.value) {
+        studentToDelete.value = null;
     }
 };
 
@@ -402,6 +444,32 @@ onUnmounted(() => {
                 class="table table-sm table-striped table-hover align-middle mb-0"
             />
         </div>
+
+        <!-- Confirm permanent student deletion using the shared popup component. -->
+        <Popup ref="deletePopup" title="Confirm Delete" @close="handleDeletePopupClose">
+            <h3>Are you sure?</h3>
+
+            <p>Are you sure you want to delete this student? This action cannot be undone.</p>
+
+            <p class="studentDeleteName">
+                {{ studentToDelete?.name }}
+            </p>
+
+            <template #buttons>
+                <button
+                    type="button"
+                    class="btn btn-outline-secondary"
+                    :disabled="deletingStudent"
+                    @click="closeDeleteModal"
+                >
+                    Cancel
+                </button>
+
+                <button type="button" class="btn btn-danger" :disabled="deletingStudent" @click="confirmDeleteStudent">
+                    {{ deletingStudent ? 'Deleting...' : 'Confirm Delete' }}
+                </button>
+            </template>
+        </Popup>
     </div>
 </template>
 
@@ -534,5 +602,12 @@ onUnmounted(() => {
 .tableActionButton:focus-visible {
     outline: 3px solid var(--colorFocus);
     outline-offset: 2px;
+}
+
+/* Centre the selected student's name in the confirmation popup. */
+.studentDeleteName {
+    margin: var(--spaceXl) 0;
+    font-weight: 600;
+    text-align: center;
 }
 </style>
