@@ -123,4 +123,25 @@ describe('SubjectForm', () => {
         expect(wrapper.get('#subjectCohort').element.value).toBe('cohort-9');
         expect(wrapper.text()).toContain('Disabled Cohort');
     });
+
+    /**
+     * a subject that isn't in a cohort opens on "Select a cohort", no blank option gets added (boundary)
+     */
+    it('opens a subject with no cohort on the select a cohort choice', async () => {
+        // Arrange
+        const row = {
+            subjectID: 'subject-1',
+            subjectName: 'Test Databases',
+            cohortID: null,
+            cohortName: null,
+            lecturerIDs: [],
+        };
+
+        // Act
+        const wrapper = await openForm(row);
+
+        // Assert
+        expect(wrapper.get('#subjectCohort').element.value).toBe('');
+        expect(wrapper.findAll('#subjectCohort option')).toHaveLength(2);
+    });
 });

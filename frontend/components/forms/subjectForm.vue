@@ -40,7 +40,8 @@ export default {
             this.subjectID = subject === null ? null : subject.subjectID;
             this.form = {
                 subjectName: subject === null ? '' : subject.subjectName,
-                cohortID: subject === null ? '' : subject.cohortID,
+                // a subject can be in no cohort, null would show a blank box
+                cohortID: subject === null || subject.cohortID === null ? '' : subject.cohortID,
                 // slice makes a copy so ticking boxes doesnt change the table row behind
                 lecturerIDs: subject === null ? [] : subject.lecturerIDs.slice(),
             };
@@ -48,12 +49,16 @@ export default {
 
             // get the lists fresh each time in case someone added a lecturer or cohort meanwhile
             try {
-                this.cohorts = await getCohorts();
+                // ask for both at once, the answers come back in the order asked
+                const results = await Promise.all([getCohorts(), getLecturerOptions()]);
+                this.cohorts = results[0];
+                this.lecturers = results[1];
+
                 // a disabled cohort isnt in the list, so add the subjects own one back or the box shows blank
-                if (subject !== null && !this.cohorts.some((cohort) => cohort.cohortID === subject.cohortID)) {
+                const hasCohort = subject !== null && subject.cohortID !== null;
+                if (hasCohort && !this.cohorts.some((cohort) => cohort.cohortID === subject.cohortID)) {
                     this.cohorts.push({ cohortID: subject.cohortID, cohortName: subject.cohortName });
                 }
-                this.lecturers = await getLecturerOptions();
             } catch (error) {
                 this.errorMessage = error.response?.data?.error || 'Unable to load the cohorts and lecturers';
             }
