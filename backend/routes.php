@@ -123,43 +123,60 @@ $router->addRoute(
 // Question management routes for lecturers.
 $router->addRoute(
     'GET',
-    '/^\/api\/lecturer\/questions$/',
+    '/^\\/api\\/lecturer\\/questions$/',
     [new QuestionController(), 'getAllForLecturer']
 );
 
-// The lecturers in the admin dashboard table, admins only.
+// Create a question for lecturer question management.
 $router->addRoute(
     'POST',
-    '/^\/api\/lecturer\/questions$/',
+    '/^\\/api\\/lecturer\\/questions$/',
     [new QuestionController(), 'createQuestion']
 );
 
+// Update an existing question.
 $router->addRoute(
     'PUT',
-    '/^\/api\/lecturer\/questions\/([0-9a-zA-Z-]+)$/',
+    '/^\\/api\\/lecturer\\/questions\\/([0-9a-zA-Z-]+)$/',
     [new QuestionController(), 'updateQuestion']
 );
 
+// Delete an existing question.
 $router->addRoute(
     'DELETE',
-    '/^\/api\/lecturer\/questions\/([0-9a-zA-Z-]+)$/',
+    '/^\\/api\\/lecturer\\/questions\\/([0-9a-zA-Z-]+)$/',
     [new QuestionController(), 'deleteQuestion']
 );
 
+// Return active subjects for lecturer question management.
 $router->addRoute(
     'GET',
-    '/^\/api\/lecturer\/subjects$/',
+    '/^\\/api\\/lecturer\\/subjects$/',
     [new QuestionController(), 'getActiveSubjects']
 );
 
-// the lecturers in the admin dashboard table, admins only
+// Return recent lecturers for the admin dashboard, admins only.
 $router->addRoute(
     'GET',
     '/^\\/api\\/admin\\/recent-lecturers$/',
     [new AdministratorController(), 'getRecentLecturers']
 );
 
-// Every subject for the admin dashboard table, admins only.
+// Return all subjects for the admin dashboard, admins only.
 $router->addRoute('GET', '/^\\/api\\/subjects$/', [new SubjectController(), 'getAllSubjects']);
+
+// Return all cohorts with their students and subjects for admin management.
+$router->addRoute(
+    'GET',
+    '/^\\/api\\/admin\\/cohorts$/',
+    [new CohortController(), 'getCohortsForManagement']
+);
+
+// Enable or disable a cohort, admins only.
+$router->addRoute(
+    'PUT',
+    '/^\\/api\\/admin\\/cohorts\\/([0-9a-zA-Z-]+)\\/status$/',
+    [new CohortController(), 'updateCohortStatus']
+);
 
 return $router;
