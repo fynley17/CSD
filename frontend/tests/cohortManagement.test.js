@@ -1858,4 +1858,84 @@ describe('CohortManagement', () => {
         // Assert
         expect(page.findAll('#newCohort option').map((option) => option.text())).toContain('New Cohort');
     });
+
+    /**
+     * A lost connection isn't the cohort's fault, so the box isn't marked as wrong (error)
+     */
+    it('does not mark the new cohort as wrong when the connection fails', async () => {
+        // Arrange
+        moveStudents.mockRejectedValue(new Error('Network Error'));
+        const page = await openMoveDialog();
+        await page.get('#newCohort').setValue('cohort-5');
+
+        // Act
+        await page.get('#moveStudentForm').trigger('submit');
+        await flushPromises();
+
+        // Assert
+        expect(page.get('.popupDialog [role="alert"]').text()).toContain('Unable to move Joe Bloggs');
+        expect(page.get('#newCohort').attributes('aria-invalid')).toBeUndefined();
+        expect(page.get('#newCohort').attributes('aria-describedby')).toBeUndefined();
+    });
+
+    /**
+     * A student someone else has already moved is about the student, not the cohort chosen (error)
+     */
+    it('does not mark the new cohort as wrong when the student can no longer be moved', async () => {
+        // Arrange
+        moveStudents.mockRejectedValue({
+            response: { status: 400, data: { error: 'One of these students can no longer be moved here' } },
+        });
+        const page = await openMoveDialog();
+        await page.get('#newCohort').setValue('cohort-5');
+
+        // Act
+        await page.get('#moveStudentForm').trigger('submit');
+        await flushPromises();
+
+        // Assert
+        expect(page.get('.popupDialog [role="alert"]').text()).toContain('can no longer be moved here');
+        expect(page.get('#newCohort').attributes('aria-invalid')).toBeUndefined();
+    });
+
+    /**
+     * A cohort deleted since the page loaded is the chosen cohort's problem, so the box is marked (normal)
+     */
+    it('marks the new cohort as wrong when it no longer exists', async () => {
+        // Arrange
+        moveStudents.mockRejectedValue({
+            response: { status: 404, data: { error: 'Cohort not found', field: 'cohortID' } },
+        });
+        const page = await openMoveDialog();
+        await page.get('#newCohort').setValue('cohort-5');
+
+        // Act
+        await page.get('#moveStudentForm').trigger('submit');
+        await flushPromises();
+
+        // Assert
+        expect(page.get('#newCohort').attributes('aria-invalid')).toBe('true');
+        expect(page.get('#newCohort').attributes('aria-describedby')).toBe('moveStudentError');
+    });
+
+    /**
+     * Choosing a cohort clears the mark, even if the next save fails for another reason (edge)
+     */
+    it('clears the wrong cohort mark on the next save', async () => {
+        // Arrange
+        moveStudents.mockRejectedValue(new Error('Network Error'));
+        const page = await openMoveDialog();
+        await page.get('#moveStudentForm').trigger('submit');
+        await flushPromises();
+        const markedWithNoneChosen = page.get('#newCohort').attributes('aria-invalid');
+        await page.get('#newCohort').setValue('cohort-5');
+
+        // Act
+        await page.get('#moveStudentForm').trigger('submit');
+        await flushPromises();
+
+        // Assert
+        expect(markedWithNoneChosen).toBe('true');
+        expect(page.get('#newCohort').attributes('aria-invalid')).toBeUndefined();
+    });
 });

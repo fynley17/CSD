@@ -12,8 +12,8 @@
                     v-model="newCohortID"
                     class="cohortDialogSearch"
                     required
-                    :aria-invalid="errorMessage ? 'true' : null"
-                    :aria-describedby="errorMessage ? 'moveStudentError' : null"
+                    :aria-invalid="isCohortInvalid ? 'true' : null"
+                    :aria-describedby="isCohortInvalid ? 'moveStudentError' : null"
                 >
                     <option value="" disabled>Select a cohort</option>
                     <option v-for="other in otherCohorts" :key="other.cohortID" :value="other.cohortID">
@@ -77,6 +77,8 @@ const dialog = ref(null);
 const newCohortID = ref('');
 const isSaving = ref(false);
 const errorMessage = ref('');
+// only a problem with the chosen cohort marks the box as wrong, not a lost connection or a stale student
+const isCohortInvalid = ref(false);
 
 const otherCohorts = computed(() => props.cohorts.filter((other) => other.cohortID !== props.cohort.cohortID));
 const newCohortIsDisabled = computed(
@@ -89,9 +91,11 @@ onMounted(() => {
 
 async function move() {
     errorMessage.value = '';
+    isCohortInvalid.value = false;
 
     if (newCohortID.value === '') {
         errorMessage.value = 'Select a cohort to move this student to';
+        isCohortInvalid.value = true;
         return;
     }
 
@@ -102,6 +106,7 @@ async function move() {
         dialog.value.close();
     } catch (error) {
         errorMessage.value = error.response?.data?.error || `Unable to move ${props.student.name}`;
+        isCohortInvalid.value = error.response?.data?.field === 'cohortID';
     } finally {
         isSaving.value = false;
     }

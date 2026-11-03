@@ -212,7 +212,8 @@ class CohortController extends Controller
 
         try {
             if (!Cohort::moveStudents($cohortID, array_values(array_unique($studentNumbers)))) {
-                $this->jsonResponse(['error' => 'Cohort not found'], 404);
+                // the cohort chosen in the remove pop-up has gone, field tells it to mark that box as wrong
+                $this->jsonResponse(['error' => 'Cohort not found', 'field' => 'cohortID'], 404);
             }
 
             $this->jsonResponse(Cohort::getAllForManagement());
