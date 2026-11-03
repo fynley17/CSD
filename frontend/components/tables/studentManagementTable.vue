@@ -18,10 +18,15 @@ const students = ref([]);
 const loading = ref(true);
 const errorMessage = ref('');
 const actionError = ref('');
+
 const deletePopup = ref(null);
+const declinePopup = ref(null);
+
 const studentToDelete = ref(null);
+const studentToDecline = ref(null);
+
 const deletingStudent = ref(false);
-const actionMode = ref('delete');
+const decliningStudent = ref(false);
 
 const pendingCount = computed(() => students.value.filter((student) => student.status === 'Pending').length);
 const emit = defineEmits(['edit']);
@@ -284,26 +289,26 @@ const handleActionClick = async (event) => {
     }
 
     if (action === 'decline') {
-        studentToDelete.value = students.value.find((student) => String(student.userID) === String(userID));
-        if (!studentToDelete.value) {
+        studentToDecline.value = students.value.find((student) => String(student.userID) === String(userID));
+
+        if (!studentToDecline.value) {
             actionError.value = 'Unable to find the selected student.';
             return;
         }
 
-        actionMode.value = 'decline';
         await nextTick();
-        deletePopup.value?.open();
+        declinePopup.value?.open();
         return;
     }
 
     if (action === 'delete') {
         studentToDelete.value = students.value.find((student) => String(student.userID) === String(userID));
+
         if (!studentToDelete.value) {
             actionError.value = 'Unable to find the selected student.';
             return;
         }
 
-        actionMode.value = 'delete';
         await nextTick();
         deletePopup.value?.open();
         return;
@@ -338,6 +343,27 @@ const handleActionClick = async (event) => {
     }
 };
 
+const confirmDeclineStudent = async () => {
+    if (!studentToDecline.value || decliningStudent.value) {
+        return;
+    }
+
+    decliningStudent.value = true;
+    actionError.value = '';
+
+    try {
+        await declineStudent(studentToDecline.value.userID);
+
+        declinePopup.value?.close();
+        await refreshStudents();
+    } catch (error) {
+        actionError.value =
+            error.response?.data?.error || 'Unable to decline the student application. Please try again.';
+    } finally {
+        decliningStudent.value = false;
+    }
+};
+
 const confirmDeleteStudent = async () => {
     if (!studentToDelete.value || deletingStudent.value) {
         return;
@@ -347,19 +373,23 @@ const confirmDeleteStudent = async () => {
     actionError.value = '';
 
     try {
-        if (actionMode.value === 'delete') {
-            await deleteStudent(studentToDelete.value.userID);
-        } else {
-            await declineStudent(studentToDelete.value.userID);
-        }
+        await deleteStudent(studentToDelete.value.userID);
 
         deletePopup.value?.close();
         await refreshStudents();
     } catch (error) {
-        actionError.value = error.response?.data?.error || 'Unable to complete this action. Please try again.';
+        actionError.value = error.response?.data?.error || 'Unable to delete the student account. Please try again.';
     } finally {
         deletingStudent.value = false;
     }
+};
+
+const closeDeclineModal = () => {
+    if (decliningStudent.value) {
+        return;
+    }
+
+    declinePopup.value?.close();
 };
 
 const closeDeleteModal = () => {
@@ -368,6 +398,12 @@ const closeDeleteModal = () => {
     }
 
     deletePopup.value?.close();
+};
+
+const handleDeclinePopupClose = () => {
+    if (!decliningStudent.value) {
+        studentToDecline.value = null;
+    }
 };
 
 const handleDeletePopupClose = () => {
@@ -415,20 +451,42 @@ onUnmounted(() => {
             />
         </div>
 
-        <Popup
-            ref="deletePopup"
-            :title="actionMode === 'delete' ? 'Confirm Delete' : 'Confirm Decline'"
-            @close="handleDeletePopupClose"
-        >
-            <h3>{{ actionMode === 'delete' ? 'Are you sure?' : 'Decline this application?' }}</h3>
+        <!-- Decline confirmation popup -->
+        <Popup ref="declinePopup" title="Confirm Decline" @close="handleDeclinePopupClose">
+            <h3>Decline this application?</h3>
 
-            <p>
-                {{
-                    actionMode === 'delete'
-                        ? 'Are you sure you want to delete this student? This action cannot be undone.'
-                        : 'Are you sure you want to decline and permanently remove this application?'
-                }}
+            <p>Are you sure you want to decline and permanently remove this application?</p>
+
+            <p class="studentDeleteName">
+                {{ studentToDecline?.name }}
             </p>
+
+            <template #buttons>
+                <button
+                    type="button"
+                    class="btn btn-outline-secondary"
+                    :disabled="decliningStudent"
+                    @click="closeDeclineModal"
+                >
+                    Cancel
+                </button>
+
+                <button
+                    type="button"
+                    class="btn btn-danger"
+                    :disabled="decliningStudent"
+                    @click="confirmDeclineStudent"
+                >
+                    {{ decliningStudent ? 'Declining...' : 'Confirm Decline' }}
+                </button>
+            </template>
+        </Popup>
+
+        <!-- Delete confirmation popup -->
+        <Popup ref="deletePopup" title="Confirm Delete" @close="handleDeletePopupClose">
+            <h3>Are you sure?</h3>
+
+            <p>Are you sure you want to delete this student? This action cannot be undone.</p>
 
             <p class="studentDeleteName">
                 {{ studentToDelete?.name }}
@@ -445,13 +503,7 @@ onUnmounted(() => {
                 </button>
 
                 <button type="button" class="btn btn-danger" :disabled="deletingStudent" @click="confirmDeleteStudent">
-                    {{
-                        deletingStudent
-                            ? 'Processing...'
-                            : actionMode === 'delete'
-                              ? 'Confirm Delete'
-                              : 'Confirm Decline'
-                    }}
+                    {{ deletingStudent ? 'Deleting...' : 'Confirm Delete' }}
                 </button>
             </template>
         </Popup>

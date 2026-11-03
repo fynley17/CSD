@@ -30,31 +30,31 @@ $router->addRoute(
 
 $router->addRoute(
     'PUT',
-    '/^\/api\/students\/status$/',
+    '/^\/api\/students\/([0-9a-zA-Z-]+)\/status$/',
     [new StudentController(), 'updateStudentStatus']
 );
 
 $router->addRoute(
     'PUT',
-    '/^\/api\/students\/approve$/',
+    '/^\/api\/students\/([0-9a-zA-Z-]+)\/approve$/',
     [new StudentController(), 'approveStudent']
 );
 
 $router->addRoute(
     'PUT',
-    '/^\/api\/students\/decline$/',
+    '/^\/api\/students\/([0-9a-zA-Z-]+)\/decline$/',
     [new StudentController(), 'declineStudent']
 );
 
 $router->addRoute(
     'PUT',
-    '/^\/api\/students\/update$/',
+    '/^\/api\/students\/([0-9a-zA-Z-]+)$/',
     [new StudentController(), 'updateStudent']
 );
 
 $router->addRoute(
     'DELETE',
-    '/^\/api\/students$/',
+    '/^\/api\/students\/([0-9a-zA-Z-]+)$/',
     [new StudentController(), 'deleteStudent']
 );
 

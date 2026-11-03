@@ -105,10 +105,7 @@ describe('Student Service', () => {
             const result = await updateStudentStatus(userID, isEnabled);
 
             // Assert
-            expect(api.put).toHaveBeenCalledWith('/students/status', {
-                userID,
-                isEnabled,
-            });
+            expect(api.put).toHaveBeenCalledWith(`/students/${encodeURIComponent(userID)}/status`, { isEnabled });
             expect(result).toEqual(mockResponse);
         });
     });
@@ -125,7 +122,7 @@ describe('Student Service', () => {
             const result = await approveStudent(userID);
 
             // Assert
-            expect(api.put).toHaveBeenCalledWith('/students/approve', { userID });
+            expect(api.put).toHaveBeenCalledWith(`/students/${encodeURIComponent(userID)}/approve`);
             expect(result).toEqual(mockResponse);
         });
     });
@@ -142,7 +139,7 @@ describe('Student Service', () => {
             const result = await declineStudent(userID);
 
             // Assert
-            expect(api.put).toHaveBeenCalledWith('/students/decline', { userID });
+            expect(api.put).toHaveBeenCalledWith(`/students/${encodeURIComponent(userID)}/decline`);
             expect(result).toEqual(mockResponse);
         });
     });
@@ -166,10 +163,7 @@ describe('Student Service', () => {
             const result = await updateStudent(userID, studentData);
 
             // Assert
-            expect(api.put).toHaveBeenCalledWith('/students/update', {
-                userID,
-                ...studentData,
-            });
+            expect(api.put).toHaveBeenCalledWith(`/students/${encodeURIComponent(userID)}`, studentData);
             expect(result).toEqual(mockResponse);
         });
     });
@@ -186,9 +180,7 @@ describe('Student Service', () => {
             const result = await deleteStudent(userID);
 
             // Assert
-            expect(api.delete).toHaveBeenCalledWith('/students', {
-                data: { userID },
-            });
+            expect(api.delete).toHaveBeenCalledWith(`/students/${encodeURIComponent(userID)}`);
             expect(result).toEqual(mockResponse);
         });
     });

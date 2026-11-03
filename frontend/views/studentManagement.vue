@@ -24,9 +24,6 @@ const searchTerm = ref('');
 const showStudentForm = ref(false);
 const selectedStudent = ref(null);
 
-// Change this key to reload the student table after a successful save.
-const tableKey = ref(0);
-
 // Store the warning displayed when student login emails fail.
 const warningMessage = ref('');
 let messageTimeout = null;
@@ -97,10 +94,10 @@ const closeStudentForm = () => {
 
 // Refresh the table and warn the lecturer if the login email failed.
 const handleStudentSaved = (response) => {
-    tableKey.value += 1;
+    studentManagementTable.value?.refreshStudents();
 
     if (response?.emailSent === false) {
-        showWarning('Student account created successfully, but the login details email could not be sent.');
+        showWarning('Student created, but login email failed. Please share the login details manually.');
     }
 };
 </script>
@@ -155,7 +152,7 @@ const handleStudentSaved = (response) => {
 
         <!-- Display the student table and its records. -->
         <div class="tableSection">
-            <StudentManagementTable :key="tableKey" ref="studentManagementTable" @edit="openEditStudentForm" />
+            <StudentManagementTable ref="studentManagementTable" @edit="openEditStudentForm" />
         </div>
 
         <!-- Display the Add Student button underneath the table. -->

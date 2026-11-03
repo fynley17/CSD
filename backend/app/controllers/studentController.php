@@ -71,23 +71,20 @@ class StudentController extends Controller
     }
 
     /** Enables or disables a student account. */
-    public function updateStudentStatus(): void
+    public function updateStudentStatus(string $userID): void
     {
         Authentication::requireRole(['lecturer', 'admin']);
         $this->requireCsrf();
 
         try {
+            $userID = $this->readUserID(['userID' => $userID]);
             $data = $this->readJsonBody();
-            if (
-                empty($data['userID'])
-                || !is_string($data['userID'])
-                || !array_key_exists('isEnabled', $data)
-                || !is_bool($data['isEnabled'])
-            ) {
-                throw new \InvalidArgumentException('Please provide a valid student ID and account status.');
+
+            if (!array_key_exists('isEnabled', $data) || !is_bool($data['isEnabled'])) {
+                throw new \InvalidArgumentException('Please provide a valid account status.');
             }
 
-            if (!Student::setEnabled($data['userID'], $data['isEnabled'])) {
+            if (!Student::setEnabled($userID, $data['isEnabled'])) {
                 $this->jsonResponse(['error' => 'Student account not found.'], 404);
                 return;
             }
@@ -107,14 +104,13 @@ class StudentController extends Controller
     }
 
     /** Approves a pending self-registration application. */
-    public function approveStudent(): void
+    public function approveStudent(string $userID): void
     {
         Authentication::requireRole(['lecturer', 'admin']);
         $this->requireCsrf();
 
         try {
-            $data = $this->readJsonBody();
-            $userID = $this->readUserID($data);
+            $userID = $this->readUserID(['userID' => $userID]);
 
             if (!Student::approveApplication($userID)) {
                 $this->jsonResponse(['error' => 'Pending student application not found.'], 404);
@@ -131,14 +127,13 @@ class StudentController extends Controller
     }
 
     /** Declines and removes a pending student application. */
-    public function declineStudent(): void
+    public function declineStudent(string $userID): void
     {
         Authentication::requireRole(['lecturer', 'admin']);
         $this->requireCsrf();
 
         try {
-            $data = $this->readJsonBody();
-            $userID = $this->readUserID($data);
+            $userID = $this->readUserID(['userID' => $userID]);
 
             if (!Student::declineApplication($userID)) {
                 $this->jsonResponse(['error' => 'Pending student application not found.'], 404);
@@ -155,14 +150,14 @@ class StudentController extends Controller
     }
 
     /** Updates an existing student's details. */
-    public function updateStudent(): void
+    public function updateStudent(string $userID): void
     {
         Authentication::requireRole(['lecturer', 'admin']);
         $this->requireCsrf();
 
         try {
+            $userID = $this->readUserID(['userID' => $userID]);
             $data = $this->readJsonBody();
-            $userID = $this->readUserID($data);
             Student::updateDetails($userID, $data);
             $this->jsonResponse(['message' => 'Student details updated successfully.']);
         } catch (\InvalidArgumentException $e) {
@@ -176,14 +171,13 @@ class StudentController extends Controller
     }
 
     /** Permanently deletes a student account and its dependent records. */
-    public function deleteStudent(): void
+    public function deleteStudent(string $userID): void
     {
         Authentication::requireRole(['lecturer', 'admin']);
         $this->requireCsrf();
 
         try {
-            $data = $this->readJsonBody();
-            $userID = $this->readUserID($data);
+            $userID = $this->readUserID(['userID' => $userID]);
 
             if (!Student::deleteStudent($userID)) {
                 $this->jsonResponse(['error' => 'Student account not found.'], 404);

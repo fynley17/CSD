@@ -230,15 +230,25 @@ class Student extends User
     public static function approveApplication(string $userID): bool
     {
         $stmt = self::getDB()->prepare(
-            "UPDATE Users AS u
-             LEFT JOIN Students AS s ON s.userID = u.userID
-             LEFT JOIN Cohorts AS c ON c.cohortID = s.cohortID
-             SET u.approvalStatus = 'approved',
-                 u.isEnabled = CASE WHEN COALESCE(c.isActive, 0) = 1 THEN 1 ELSE 0 END,
-                 u.disabledByCohort = CASE WHEN COALESCE(c.isActive, 0) = 1 THEN 0 ELSE 1 END
-             WHERE u.userID = ?
-               AND u.accountType = 'student'
-               AND u.approvalStatus = 'pending'"
+            "UPDATE Users
+             SET approvalStatus = 'approved',
+                 isEnabled = CASE WHEN EXISTS (
+                     SELECT 1
+                     FROM Students s
+                     INNER JOIN Cohorts c ON c.cohortID = s.cohortID
+                     WHERE s.userID = Users.userID
+                       AND c.isActive = 1
+                 ) THEN 1 ELSE 0 END,
+                 disabledByCohort = CASE WHEN EXISTS (
+                     SELECT 1
+                     FROM Students s
+                     INNER JOIN Cohorts c ON c.cohortID = s.cohortID
+                     WHERE s.userID = Users.userID
+                       AND c.isActive = 1
+                 ) THEN 0 ELSE 1 END
+             WHERE userID = ?
+               AND accountType = 'student'
+               AND approvalStatus = 'pending'"
         );
         $stmt->execute([$userID]);
 
