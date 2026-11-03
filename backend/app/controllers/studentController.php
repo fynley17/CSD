@@ -116,12 +116,24 @@ class StudentController extends Controller
             $data = $this->readJsonBody();
             $userID = $this->readUserID($data);
 
-            if (!Student::approveApplication($userID)) {
+            $student = Student::getPendingApprovalDetails($userID);
+
+            if ($student === null || !Student::approveApplication($userID)) {
                 $this->jsonResponse(['error' => 'Pending student application not found.'], 404);
                 return;
             }
 
-            $this->jsonResponse(['message' => 'Student application approved successfully.']);
+            $emailSent = Mailer::sendStudentApprovalEmail(
+                $student['email'],
+                $student['firstName']
+            );
+
+            $this->jsonResponse([
+                'message' => $emailSent
+                    ? 'Student application approved successfully. An email has been sent.'
+                    : 'Student application approved successfully, but the confirmation email could not be sent.',
+                'emailSent' => $emailSent,
+            ]);
         } catch (\InvalidArgumentException $e) {
             $this->jsonResponse(['error' => $e->getMessage()], 400);
         } catch (\Throwable $e) {

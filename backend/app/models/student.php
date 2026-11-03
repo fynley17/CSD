@@ -256,6 +256,25 @@ class Student extends User
         return $check->fetchColumn() !== false;
     }
 
+    /** Retrieves the details needed to email a student awaiting approval. */
+    public static function getPendingApprovalDetails(string $userID): ?array
+    {
+        $stmt = self::getDB()->prepare(
+            "SELECT s.firstName, u.email
+            FROM Students AS s
+            INNER JOIN Users AS u ON u.userID = s.userID
+            WHERE s.userID = ?
+            AND u.accountType = 'student'
+            AND u.approvalStatus = 'pending'
+            LIMIT 1"
+        );
+
+        $stmt->execute([$userID]);
+        $student = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+        return $student ?: null;
+    }
+
     /** Approves an application only while it is pending. */
     public static function approveApplication(string $userID): bool
     {
