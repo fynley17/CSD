@@ -415,7 +415,11 @@ onUnmounted(() => {
             />
         </div>
 
-        <Popup ref="deletePopup" :title="actionMode === 'delete' ? 'Confirm Delete' : 'Confirm Decline'" @close="handleDeletePopupClose">
+        <Popup
+            ref="deletePopup"
+            :title="actionMode === 'delete' ? 'Confirm Delete' : 'Confirm Decline'"
+            @close="handleDeletePopupClose"
+        >
             <h3>{{ actionMode === 'delete' ? 'Are you sure?' : 'Decline this application?' }}</h3>
 
             <p>
@@ -440,8 +444,19 @@ onUnmounted(() => {
                     Cancel
                 </button>
 
-                <button type="button" class="btn btn-danger" :disabled="deletingStudent" @click="confirmDeleteStudent">
-                    {{ deletingStudent ? 'Processing...' : actionMode === 'delete' ? 'Confirm Delete' : 'Confirm Decline' }}
+                <button
+                    type="button"
+                    class="btn btn-danger"
+                    :disabled="deletingStudent"
+                    @click="confirmDeleteStudent"
+                >
+                    {{
+                        deletingStudent
+                            ? 'Processing...'
+                            : actionMode === 'delete'
+                              ? 'Confirm Delete'
+                              : 'Confirm Decline'
+                    }}
                 </button>
             </template>
         </Popup>
