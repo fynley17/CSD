@@ -1,36 +1,60 @@
 // @vitest-environment jsdom
 
-// Tests for the recent lecturers table on the admin dashboard
-// covers lecturers coming back, none at all, still loading, the request failing, and HTML in a name
+// Tests for the lecturers table, both the admin dashboard one and the management page one
+// covers lecturers coming back, none at all, still loading, the request failing, HTML in a name
+// and the management page buttons and status filter
 // laid out Arrange (what PHP sends back), Act (mount the table), Assert (check what's on screen)
 import { flushPromises, mount } from '@vue/test-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import LecturerTable from '../components/tables/lecturerTable.vue';
-import { getRecentLecturers } from '../services/administratorService';
+import { getLecturers, getRecentLecturers } from '../services/administratorService';
 
 // fake service, these tests don't need PHP or the database running
 vi.mock('../services/administratorService', () => ({
     getRecentLecturers: vi.fn(),
+    getLecturers: vi.fn(),
 }));
 
 /**
  * Mounts the table, router-link becomes a plain <a> as there's no router in these tests
+ * props only gets used by the management page tests
  */
-function openTable() {
-    return mount(LecturerTable, { global: { stubs: { RouterLink: { template: '<a><slot /></a>' } } } });
+function openTable(props = {}) {
+    return mount(LecturerTable, { props, global: { stubs: { RouterLink: { template: '<a><slot /></a>' } } } });
 }
 
 /**
- * Pulls the text out of each cell, i.e. [['Test Lecturer', 'ws000101', ...], ...]
+ * Pulls the text out of each cell, so the tests can check it without worrying about the HTML
  */
 function rowText(table) {
     return table.findAll('tbody tr').map((row) => row.findAll('td').map((cell) => cell.text()));
 }
 
+// one lecturer who can log in and one who's disabled, both management page tests use these
+const manageLecturers = [
+    {
+        userID: 'lecturer-1',
+        name: 'Test Lecturer',
+        staffID: 'ws000101',
+        email: 'ws000101@example.test',
+        isEnabled: true,
+        lastLogin: null,
+    },
+    {
+        userID: 'lecturer-2',
+        name: 'Second Lecturer',
+        staffID: 'ws000102',
+        email: 'ws000102@example.test',
+        isEnabled: false,
+        lastLogin: null,
+    },
+];
+
 describe('LecturerTable', () => {
     // wipes whatever the fake returned in the last test
     beforeEach(() => {
         vi.mocked(getRecentLecturers).mockReset();
+        vi.mocked(getLecturers).mockReset();
     });
 
     /**
@@ -135,5 +159,43 @@ describe('LecturerTable', () => {
         // Assert
         expect(table.find('#injected').exists()).toBe(false);
         expect(rowText(table)[0][0]).toBe('<img src=x id=injected>');
+    });
+
+    /**
+     * The management page asks for every lecturer, not the dashboard's 5. Each row gets its buttons and pressing
+     * one tells the page which lecturer it was (normal)
+     */
+    it('shows the action buttons in manage mode and sends the lecturer to the page', async () => {
+        // Arrange
+        vi.mocked(getLecturers).mockResolvedValue(manageLecturers);
+        const table = openTable({ manage: true });
+        await flushPromises();
+
+        // Act
+        await table.get('[aria-label="Edit Test Lecturer"]').trigger('click');
+        await table.get('[aria-label="Disable account for Test Lecturer"]').trigger('click');
+        await table.get('[aria-label="Delete Test Lecturer"]').trigger('click');
+
+        // Assert
+        expect(getRecentLecturers).not.toHaveBeenCalled();
+        expect(table.get('[aria-label="Enable account for Second Lecturer"]').text()).toBe('Enable account');
+        expect(table.emitted('edit')[0]).toEqual([manageLecturers[0]]);
+        expect(table.emitted('toggle')[0]).toEqual([manageLecturers[0]]);
+        expect(table.emitted('delete')[0]).toEqual([manageLecturers[0]]);
+    });
+
+    /**
+     * The status dropdown set to disabled leaves out the lecturers who can still log in (boundary)
+     */
+    it('only shows disabled lecturers when the filter says disabled', async () => {
+        // Arrange
+        vi.mocked(getLecturers).mockResolvedValue(manageLecturers);
+
+        // Act
+        const table = openTable({ manage: true, statusFilter: 'disabled' });
+        await flushPromises();
+
+        // Assert
+        expect(rowText(table).map((row) => row[0])).toEqual(['Second Lecturer']);
     });
 });
