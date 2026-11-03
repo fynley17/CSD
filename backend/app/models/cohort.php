@@ -128,21 +128,27 @@ class Cohort extends Model
     {
         $db = self::getDB();
 
-        $stmt = $db->prepare("SELECT isActive FROM Cohorts WHERE cohortID = ? LIMIT 1");
-        $stmt->execute([$cohortID]);
-        $cohortIsActive = $stmt->fetchColumn();
-        if ($cohortIsActive === false) {
-            return false;
-        }
-        $cohortIsActive = (int) $cohortIsActive === 1;
-
-        $stmt = $db->prepare(
-            "UPDATE Subjects SET cohortID = ?, isActive = ?, archivedByCohort = ?
-                WHERE subjectID = ? AND cohortID IS NULL AND isActive = 1"
-        );
+        // SQLite does not support FOR UPDATE.
+        $lockClause = $db->getAttribute(\PDO::ATTR_DRIVER_NAME) === 'mysql' ? ' FOR UPDATE' : '';
 
         $db->beginTransaction();
         try {
+            // read inside the transaction and locked, so the cohort can't be disabled or enabled
+            // between reading its status and saving the subjects, which would leave them in the wrong state
+            $stmt = $db->prepare("SELECT isActive FROM Cohorts WHERE cohortID = ? LIMIT 1" . $lockClause);
+            $stmt->execute([$cohortID]);
+            $cohortIsActive = $stmt->fetchColumn();
+            if ($cohortIsActive === false) {
+                $db->rollBack();
+                return false;
+            }
+            $cohortIsActive = (int) $cohortIsActive === 1;
+
+            $stmt = $db->prepare(
+                "UPDATE Subjects SET cohortID = ?, isActive = ?, archivedByCohort = ?
+                    WHERE subjectID = ? AND cohortID IS NULL AND isActive = 1"
+            );
+
             foreach ($subjectIDs as $subjectID) {
                 $stmt->execute([$cohortID, $cohortIsActive ? 1 : 0, $cohortIsActive ? 0 : 1, $subjectID]);
 

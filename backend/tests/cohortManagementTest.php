@@ -517,6 +517,23 @@ final class CohortManagementTest extends TestCase
         $this->assertFalse(CohortController::validSubjectIDs(["subject-1' OR 1=1"]));
     }
 
+    /**
+     * An unknown cohort doesn't leave a transaction open, now that the status is read inside one (error)
+     * the race itself needs two MariaDB connections, SQLite has no FOR UPDATE, so it can't be tested here
+     */
+    public function testAssigningToAnUnknownCohortClosesItsTransaction(): void
+    {
+        // Arrange
+        $this->addSubject('subject-1', null, 1);
+
+        // Act
+        $result = Cohort::assignSubjects('cohort-missing', ['subject-1']);
+
+        // Assert
+        $this->assertFalse($result);
+        $this->assertFalse($this->db->inTransaction());
+    }
+
     private function subjectCohort(string $subjectID): ?string
     {
         $stmt = $this->db->prepare('SELECT cohortID FROM Subjects WHERE subjectID = ?');
