@@ -43,6 +43,9 @@ const selectedSubject = computed(() => subjects.value.find((subject) => subject.
 // The cohort is inherited from the selected subject rather than entered manually.
 const selectedCohortName = computed(() => selectedSubject.value?.cohortName ?? '');
 
+// Questions come from the subject's pool, so a subject with none means students can't see the test yet.
+const hasNoQuestionPool = computed(() => selectedSubject.value?.questionPoolSize === 0);
+
 // Populate the form with the existing test details when editing.
 function populateForm() {
     if (!props.test) {
@@ -223,6 +226,12 @@ onMounted(async () => {
                 </select>
             </div>
 
+            <!-- A warning, not an error: the test can still be saved and questions added later. -->
+            <div v-if="hasNoQuestionPool" class="formWarning" role="status">
+                <strong>No question pool:</strong> {{ selectedSubject.subjectName }} has no questions yet. Students
+                won't see this test until questions are added to the subject.
+            </div>
+
             <!-- Display the cohort linked to the selected subject; users cannot edit it here. -->
             <div v-if="form.subjectID && selectedSubject" class="formGroup cohortDisplay">
                 <label for="cohortName">Cohort</label>
@@ -359,6 +368,15 @@ onMounted(async () => {
     border-radius: var(--radiusSm);
     background-color: var(--colorErrorLight);
     color: var(--colorError);
+}
+
+/* Warns about a subject with no questions without stopping the save. */
+.formWarning {
+    padding: var(--spaceSm);
+    border: 1px solid var(--colorWarning);
+    border-radius: var(--radiusSm);
+    background-color: var(--colorWarningLight);
+    color: var(--colorText);
 }
 
 /* Shared styling for the dialog action buttons. */

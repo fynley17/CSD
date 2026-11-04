@@ -142,7 +142,12 @@ class Test extends Model
                 s.subjectID,
                 s.subjectName,
                 s.cohortID,
-                c.cohortName
+                c.cohortName,
+                (
+                    SELECT COUNT(*)
+                    FROM Questions AS pool
+                    WHERE pool.subjectID = s.subjectID
+                ) AS questionPoolSize
             FROM Subjects AS s
             INNER JOIN Cohorts AS c ON c.cohortID = s.cohortID
             WHERE s.isActive = 1
@@ -151,7 +156,14 @@ class Test extends Model
 
         $stmt->execute();
 
-        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        // the test form warns when a subject has no questions, as students can't see its tests
+        $subjects = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        foreach ($subjects as &$subject) {
+            $subject['questionPoolSize'] = (int) $subject['questionPoolSize'];
+        }
+        unset($subject);
+
+        return $subjects;
     }
 
     /**
