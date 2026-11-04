@@ -35,7 +35,7 @@ class StudentController extends Controller
     /** Creates an active student account on behalf of a lecturer. */
     public function createStudent(): void
     {
-        Authentication::requireRole(['lecturer']);
+        Authentication::requireRole(['lecturer', 'admin']);
         $this->requireCsrf();
 
         try {

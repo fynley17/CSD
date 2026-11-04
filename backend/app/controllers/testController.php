@@ -192,7 +192,7 @@ class TestController extends Controller
      */
     public function createTest(): void
     {
-        Authentication::requireRole(['lecturer']);
+        Authentication::requireRole(['lecturer','admin']);
 
         try {
             $data = $this->getTestRequestData();
