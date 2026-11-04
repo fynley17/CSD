@@ -287,7 +287,6 @@ $router->addRoute(
 );
 
 // Admin cohort management.
-
 $router->addRoute(
     'GET',
     '/^\/api\/admin\/cohorts$/',

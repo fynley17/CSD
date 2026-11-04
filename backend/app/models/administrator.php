@@ -94,6 +94,14 @@ class Administrator extends Lecturer
     }
 
     /**
+     * Gets every lecturer for the lecturer management page
+     */
+    public static function getAllLecturers(): array
+    {
+        return self::getRecentLecturers(null);
+    }
+
+    /**
      * Disable account button, the lecturer can't log in until they're enabled again
      */
     public function disableLecturer(Lecturer $lecturer): void

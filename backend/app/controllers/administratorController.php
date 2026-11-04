@@ -54,8 +54,7 @@ class AdministratorController extends Controller
         Authentication::requireRole(['admin']);
 
         try {
-            // null means no limit, the dashboard is the one that only wants 5
-            $this->jsonResponse(Administrator::getRecentLecturers(null));
+            $this->jsonResponse(Administrator::getAllLecturers());
         } catch (\Throwable $e) {
             error_log('Loading the lecturer management list failed: ' . $e->getMessage());
             $this->jsonResponse(['error' => 'Unable to load the lecturers'], 500);
@@ -150,6 +149,7 @@ class AdministratorController extends Controller
             $this->jsonResponse(['error' => 'Unable to delete the lecturer'], 500);
         }
     }
+
     /**
      * Loads the admin who's logged in as an Administrator object so the change goes through their methods
      */
