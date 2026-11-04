@@ -102,11 +102,11 @@ describe('Student Service', () => {
             const userID = 'student-1';
             const mockResponse = { message: 'Application approved' };
 
-            api.put.mockResolvedValue({ data: mockResponse });
+            api.post.mockResolvedValue({ data: mockResponse });
 
             const result = await approveStudent(userID);
 
-            expect(api.put).toHaveBeenCalledWith(`/students/${encodeURIComponent(userID)}/approve`);
+            expect(api.post).toHaveBeenCalledWith(`/students/${encodeURIComponent(userID)}/approve`);
             expect(result).toEqual(mockResponse);
         });
     });
@@ -116,11 +116,11 @@ describe('Student Service', () => {
             const userID = 'student-2';
             const mockResponse = { message: 'Application declined' };
 
-            api.put.mockResolvedValue({ data: mockResponse });
+            api.delete.mockResolvedValue({ data: mockResponse });
 
             const result = await declineStudent(userID);
 
-            expect(api.put).toHaveBeenCalledWith(`/students/${encodeURIComponent(userID)}/decline`);
+            expect(api.delete).toHaveBeenCalledWith(`/students/${encodeURIComponent(userID)}/application`);
             expect(result).toEqual(mockResponse);
         });
     });
