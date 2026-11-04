@@ -69,6 +69,12 @@ class Student extends User
      *
      * @return array<string, mixed>
      */
+    /**
+     * Creates an active student account on behalf of a lecturer.
+     * The student must verify their email and set their own password.
+     *
+     * @return array<string, mixed>
+     */
     public static function createByLecturer(array $data): array
     {
         foreach (['firstName', 'lastName', 'email', 'studentNumber', 'cohortID'] as $field) {
@@ -136,11 +142,13 @@ class Student extends User
             );
         }
 
-        $temporaryPassword = self::generateTemporaryPassword();
-        $passwordHash = password_hash($temporaryPassword, PASSWORD_DEFAULT);
+        // Generate an unknown password so the student cannot log in
+        // until they have completed the password setup process.
+        $unusablePassword = bin2hex(random_bytes(32));
+        $passwordHash = password_hash($unusablePassword, PASSWORD_DEFAULT);
 
         if ($passwordHash === false) {
-            throw new \RuntimeException('Unable to secure the temporary password.');
+            throw new \RuntimeException('Unable to secure the account password.');
         }
 
         $userID = $db->query('SELECT UUID()')->fetchColumn();
@@ -163,7 +171,7 @@ class Student extends User
                     isEnabled,
                     disabledByCohort,
                     isEmailVerified
-                ) VALUES (?, ?, ?, ?, 'student', 'approved', 1, 0, 1)"
+                ) VALUES (?, ?, ?, ?, 'student', 'approved', 1, 0, 0)"
             );
 
             $stmt->execute([
@@ -206,52 +214,35 @@ class Student extends User
             'email' => $email,
             'firstName' => $firstName,
             'lastName' => $lastName,
-            'temporaryPassword' => $temporaryPassword,
         ];
     }
 
     /**
      * Enables or disables a student account.
-     * Returns false only when the student does not exist.
+     * A manual status change clears the cohort-disabled flag.
      */
     public static function setEnabled(string $userID, bool $enabled): bool
     {
         $db = self::getDB();
 
-        $state = $db->prepare(
-            'SELECT c.isActive
-             FROM Users u
-             LEFT JOIN Students s ON s.userID = u.userID
-             LEFT JOIN Cohorts c ON c.cohortID = s.cohortID
-             WHERE u.userID = ? AND u.accountType = "student"
-             LIMIT 1'
+        $check = $db->prepare(
+            "SELECT 1 FROM Users
+             WHERE userID = ? AND accountType = 'student'
+             LIMIT 1"
         );
-        $state->execute([$userID]);
-        $row = $state->fetch(\PDO::FETCH_ASSOC);
+        $check->execute([$userID]);
 
-        if ($row === false) {
+        if ($check->fetchColumn() === false) {
             return false;
         }
 
-        $cohortIsActive = (int) ($row['isActive'] ?? 0) === 1;
-
-        if (!$enabled) {
-            $isEnabled = 0;
-            $disabledByCohort = 0;
-        } elseif ($cohortIsActive) {
-            $isEnabled = 1;
-            $disabledByCohort = 0;
-        } else {
-            $isEnabled = 0;
-            $disabledByCohort = 1;
-        }
-
         $stmt = $db->prepare(
-            'UPDATE Users
-             SET isEnabled = ?, disabledByCohort = ?
-             WHERE userID = ? AND accountType = "student"'
+            "UPDATE Users
+             SET isEnabled = ?, disabledByCohort = 0
+             WHERE userID = ? AND accountType = 'student'"
         );
-        $stmt->execute([$isEnabled, $disabledByCohort, $userID]);
+
+        $stmt->execute([$enabled ? 1 : 0, $userID]);
 
         return true;
     }
@@ -280,24 +271,10 @@ class Student extends User
     {
         $stmt = self::getDB()->prepare(
             "UPDATE Users
-             SET approvalStatus = 'approved',
-                 isEnabled = CASE WHEN EXISTS (
-                     SELECT 1
-                     FROM Students s
-                     INNER JOIN Cohorts c ON c.cohortID = s.cohortID
-                     WHERE s.userID = Users.userID
-                       AND c.isActive = 1
-                 ) THEN 1 ELSE 0 END,
-                 disabledByCohort = CASE WHEN EXISTS (
-                     SELECT 1
-                     FROM Students s
-                     INNER JOIN Cohorts c ON c.cohortID = s.cohortID
-                     WHERE s.userID = Users.userID
-                       AND c.isActive = 1
-                 ) THEN 0 ELSE 1 END
-             WHERE userID = ?
-               AND accountType = 'student'
-               AND approvalStatus = 'pending'"
+            SET approvalStatus = 'approved'
+            WHERE userID = ?
+            AND accountType = 'student'
+            AND approvalStatus = 'pending'"
         );
 
         $stmt->execute([$userID]);
@@ -321,14 +298,42 @@ class Student extends User
         return $stmt->rowCount() > 0;
     }
 
-    /** Updates the editable details for an existing student. */
-    public static function updateDetails(string $userID, array $data): void
+    /**
+     * Updates an existing student's details.
+     * Email changes require verification, and cohort transfers use the admin workflow.
+     *
+     * @return bool True when the email address has changed.
+     */
+
+    /**
+     * Updates an existing student's details.
+     * Email changes require verification, and cohort transfers use the admin workflow.
+     *
+     * @return bool True when the email address has changed.
+     */
+    public static function updateDetails(string $userID, array $data): bool
     {
-        $firstName = trim((string) ($data['firstName'] ?? ''));
-        $lastName = trim((string) ($data['lastName'] ?? ''));
-        $email = strtolower(trim((string) ($data['email'] ?? '')));
-        $studentNumber = strtolower(trim((string) ($data['studentNumber'] ?? '')));
-        $cohortID = trim((string) ($data['cohortID'] ?? ''));
+        $fields = [
+            'firstName',
+            'lastName',
+            'email',
+            'studentNumber',
+            'cohortID',
+        ];
+
+        foreach ($fields as $field) {
+            if (!isset($data[$field]) || !is_string($data[$field])) {
+                throw new \InvalidArgumentException(
+                    'Invalid student details provided.'
+                );
+            }
+        }
+
+        $firstName = trim($data['firstName']);
+        $lastName = trim($data['lastName']);
+        $email = strtolower(trim($data['email']));
+        $studentNumber = strtolower(trim($data['studentNumber']));
+        $cohortID = trim($data['cohortID']);
 
         if (!self::names($firstName)) {
             throw new \InvalidArgumentException('Please enter a valid first name.');
@@ -355,7 +360,7 @@ class Student extends User
         $db = self::getDB();
 
         $studentCheck = $db->prepare(
-            "SELECT s.cohortID, u.isEnabled, u.disabledByCohort
+            "SELECT s.cohortID, u.email
              FROM Students s
              INNER JOIN Users u ON u.userID = s.userID
              WHERE s.userID = ? AND u.accountType = 'student'
@@ -366,6 +371,12 @@ class Student extends User
 
         if ($current === false) {
             throw new \OutOfBoundsException('Student account not found.');
+        }
+
+        if ((string) $current['cohortID'] !== $cohortID) {
+            throw new \InvalidArgumentException(
+                'Student cohort changes must be completed through cohort management.'
+            );
         }
 
         $duplicate = $db->prepare(
@@ -382,59 +393,38 @@ class Student extends User
             );
         }
 
-        $cohortCheck = $db->prepare(
-            'SELECT isActive FROM Cohorts WHERE cohortID = ? LIMIT 1'
+        $emailChanged = strtolower($current['email']) !== $email;
+
+        $verificationUpdate = $emailChanged
+            ? ', isEmailVerified = 0'
+            : '';
+
+        $userUpdate = $db->prepare(
+            "UPDATE Users
+             SET email = ?, username = ? $verificationUpdate
+             WHERE userID = ? AND accountType = 'student'"
         );
-        $cohortCheck->execute([$cohortID]);
-        $targetCohortIsActive = $cohortCheck->fetchColumn();
 
-        if ($targetCohortIsActive === false) {
-            throw new \InvalidArgumentException('The selected cohort could not be found.');
-        }
-
-        $targetCohortIsActive = (int) $targetCohortIsActive === 1;
-        $cohortChanged = (string) $current['cohortID'] !== $cohortID;
-
-        // Keep the current account state when only editing student details.
-        // When moving cohorts, only undo a cohort-driven disable.
-        $isEnabled = (int) $current['isEnabled'];
-        $disabledByCohort = (int) $current['disabledByCohort'];
-
-        if ($cohortChanged) {
-            if ($targetCohortIsActive) {
-                if ($disabledByCohort === 1) {
-                    $isEnabled = 1;
-                }
-
-                $disabledByCohort = 0;
-            } elseif ($isEnabled === 1) {
-                $isEnabled = 0;
-                $disabledByCohort = 1;
-            }
-        }
+        $studentUpdate = $db->prepare(
+            'UPDATE Students
+             SET firstName = ?, lastName = ?
+             WHERE userID = ?'
+        );
 
         $db->beginTransaction();
 
         try {
-            $userUpdate = $db->prepare(
-                "UPDATE Users
-                 SET email = ?, username = ?, isEnabled = ?, disabledByCohort = ?
-                 WHERE userID = ? AND accountType = 'student'"
-            );
             $userUpdate->execute([
                 $email,
                 $studentNumber,
-                $isEnabled,
-                $disabledByCohort,
                 $userID,
             ]);
 
-            $studentUpdate = $db->prepare(
-                'UPDATE Students
-                 SET firstName = ?, lastName = ?, cohortID = ?
-                 WHERE userID = ?'
-            );
-            $studentUpdate->execute([$firstName, $lastName, $cohortID, $userID]);
+            $studentUpdate->execute([
+                $firstName,
+                $lastName,
+                $userID,
+            ]);
 
             $db->commit();
         } catch (\Throwable $e) {
@@ -444,6 +434,8 @@ class Student extends User
 
             throw $e;
         }
+
+        return $emailChanged;
     }
 
     /** Permanently deletes a student account. */

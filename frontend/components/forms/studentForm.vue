@@ -37,22 +37,16 @@ async function loadCohorts() {
 
     try {
         const response = await api.get('/cohorts');
-        const availableCohorts = Array.isArray(response.data)
-            ? response.data
-            : (response.data?.cohorts ?? []);
+        const availableCohorts = Array.isArray(response.data) ? response.data : (response.data?.cohorts ?? []);
 
         // Keep the student's current cohort available when editing, even if it is inactive.
         const currentCohortID = String(props.student?.cohortID ?? '');
-        const currentCohortIsAvailable = availableCohorts.some(
-            (cohort) => String(cohort.cohortID) === currentCohortID
-        );
+        const currentCohortIsAvailable = availableCohorts.some((cohort) => String(cohort.cohortID) === currentCohortID);
 
         if (isEditing.value && currentCohortID && !currentCohortIsAvailable) {
             availableCohorts.push({
                 cohortID: props.student.cohortID,
-                cohortName: props.student.cohort
-                    ? `${props.student.cohort} (inactive)`
-                    : 'Current cohort (inactive)',
+                cohortName: props.student.cohort ? `${props.student.cohort} (inactive)` : 'Current cohort (inactive)',
             });
         }
 
@@ -213,7 +207,7 @@ onMounted(async () => {
                     id="cohortID"
                     v-model="form.cohortID"
                     required
-                    :disabled="loadingCohorts || submitting || cohorts.length === 0"
+                    :disabled="isEditing || loadingCohorts || submitting || cohorts.length === 0"
                 >
                     <option value="" disabled>
                         {{ loadingCohorts ? 'Loading cohorts...' : 'Select a cohort' }}
@@ -224,9 +218,7 @@ onMounted(async () => {
                     </option>
                 </select>
 
-                <small v-if="!loadingCohorts && cohorts.length === 0">
-                    No cohorts are currently available.
-                </small>
+                <small v-if="!loadingCohorts && cohorts.length === 0"> No cohorts are currently available. </small>
             </div>
         </form>
 

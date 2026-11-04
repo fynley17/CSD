@@ -114,36 +114,42 @@ final class MailerTest extends TestCase
         self::assertStringContainsString('&lt;script&gt;', $email['html']);
     }
 
-    public function testStudentAccountEmailIncludesLoginDetails(): void
+    // Check that the password setup email includes account details and setup link.
+    public function testPasswordSetupEmailIncludesAccountDetails(): void
     {
-        $email = Mailer::buildStudentAccountEmail(
-            'Fyn',
-            'ws123456',
-            'TemporaryPass123!'
-        );
+        // Arrange
+        $firstName = 'Fyn';
+        $username = 'ws123456';
+        $link = 'https://revisionhub.example/setup-password?token=abc123';
 
-        self::assertSame(
-            'Your RevisionHub student account is ready',
-            $email['subject']
-        );
-        self::assertStringContainsString('Welcome to RevisionHub, Fyn', $email['html']);
-        self::assertStringContainsString('ws123456', $email['html']);
-        self::assertStringContainsString('TemporaryPass123!', $email['html']);
-        self::assertStringContainsString('ws123456', $email['text']);
-        self::assertStringContainsString('TemporaryPass123!', $email['text']);
+        // Act
+        $email = Mailer::buildPasswordSetupEmail($firstName, $username, $link);
+
+        // Assert
+        self::assertStringContainsString('Fyn', $email['html']);
+        self::assertStringContainsString($username, $email['html']);
+        self::assertStringContainsString($link, $email['html']);
+        self::assertStringContainsString($username, $email['text']);
+        self::assertStringContainsString($link, $email['text']);
+
+        // The email must provide a password setup link, not a temporary password.
+        self::assertStringNotContainsString('TemporaryPass123!', $email['html']);
+        self::assertStringNotContainsString('TemporaryPass123!', $email['text']);
     }
 
-    public function testStudentAccountEmailEscapesHtml(): void
+    public function testPasswordSetupEmailEscapesHtml(): void
     {
-        $email = Mailer::buildStudentAccountEmail(
-            '<script>alert(1)</script>',
-            '<username>',
-            '<password>'
-        );
+        // Arrange
+        $firstName = '<script>alert(1)</script>';
+        $username = '<username>';
+        $link = 'https://revisionhub.example/setup-password?token=abc123';
 
+        // Act
+        $email = Mailer::buildPasswordSetupEmail($firstName, $username, $link);
+
+        // Assert
         self::assertStringNotContainsString('<script>', $email['html']);
         self::assertStringContainsString('&lt;script&gt;', $email['html']);
         self::assertStringContainsString('&lt;username&gt;', $email['html']);
-        self::assertStringContainsString('&lt;password&gt;', $email['html']);
     }
 }

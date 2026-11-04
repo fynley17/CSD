@@ -19,13 +19,13 @@ export async function updateStudentStatus(userID, isEnabled) {
 
 // Approve a pending student application.
 export async function approveStudent(userID) {
-    const response = await api.put(`/students/${encodeURIComponent(userID)}/approve`);
+    const response = await api.post(`/students/${encodeURIComponent(userID)}/approve`);
     return response.data;
 }
 
 // Decline and permanently delete a pending application.
 export async function declineStudent(userID) {
-    const response = await api.put(`/students/${encodeURIComponent(userID)}/decline`);
+    const response = await api.delete(`/students/${encodeURIComponent(userID)}/application`);
     return response.data;
 }
 

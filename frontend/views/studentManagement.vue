@@ -97,7 +97,9 @@ const handleStudentSaved = (response) => {
     studentManagementTable.value?.refreshStudents();
 
     if (response?.emailSent === false) {
-        showWarning('Student created, but login email failed. Please share the login details manually.');
+        showWarning(
+            'Student created, but the login email failed. The student will need their account access email resent.',
+        );
     }
 };
 </script>
@@ -146,28 +148,18 @@ const handleStudentSaved = (response) => {
 
             <label class="studentSearch">
                 <span class="visuallyHidden">Search students</span>
-                <input
-                    v-model="searchTerm"
-                    type="search"
-                    placeholder="Search students..."
-                    @input="searchStudents"
-                />
+                <input v-model="searchTerm" type="search" placeholder="Search students..." @input="searchStudents" />
             </label>
         </div>
 
         <!-- Display the student table and its records. -->
         <div class="tableSection">
-            <StudentManagementTable
-                ref="studentManagementTable"
-                @edit="openEditStudentForm"
-            />
+            <StudentManagementTable ref="studentManagementTable" @edit="openEditStudentForm" />
         </div>
 
         <!-- Display the Add Student button underneath the table. -->
         <div v-if="canCreateStudent" class="tableActions">
-            <button type="button" class="addStudentButton" @click="openStudentForm">
-                + Add New Student
-            </button>
+            <button type="button" class="addStudentButton" @click="openStudentForm">+ Add New Student</button>
         </div>
 
         <!-- Display the student form in Add or Edit mode. -->

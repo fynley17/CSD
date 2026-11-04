@@ -1,12 +1,13 @@
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
+
 START TRANSACTION;
+
 SET time_zone = "+00:00";
 
-/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
-/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
-/*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
-/*!40101 SET NAMES utf8mb4 */;
-
+ /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
+ /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
+ /*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
+ /*!40101 SET NAMES utf8mb4 */;
 
 CREATE TABLE `Answers` (
   `answerID` uuid NOT NULL DEFAULT uuid(),
@@ -37,6 +38,13 @@ CREATE TABLE `EmailVerifications` (
   -- One verification link per account; a new link replaces the old one.
   `userID` uuid NOT NULL,
   `tokenHash` char(64) NOT NULL COMMENT 'SHA-256 hash of the emailed link code, never the code itself',
+  `expiresAt` datetime NOT NULL,
+  `sentAt` datetime NOT NULL DEFAULT current_timestamp() COMMENT 'Used to stop repeated resend requests'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE `PasswordSetupTokens` (
+  `userID` uuid NOT NULL,
+  `tokenHash` char(64) NOT NULL COMMENT 'SHA-256 hash of the emailed password setup code, never the code itself',
   `expiresAt` datetime NOT NULL,
   `sentAt` datetime NOT NULL DEFAULT current_timestamp() COMMENT 'Used to stop repeated resend requests'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -114,7 +122,6 @@ CREATE TABLE `Users` (
   `mfaSecret` varchar(64) DEFAULT NULL COMMENT 'One-time-password secret (store encrypted)'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-
 ALTER TABLE `Answers`
   ADD PRIMARY KEY (`answerID`),
   ADD KEY `idx_answers_question` (`questionID`);
@@ -131,6 +138,10 @@ ALTER TABLE `CompletedTests`
 ALTER TABLE `EmailVerifications`
   ADD PRIMARY KEY (`userID`),
   ADD UNIQUE KEY `uq_email_verifications_token` (`tokenHash`);
+
+ALTER TABLE `PasswordSetupTokens`
+  ADD PRIMARY KEY (`userID`),
+  ADD UNIQUE KEY `uq_password_setup_tokens_token` (`tokenHash`);
 
 ALTER TABLE `Lecturer`
   ADD PRIMARY KEY (`userID`);
@@ -166,7 +177,6 @@ ALTER TABLE `Users`
   ADD UNIQUE KEY `uq_users_username` (`username`),
   ADD UNIQUE KEY `uq_users_email` (`email`);
 
-
 ALTER TABLE `Answers`
   ADD CONSTRAINT `fk_answers_question` FOREIGN KEY (`questionID`)
     REFERENCES `Questions` (`questionID`) ON DELETE CASCADE ON UPDATE CASCADE;
@@ -179,6 +189,10 @@ ALTER TABLE `CompletedTests`
 
 ALTER TABLE `EmailVerifications`
   ADD CONSTRAINT `fk_email_verifications_user` FOREIGN KEY (`userID`)
+    REFERENCES `Users` (`userID`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+ALTER TABLE `PasswordSetupTokens`
+  ADD CONSTRAINT `fk_password_setup_tokens_user` FOREIGN KEY (`userID`)
     REFERENCES `Users` (`userID`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 ALTER TABLE `Lecturer`
@@ -210,13 +224,17 @@ ALTER TABLE `Students`
     REFERENCES `Users` (`userID`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 ALTER TABLE `Subjects`
-  ADD CONSTRAINT `fk_subjects_cohort` FOREIGN KEY (`cohortID`) REFERENCES `Cohorts` (`cohortID`) ON UPDATE CASCADE;
+  ADD CONSTRAINT `fk_subjects_cohort` FOREIGN KEY (`cohortID`)
+    REFERENCES `Cohorts` (`cohortID`) ON UPDATE CASCADE;
 
 ALTER TABLE `Tests`
-  ADD CONSTRAINT `fk_tests_creator` FOREIGN KEY (`createdBy`) REFERENCES `Lecturer` (`userID`) ON UPDATE CASCADE,
-  ADD CONSTRAINT `fk_tests_subject` FOREIGN KEY (`subjectID`) REFERENCES `Subjects` (`subjectID`) ON UPDATE CASCADE;
+  ADD CONSTRAINT `fk_tests_creator` FOREIGN KEY (`createdBy`)
+    REFERENCES `Lecturer` (`userID`) ON UPDATE CASCADE,
+  ADD CONSTRAINT `fk_tests_subject` FOREIGN KEY (`subjectID`)
+    REFERENCES `Subjects` (`subjectID`) ON UPDATE CASCADE;
+
 COMMIT;
 
-/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
-/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
-/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
+ /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
+ /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
+ /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;

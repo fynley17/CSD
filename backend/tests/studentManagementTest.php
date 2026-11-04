@@ -86,13 +86,14 @@ final class StudentManagementTest extends TestCase
         int $disabledByCohort = 0,
         string $approvalStatus = 'approved',
         string $username = 'ws123456',
-        string $email = 'student@example.com'
+        string $email = 'student@example.com',
+        int $isEmailVerified = 1
     ): void {
         $stmt = $this->db->prepare("
             INSERT INTO Users (
                 userID, username, email, password, accountType,
                 approvalStatus, isEnabled, disabledByCohort, isEmailVerified
-            ) VALUES (?, ?, ?, 'password-hash', 'student', ?, ?, ?, 1)
+            ) VALUES (?, ?, ?, 'password-hash', 'student', ?, ?, ?, ?)
         ");
 
         $stmt->execute([
@@ -102,12 +103,14 @@ final class StudentManagementTest extends TestCase
             $approvalStatus,
             $isEnabled,
             $disabledByCohort,
+            $isEmailVerified,
         ]);
 
         $stmt = $this->db->prepare("
             INSERT INTO Students (userID, firstName, lastName, cohortID, points)
             VALUES (?, 'Test', 'Student', ?, 0)
         ");
+
         $stmt->execute([$userID, $cohortID]);
     }
 
@@ -116,10 +119,26 @@ final class StudentManagementTest extends TestCase
         $stmt = $this->db->prepare(
             'SELECT * FROM Users WHERE userID = ?'
         );
+
         $stmt->execute([$userID]);
 
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
+
+    private function getStudent(string $userID): array|false
+    {
+        $stmt = $this->db->prepare(
+            'SELECT * FROM Students WHERE userID = ?'
+        );
+
+        $stmt->execute([$userID]);
+
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+
+    // ---------------------------------------------------------
+    // createByLecturer tests
+    // ---------------------------------------------------------
 
     public function testCreateByLecturerCreatesStudentAccount(): void
     {
@@ -134,7 +153,9 @@ final class StudentManagementTest extends TestCase
         self::assertTrue($result['success']);
         self::assertSame('fyn@example.com', $result['email']);
         self::assertSame('ws123456', $result['username']);
-        self::assertNotEmpty($result['temporaryPassword']);
+
+        // No temporary password should be returned.
+        self::assertArrayNotHasKey('temporaryPassword', $result);
 
         $account = $this->getAccount($result['userID']);
 
@@ -142,10 +163,11 @@ final class StudentManagementTest extends TestCase
         self::assertSame('approved', $account['approvalStatus']);
         self::assertSame(1, (int) $account['isEnabled']);
         self::assertSame(0, (int) $account['disabledByCohort']);
-        self::assertTrue(password_verify(
-            $result['temporaryPassword'],
-            $account['password']
-        ));
+        self::assertSame(0, (int) $account['isEmailVerified']);
+
+        // The account has a securely hashed, unusable initial password.
+        self::assertNotEmpty($account['password']);
+        self::assertFalse(password_verify('', $account['password']));
     }
 
     public function testCreateByLecturerRejectsNonStringInput(): void
@@ -207,10 +229,14 @@ final class StudentManagementTest extends TestCase
         ]);
     }
 
+    // ---------------------------------------------------------
+    // setEnabled tests
+    // ---------------------------------------------------------
+
     public function testSetEnabledManuallyDisablingClearsCohortFlag(): void
     {
         $this->createStudent(
-            isEnabled: 0,
+            isEnabled: 1,
             disabledByCohort: 1
         );
 
@@ -222,20 +248,20 @@ final class StudentManagementTest extends TestCase
         self::assertSame(0, (int) $account['disabledByCohort']);
     }
 
-    public function testSetEnabledCannotEnableStudentInInactiveCohort(): void
+    public function testSetEnabledEnablesStudentInInactiveCohort(): void
     {
         $this->createStudent(
             cohortID: 'inactive-cohort',
             isEnabled: 0,
-            disabledByCohort: 0
+            disabledByCohort: 1
         );
 
         self::assertTrue(Student::setEnabled('student-1', true));
 
         $account = $this->getAccount('student-1');
 
-        self::assertSame(0, (int) $account['isEnabled']);
-        self::assertSame(1, (int) $account['disabledByCohort']);
+        self::assertSame(1, (int) $account['isEnabled']);
+        self::assertSame(0, (int) $account['disabledByCohort']);
     }
 
     public function testSetEnabledEnablesStudentInActiveCohort(): void
@@ -258,11 +284,16 @@ final class StudentManagementTest extends TestCase
         self::assertFalse(Student::setEnabled('missing-student', true));
     }
 
-    public function testApproveApplicationEnablesStudentInActiveCohort(): void
+    // ---------------------------------------------------------
+    // approveApplication tests
+    // ---------------------------------------------------------
+
+    public function testApproveApplicationPreservesDisabledAccountStatus(): void
     {
         $this->createStudent(
             approvalStatus: 'pending',
-            isEnabled: 0
+            isEnabled: 0,
+            disabledByCohort: 0
         );
 
         self::assertTrue(Student::approveApplication('student-1'));
@@ -270,16 +301,17 @@ final class StudentManagementTest extends TestCase
         $account = $this->getAccount('student-1');
 
         self::assertSame('approved', $account['approvalStatus']);
-        self::assertSame(1, (int) $account['isEnabled']);
+        self::assertSame(0, (int) $account['isEnabled']);
         self::assertSame(0, (int) $account['disabledByCohort']);
     }
 
-    public function testApproveApplicationKeepsStudentDisabledInInactiveCohort(): void
+    public function testApproveApplicationPreservesCohortDisabledStatus(): void
     {
         $this->createStudent(
             cohortID: 'inactive-cohort',
+            approvalStatus: 'pending',
             isEnabled: 0,
-            approvalStatus: 'pending'
+            disabledByCohort: 1
         );
 
         self::assertTrue(Student::approveApplication('student-1'));
@@ -291,12 +323,33 @@ final class StudentManagementTest extends TestCase
         self::assertSame(1, (int) $account['disabledByCohort']);
     }
 
+    public function testApproveApplicationPreservesEnabledAccountStatus(): void
+    {
+        $this->createStudent(
+            approvalStatus: 'pending',
+            isEnabled: 1,
+            disabledByCohort: 0
+        );
+
+        self::assertTrue(Student::approveApplication('student-1'));
+
+        $account = $this->getAccount('student-1');
+
+        self::assertSame('approved', $account['approvalStatus']);
+        self::assertSame(1, (int) $account['isEnabled']);
+        self::assertSame(0, (int) $account['disabledByCohort']);
+    }
+
     public function testApproveApplicationDoesNotApproveAlreadyApprovedStudent(): void
     {
         $this->createStudent();
 
         self::assertFalse(Student::approveApplication('student-1'));
     }
+
+    // ---------------------------------------------------------
+    // declineApplication tests
+    // ---------------------------------------------------------
 
     public function testDeclineApplicationDeletesPendingStudent(): void
     {
@@ -314,69 +367,130 @@ final class StudentManagementTest extends TestCase
         self::assertIsArray($this->getAccount('student-1'));
     }
 
-    public function testUpdateDetailsUpdatesStudentAndMovesIntoInactiveCohort(): void
+    // ---------------------------------------------------------
+    // updateDetails tests
+    // ---------------------------------------------------------
+
+    public function testUpdateDetailsUpdatesStudentAndChangesEmail(): void
     {
         $this->createStudent();
 
-        Student::updateDetails('student-1', [
+        $emailChanged = Student::updateDetails('student-1', [
             'firstName' => 'Updated',
             'lastName' => 'Name',
             'email' => 'updated@example.com',
             'studentNumber' => 'ws654321',
-            'cohortID' => 'inactive-cohort',
+            'cohortID' => 'active-cohort',
         ]);
 
+        self::assertTrue($emailChanged);
+
         $account = $this->getAccount('student-1');
+        $student = $this->getStudent('student-1');
 
         self::assertSame('updated@example.com', $account['email']);
         self::assertSame('ws654321', $account['username']);
-        self::assertSame(0, (int) $account['isEnabled']);
-        self::assertSame(1, (int) $account['disabledByCohort']);
-
-        $stmt = $this->db->prepare(
-            'SELECT firstName, lastName, cohortID FROM Students WHERE userID = ?'
-        );
-        $stmt->execute(['student-1']);
-        $student = $stmt->fetch(PDO::FETCH_ASSOC);
+        self::assertSame(0, (int) $account['isEmailVerified']);
 
         self::assertSame('Updated', $student['firstName']);
         self::assertSame('Name', $student['lastName']);
-        self::assertSame('inactive-cohort', $student['cohortID']);
+        self::assertSame('active-cohort', $student['cohortID']);
     }
 
-    public function testUpdateDetailsMovingToActiveCohortRestoresCohortDisabledStudent(): void
+    public function testUpdateDetailsKeepsEmailVerifiedWhenEmailIsUnchanged(): void
     {
-        $this->createStudent(
-            cohortID: 'inactive-cohort',
-            isEnabled: 0,
-            disabledByCohort: 1
-        );
+        $this->createStudent(isEmailVerified: 1);
 
-        Student::updateDetails('student-1', [
-            'firstName' => 'Test',
-            'lastName' => 'Student',
+        $emailChanged = Student::updateDetails('student-1', [
+            'firstName' => 'Updated',
+            'lastName' => 'Name',
             'email' => 'student@example.com',
             'studentNumber' => 'ws123456',
             'cohortID' => 'active-cohort',
         ]);
 
+        self::assertFalse($emailChanged);
+
         $account = $this->getAccount('student-1');
 
-        self::assertSame(1, (int) $account['isEnabled']);
-        self::assertSame(0, (int) $account['disabledByCohort']);
+        self::assertSame('student@example.com', $account['email']);
+        self::assertSame(1, (int) $account['isEmailVerified']);
     }
 
-    public function testUpdateDetailsMovingToActiveCohortPreservesManualDisable(): void
+    public function testUpdateDetailsKeepsUnverifiedEmailUnverified(): void
+    {
+        $this->createStudent(isEmailVerified: 0);
+
+        $emailChanged = Student::updateDetails('student-1', [
+            'firstName' => 'Updated',
+            'lastName' => 'Name',
+            'email' => 'student@example.com',
+            'studentNumber' => 'ws123456',
+            'cohortID' => 'active-cohort',
+        ]);
+
+        self::assertFalse($emailChanged);
+
+        $account = $this->getAccount('student-1');
+
+        self::assertSame(0, (int) $account['isEmailVerified']);
+    }
+
+    public function testUpdateDetailsRejectsCohortChange(): void
+    {
+        $this->createStudent();
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage(
+            'Student cohort changes must be completed through cohort management.'
+        );
+
+        Student::updateDetails('student-1', [
+            'firstName' => 'Updated',
+            'lastName' => 'Name',
+            'email' => 'student@example.com',
+            'studentNumber' => 'ws123456',
+            'cohortID' => 'inactive-cohort',
+        ]);
+    }
+
+    public function testUpdateDetailsDoesNotChangeCohortWhenRejected(): void
+    {
+        $this->createStudent();
+
+        try {
+            Student::updateDetails('student-1', [
+                'firstName' => 'Updated',
+                'lastName' => 'Name',
+                'email' => 'student@example.com',
+                'studentNumber' => 'ws123456',
+                'cohortID' => 'inactive-cohort',
+            ]);
+
+            self::fail('Expected the cohort change to be rejected.');
+        } catch (InvalidArgumentException $e) {
+            self::assertSame(
+                'Student cohort changes must be completed through cohort management.',
+                $e->getMessage()
+            );
+        }
+
+        $student = $this->getStudent('student-1');
+
+        self::assertSame('active-cohort', $student['cohortID']);
+        self::assertSame('Test', $student['firstName']);
+    }
+
+    public function testUpdateDetailsPreservesManualDisabledStatus(): void
     {
         $this->createStudent(
-            cohortID: 'inactive-cohort',
             isEnabled: 0,
             disabledByCohort: 0
         );
 
         Student::updateDetails('student-1', [
-            'firstName' => 'Test',
-            'lastName' => 'Student',
+            'firstName' => 'Updated',
+            'lastName' => 'Name',
             'email' => 'student@example.com',
             'studentNumber' => 'ws123456',
             'cohortID' => 'active-cohort',
@@ -416,6 +530,30 @@ final class StudentManagementTest extends TestCase
         ]);
     }
 
+    public function testUpdateDetailsRejectsDuplicateEmail(): void
+    {
+        $this->createStudent();
+        $this->createStudent(
+            userID: 'student-2',
+            username: 'ws654321',
+            email: 'another@example.com'
+        );
+
+        $this->expectException(InvalidArgumentException::class);
+
+        Student::updateDetails('student-1', [
+            'firstName' => 'Updated',
+            'lastName' => 'Name',
+            'email' => 'another@example.com',
+            'studentNumber' => 'ws123456',
+            'cohortID' => 'active-cohort',
+        ]);
+    }
+
+    // ---------------------------------------------------------
+    // deleteStudent tests
+    // ---------------------------------------------------------
+
     public function testDeleteStudentDeletesStudentAccount(): void
     {
         $this->createStudent();
@@ -430,9 +568,12 @@ final class StudentManagementTest extends TestCase
             INSERT INTO Users (
                 userID, username, email, password, accountType,
                 approvalStatus, isEnabled, disabledByCohort
-            ) VALUES ('admin-1', 'admin1', 'admin@example.com', 'hash',
-                'administrator', 'approved', 1, 0)
+            ) VALUES (
+                'admin-1', 'admin1', 'admin@example.com', 'hash',
+                'administrator', 'approved', 1, 0
+            )
         ");
+
         $stmt->execute();
 
         self::assertFalse(Student::deleteStudent('admin-1'));

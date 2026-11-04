@@ -18,6 +18,7 @@ import CheckEmailPage from '../views/checkEmailPage.vue';
 import VerifyEmailPage from '../views/verifyEmailPage.vue';
 // one login page for every account type
 import LoginPage from '../views/loginPage.vue';
+import SetupPasswordPage from '../views/setupPasswordPage.vue';
 // admin home page, only admins can open it
 import AdministratorDashboard from '../views/administratorDashboard.vue';
 import LecturerDashboard from '../views/lecturerDashboard.vue';
@@ -64,6 +65,12 @@ const routes = [
         name: 'verifyEmail',
         component: VerifyEmailPage,
         meta: { title: 'Verify your email | RevisionHub' },
+    },
+    {
+        path: '/setup-password',
+        name: 'setupPassword',
+        component: SetupPasswordPage,
+        meta: { title: 'Set Password | RevisionHub' },
     },
     {
         path: '/terms',

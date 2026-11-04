@@ -12,6 +12,7 @@ use App\Controllers\VerificationController;
 use App\Controllers\AdministratorController;
 use App\Controllers\QuestionController;
 use App\Controllers\SubjectController;
+use App\Controllers\PasswordSetupController;
 
 $router = new Router();
 
@@ -35,14 +36,14 @@ $router->addRoute(
 );
 
 $router->addRoute(
-    'PUT',
+    'POST',
     '/^\/api\/students\/([0-9a-zA-Z-]+)\/approve$/',
     [new StudentController(), 'approveStudent']
 );
 
 $router->addRoute(
-    'PUT',
-    '/^\/api\/students\/([0-9a-zA-Z-]+)\/decline$/',
+    'DELETE',
+    '/^\/api\/students\/([0-9a-zA-Z-]+)\/application$/',
     [new StudentController(), 'declineStudent']
 );
 
@@ -154,6 +155,13 @@ $router->addRoute(
     'POST',
     '/^\/api\/change-email$/',
     [new VerificationController(), 'changeEmail']
+);
+
+// Password setup for lecturer-created student accounts.
+$router->addRoute(
+    'POST',
+    '/^\/api\/setup-password$/',
+    [new PasswordSetupController(), 'setPassword']
 );
 
 // Authentication and CSRF.
