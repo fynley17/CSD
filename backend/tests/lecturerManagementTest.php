@@ -37,8 +37,13 @@ final class LecturerManagementTest extends TestCase
             "INSERT INTO Lecturer VALUES ('admin-id', 'Test', 'Admin'), ('lecturer-id', 'Test', 'One'), "
             . "('other-id', 'Test', 'Two')"
         );
-        // two tests for the lecturer being deleted and one for the other lecturer
-        $this->db->exec('CREATE TABLE Tests (testID TEXT PRIMARY KEY, createdBy TEXT NOT NULL)');
+        // 2 tests for the lecturer being deleted and one for the other lecturer
+        // a test can only belong to someone in Lecturer, like the real table
+        // SQLite ignores that unless foreign keys are switched on
+        $this->db->exec('PRAGMA foreign_keys = ON');
+        $this->db->exec(
+            'CREATE TABLE Tests (testID TEXT PRIMARY KEY, createdBy TEXT NOT NULL REFERENCES Lecturer(userID))'
+        );
         $this->db->exec(
             "INSERT INTO Tests VALUES ('test-1', 'lecturer-id'), ('test-2', 'lecturer-id'), ('test-3', 'other-id')"
         );
@@ -250,6 +255,31 @@ final class LecturerManagementTest extends TestCase
             ['test-1' => 'admin-id', 'test-2' => 'admin-id', 'test-3' => 'other-id'],
             $this->getTestOwners()
         );
+    }
+
+    /**
+     * An admin with no Lecturer row can't take the tests over, so the delete is refused and nothing changes (error)
+     */
+    public function testRefusesDeleteWhenTheAdminHasNoLecturerRow(): void
+    {
+        // Arrange
+        $this->db->exec("DELETE FROM Lecturer WHERE userID = 'admin-id'");
+        $admin = new Administrator($this->makeRow('admin-id', 'admin'));
+        $lecturer = new Lecturer($this->makeRow('lecturer-id', 'lecturer'));
+        $message = '';
+
+        // Act
+        try {
+            $admin->deleteLecturer($lecturer);
+        } catch (\InvalidArgumentException $e) {
+            $message = $e->getMessage();
+        }
+
+        // Assert
+        $expected = "Your account has no lecturer profile, so this lecturer's tests can't be moved to you";
+        $this->assertSame($expected, $message);
+        $this->assertSame(1, $this->countAccounts('lecturer-id'));
+        $this->assertSame('lecturer-id', $this->getTestOwners()['test-1']);
     }
 
     /**

@@ -227,7 +227,16 @@ class Administrator extends Lecturer
         $lecturerID = $lecturer->getUserID();
 
         // a test has to belong to a real lecturer so the admin doing the delete takes theirs over
-        // admins have a Lecturer row too so that works, both changes happen or neither does
+        // nothing makes sure an admin has a Lecturer row, without one the database refuses the move
+        $stmt = $db->prepare('SELECT 1 FROM Lecturer WHERE userID = ?');
+        $stmt->execute([$this->getUserID()]);
+        if ($stmt->fetchColumn() === false) {
+            throw new \InvalidArgumentException(
+                "Your account has no lecturer profile, so this lecturer's tests can't be moved to you"
+            );
+        }
+
+        // both changes happen or neither does
         $db->beginTransaction();
         try {
             $stmt = $db->prepare('UPDATE Tests SET createdBy = ? WHERE createdBy = ?');
