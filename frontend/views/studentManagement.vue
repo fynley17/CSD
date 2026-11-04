@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, onUnmounted, ref } from 'vue';
+import { computed, ref, onMounted, onUnmounted } from 'vue';
 import { getCurrentUser } from '../services/authService';
 import StudentManagementTable from '../components/tables/studentManagementTable.vue';
 import StudentForm from '../components/forms/studentForm.vue';
@@ -19,10 +19,6 @@ const studentManagementTable = ref(null);
 const cohortFilter = ref('');
 const statusFilter = ref('');
 const searchTerm = ref('');
-
-// Control the student form and store the student being edited.
-const showStudentForm = ref(false);
-const selectedStudent = ref(null);
 
 // Store the warning displayed when student login emails fail.
 const warningMessage = ref('');
@@ -92,12 +88,18 @@ const closeStudentForm = () => {
     selectedStudent.value = null;
 };
 
+// Control the student form and store the student being edited.
+const showStudentForm = ref(false);
+const selectedStudent = ref(null);
+
 // Refresh the table and warn the lecturer if the login email failed.
 const handleStudentSaved = (response) => {
     studentManagementTable.value?.refreshStudents();
 
     if (response?.emailSent === false) {
-        showWarning('Student created, but login email failed. Please share the login details manually.');
+        showWarning(
+            'Student created, but the login email failed. The student will need their account access email resent.',
+        );
     }
 };
 </script>

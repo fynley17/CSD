@@ -26,7 +26,6 @@ describe('Student Service', () => {
 
     describe('getLecturerStudents', () => {
         it('returns student data from the API', async () => {
-            // Arrange
             const mockStudents = [
                 {
                     userID: 'student-1',
@@ -44,26 +43,21 @@ describe('Student Service', () => {
 
             api.get.mockResolvedValue({ data: mockStudents });
 
-            // Act
             const result = await getLecturerStudents();
 
-            // Assert
             expect(api.get).toHaveBeenCalledWith('/students');
             expect(result).toEqual(mockStudents);
         });
 
         it('throws an error when the API request fails', async () => {
-            // Arrange
             api.get.mockRejectedValue(new Error('API request failed'));
 
-            // Act and Assert
             await expect(getLecturerStudents()).rejects.toThrow('API request failed');
         });
     });
 
     describe('createStudent', () => {
         it('creates a student using the supplied details', async () => {
-            // Arrange
             const studentData = {
                 firstName: 'Alex',
                 lastName: 'Morgan',
@@ -75,36 +69,29 @@ describe('Student Service', () => {
             const mockResponse = { message: 'Student created successfully' };
             api.post.mockResolvedValue({ data: mockResponse });
 
-            // Act
             const result = await createStudent(studentData);
 
-            // Assert
             expect(api.post).toHaveBeenCalledWith('/students', studentData);
             expect(result).toEqual(mockResponse);
         });
 
         it('throws an error when student creation fails', async () => {
-            // Arrange
             api.post.mockRejectedValue(new Error('Creation failed'));
 
-            // Act and Assert
             await expect(createStudent({})).rejects.toThrow('Creation failed');
         });
     });
 
     describe('updateStudentStatus', () => {
         it('updates a student account status', async () => {
-            // Arrange
             const userID = 'student-1';
             const isEnabled = false;
             const mockResponse = { message: 'Student account disabled successfully.' };
 
             api.put.mockResolvedValue({ data: mockResponse });
 
-            // Act
             const result = await updateStudentStatus(userID, isEnabled);
 
-            // Assert
             expect(api.put).toHaveBeenCalledWith(`/students/${encodeURIComponent(userID)}/status`, { isEnabled });
             expect(result).toEqual(mockResponse);
         });
@@ -112,41 +99,34 @@ describe('Student Service', () => {
 
     describe('approveStudent', () => {
         it('approves a pending student application', async () => {
-            // Arrange
             const userID = 'student-1';
             const mockResponse = { message: 'Application approved' };
 
-            api.put.mockResolvedValue({ data: mockResponse });
+            api.post.mockResolvedValue({ data: mockResponse });
 
-            // Act
             const result = await approveStudent(userID);
 
-            // Assert
-            expect(api.put).toHaveBeenCalledWith(`/students/${encodeURIComponent(userID)}/approve`);
+            expect(api.post).toHaveBeenCalledWith(`/students/${encodeURIComponent(userID)}/approve`);
             expect(result).toEqual(mockResponse);
         });
     });
 
     describe('declineStudent', () => {
         it('declines and removes a pending student application', async () => {
-            // Arrange
             const userID = 'student-2';
             const mockResponse = { message: 'Application declined' };
 
-            api.put.mockResolvedValue({ data: mockResponse });
+            api.delete.mockResolvedValue({ data: mockResponse });
 
-            // Act
             const result = await declineStudent(userID);
 
-            // Assert
-            expect(api.put).toHaveBeenCalledWith(`/students/${encodeURIComponent(userID)}/decline`);
+            expect(api.delete).toHaveBeenCalledWith(`/students/${encodeURIComponent(userID)}/application`);
             expect(result).toEqual(mockResponse);
         });
     });
 
     describe('updateStudent', () => {
         it('updates the supplied student details', async () => {
-            // Arrange
             const userID = 'student-1';
             const studentData = {
                 firstName: 'Alex',
@@ -159,10 +139,8 @@ describe('Student Service', () => {
             const mockResponse = { message: 'Student updated successfully' };
             api.put.mockResolvedValue({ data: mockResponse });
 
-            // Act
             const result = await updateStudent(userID, studentData);
 
-            // Assert
             expect(api.put).toHaveBeenCalledWith(`/students/${encodeURIComponent(userID)}`, studentData);
             expect(result).toEqual(mockResponse);
         });
@@ -170,16 +148,13 @@ describe('Student Service', () => {
 
     describe('deleteStudent', () => {
         it('deletes a student using their user ID', async () => {
-            // Arrange
             const userID = 'student-1';
             const mockResponse = { message: 'Student deleted successfully' };
 
             api.delete.mockResolvedValue({ data: mockResponse });
 
-            // Act
             const result = await deleteStudent(userID);
 
-            // Assert
             expect(api.delete).toHaveBeenCalledWith(`/students/${encodeURIComponent(userID)}`);
             expect(result).toEqual(mockResponse);
         });

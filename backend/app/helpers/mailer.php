@@ -3,6 +3,7 @@
 namespace App\Helpers;
 
 use App\Models\EmailVerification;
+use App\Models\PasswordSetup;
 use PHPMailer\PHPMailer\Exception;
 use PHPMailer\PHPMailer\PHPMailer;
 
@@ -68,7 +69,6 @@ class Mailer
             );
 
             $mail->addAddress($toEmail, $toName);
-
             $mail->isHTML(true);
 
             // phpcs:disable Squiz.NamingConventions.ValidVariableName.MemberNotCamelCaps
@@ -118,19 +118,20 @@ class Mailer
         );
     }
 
+
     /**
-     * Sends the login details to a student created by a lecturer.
+     * Sends a password setup email to a student created by a lecturer.
      */
-    public static function sendStudentAccountDetails(
+    public static function sendPasswordSetupEmail(
         string $toEmail,
         string $firstName,
         string $username,
-        string $temporaryPassword
+        string $token
     ): bool {
-        $email = self::buildStudentAccountEmail(
+        $email = self::buildPasswordSetupEmail(
             $firstName,
             $username,
-            $temporaryPassword
+            self::passwordSetupLink($token)
         );
 
         return self::sendEmail(
@@ -143,64 +144,83 @@ class Mailer
     }
 
     /**
-     * Builds the email containing a newly created student's login details.
+     * Builds the password setup email.
      *
      * @return array{subject: string, html: string, text: string}
      */
-    public static function buildStudentAccountEmail(
+    public static function buildPasswordSetupEmail(
         string $firstName,
         string $username,
-        string $temporaryPassword
+        string $link
     ): array {
-        // Escape values before inserting them into HTML.
         $name = htmlspecialchars($firstName, ENT_QUOTES, 'UTF-8');
         $safeUsername = htmlspecialchars($username, ENT_QUOTES, 'UTF-8');
-        $safePassword = htmlspecialchars(
-            $temporaryPassword,
-            ENT_QUOTES,
-            'UTF-8'
-        );
+        $safeLink = htmlspecialchars($link, ENT_QUOTES, 'UTF-8');
+        $hours = PasswordSetup::LINK_LIFETIME_HOURS;
 
-        $subject = 'Your RevisionHub student account is ready';
+        $subject = 'Set up your RevisionHub student account';
 
         $content = <<<HTML
-            <h1 style="margin:0 0 16px;font-size:22px;color:#0f1b33;">
-                Welcome to RevisionHub, {$name}
-            </h1>
+        <h1 style="margin:0 0 16px;font-size:22px;color:#0f1b33;">
+            Welcome to RevisionHub, {$name}
+        </h1>
 
-            <p style="margin:0 0 16px;">
-                Your student account has been created by your lecturer
-                and is ready to use.
-            </p>
+        <p style="margin:0 0 16px;">
+            Your lecturer has created a RevisionHub student account for you.
+            Before you can sign in, you need to set your password.
+        </p>
 
-            <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
-                style="margin:0 0 20px;background-color:#eef6ff;border-left:4px solid #1a8cff;">
-                <tr>
-                    <td style="padding:16px 20px;font-size:15px;">
-                        <strong>Username:</strong> {$safeUsername}<br>
-                        <strong>Temporary password:</strong> {$safePassword}
-                    </td>
-                </tr>
-            </table>
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+            style="margin:0 0 20px;background-color:#eef6ff;border-left:4px solid #1a8cff;">
+            <tr>
+                <td style="padding:16px 20px;font-size:15px;">
+                    <strong>Username:</strong> {$safeUsername}
+                </td>
+            </tr>
+        </table>
 
-            <p style="margin:0 0 16px;">
-                You can now sign in to RevisionHub using these details.
-                Please keep your password secure.
-            </p>
+        <!-- Table-based button layout helps maintain compatibility with Outlook. -->
+        <table role="presentation" cellpadding="0" cellspacing="0"
+            style="margin:8px 0 24px;">
+            <tr>
+                <td style="border-radius:6px;background-color:#0a66c2;">
+                    <a href="{$safeLink}"
+                        style="display:inline-block;padding:14px 28px;font-size:16px;
+                        font-weight:bold;color:#ffffff;text-decoration:none;border-radius:6px;">
+                        Set my password
+                    </a>
+                </td>
+            </tr>
+        </table>
 
-            <p style="margin:24px 0 0;">
-                Kind regards,<br>
-                <strong>The RevisionHub Team</strong>
-            </p>
-        HTML;
+        <p style="margin:0 0 16px;">
+            This link will expire in {$hours} hours.
+            If the button does not work, copy this link into your browser:
+        </p>
+
+        <p style="margin:0 0 16px;font-size:14px;word-break:break-all;">
+            <a href="{$safeLink}" style="color:#0a66c2;">{$safeLink}</a>
+        </p>
+
+        <p style="margin:0 0 16px;">
+            Once your password has been set, you can sign in using your username
+            and new password.
+        </p>
+
+        <p style="margin:24px 0 0;">
+            Kind regards,<br>
+            <strong>The RevisionHub Team</strong>
+        </p>
+    HTML;
 
         $text = "Welcome to RevisionHub, {$firstName}\n\n"
-            . "Your student account has been created by your lecturer "
-            . "and is ready to use.\n\n"
-            . "Username: {$username}\n"
-            . "Temporary password: {$temporaryPassword}\n\n"
-            . "You can now sign in to RevisionHub using these details.\n"
-            . "Please keep your password secure.\n\n"
+            . "Your lecturer has created a RevisionHub student account for you.\n"
+            . "Before you can sign in, you need to set your password.\n\n"
+            . "Username: {$username}\n\n"
+            . "Set your password using this link:\n{$link}\n\n"
+            . "This link will expire in {$hours} hours.\n\n"
+            . "Once your password has been set, you can sign in using your username "
+            . "and new password.\n\n"
             . "Kind regards,\nThe RevisionHub Team\n\n"
             . "This is an automated message, please do not reply to this email.";
 
@@ -210,6 +230,20 @@ class Mailer
             'text' => $text,
         ];
     }
+
+    /**
+     * Makes the link opened by the password setup email button.
+     */
+    public static function passwordSetupLink(string $token): string
+    {
+        $appUrl = rtrim(
+            getenv('APP_URL') ?: self::DEFAULT_APP_URL,
+            '/'
+        );
+
+        return $appUrl . '/setup-password?token=' . urlencode($token);
+    }
+
 
     /**
      * Sends the welcome email a student receives once they've verified their email.
@@ -236,6 +270,67 @@ class Mailer
     }
 
     /**
+     * Sends the approval confirmation email when a lecturer approves a student.
+     */
+    public static function sendStudentApprovalEmail(
+        string $toEmail,
+        string $firstName
+    ): bool {
+        $email = self::buildStudentApprovalEmail($firstName);
+
+        return self::sendEmail(
+            $toEmail,
+            $firstName,
+            $email['subject'],
+            $email['html'],
+            $email['text']
+        );
+    }
+
+    /**
+     * Builds the approval email for a student whose application has been approved.
+     *
+     * @return array{subject: string, html: string, text: string}
+     */
+    public static function buildStudentApprovalEmail(string $firstName): array
+    {
+        $name = htmlspecialchars($firstName, ENT_QUOTES, 'UTF-8');
+        $subject = 'Your RevisionHub account has been approved';
+
+        $content = <<<HTML
+            <h1 style="margin:0 0 16px;font-size:22px;color:#0f1b33;">
+                Your account has been approved!
+            </h1>
+
+            <p style="margin:0 0 16px;">
+                Hi {$name},
+            </p>
+
+            <p style="margin:0 0 16px;">
+                Great news! Your RevisionHub account has been approved by your lecturer.
+                You can now log in and start using RevisionHub.
+            </p>
+
+            <p style="margin:24px 0 0;">
+                Kind regards,<br>
+                <strong>The RevisionHub Team</strong>
+            </p>
+        HTML;
+
+        $text = "Hi {$firstName},\n\n"
+            . "Great news! Your RevisionHub account has been approved by your lecturer. "
+            . "You can now log in and start using RevisionHub.\n\n"
+            . "Kind regards,\nThe RevisionHub Team\n\n"
+            . "This is an automated message, please do not reply to this email.";
+
+        return [
+            'subject' => $subject,
+            'html' => self::wrapLayout($subject, $content),
+            'text' => $text,
+        ];
+    }
+
+    /**
      * Makes the link opened by the email verification button.
      */
     public static function verificationLink(string $token): string
@@ -257,7 +352,6 @@ class Mailer
     {
         $safeLink = htmlspecialchars($link, ENT_QUOTES, 'UTF-8');
         $hours = EmailVerification::LINK_LIFETIME_HOURS;
-
         $subject = 'Verify your email address for RevisionHub';
 
         $content = <<<HTML
@@ -335,6 +429,7 @@ class Mailer
             ENT_QUOTES,
             'UTF-8'
         );
+
         $cohort = htmlspecialchars($cohortName, ENT_QUOTES, 'UTF-8');
 
         $subject = 'Welcome to RevisionHub – your account is pending approval';
@@ -441,7 +536,7 @@ class Mailer
                                     <td style="padding:20px 32px;background-color:#0f1b33;
                                         color:#c9d3e3;font-size:12px;line-height:1.5;text-align:center;">
                                         This is an automated message, please do not reply to this email.<br>
-                                        &copy; {$year} RevisionHub
+                                        © {$year} RevisionHub
                                     </td>
                                 </tr>
                             </table>

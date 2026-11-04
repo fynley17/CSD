@@ -10,6 +10,7 @@
             "app/controllers/cohortController.php",
             "app/models/cohort.php",
             "app/models/model.php",
+            "app/models/passwordSetup.php",
             "app/models/student.php",
             "app/controllers/studentController.php",
             "app/controllers/controller.php",

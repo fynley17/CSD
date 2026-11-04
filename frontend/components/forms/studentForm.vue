@@ -207,7 +207,7 @@ onMounted(async () => {
                     id="cohortID"
                     v-model="form.cohortID"
                     required
-                    :disabled="loadingCohorts || submitting || cohorts.length === 0"
+                    :disabled="isEditing || loadingCohorts || submitting || cohorts.length === 0"
                 >
                     <option value="" disabled>
                         {{ loadingCohorts ? 'Loading cohorts...' : 'Select a cohort' }}
