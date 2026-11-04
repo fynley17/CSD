@@ -1,0 +1,22 @@
+# Plesk (Apache) routing for RevisionHub, copied into public/ by scripts/build-plesk.sh
+
+# the home page is the Vue app, not the PHP API
+DirectoryIndex index.html
+
+RewriteEngine On
+
+# anything under /api goes to the PHP router
+RewriteRule ^api(/|$) index.php [L]
+
+# real files (the built JS, CSS, images) are sent as they are
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+# every other address is a Vue page, e.g. /login, so the Vue router decides what to show
+RewriteRule ^ index.html [L]
+
+# never let the browser keep an old index.html, so a new upload shows up straight away
+<Files "index.html">
+    Header set Cache-Control "no-cache"
+</Files>

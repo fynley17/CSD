@@ -1,0 +1,73 @@
+# Builds the live site on every push to main and saves the result on the plesk-deploy branch.
+# Plesk's Git extension pulls plesk-deploy into httpdocs, so the server never has to build anything
+# (see deploy/plesk/README.md)
+name: Plesk deploy build
+
+on:
+    push:
+        branches: [main]
+    # lets you rebuild by hand from the Actions tab
+    workflow_dispatch:
+
+permissions:
+    # needed to push to the plesk-deploy branch
+    contents: write
+
+# two quick merges in a row wait for each other, instead of both pushing at once
+concurrency:
+    group: plesk-deploy
+    cancel-in-progress: false
+
+jobs:
+    build:
+        name: Build and publish plesk-deploy
+        runs-on: ubuntu-latest
+        steps:
+            - name: Check out the code
+              uses: actions/checkout@v5
+
+            - name: Set up Node.js
+              uses: actions/setup-node@v5
+              with:
+                  node-version: 22
+                  cache: npm
+                  cache-dependency-path: frontend/package-lock.json
+
+            - name: Set up PHP and Composer
+              uses: shivammathur/setup-php@v2
+              with:
+                  php-version: '8.4'
+                  tools: composer
+
+            - name: Build the site
+              run: ./scripts/build-plesk.sh
+
+            - name: Push the build to plesk-deploy
+              env:
+                  REMOTE: https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git
+              run: |
+                  mkdir publish && cd publish
+
+                  # add to the branch's history rather than replacing it, so Plesk can always just pull
+                  if git ls-remote --exit-code --heads "$REMOTE" plesk-deploy > /dev/null; then
+                      git clone --quiet --depth 1 --branch plesk-deploy "$REMOTE" .
+                  else
+                      git init --quiet -b plesk-deploy
+                      git remote add origin "$REMOTE"
+                  fi
+
+                  # swap the old build for the new one, files removed from main are removed here too
+                  find . -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
+                  cp -R ../build/plesk/. .
+
+                  # --force because some packages in vendor/ ship their own .gitignore
+                  git add --all --force
+                  if git diff --cached --quiet; then
+                      echo "The build hasn't changed, nothing to deploy"
+                      exit 0
+                  fi
+
+                  git -c user.name="github-actions[bot]" \
+                      -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+                      commit --quiet -m "Deploy main ${GITHUB_SHA::7}"
+                  git push --quiet origin plesk-deploy

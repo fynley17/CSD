@@ -4,6 +4,12 @@ require_once __DIR__ . '/../vendor/autoload.php';
 
 use App\Router;
 use App\Helpers\Authentication;
+use Dotenv\Dotenv;
+
+// Docker passes the settings in as environment variables, but on Plesk they only live in config/.env
+// "unsafe" also copies them where getenv() can see them, which the mailer uses for the SMTP login and APP_URL
+// safeLoad doesn't fail if there's no file, and it never overwrites a variable Docker already set
+Dotenv::createUnsafeImmutable(__DIR__ . '/../config')->safeLoad();
 
 // remove X-Powered-By, it tells attackers the exact PHP version
 header_remove('X-Powered-By');
