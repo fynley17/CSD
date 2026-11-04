@@ -43,3 +43,11 @@ docker compose exec -T db sh -c 'mariadb -u"$MARIADB_USER" -p"$MARIADB_PASSWORD"
 
 It uses fixed IDs, so running it again changes nothing. Never run it on a live
 server, because the sample accounts have a known password.
+
+`database/seeds/beta-test-data.sql` sets up everything the student beta test plan
+(`Documentation/RevisionHub_Student_Beta_Test_Plan.xlsx`) needs: an account set for each
+of three testers (one with test history, one new, one unverified, one waiting for
+approval), classmates for the leaderboard, timed, untimed and overdue tests, an expired
+verification link and another cohort's test. The comment at the top of the file lists the
+accounts and which test case each one is for. Run it the same way as the sample data; it
+can be run on its own or alongside it, and uses the same password, `Revision1!`.

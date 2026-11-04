@@ -22,3 +22,6 @@ dist/
 backend/.phpunit.cache/
 .phpunit.result.cache
 backend/.phpunit.result.cache
+
+# Plesk upload package
+build/
