@@ -47,7 +47,7 @@ const escapeHtml = (value) =>
                 '>': '&gt;',
                 '"': '&quot;',
                 "'": '&#39;',
-            })[character]
+            })[character],
     );
 
 const columns = [
@@ -220,7 +220,7 @@ const refreshStudents = async () => {
     students.value = await getLecturerStudents();
 
     cohorts.value = [...new Set(students.value.map((student) => student.cohort).filter(Boolean))].sort((a, b) =>
-        a.localeCompare(b)
+        a.localeCompare(b),
     );
 };
 
@@ -525,12 +525,7 @@ onUnmounted(() => {
                     Cancel
                 </button>
 
-                <button
-                    type="button"
-                    class="btn btn-danger"
-                    :disabled="deletingStudent"
-                    @click="confirmDeleteStudent"
-                >
+                <button type="button" class="btn btn-danger" :disabled="deletingStudent" @click="confirmDeleteStudent">
                     {{ deletingStudent ? 'Deleting...' : 'Confirm Delete' }}
                 </button>
             </template>

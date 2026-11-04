@@ -92,10 +92,7 @@ describe('Student Service', () => {
 
             const result = await updateStudentStatus(userID, isEnabled);
 
-            expect(api.put).toHaveBeenCalledWith(
-                `/students/${encodeURIComponent(userID)}/status`,
-                { isEnabled }
-            );
+            expect(api.put).toHaveBeenCalledWith(`/students/${encodeURIComponent(userID)}/status`, { isEnabled });
             expect(result).toEqual(mockResponse);
         });
     });
@@ -109,9 +106,7 @@ describe('Student Service', () => {
 
             const result = await approveStudent(userID);
 
-            expect(api.put).toHaveBeenCalledWith(
-                `/students/${encodeURIComponent(userID)}/approve`
-            );
+            expect(api.put).toHaveBeenCalledWith(`/students/${encodeURIComponent(userID)}/approve`);
             expect(result).toEqual(mockResponse);
         });
     });
@@ -125,9 +120,7 @@ describe('Student Service', () => {
 
             const result = await declineStudent(userID);
 
-            expect(api.put).toHaveBeenCalledWith(
-                `/students/${encodeURIComponent(userID)}/decline`
-            );
+            expect(api.put).toHaveBeenCalledWith(`/students/${encodeURIComponent(userID)}/decline`);
             expect(result).toEqual(mockResponse);
         });
     });
@@ -148,10 +141,7 @@ describe('Student Service', () => {
 
             const result = await updateStudent(userID, studentData);
 
-            expect(api.put).toHaveBeenCalledWith(
-                `/students/${encodeURIComponent(userID)}`,
-                studentData
-            );
+            expect(api.put).toHaveBeenCalledWith(`/students/${encodeURIComponent(userID)}`, studentData);
             expect(result).toEqual(mockResponse);
         });
     });
@@ -165,9 +155,7 @@ describe('Student Service', () => {
 
             const result = await deleteStudent(userID);
 
-            expect(api.delete).toHaveBeenCalledWith(
-                `/students/${encodeURIComponent(userID)}`
-            );
+            expect(api.delete).toHaveBeenCalledWith(`/students/${encodeURIComponent(userID)}`);
             expect(result).toEqual(mockResponse);
         });
     });
