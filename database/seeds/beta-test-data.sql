@@ -24,8 +24,9 @@
 --
 -- Shared:
 --   ws900040  has an expired verification link (VER-05). Don't log in as it, a resend replaces
---             the link; running this file again puts the expired link back. The link is:
---             http://localhost:5173/verify-email?token=8c3d301a43f58313388635a21ac7c3404d0a7d0b0306908c95a2afc0a58dfc87
+--             the link; running this file again puts the expired link back. Open this on the
+--             site being tested, the token is made up for testing so it isn't a secret:
+--   /verify-email?token=8c3d301a43f58313388635a21ac7c3404d0a7d0b0306908c95a2afc0a58dfc87 gitleaks:allow
 --   ws800001  Alex Brown, already registered: use alex.brown@example.com / ws800001 for the
 --             duplicate email and student number tests (REG-14, REG-15)
 --   hcarter, treid  lecturers who set the tests
