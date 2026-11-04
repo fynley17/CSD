@@ -174,7 +174,13 @@ export default {
          * Only the management page gets the Actions column
          */
         tableColumns() {
-            return this.manage ? columns.concat(actionColumn) : columns;
+            // fresh copies for each table - DataTables swaps '#status' and '#actions' for this table's own slots,
+            // a shared copy would keep pointing at the first table ever shown and its buttons wouldn't go anywhere
+            const tableColumns = columns.map((column) => Object.assign({}, column));
+            if (this.manage) {
+                tableColumns.push(Object.assign({}, actionColumn));
+            }
+            return tableColumns;
         },
 
         /**
