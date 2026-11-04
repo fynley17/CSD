@@ -120,15 +120,6 @@ class SubjectController extends Controller
     }
 
     /**
-     * Reads the JSON the page sent, gives back an empty array if it was missing or broken
-     */
-    private function readBody(): array
-    {
-        $data = json_decode(file_get_contents('php://input'), true);
-        return is_array($data) ? $data : [];
-    }
-
-    /**
      * Sends the subjects that can be added to a cohort to the assign subjects pop-up
      */
     public function getUnassignedSubjects(): void

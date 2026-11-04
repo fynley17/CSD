@@ -26,6 +26,7 @@
             "app/controllers/authController.php",
             "app/controllers/lecturerController.php",
             "app/helpers/mailer.php",
+            "app/helpers/validation.php",
             "app/helpers/authentication.php",
             "app/controllers/verificationController.php",
             "app/models/emailVerification.php",

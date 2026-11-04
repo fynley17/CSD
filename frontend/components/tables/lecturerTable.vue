@@ -1,7 +1,10 @@
-<!-- Recent lecturers on the admin dashboard, newest login first, set up like the lecturer dashboard table -->
+<!-- Lecturers table, the dashboard shows the 5 latest and the management page shows all of them with buttons -->
 <template>
     <div class="card border-0 rounded-0 h-100">
-        <div class="card-body flex-grow-0 d-flex flex-wrap justify-content-between align-items-center gap-2">
+        <div
+            v-if="!manage"
+            class="card-body flex-grow-0 d-flex flex-wrap justify-content-between align-items-center gap-2"
+        >
             <h2 class="h5 fw-bold mb-0">Recent Lecturer Activity</h2>
             <router-link to="/lecturer-management" class="small text-dark">View all lecturers</router-link>
         </div>
@@ -15,8 +18,8 @@
 
             <div v-else class="adminTable">
                 <DataTable
-                    :columns="columns"
-                    :data="lecturers"
+                    :columns="tableColumns"
+                    :data="shownLecturers"
                     :options="tableOptions"
                     class="table table-sm table-striped table-hover align-middle mb-0"
                 >
@@ -31,6 +34,34 @@
                             {{ props.cellData ? 'Active' : 'Disabled' }}
                         </span>
                     </template>
+
+                    <!-- name goes in each aria-label so a screen reader knows which row the button is for -->
+                    <template #actions="props">
+                        <button
+                            type="button"
+                            class="btn btn-sm btn-outline-primary me-1"
+                            :aria-label="'Edit ' + props.rowData.name"
+                            @click="$emit('edit', props.rowData)"
+                        >
+                            Edit
+                        </button>
+                        <button
+                            type="button"
+                            class="btn btn-sm btn-outline-primary me-1"
+                            :aria-label="toggleText(props.rowData) + ' for ' + props.rowData.name"
+                            @click="$emit('toggle', props.rowData)"
+                        >
+                            {{ toggleText(props.rowData) }}
+                        </button>
+                        <button
+                            type="button"
+                            class="btn btn-sm btn-outline-danger"
+                            :aria-label="'Delete ' + props.rowData.name"
+                            @click="$emit('delete', props.rowData)"
+                        >
+                            Delete
+                        </button>
+                    </template>
                 </DataTable>
             </div>
         </div>
@@ -41,7 +72,7 @@
 import DataTable from 'datatables.net-vue3';
 import DataTablesCore from 'datatables.net-bs5';
 import 'datatables.net-bs5/css/dataTables.bootstrap5.css';
-import { getRecentLecturers } from '../../services/administratorService';
+import { getLecturers, getRecentLecturers } from '../../services/administratorService';
 
 DataTable.use(DataTablesCore);
 
@@ -86,6 +117,9 @@ const columns = [
     },
 ];
 
+// buttons for this one are in the #actions slot, only the management page adds it
+const actionColumn = { data: null, title: 'Actions', orderable: false, render: '#actions' };
+
 // matches the lecturer dashboard table: 5 a page, newest login first
 const tableOptions = {
     searching: true,
@@ -112,29 +146,87 @@ export default {
     components: {
         DataTable,
     },
+    props: {
+        // management page sets this, it gets every lecturer and the Actions column but no heading
+        manage: {
+            type: Boolean,
+            default: false,
+        },
+        // all / active / disabled from the dropdown on the page
+        statusFilter: {
+            type: String,
+            default: 'all',
+        },
+    },
+    emits: ['edit', 'toggle', 'delete'],
 
     data() {
         return {
             lecturers: [],
             isLoading: true,
             loadError: '',
-            columns,
             tableOptions,
         };
     },
 
+    computed: {
+        /**
+         * Only the management page gets the Actions column
+         */
+        tableColumns() {
+            // fresh copies for each table - DataTables swaps '#status' and '#actions' for this table's own slots,
+            // a shared copy would keep pointing at the first table ever shown and its buttons wouldn't go anywhere
+            const tableColumns = columns.map((column) => Object.assign({}, column));
+            if (this.manage) {
+                tableColumns.push(Object.assign({}, actionColumn));
+            }
+            return tableColumns;
+        },
+
+        /**
+         * status dropdown filter, the search box is done by DataTables itself
+         */
+        shownLecturers() {
+            if (this.statusFilter === 'active') {
+                return this.lecturers.filter((lecturer) => lecturer.isEnabled);
+            }
+            if (this.statusFilter === 'disabled') {
+                return this.lecturers.filter((lecturer) => !lecturer.isEnabled);
+            }
+            return this.lecturers;
+        },
+    },
+
     /**
-     * Asks PHP for the lecturers as soon as the dashboard opens
+     * Loads the lecturers as soon as the table shows up
      */
-    async mounted() {
-        try {
-            this.lecturers = await getRecentLecturers();
-        } catch (error) {
-            // PHP's own message if it sent one, otherwise one that still says what failed
-            this.loadError = error.response?.data?.error || 'Unable to load the lecturers';
-        } finally {
-            this.isLoading = false;
-        }
+    mounted() {
+        this.loadLecturers();
+    },
+
+    methods: {
+        /**
+         * Asks PHP for the lecturers. The page calls it again after an edit, disable or delete so rows are fresh
+         */
+        async loadLecturers() {
+            try {
+                // dashboard only wants the 5 latest, the management page wants all of them
+                this.lecturers = this.manage ? await getLecturers() : await getRecentLecturers();
+                this.loadError = '';
+            } catch (error) {
+                // PHP's own message if it sent one, otherwise one that still says what failed
+                this.loadError = error.response?.data?.error || 'Unable to load the lecturers';
+            } finally {
+                this.isLoading = false;
+            }
+        },
+
+        /**
+         * middle button says Disable or Enable depending on the account
+         */
+        toggleText(lecturer) {
+            return lecturer.isEnabled ? 'Disable account' : 'Enable account';
+        },
     },
 };
 </script>

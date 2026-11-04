@@ -59,6 +59,9 @@ final class AdministratorRecentLecturersTest extends TestCase
         $this->assertSame(
             [
                 [
+                    'userID' => 'id-ws000102',
+                    'firstName' => 'Second',
+                    'lastName' => 'Lecturer',
                     'name' => 'Second Lecturer',
                     'staffID' => 'ws000102',
                     'email' => 'ws000102@example.test',
@@ -66,6 +69,9 @@ final class AdministratorRecentLecturersTest extends TestCase
                     'lastLogin' => '2026-10-25 14:30:00',
                 ],
                 [
+                    'userID' => 'id-ws000101',
+                    'firstName' => 'Test',
+                    'lastName' => 'Lecturer',
                     'name' => 'Test Lecturer',
                     'staffID' => 'ws000101',
                     'email' => 'ws000101@example.test',
@@ -96,6 +102,27 @@ final class AdministratorRecentLecturersTest extends TestCase
         $this->assertCount(5, $lecturers);
         $this->assertSame('ws000105', $lecturers[0]['staffID']);
         $this->assertNotContains('ws000100', array_column($lecturers, 'staffID'));
+    }
+
+    /**
+     * six lecturers are added and all six come back, the dashboard version would stop at 5 (boundary)
+     * the one who's never logged in should be at the bottom
+     */
+    public function testGetAllLecturersGivesEveryLecturer(): void
+    {
+        // Arrange
+        $this->addLecturer('ws000100', 'Never', 'Lecturer', 'lecturer', 1, null);
+        for ($day = 1; $day <= 5; $day++) {
+            $lastLogin = '2026-10-0' . $day . ' 10:00:00';
+            $this->addLecturer('ws00010' . $day, 'Lecturer', (string) $day, 'lecturer', 1, $lastLogin);
+        }
+
+        // Act
+        $lecturers = Administrator::getAllLecturers();
+
+        // Assert
+        $this->assertCount(6, $lecturers);
+        $this->assertSame('ws000100', $lecturers[5]['staffID']);
     }
 
     /**
