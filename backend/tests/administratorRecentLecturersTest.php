@@ -105,6 +105,27 @@ final class AdministratorRecentLecturersTest extends TestCase
     }
 
     /**
+     * six lecturers are added and all six come back, the dashboard version would stop at 5 (boundary)
+     * the one who's never logged in should be at the bottom
+     */
+    public function testGetAllLecturersGivesEveryLecturer(): void
+    {
+        // Arrange
+        $this->addLecturer('ws000100', 'Never', 'Lecturer', 'lecturer', 1, null);
+        for ($day = 1; $day <= 5; $day++) {
+            $lastLogin = '2026-10-0' . $day . ' 10:00:00';
+            $this->addLecturer('ws00010' . $day, 'Lecturer', (string) $day, 'lecturer', 1, $lastLogin);
+        }
+
+        // Act
+        $lecturers = Administrator::getAllLecturers();
+
+        // Assert
+        $this->assertCount(6, $lecturers);
+        $this->assertSame('ws000100', $lecturers[5]['staffID']);
+    }
+
+    /**
      * An admin and a student are added too, only the lecturer should show (error)
      */
     public function testLeavesAdminsAndStudentsOut(): void

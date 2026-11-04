@@ -68,22 +68,21 @@ class AdministratorController extends Controller
     {
         Authentication::requireRole(['admin']);
 
-        $data = $this->readBody();
-        if (!is_bool($data['isEnabled'] ?? null)) {
+        $isEnabled = self::readIsEnabled($this->readBody());
+        if ($isEnabled === null) {
             $this->jsonResponse(['error' => 'Choose disable or enable'], 400);
             return;
         }
 
         try {
             $admin = $this->getLoggedInAdmin();
-            $lecturer = User::findById($userID);
-            // a student or an unknown ID isn't a lecturer
-            if (!($lecturer instanceof Lecturer)) {
+            $lecturer = self::findLecturer($userID);
+            if ($lecturer === null) {
                 $this->jsonResponse(['error' => 'Lecturer not found'], 404);
                 return;
             }
 
-            if ($data['isEnabled']) {
+            if ($isEnabled) {
                 $admin->enableLecturer($lecturer);
             } else {
                 $admin->disableLecturer($lecturer);
@@ -108,8 +107,8 @@ class AdministratorController extends Controller
 
         try {
             $admin = $this->getLoggedInAdmin();
-            $lecturer = User::findById($userID);
-            if (!($lecturer instanceof Lecturer)) {
+            $lecturer = self::findLecturer($userID);
+            if ($lecturer === null) {
                 $this->jsonResponse(['error' => 'Lecturer not found'], 404);
                 return;
             }
@@ -134,8 +133,8 @@ class AdministratorController extends Controller
 
         try {
             $admin = $this->getLoggedInAdmin();
-            $lecturer = User::findById($userID);
-            if (!($lecturer instanceof Lecturer)) {
+            $lecturer = self::findLecturer($userID);
+            if ($lecturer === null) {
                 $this->jsonResponse(['error' => 'Lecturer not found'], 404);
                 return;
             }
@@ -148,6 +147,25 @@ class AdministratorController extends Controller
             error_log('Deleting the lecturer failed: ' . $e->getMessage());
             $this->jsonResponse(['error' => 'Unable to delete the lecturer'], 500);
         }
+    }
+
+    /**
+     * Finds the lecturer the button was pressed on, a student or an unknown ID gives null so the page gets a 404
+     * public static so the tests can call it without a request
+     */
+    public static function findLecturer(string $userID): ?Lecturer
+    {
+        $user = User::findById($userID);
+
+        return $user instanceof Lecturer ? $user : null;
+    }
+
+    /**
+     * Reads isEnabled from what the page sent, anything that isn't true or false gives null so the page gets a 400
+     */
+    public static function readIsEnabled(array $data): ?bool
+    {
+        return is_bool($data['isEnabled'] ?? null) ? $data['isEnabled'] : null;
     }
 
     /**

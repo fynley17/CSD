@@ -3,6 +3,7 @@
 use App\Models\Administrator;
 use App\Models\Lecturer;
 use App\Models\Model;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -189,6 +190,46 @@ final class LecturerManagementTest extends TestCase
         // Assert
         $this->assertSame('An account with this staff ID already exists', $message);
         $this->assertSame('lec01', $this->getAccount('lecturer-id')['username']);
+    }
+
+    /**
+     * Each box filled in wrong, or an email someone else has, gets its own message and nothing is saved (error)
+     */
+    #[DataProvider('badDetails')]
+    public function testRefusesEachBadBox(string $key, string $value, string $expected): void
+    {
+        // Arrange
+        $admin = new Administrator($this->makeRow('admin-id', 'admin'));
+        $lecturer = new Lecturer($this->makeRow('lecturer-id', 'lecturer'));
+        $details = ['firstName' => 'Test', 'lastName' => 'One', 'staffID' => 'lec01', 'email' => 'lec01@example.test'];
+        $details[$key] = $value;
+        $message = '';
+
+        // Act
+        try {
+            $admin->editLecturer($lecturer, $details);
+        } catch (\InvalidArgumentException $e) {
+            $message = $e->getMessage();
+        }
+
+        // Assert
+        $this->assertSame($expected, $message);
+        $this->assertSame(['username' => 'lec01', 'email' => 'lec01@example.test', 'firstName' => 'Test',
+            'lastName' => 'One'], $this->getAccount('lecturer-id'));
+    }
+
+    /**
+     * one wrong box at a time and the message the pop-up should show
+     */
+    public static function badDetails(): array
+    {
+        return [
+            'no first name' => ['firstName', '', 'Enter a first name using letters, spaces, hyphens or apostrophes'],
+            'bad surname' => ['lastName', 'On3', 'Enter a last name using letters, spaces, hyphens or apostrophes'],
+            'short staff ID' => ['staffID', 'ab', 'Staff ID must be 3 to 8 letters or numbers, like L1001'],
+            'bad email' => ['email', 'nope', 'Enter an email address in the correct format, like name@example.com'],
+            'email taken' => ['email', 'LEC02@example.test', 'An account with this email address already exists'],
+        ];
     }
 
     /**
