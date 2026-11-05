@@ -100,7 +100,8 @@ CREATE TABLE `Tests` (
   `dueDate` date DEFAULT NULL,
   `questionCount` int(3) NOT NULL DEFAULT 10
     COMMENT 'Questions drawn at random per attempt from the subject''s question pool',
-  `createdBy` uuid NOT NULL
+  `createdBy` uuid NOT NULL,
+  `isActive` tinyint(1) NOT NULL DEFAULT 1 COMMENT '1 = active, 0 = archived'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE `Users` (

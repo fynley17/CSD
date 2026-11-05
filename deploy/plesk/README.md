@@ -49,9 +49,10 @@ Gmail app password are never committed.
 1. **Databases → Add Database:** for example `revisionhub`, with a new
    database user. Note the host Plesk shows (usually `localhost`).
 2. Open **phpMyAdmin** from the database and import
-   `database/init/01-schema.sql`. The schema already includes every
-   migration, so you don't need to run `database/migrations` on a fresh
-   database.
+   `database/init/01-schema.sql`. The schema should already include every
+   migration, so a fresh database doesn't need `database/migrations`. When a
+   PR adds a migration, it must also change `01-schema.sql`, or a fresh
+   database will be missing that change.
 3. Don't import `database/seeds/sample-tests.sql` on the live site, because
    its accounts have a publicly known password. Import
    `database/seeds/beta-test-data.sql` only for the beta-test period, and
