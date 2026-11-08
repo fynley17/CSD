@@ -1607,6 +1607,14 @@ main.appMainFullScreen {
     overflow: auto hidden;
 }
 
+/* DataTables flips number and date column headers so the sort arrows sit on the left*/
+/* this keeps them on the right like every other column */
+/* stylelint-disable-next-line selector-class-pattern */
+table.dataTable thead > tr > th.dt-type-numeric div.dt-column-header,
+table.dataTable thead > tr > th.dt-type-date div.dt-column-header {
+    flex-direction: row;
+}
+
 /* large number on the results summary cards */
 .statValue {
     color: var(--colorText);
