@@ -32,7 +32,7 @@
 
                 <p v-if="cohort.subjects.length === 0" class="cohortDetailsEmpty">No subjects for this cohort yet</p>
 
-                <table v-else class="cohortDetailsTable">
+                <table v-else class="table table-sm align-middle mb-0 cohortDetailsTable">
                     <caption class="visually-hidden">
                         Subjects studied by
                         {{
@@ -61,7 +61,7 @@
                             <td>
                                 <button
                                     type="button"
-                                    class="btn btn-sm tableActionButton tableDeleteButton"
+                                    class="btn btn-sm btn-outline-danger"
                                     :aria-label="`Remove from cohort: ${subject.subjectName}`"
                                     @click="emit('remove', cohort, subject)"
                                 >

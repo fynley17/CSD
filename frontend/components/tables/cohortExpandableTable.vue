@@ -1,7 +1,8 @@
 <!-- One row per cohort that opens to show more detail, with paging. The two cohort tables fill in the columns -->
 <template>
-    <div class="cohortTableScroller" role="region" tabindex="0" :aria-label="label">
-        <table class="cohortTable">
+    <!-- same Bootstrap table classes as the DataTables tables, so every table on the site looks alike -->
+    <div class="adminTable cohortTableScroller" role="region" tabindex="0" :aria-label="label">
+        <table class="table table-sm table-hover align-middle mb-0 cohortTable">
             <caption class="visually-hidden">
                 {{
                     label
@@ -22,7 +23,7 @@
                         <td class="cohortToggleCell">
                             <button
                                 type="button"
-                                class="cohortToggle"
+                                class="btn btn-sm btn-outline-primary cohortToggle"
                                 :aria-expanded="isOpen(cohort)"
                                 :aria-controls="isOpen(cohort) ? detailsID(cohort) : null"
                                 :aria-label="`Show details for ${cohort.cohortName}`"
@@ -48,13 +49,17 @@
         </table>
     </div>
 
+    <!-- laid out like the DataTables footer, count on the left and Bootstrap page buttons on the right -->
     <div class="cohortPaging">
+        <!-- role status so screen readers hear the new total after searching or changing page -->
+        <p class="cohortPagingSummary" role="status">{{ pagingSummary }}</p>
+
         <nav :aria-label="`${label} pages`">
-            <ul class="cohortPageList">
-                <li>
+            <ul class="pagination mb-0">
+                <li class="page-item" :class="{ disabled: page === 1 }">
                     <button
                         type="button"
-                        class="cohortPageButton"
+                        class="page-link"
                         aria-label="Previous page"
                         :disabled="page === 1"
                         @click="page -= 1"
@@ -62,11 +67,10 @@
                         <i class="bi bi-chevron-left" aria-hidden="true"></i>
                     </button>
                 </li>
-                <li v-for="number in pageCount" :key="number">
+                <li v-for="number in pageCount" :key="number" class="page-item" :class="{ active: number === page }">
                     <button
                         type="button"
-                        class="cohortPageButton"
-                        :class="{ cohortPageButtonCurrent: number === page }"
+                        class="page-link"
                         :aria-label="`Page ${number}`"
                         :aria-current="number === page ? 'page' : null"
                         @click="page = number"
@@ -74,10 +78,10 @@
                         {{ number }}
                     </button>
                 </li>
-                <li>
+                <li class="page-item" :class="{ disabled: page === pageCount }">
                     <button
                         type="button"
-                        class="cohortPageButton"
+                        class="page-link"
                         aria-label="Next page"
                         :disabled="page === pageCount"
                         @click="page += 1"
@@ -87,9 +91,6 @@
                 </li>
             </ul>
         </nav>
-
-        <!-- role status so screen readers hear the new total after searching or changing page -->
-        <p class="cohortPagingSummary" role="status">{{ pagingSummary }}</p>
     </div>
 </template>
 

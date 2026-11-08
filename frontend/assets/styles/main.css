@@ -1364,17 +1364,10 @@ main.appMainFullScreen {
     background-color: var(--colorWarning);
 }
 
-/* cohort management tables, only the table scrolls sideways on small screens */
+/* cohort management tables use the same Bootstrap table classes as the DataTables ones,
+   only the table scrolls sideways on small screens */
 .cohortTableScroller {
     overflow-x: auto;
-    border: 1px solid var(--colorDivider);
-    background: var(--colorSurface);
-}
-
-.cohortTable,
-.cohortDetailsTable {
-    width: 100%;
-    border-collapse: collapse;
 }
 
 /* table in the assign subjects pop-up */
@@ -1388,20 +1381,10 @@ main.appMainFullScreen {
     background: var(--colorSurfaceAlt);
 }
 
-/* the details tables sit inside .cohortTable, so they pick up the same cell spacing */
+/* the details tables sit inside .cohortTable, so this covers both */
 .cohortTable th,
 .cohortTable td {
-    padding: var(--spaceSm) var(--spaceMd);
-    border-bottom: 1px solid var(--colorDivider);
     white-space: nowrap;
-}
-
-.cohortTable thead th {
-    font-weight: 600;
-}
-
-.cohortTable > thead th {
-    background: var(--colorSurfaceAlt);
 }
 
 .cohortTable .cohortNameCell {
@@ -1424,36 +1407,13 @@ main.appMainFullScreen {
     width: 1%;
 }
 
-.cohortToggle,
-.cohortPageButton {
-    min-width: var(--minTouchTarget);
-    min-height: var(--minTouchTarget);
-    border: 1px solid var(--colorBorderInput);
-    border-radius: var(--radiusSm);
-    background: var(--colorSurface);
-    color: var(--colorText);
-}
-
-.cohortPageButton:disabled {
-    background: var(--colorDisabled);
-    color: var(--colorTextSecondary);
-    cursor: not-allowed;
-}
-
-.cohortToggle:hover,
-.cohortToggle:focus-visible,
-.cohortPageButton:focus-visible,
-.cohortPageButton:hover:not(:disabled) {
-    background: var(--colorPrimaryLight);
+/* square chevron button */
+.cohortToggle {
+    min-width: 36px;
 }
 
 /* the current page isn't shown by colour alone, it's also bold and aria-current for screen readers */
-.cohortPageButton.cohortPageButtonCurrent,
-.cohortPageButton.cohortPageButtonCurrent:hover,
-.cohortPageButton.cohortPageButtonCurrent:focus-visible {
-    border-color: var(--colorBrand);
-    background: var(--colorBrand);
-    color: var(--colorSurface);
+.cohortPaging [aria-current='page'] {
     font-weight: 700;
 }
 
@@ -1585,8 +1545,10 @@ main.appMainFullScreen {
     gap: var(--spaceSm);
 }
 
+/* grey behind the opened details, and the row doesn't pick up the hover shade */
 .cohortTable .cohortDetailsRow > td {
-    background: var(--colorSurfaceAlt);
+    --bs-table-bg: var(--colorSurfaceAlt);
+    --bs-table-hover-bg: transparent;
 }
 
 .cohortDetails {
@@ -1627,15 +1589,6 @@ main.appMainFullScreen {
     justify-content: space-between;
     gap: var(--spaceSm);
     margin-top: var(--spaceMd);
-}
-
-.cohortPageList {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--spaceSm);
-    margin: 0;
-    padding: 0;
-    list-style: none;
 }
 
 .cohortPagingSummary {
@@ -1834,6 +1787,9 @@ main.appMainFullScreen {
     font-weight: 600;
 }
 
-.adminPage .adminTable [class~='btn'] {
+/* every table uses these, lecturer pages included, so it's not tied to .adminPage */
+.adminTable [class~='btn'] {
     min-height: 36px;
+    border-radius: var(--radiusSm);
+    font-weight: 600;
 }

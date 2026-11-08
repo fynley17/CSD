@@ -232,7 +232,7 @@ describe('CohortManagement', () => {
 
         // Assert
         expect(findButton(page, 'Enable DTS 2026').text()).toBe('Enable');
-        expect(findButton(page, 'Enable DTS 2026').classes()).toContain('tableEnableButton');
+        expect(findButton(page, 'Enable DTS 2026').classes()).toContain('btn-outline-primary');
         expect(firstPills()).toEqual(['Disabled', 'Disabled']);
     });
 
@@ -250,7 +250,7 @@ describe('CohortManagement', () => {
         await flushPromises();
 
         // Assert
-        expect(findButton(page, 'Disable DTS 2026').classes()).toContain('tableDisableButton');
+        expect(findButton(page, 'Disable DTS 2026').classes()).toContain('btn-outline-primary');
     });
 
     /**
@@ -660,15 +660,15 @@ describe('CohortManagement', () => {
     });
 
     /**
-     * The delete button has the same look as on student management (normal)
+     * The table buttons use the same Bootstrap outline buttons as every other table (normal)
      */
     it('styles the action buttons like the rest of the site', async () => {
         // Arrange and Act
         const page = await openPage();
 
         // Assert
-        expect(findButton(page, 'Delete DTS 2026').classes()).toContain('tableDeleteButton');
-        expect(findButton(page, 'Disable DTS 2026').classes()).toContain('tableDisableButton');
+        expect(findButton(page, 'Delete DTS 2026').classes()).toContain('btn-outline-danger');
+        expect(findButton(page, 'Disable DTS 2026').classes()).toContain('btn-outline-primary');
     });
 
     /**
@@ -1035,14 +1035,14 @@ describe('CohortManagement', () => {
     });
 
     /**
-     * The edit button has the same look as on student management (normal)
+     * The edit button uses the same Bootstrap outline button as every other table (normal)
      */
     it('styles the edit button like the rest of the site', async () => {
         // Arrange and Act
         const page = await openPage();
 
         // Assert
-        expect(findButton(page, 'Edit DTS 2026').classes()).toContain('tableEditButton');
+        expect(findButton(page, 'Edit DTS 2026').classes()).toContain('btn-outline-primary');
     });
 
     /**
@@ -1685,8 +1685,8 @@ describe('CohortManagement', () => {
         await page.findAll('.cohortTable')[1].get('[aria-label="Show details for DTS 2026"]').trigger('click');
 
         // Assert
-        expect(findButton(page, 'Remove from cohort: Joe Bloggs').classes()).toContain('tableDeleteButton');
-        expect(findButton(page, 'Remove from cohort: Web Applications').classes()).toContain('tableDeleteButton');
+        expect(findButton(page, 'Remove from cohort: Joe Bloggs').classes()).toContain('btn-outline-danger');
+        expect(findButton(page, 'Remove from cohort: Web Applications').classes()).toContain('btn-outline-danger');
     });
 
     /**

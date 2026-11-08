@@ -24,7 +24,7 @@
                 <div class="cohortActions">
                     <button
                         type="button"
-                        class="btn btn-sm tableActionButton tableEditButton"
+                        class="btn btn-sm btn-outline-primary"
                         :aria-label="`Edit ${cohort.cohortName}`"
                         @click="emit('edit', cohort)"
                     >
@@ -32,8 +32,7 @@
                     </button>
                     <button
                         type="button"
-                        class="btn btn-sm tableActionButton"
-                        :class="cohort.isActive ? 'tableDisableButton' : 'tableEnableButton'"
+                        class="btn btn-sm btn-outline-primary"
                         :aria-label="`${cohort.isActive ? 'Disable' : 'Enable'} ${cohort.cohortName}`"
                         @click="emit('toggleStatus', cohort)"
                     >
@@ -42,7 +41,7 @@
                     <!-- always clickable, the pop-up explains why a cohort with students or subjects can't go -->
                     <button
                         type="button"
-                        class="btn btn-sm tableActionButton tableDeleteButton"
+                        class="btn btn-sm btn-outline-danger"
                         :aria-label="`Delete ${cohort.cohortName}`"
                         @click="emit('delete', cohort)"
                     >
@@ -69,7 +68,7 @@
                 <p v-if="cohort.students.length === 0" class="cohortDetailsEmpty">No students in this cohort yet</p>
 
                 <template v-else>
-                    <table class="cohortDetailsTable">
+                    <table class="table table-sm align-middle mb-0 cohortDetailsTable">
                         <caption class="visually-hidden">
                             Students in
                             {{
@@ -100,7 +99,7 @@
                                 <td>
                                     <button
                                         type="button"
-                                        class="btn btn-sm tableActionButton tableDeleteButton"
+                                        class="btn btn-sm btn-outline-danger"
                                         :aria-label="`Remove from cohort: ${student.name}`"
                                         @click="emit('moveStudent', cohort, student)"
                                     >
