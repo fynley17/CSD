@@ -22,13 +22,29 @@ final class LecturerManagementTest extends TestCase
     {
         $this->db = new \PDO('sqlite::memory:');
         $this->db->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
+        // the extra columns have defaults so the old tests don't need to fill them in
         $this->db->exec(
             'CREATE TABLE Users (userID TEXT PRIMARY KEY, username TEXT NOT NULL, email TEXT NOT NULL, '
-            . 'isEnabled INTEGER NOT NULL)'
+            . "isEnabled INTEGER NOT NULL, password TEXT NOT NULL DEFAULT 'not-a-real-hash', "
+            . "accountType TEXT NOT NULL DEFAULT 'lecturer', approvalStatus TEXT NOT NULL DEFAULT 'approved', "
+            . 'isEmailVerified INTEGER NOT NULL DEFAULT 1)'
         );
         $this->db->exec(
-            "INSERT INTO Users VALUES ('admin-id', 'adm01', 'adm01@example.test', 1), "
+            'INSERT INTO Users (userID, username, email, isEnabled) VALUES '
+            . "('admin-id', 'adm01', 'adm01@example.test', 1), "
             . "('lecturer-id', 'lec01', 'lec01@example.test', 1), ('other-id', 'lec02', 'lec02@example.test', 1)"
+        );
+        $this->db->exec("UPDATE Users SET accountType = 'admin' WHERE userID = 'admin-id'");
+
+        // Add Lecturer makes its ID with MariaDB's UUID(), SQLite doesn't have one so the test gives it one
+        $this->db->sqliteCreateFunction('UUID', function (): string {
+            return 'new-id';
+        }, 0);
+
+        // where the set password links go, same as PasswordSetupTest
+        $this->db->exec(
+            'CREATE TABLE PasswordSetupTokens (userID TEXT PRIMARY KEY, tokenHash TEXT NOT NULL UNIQUE, '
+            . 'expiresAt TEXT NOT NULL, sentAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)'
         );
         $this->db->exec(
             'CREATE TABLE Lecturer (userID TEXT PRIMARY KEY, firstName TEXT NOT NULL, lastName TEXT NOT NULL)'
@@ -301,6 +317,101 @@ final class LecturerManagementTest extends TestCase
         // Assert
         $this->assertSame("Administrator accounts can't be changed on this page", $message);
         $this->assertSame(1, $this->countAccounts('admin-id'));
+    }
+
+    /**
+     * Add Lecturer makes the account with no password anyone knows, an admin gets a Lecturer row too (normal)
+     */
+    #[DataProvider('newRoles')]
+    public function testAddsAnAccountThatSetsItsOwnPassword(string $role): void
+    {
+        // Arrange
+        $admin = new Administrator($this->makeRow('admin-id', 'admin'));
+
+        // Act
+        $created = $admin->createLecturer($this->newDetails($role));
+
+        // Assert
+        $this->assertSame($role, $created['role']);
+        $this->assertSame(
+            [
+                'username' => 'L2001',
+                'email' => 'new.lecturer@example.test',
+                'firstName' => 'New',
+                'lastName' => 'Lecturer',
+            ],
+            $this->getAccount('new-id')
+        );
+        $stmt = $this->db->query("SELECT accountType, isEmailVerified, password FROM Users WHERE userID = 'new-id'");
+        $row = $stmt->fetch(\PDO::FETCH_ASSOC);
+        $this->assertSame($role, $row['accountType']);
+        // 0 means they haven't used the emailed link yet so nobody knows the password
+        $this->assertSame(0, (int) $row['isEmailVerified']);
+        $this->assertNotSame('', $row['password']);
+    }
+
+    /**
+     * the two roles the Add Lecturer pop-up can send
+     */
+    public static function newRoles(): array
+    {
+        return ['lecturer' => ['lecturer'], 'admin' => ['admin']];
+    }
+
+    /**
+     * Only Lecturer or Administrator can be picked, sending student is refused and nothing is saved (error)
+     */
+    public function testRefusesARoleThatIsNotLecturerOrAdmin(): void
+    {
+        // Arrange
+        $admin = new Administrator($this->makeRow('admin-id', 'admin'));
+        $message = '';
+
+        // Act
+        try {
+            $admin->createLecturer($this->newDetails('student'));
+        } catch (\InvalidArgumentException $e) {
+            $message = $e->getMessage();
+        }
+
+        // Assert
+        $this->assertSame('Choose Lecturer or Administrator', $message);
+        $this->assertSame(0, $this->countAccounts('new-id'));
+    }
+
+    /**
+     * Resend link makes a new link for someone who hasn't set a password yet (normal)
+     */
+    public function testResendMakesALinkForSomeoneWithoutAPassword(): void
+    {
+        // Arrange
+        $this->db->exec("UPDATE Users SET isEmailVerified = 0 WHERE userID = 'lecturer-id'");
+        $admin = new Administrator($this->makeRow('admin-id', 'admin'));
+        $row = $this->makeRow('lecturer-id', 'lecturer');
+        $row['isEmailVerified'] = 0;
+        $lecturer = new Lecturer($row);
+
+        // Act
+        $link = $admin->makeSetupLink($lecturer);
+
+        // Assert
+        $this->assertSame('lec01@example.test', $link['email']);
+        $this->assertSame(64, strlen($link['token']));
+        $this->assertSame(1, (int) $this->db->query('SELECT COUNT(*) FROM PasswordSetupTokens')->fetchColumn());
+    }
+
+    /**
+     * What the Add Lecturer pop-up sends, made up test data
+     */
+    private function newDetails(string $role): array
+    {
+        return [
+            'firstName' => 'New',
+            'lastName' => 'Lecturer',
+            'staffID' => 'L2001',
+            'email' => 'New.Lecturer@example.test',
+            'role' => $role,
+        ];
     }
 
     /**
