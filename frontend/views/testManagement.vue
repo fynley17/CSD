@@ -14,9 +14,10 @@ import { getCurrentUser } from '../services/authService';
 import { deleteTest } from '../services/testService';
 import { nameOptions } from '../utils/filterOptions';
 
-// Store the signed-in user so only lecturers can create tests.
+// Store the signed-in user so only lecturers and admins can create tests.
+// Admins are lecturers too, so the test is saved with them as its creator.
 const currentUser = ref(null);
-const canCreateTest = computed(() => currentUser.value?.accountType === 'lecturer');
+const canCreateTest = computed(() => ['lecturer', 'admin'].includes(currentUser.value?.accountType));
 
 // References to the child components.
 const testManagementTable = ref(null);
