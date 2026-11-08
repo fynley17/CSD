@@ -1407,6 +1407,58 @@ main.appMainFullScreen {
     width: 1%;
 }
 
+/* sortable column headings on the cohort tables, laid out like the DataTables ones with the arrows on the right */
+.sortableHeadingButton {
+    display: flex;
+    width: 100%;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--spaceSm);
+    padding: 0;
+    border: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+}
+
+/* up and down arrows drawn with borders, sized and coloured with the DataTables variables so they match */
+.sortArrows {
+    position: relative;
+    flex-shrink: 0;
+    width: var(--dt-order-arrow-width, 8px);
+    align-self: stretch;
+    min-height: calc(var(--dt-order-arrow-height, 7px) * 2 + 2px);
+}
+
+.sortArrows::before,
+.sortArrows::after {
+    position: absolute;
+    left: 0;
+    width: 0;
+    height: 0;
+    border-right: calc(var(--dt-order-arrow-width, 8px) / 2) solid transparent;
+    border-left: calc(var(--dt-order-arrow-width, 8px) / 2) solid transparent;
+    content: '';
+    opacity: var(--dt-order-arrow_opacity, 0.125);
+}
+
+.sortArrows::before {
+    bottom: calc(50% + var(--dt-order-arrow-gap, 1px));
+    border-bottom: var(--dt-order-arrow-height, 7px) solid var(--dt-order-arrow_color, currentcolor);
+}
+
+.sortArrows::after {
+    top: calc(50% + 1px);
+    border-top: var(--dt-order-arrow-height, 7px) solid var(--dt-order-arrow_color, currentcolor);
+}
+
+/* the arrow for the current direction is darker */
+.sortArrowsAsc::before,
+.sortArrowsDesc::after {
+    opacity: var(--dt-order-arrow_opacity-current, 0.65);
+}
+
 /* square chevron button */
 .cohortToggle {
     min-width: 36px;

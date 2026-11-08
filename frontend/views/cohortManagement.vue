@@ -49,6 +49,7 @@
             <h2>Students in each cohort</h2>
             <CohortStudentsTable
                 :cohorts="visibleCohorts"
+                :toolbarSort="sortBy"
                 @edit="openCohortForm"
                 @toggleStatus="toggleStatus"
                 @delete="deletingCohort = $event"
@@ -59,6 +60,7 @@
             <h2>Subjects for each cohort</h2>
             <CohortSubjectsTable
                 :cohorts="visibleCohorts"
+                :toolbarSort="sortBy"
                 @assign="assigningCohort = $event"
                 @remove="(cohort, subject) => (removing = { cohort, subject })"
             />

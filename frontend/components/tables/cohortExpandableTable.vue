@@ -11,7 +11,7 @@
             <thead>
                 <tr>
                     <th scope="col"><span class="visually-hidden">Show details</span></th>
-                    <slot name="headings"></slot>
+                    <slot name="headings" :sort="sort" :toggleSort="toggleSort"></slot>
                 </tr>
             </thead>
             <tbody>
@@ -96,6 +96,7 @@
 
 <script setup>
 import { computed, ref, watch } from 'vue';
+import { nextSort, sortRows } from '../../utils/sortRows';
 
 const PAGE_SIZE = 4;
 
@@ -113,15 +114,28 @@ const props = defineProps({
         type: Number,
         required: true,
     },
+    // for each sortable column, a function that picks the value to sort a cohort by
+    sortValues: {
+        type: Object,
+        required: true,
+    },
+    // the Sort by drop down above the tables, picking from it clears any column sort so it shows straight away
+    toolbarSort: {
+        type: String,
+        default: '',
+    },
 });
 
 const page = ref(1);
 // every cohort starts closed, the details only show once a row is opened
 const openCohortIDs = ref(new Set());
+// no column sorted to start with, so the cohorts stay in the order the page gives them
+const sort = ref({ key: '', direction: '' });
 
+const sortedCohorts = computed(() => sortRows(props.cohorts, sort.value, props.sortValues));
 const pageCount = computed(() => Math.max(1, Math.ceil(props.cohorts.length / PAGE_SIZE)));
 const firstIndex = computed(() => (page.value - 1) * PAGE_SIZE);
-const pageOfCohorts = computed(() => props.cohorts.slice(firstIndex.value, firstIndex.value + PAGE_SIZE));
+const pageOfCohorts = computed(() => sortedCohorts.value.slice(firstIndex.value, firstIndex.value + PAGE_SIZE));
 
 const pagingSummary = computed(() => {
     const total = props.cohorts.length;
@@ -139,6 +153,19 @@ watch(
         page.value = 1;
     },
 );
+
+watch(
+    () => props.toolbarSort,
+    () => {
+        sort.value = { key: '', direction: '' };
+    },
+);
+
+// sorting by a column starts from the first page, like a new search does
+function toggleSort(key) {
+    sort.value = nextSort(sort.value, key);
+    page.value = 1;
+}
 
 function isOpen(cohort) {
     return openCohortIDs.value.has(cohort.cohortID);

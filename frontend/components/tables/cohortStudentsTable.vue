@@ -1,12 +1,18 @@
 <!-- Students in each cohort, the page shows the pop-ups for its action buttons -->
 <template>
-    <CohortExpandableTable :cohorts="cohorts" label="Students in each cohort" :columnCount="7">
-        <template #headings>
-            <th scope="col">Cohort name</th>
-            <th scope="col">Students</th>
-            <th scope="col">Subjects</th>
-            <th scope="col">Created</th>
-            <th scope="col">Status</th>
+    <CohortExpandableTable
+        :cohorts="cohorts"
+        label="Students in each cohort"
+        :columnCount="7"
+        :sortValues="cohortSortValues"
+        :toolbarSort="toolbarSort"
+    >
+        <template #headings="{ sort, toggleSort }">
+            <SortableHeading column="name" :sort="sort" @sort="toggleSort">Cohort name</SortableHeading>
+            <SortableHeading column="students" :sort="sort" @sort="toggleSort">Students</SortableHeading>
+            <SortableHeading column="subjects" :sort="sort" @sort="toggleSort">Subjects</SortableHeading>
+            <SortableHeading column="created" :sort="sort" @sort="toggleSort">Created</SortableHeading>
+            <SortableHeading column="status" :sort="sort" @sort="toggleSort">Status</SortableHeading>
             <th scope="col">Actions</th>
         </template>
 
@@ -77,11 +83,21 @@
                         </caption>
                         <thead>
                             <tr>
-                                <th scope="col">Student number</th>
-                                <th scope="col">Name</th>
-                                <th scope="col">Email</th>
-                                <th scope="col">Last login</th>
-                                <th scope="col">Status</th>
+                                <SortableHeading column="studentNumber" :sort="studentSort" @sort="toggleStudentSort">
+                                    Student number
+                                </SortableHeading>
+                                <SortableHeading column="name" :sort="studentSort" @sort="toggleStudentSort">
+                                    Name
+                                </SortableHeading>
+                                <SortableHeading column="email" :sort="studentSort" @sort="toggleStudentSort">
+                                    Email
+                                </SortableHeading>
+                                <SortableHeading column="lastLogin" :sort="studentSort" @sort="toggleStudentSort">
+                                    Last login
+                                </SortableHeading>
+                                <SortableHeading column="status" :sort="studentSort" @sort="toggleStudentSort">
+                                    Status
+                                </SortableHeading>
                                 <th scope="col">Actions</th>
                             </tr>
                         </thead>
@@ -130,7 +146,9 @@
 
 <script setup>
 import { ref } from 'vue';
+import { nextSort, sortRows } from '../../utils/sortRows';
 import CohortExpandableTable from './cohortExpandableTable.vue';
+import SortableHeading from './sortableHeading.vue';
 
 const PREVIEW_SIZE = 3;
 
@@ -139,7 +157,37 @@ defineProps({
         type: Array,
         required: true,
     },
+    // the Sort by drop down above the tables
+    toolbarSort: {
+        type: String,
+        default: '',
+    },
 });
+
+// the dates are YYYY-MM-DD, so they sort correctly as text
+const cohortSortValues = {
+    name: (cohort) => cohort.cohortName,
+    students: (cohort) => cohort.students.length,
+    subjects: (cohort) => cohort.subjects.length,
+    created: (cohort) => cohort.createdDate,
+    status: (cohort) => (cohort.isActive ? 'Active' : 'Disabled'),
+};
+
+// last login is YYYY-MM-DD HH:MM:SS from the database, so it sorts correctly as text, Never comes first
+const studentSortValues = {
+    studentNumber: (student) => student.studentNumber,
+    name: (student) => student.name,
+    email: (student) => student.email,
+    lastLogin: (student) => student.lastLogin,
+    status: (student) => student.status,
+};
+
+// one sort for every cohort's students, so they all stay in the same order when opened
+const studentSort = ref({ key: '', direction: '' });
+
+function toggleStudentSort(key) {
+    studentSort.value = nextSort(studentSort.value, key);
+}
 
 const emit = defineEmits(['edit', 'toggleStatus', 'delete', 'addStudents', 'moveStudent']);
 
@@ -161,8 +209,11 @@ function showAllLabel(cohort) {
     return `${isShowingAll(cohort) ? 'Show fewer' : 'View all'} students in ${cohort.cohortName}`;
 }
 
+// sorted before cutting down to the preview, so the preview shows the top of the sorted list
 function shownStudents(cohort) {
-    return isShowingAll(cohort) ? cohort.students : cohort.students.slice(0, PREVIEW_SIZE);
+    const students = sortRows(cohort.students, studentSort.value, studentSortValues);
+
+    return isShowingAll(cohort) ? students : students.slice(0, PREVIEW_SIZE);
 }
 
 function studentStatusClass(student) {

@@ -51,6 +51,13 @@ function cohortNames(page, tableIndex) {
     return table.findAll('.cohortNameCell').map((cell) => cell.text());
 }
 
+/**
+ * The sort button in a column heading, found by the heading's text
+ */
+function sortButton(wrapper, heading) {
+    return wrapper.findAll('.sortableHeadingButton').find((button) => button.text() === heading);
+}
+
 function findButton(page, label) {
     return page.get(`button[aria-label="${label}"]`);
 }
@@ -201,6 +208,101 @@ describe('CohortManagement', () => {
 
         await select.setValue('');
         expect(cohortNames(page, 0)[0]).toBe('DTS 2026');
+    });
+
+    /**
+     * Clicking a heading sorts up, then down, then back to the original order, like DataTables (normal)
+     */
+    it('sorts a cohort table by a column heading', async () => {
+        // Arrange
+        const page = await openPage();
+        const table = page.findAll('.cohortTable')[0];
+        const heading = () => sortButton(table, 'Students').element.closest('th');
+
+        // Act and Assert
+        await sortButton(table, 'Students').trigger('click');
+        expect(cohortNames(page, 0)[0]).toBe('Data Science 2026');
+        expect(heading().getAttribute('aria-sort')).toBe('ascending');
+        expect(heading().querySelector('.sortArrowsAsc')).not.toBeNull();
+
+        await sortButton(table, 'Students').trigger('click');
+        expect(cohortNames(page, 0)[0]).toBe('BSc Computing 2025');
+        expect(heading().getAttribute('aria-sort')).toBe('descending');
+
+        await sortButton(table, 'Students').trigger('click');
+        expect(cohortNames(page, 0)[0]).toBe('DTS 2026');
+        expect(heading().hasAttribute('aria-sort')).toBe(false);
+    });
+
+    /**
+     * Each table sorts on its own, sorting one leaves the other alone (normal)
+     */
+    it('sorts only the table whose heading was clicked', async () => {
+        // Arrange
+        const page = await openPage();
+
+        // Act
+        await sortButton(page.findAll('.cohortTable')[1], 'Subjects').trigger('click');
+
+        // Assert
+        expect(cohortNames(page, 1)[0]).toBe('Data Science 2026');
+        expect(cohortNames(page, 0)[0]).toBe('DTS 2026');
+    });
+
+    /**
+     * Picking from Sort by clears a column sort, so the drop down always does something (edge)
+     */
+    it('clears the column sort when Sort by is used', async () => {
+        // Arrange
+        const page = await openPage();
+        const table = page.findAll('.cohortTable')[0];
+        await sortButton(table, 'Students').trigger('click');
+
+        // Act
+        await page.findAll('select')[1].setValue('nameAsc');
+
+        // Assert
+        expect(cohortNames(page, 0)[0]).toBe('BSc Computing 2024');
+        expect(table.find('[aria-sort]').exists()).toBe(false);
+    });
+
+    /**
+     * The students in an open cohort sort too, before the preview cuts the list down (normal)
+     */
+    it('sorts the students in a cohort by a column heading', async () => {
+        // Arrange
+        const page = await openPage();
+        await findButton(page, 'Show details for DTS 2026').trigger('click');
+        const details = page.get('.cohortDetailsTable');
+
+        // Act
+        await sortButton(details, 'Name').trigger('click');
+
+        // Assert
+        expect(page.get('.cohortDetailsTable tbody th').text()).toBe('Alex Brown');
+    });
+
+    /**
+     * The subjects in an open cohort sort by number of tests (normal)
+     */
+    it('sorts the subjects in a cohort by a column heading', async () => {
+        // Arrange
+        const page = await openPage();
+        await page.findAll('.cohortTable')[1].get('[aria-label="Show details for DTS 2026"]').trigger('click');
+        const details = page.findAll('.cohortTable')[1].get('.cohortDetailsTable');
+
+        // Act
+        await sortButton(details, 'Tests').trigger('click');
+        await sortButton(details, 'Tests').trigger('click');
+
+        // Assert
+        const subjects = page.findAll('.cohortTable')[1].findAll('.cohortDetailsTable tbody th');
+        expect(subjects.map((cell) => cell.text())).toEqual([
+            'Web Applications',
+            'Databases',
+            'Software Testing',
+            'Networking',
+        ]);
     });
 
     /**

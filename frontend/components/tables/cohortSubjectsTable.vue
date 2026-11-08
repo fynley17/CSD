@@ -1,10 +1,16 @@
 <!-- Subjects for each cohort, the page shows the pop-ups for assigning and removing them -->
 <template>
-    <CohortExpandableTable :cohorts="cohorts" label="Subjects for each cohort" :columnCount="4">
-        <template #headings>
-            <th scope="col">Cohort name</th>
-            <th scope="col">Subjects</th>
-            <th scope="col">Status</th>
+    <CohortExpandableTable
+        :cohorts="cohorts"
+        label="Subjects for each cohort"
+        :columnCount="4"
+        :sortValues="cohortSortValues"
+        :toolbarSort="toolbarSort"
+    >
+        <template #headings="{ sort, toggleSort }">
+            <SortableHeading column="name" :sort="sort" @sort="toggleSort">Cohort name</SortableHeading>
+            <SortableHeading column="subjects" :sort="sort" @sort="toggleSort">Subjects</SortableHeading>
+            <SortableHeading column="status" :sort="sort" @sort="toggleSort">Status</SortableHeading>
         </template>
 
         <template #cells="{ cohort }">
@@ -41,15 +47,23 @@
                     </caption>
                     <thead>
                         <tr>
-                            <th scope="col">Subject</th>
-                            <th scope="col">Tests</th>
-                            <th scope="col">Lecturers</th>
-                            <th scope="col">Status</th>
+                            <SortableHeading column="subject" :sort="subjectSort" @sort="toggleSubjectSort">
+                                Subject
+                            </SortableHeading>
+                            <SortableHeading column="tests" :sort="subjectSort" @sort="toggleSubjectSort">
+                                Tests
+                            </SortableHeading>
+                            <SortableHeading column="lecturers" :sort="subjectSort" @sort="toggleSubjectSort">
+                                Lecturers
+                            </SortableHeading>
+                            <SortableHeading column="status" :sort="subjectSort" @sort="toggleSubjectSort">
+                                Status
+                            </SortableHeading>
                             <th scope="col">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
-                        <tr v-for="subject in cohort.subjects" :key="subject.subjectID">
+                        <tr v-for="subject in sortedSubjects(cohort)" :key="subject.subjectID">
                             <th scope="row">{{ subject.subjectName }}</th>
                             <td>{{ subject.testCount }}</td>
                             <td>{{ subject.lecturerNames || 'Not assigned' }}</td>
@@ -77,14 +91,46 @@
 </template>
 
 <script setup>
+import { ref } from 'vue';
+import { nextSort, sortRows } from '../../utils/sortRows';
 import CohortExpandableTable from './cohortExpandableTable.vue';
+import SortableHeading from './sortableHeading.vue';
 
 defineProps({
     cohorts: {
         type: Array,
         required: true,
     },
+    // the Sort by drop down above the tables
+    toolbarSort: {
+        type: String,
+        default: '',
+    },
 });
 
 const emit = defineEmits(['assign', 'remove']);
+
+const cohortSortValues = {
+    name: (cohort) => cohort.cohortName,
+    subjects: (cohort) => cohort.subjects.length,
+    status: (cohort) => (cohort.isActive ? 'Active' : 'Disabled'),
+};
+
+const subjectSortValues = {
+    subject: (subject) => subject.subjectName,
+    tests: (subject) => subject.testCount,
+    lecturers: (subject) => subject.lecturerNames || 'Not assigned',
+    status: (subject) => (subject.isActive ? 'Active' : 'Archived'),
+};
+
+// one sort for every cohort's subjects, so they all stay in the same order when opened
+const subjectSort = ref({ key: '', direction: '' });
+
+function toggleSubjectSort(key) {
+    subjectSort.value = nextSort(subjectSort.value, key);
+}
+
+function sortedSubjects(cohort) {
+    return sortRows(cohort.subjects, subjectSort.value, subjectSortValues);
+}
 </script>
