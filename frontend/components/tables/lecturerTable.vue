@@ -73,30 +73,10 @@ import DataTable from 'datatables.net-vue3';
 import DataTablesCore from 'datatables.net-bs5';
 import 'datatables.net-bs5/css/dataTables.bootstrap5.css';
 import { getLecturers, getRecentLecturers } from '../../services/administratorService';
+import { formatLastLogin } from '../../utils/formatLastLogin';
+import { tableScrollRegion } from '../../utils/tableScrollRegion';
 
 DataTable.use(DataTablesCore);
-
-/**
- * Turns the database time into UK date and time, i.e. 29/09/2026, 16:17
- * @param lastLogin the time from PHP, saved in UTC, or null if they've never logged in
- */
-export function formatLastLogin(lastLogin) {
-    if (lastLogin === null) {
-        return 'Never';
-    }
-
-    // Z on the end = UTC, the options below turn it into UK time
-    const loginTime = new Date(lastLogin.replace(' ', 'T') + 'Z');
-
-    return loginTime.toLocaleString('en-GB', {
-        timeZone: 'Europe/London',
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-    });
-}
 
 // render.text() shows names and emails as plain text (stops HTML typed into a name running, XSS)
 const columns = [
@@ -118,7 +98,7 @@ const columns = [
 ];
 
 // buttons for this one are in the #actions slot, only the management page adds it
-const actionColumn = { data: null, title: 'Actions', orderable: false, render: '#actions' };
+const actionColumn = { data: null, title: 'Actions', orderable: false, className: 'text-nowrap', render: '#actions' };
 
 // matches the lecturer dashboard table: 5 a page, newest login first
 const tableOptions = {
@@ -128,13 +108,8 @@ const tableOptions = {
     pageLength: 5,
     lengthChange: false,
     order: [[4, 'desc']],
-    // on phones the table scrolls sideways, so keyboard users need to be able to focus it and use the arrow keys
-    initComplete() {
-        const scroller = this.api().table().container().querySelector('.dt-layout-table');
-        scroller.setAttribute('tabindex', '0');
-        scroller.setAttribute('role', 'region');
-        scroller.setAttribute('aria-label', 'Lecturers table');
-    },
+    // on phones the table scrolls sideways, so keyboard users need to be able to focus it
+    initComplete: tableScrollRegion('Lecturers table'),
     language: {
         emptyTable: 'No lecturers to show yet',
         zeroRecords: 'No lecturers match your search',

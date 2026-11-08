@@ -64,6 +64,7 @@ import DataTable from 'datatables.net-vue3';
 import DataTablesCore from 'datatables.net-bs5';
 import 'datatables.net-bs5/css/dataTables.bootstrap5.css';
 import { getSubjects } from '../../services/subjectService';
+import { tableScrollRegion } from '../../utils/tableScrollRegion';
 
 DataTable.use(DataTablesCore);
 
@@ -85,7 +86,7 @@ const columns = [
 ];
 
 // buttons for this one are down in the #actions slot
-const actionColumn = { data: null, title: 'Actions', orderable: false, render: '#actions' };
+const actionColumn = { data: null, title: 'Actions', orderable: false, className: 'text-nowrap', render: '#actions' };
 
 // 5 a page like the lecturer table. Empty order keeps PHP's order (active first)
 const tableOptions = {
@@ -95,13 +96,8 @@ const tableOptions = {
     pageLength: 5,
     lengthChange: false,
     order: [],
-    // on phones the table scrolls sideways, so keyboard users need to be able to focus it and use the arrow keys
-    initComplete() {
-        const scroller = this.api().table().container().querySelector('.dt-layout-table');
-        scroller.setAttribute('tabindex', '0');
-        scroller.setAttribute('role', 'region');
-        scroller.setAttribute('aria-label', 'Subjects table');
-    },
+    // on phones the table scrolls sideways, so keyboard users need to be able to focus it
+    initComplete: tableScrollRegion('Subjects table'),
     language: {
         emptyTable: 'No subjects to show yet',
         zeroRecords: 'No subjects match your search',

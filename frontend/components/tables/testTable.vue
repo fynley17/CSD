@@ -9,6 +9,7 @@ import 'datatables.net-bs5/css/dataTables.bootstrap5.css';
 
 // Import the service that retrieves all tests for the lecturer dashboard.
 import { getLecturerTests } from '../../services/testService';
+import { tableScrollRegion } from '../../utils/tableScrollRegion';
 
 // Register the Bootstrap 5 version of DataTables with the Vue component.
 DataTable.use(DataTablesCore);
@@ -24,15 +25,10 @@ const errorMessage = ref('');
 
 // Define the columns displayed in the All Tests table.
 // These properties must match the fields returned by the PHP API.
+// render.text() shows names as plain text (stops HTML typed into a name running, XSS).
 const columns = [
-    {
-        data: 'testName',
-        title: 'Test Name',
-    },
-    {
-        data: 'subjectName',
-        title: 'Subject',
-    },
+    { data: 'testName', title: 'Test Name', render: DataTablesCore.render.text() },
+    { data: 'subjectName', title: 'Subject', render: DataTablesCore.render.text() },
     {
         data: 'questionCount',
         title: 'Questions',
@@ -75,6 +71,9 @@ const tableOptions = {
     // Sort tests alphabetically by name.
     order: [[0, 'asc']],
 
+    // On phones the table scrolls sideways, so keyboard users need to be able to focus it.
+    initComplete: tableScrollRegion('All tests table'),
+
     // Provide clear messages for empty results and searches.
     language: {
         emptyTable: 'No tests to display.',
@@ -102,29 +101,33 @@ onMounted(async () => {
 <template>
     <div class="card border-0 rounded-0 h-100">
         <!-- Table heading and link to test management. -->
-        <div class="card-body d-flex flex-wrap justify-content-between align-items-center gap-2">
+        <div class="card-body flex-grow-0 d-flex flex-wrap justify-content-between align-items-center gap-2">
             <h2 class="h5 fw-bold mb-0">All Tests</h2>
-
-            <router-link :to="{ name: 'testManagement' }" class="small text-dark"> View all tests </router-link>
+            <router-link :to="{ name: 'testManagement' }" class="small text-dark">View all tests</router-link>
         </div>
 
         <div class="px-3 px-md-4 pb-4">
             <!-- Show a loading message while retrieving test data. -->
-            <div v-if="loading" class="text-center text-secondary py-4" role="status">Loading tests...</div>
+            <p v-if="loading" class="text-center py-4 mb-0" role="status">Loading tests...</p>
 
             <!-- Show an error if the API request fails. -->
-            <div v-else-if="errorMessage" class="text-center text-danger py-4" role="alert">
+            <div v-else-if="errorMessage" class="alert alert-danger mb-0" role="alert">
                 {{ errorMessage }}
             </div>
 
             <!-- Render the searchable, sortable DataTable when loading ends. -->
-            <div v-else class="table-responsive">
+            <div v-else class="adminTable">
                 <DataTable
                     :columns="columns"
                     :data="tests"
                     :options="tableOptions"
                     class="table table-sm table-striped table-hover align-middle mb-0"
-                />
+                >
+                    <!-- screen readers read the caption out, the heading above already says it on screen -->
+                    <caption class="visually-hidden">
+                        All tests, sorted by name
+                    </caption>
+                </DataTable>
             </div>
         </div>
     </div>
