@@ -9,6 +9,7 @@ vi.mock('../services/studentService', () => ({
     getLecturerStudents: vi.fn(),
 }));
 
+// draws each row with the #status and #actions slots, like DataTables does in the browser
 vi.mock('datatables.net-vue3', async () => {
     const { defineComponent } = await import('vue');
 
@@ -25,6 +26,8 @@ vi.mock('datatables.net-vue3', async () => {
                             class="student-row"
                         >
                             {{ student.name }}
+                            <slot name="status" :cellData="student.status" :rowData="student" />
+                            <slot name="actions" :cellData="null" :rowData="student" />
                         </div>
                     </div>
                 `,
@@ -37,7 +40,9 @@ vi.mock('datatables.net-vue3', async () => {
 });
 
 vi.mock('datatables.net-bs5', () => ({
-    default: {},
+    default: {
+        render: { text: () => ({}) },
+    },
 }));
 
 describe('studentManagementTable.vue', () => {
@@ -99,7 +104,29 @@ describe('studentManagementTable.vue', () => {
         wrapper.unmount();
     });
 
-    it('renders the correct status badges for students', async () => {
+    it('shows each status as the house style pill', async () => {
+        // Arrange
+        getLecturerStudents.mockResolvedValue([
+            { userID: 1, name: 'Alex Morgan', status: 'Active' },
+            { userID: 2, name: 'Jamie Wilson', status: 'Pending' },
+            { userID: 3, name: 'Sam Lee', status: 'Disabled' },
+        ]);
+
+        // Act
+        const wrapper = mount(StudentManagementTable);
+        await flushPromises();
+
+        // Assert
+        const pills = wrapper.findAll('.statusPill');
+        expect(pills.map((pill) => pill.text())).toEqual(['Active', 'Pending', 'Disabled']);
+        expect(pills[0].classes()).toContain('statusActive');
+        expect(pills[1].classes()).toContain('statusPending');
+        expect(pills[2].classes()).toContain('statusDisabled');
+
+        wrapper.unmount();
+    });
+
+    it('sorts and filters on the status word, not the pill', async () => {
         // Arrange
         getLecturerStudents.mockResolvedValue([]);
 
@@ -107,21 +134,61 @@ describe('studentManagementTable.vue', () => {
         const wrapper = mount(StudentManagementTable);
         await flushPromises();
 
-        const table = wrapper.findComponent({
-            name: 'DataTable',
-        });
-
-        const columns = table.props('columns');
-        const statusColumn = columns.find((column) => column.data === 'status');
+        const statusColumn = wrapper
+            .findComponent({ name: 'DataTable' })
+            .props('columns')
+            .find((column) => column.data === 'status');
 
         // Assert
-        expect(statusColumn).toBeDefined();
+        expect(statusColumn.render.display).toBe('#status');
+        expect(statusColumn.render._('Pending')).toBe('Pending');
 
-        expect(statusColumn.render('Active', 'display')).toContain('studentStatusBadge');
+        wrapper.unmount();
+    });
 
-        expect(statusColumn.render('Pending', 'display')).toContain('Pending');
+    it('gives each status the right buttons, named for the student', async () => {
+        // Arrange
+        getLecturerStudents.mockResolvedValue([
+            { userID: 1, name: 'Alex Morgan', status: 'Active' },
+            { userID: 2, name: 'Jamie Wilson', status: 'Pending' },
+            { userID: 3, name: 'Sam Lee', status: 'Disabled' },
+        ]);
 
-        expect(statusColumn.render('Disabled', 'display')).toContain('Disabled');
+        // Act
+        const wrapper = mount(StudentManagementTable);
+        await flushPromises();
+
+        const labels = wrapper.findAll('.student-row button').map((button) => button.attributes('aria-label'));
+
+        // Assert
+        expect(labels).toEqual([
+            'Edit Alex Morgan',
+            'Disable Alex Morgan',
+            'Delete Alex Morgan',
+            'Approve Jamie Wilson',
+            'Decline Jamie Wilson',
+            'Edit Sam Lee',
+            'Enable Sam Lee',
+            'Delete Sam Lee',
+        ]);
+        expect(wrapper.get('[aria-label="Delete Sam Lee"]').classes()).toContain('btn-outline-danger');
+        expect(wrapper.get('[aria-label="Edit Sam Lee"]').classes()).toContain('btn-outline-primary');
+
+        wrapper.unmount();
+    });
+
+    it('sends the student to the page when Edit is clicked', async () => {
+        // Arrange
+        const student = { userID: 1, name: 'Alex Morgan', status: 'Active' };
+        getLecturerStudents.mockResolvedValue([student]);
+        const wrapper = mount(StudentManagementTable);
+        await flushPromises();
+
+        // Act
+        await wrapper.get('[aria-label="Edit Alex Morgan"]').trigger('click');
+
+        // Assert
+        expect(wrapper.emitted('edit')).toEqual([[student]]);
 
         wrapper.unmount();
     });

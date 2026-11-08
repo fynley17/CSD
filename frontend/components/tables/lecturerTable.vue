@@ -16,54 +16,74 @@
                 <strong>There is a problem:</strong> {{ loadError }}
             </div>
 
-            <div v-else class="adminTable">
-                <DataTable
-                    :columns="tableColumns"
-                    :data="shownLecturers"
-                    :options="tableOptions"
-                    class="table table-sm table-striped table-hover align-middle mb-0"
-                >
-                    <!-- screen readers read the caption out, the heading above already says it on screen -->
-                    <caption class="visually-hidden">
-                        Lecturers, latest login first
-                    </caption>
+            <template v-else>
+                <!-- the management page has its own toolbar above the table -->
+                <div v-if="!manage" class="tableToolbar">
+                    <div class="tableToolbarControls">
+                        <TableSearch
+                            id="dashboardLecturerSearch"
+                            v-model="dashboardSearch"
+                            placeholder="Name, staff ID or email"
+                        />
+                        <TableFilter
+                            id="dashboardLecturerStatusFilter"
+                            v-model="dashboardStatusFilter"
+                            label="Status"
+                            :options="statusOptions"
+                        />
+                    </div>
+                </div>
+                <div class="adminTable">
+                    <DataTable
+                        ref="dataTable"
+                        :columns="tableColumns"
+                        :data="shownLecturers"
+                        :options="tableOptions"
+                        class="table table-sm table-striped table-hover align-middle mb-0"
+                    >
+                        <!-- screen readers read the caption out, the heading above already says it on screen -->
+                        <caption class="visually-hidden">
+                            Lecturers, latest login first
+                        </caption>
 
-                    <!-- house style pill, the word is there so it's not shown by colour alone -->
-                    <template #status="props">
-                        <span class="statusPill" :class="props.cellData ? 'statusActive' : 'statusDisabled'">
-                            {{ props.cellData ? 'Active' : 'Disabled' }}
-                        </span>
-                    </template>
+                        <!-- house style pill, the word is there so it's not shown by colour alone -->
+                        <template #status="props">
+                            <span class="statusPill" :class="props.cellData ? 'statusActive' : 'statusDisabled'">
+                                {{ props.cellData ? 'Active' : 'Disabled' }}
+                            </span>
+                        </template>
 
-                    <!-- name goes in each aria-label so a screen reader knows which row the button is for -->
-                    <template #actions="props">
-                        <button
-                            type="button"
-                            class="btn btn-sm btn-outline-primary me-1"
-                            :aria-label="'Edit ' + props.rowData.name"
-                            @click="$emit('edit', props.rowData)"
-                        >
-                            Edit
-                        </button>
-                        <button
-                            type="button"
-                            class="btn btn-sm btn-outline-primary me-1"
-                            :aria-label="toggleText(props.rowData) + ' for ' + props.rowData.name"
-                            @click="$emit('toggle', props.rowData)"
-                        >
-                            {{ toggleText(props.rowData) }}
-                        </button>
-                        <button
-                            type="button"
-                            class="btn btn-sm btn-outline-danger"
-                            :aria-label="'Delete ' + props.rowData.name"
-                            @click="$emit('delete', props.rowData)"
-                        >
-                            Delete
-                        </button>
-                    </template>
-                </DataTable>
-            </div>
+                        <!-- name goes in each aria-label so a screen reader knows which row the button is for -->
+                        <template #actions="props">
+                            <button
+                                type="button"
+                                class="btn btn-sm btn-outline-primary me-1"
+                                :aria-label="'Edit ' + props.rowData.name"
+                                @click="$emit('edit', props.rowData)"
+                            >
+                                Edit
+                            </button>
+                            <button
+                                type="button"
+                                class="btn btn-sm me-1"
+                                :class="props.rowData.isEnabled ? 'tableDisableButton' : 'tableEnableButton'"
+                                :aria-label="toggleText(props.rowData) + ' ' + props.rowData.name"
+                                @click="$emit('toggle', props.rowData)"
+                            >
+                                {{ toggleText(props.rowData) }}
+                            </button>
+                            <button
+                                type="button"
+                                class="btn btn-sm btn-outline-danger"
+                                :aria-label="'Delete ' + props.rowData.name"
+                                @click="$emit('delete', props.rowData)"
+                            >
+                                Delete
+                            </button>
+                        </template>
+                    </DataTable>
+                </div>
+            </template>
         </div>
     </div>
 </template>
@@ -72,31 +92,15 @@
 import DataTable from 'datatables.net-vue3';
 import DataTablesCore from 'datatables.net-bs5';
 import 'datatables.net-bs5/css/dataTables.bootstrap5.css';
+import TableFilter from './tableFilter.vue';
+import TableSearch from './tableSearch.vue';
 import { getLecturers, getRecentLecturers } from '../../services/administratorService';
+import { lecturerStatusOptions } from '../../utils/filterOptions';
+import { formatLastLogin } from '../../utils/formatLastLogin';
+import { tableScrollRegion } from '../../utils/tableScrollRegion';
+import { searchTable, toolbarLayout } from '../../utils/tableSearch';
 
 DataTable.use(DataTablesCore);
-
-/**
- * Turns the database time into UK date and time, i.e. 29/09/2026, 16:17
- * @param lastLogin the time from PHP, saved in UTC, or null if they've never logged in
- */
-export function formatLastLogin(lastLogin) {
-    if (lastLogin === null) {
-        return 'Never';
-    }
-
-    // Z on the end = UTC, the options below turn it into UK time
-    const loginTime = new Date(lastLogin.replace(' ', 'T') + 'Z');
-
-    return loginTime.toLocaleString('en-GB', {
-        timeZone: 'Europe/London',
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-    });
-}
 
 // render.text() shows names and emails as plain text (stops HTML typed into a name running, XSS)
 const columns = [
@@ -118,33 +122,31 @@ const columns = [
 ];
 
 // buttons for this one are in the #actions slot, only the management page adds it
-const actionColumn = { data: null, title: 'Actions', orderable: false, render: '#actions' };
+const actionColumn = { data: null, title: 'Actions', orderable: false, className: 'text-nowrap', render: '#actions' };
 
 // matches the lecturer dashboard table: 5 a page, newest login first
 const tableOptions = {
     searching: true,
+    // the search box is in the toolbar above the table, see utils/tableSearch.js
+    layout: toolbarLayout,
     ordering: true,
     paging: true,
     pageLength: 5,
     lengthChange: false,
     order: [[4, 'desc']],
-    // on phones the table scrolls sideways, so keyboard users need to be able to focus it and use the arrow keys
-    initComplete() {
-        const scroller = this.api().table().container().querySelector('.dt-layout-table');
-        scroller.setAttribute('tabindex', '0');
-        scroller.setAttribute('role', 'region');
-        scroller.setAttribute('aria-label', 'Lecturers table');
-    },
+    // on phones the table scrolls sideways, so keyboard users need to be able to focus it
+    initComplete: tableScrollRegion('Lecturers table'),
     language: {
         emptyTable: 'No lecturers to show yet',
         zeroRecords: 'No lecturers match your search',
-        search: 'Search lecturers:',
     },
 };
 
 export default {
     components: {
         DataTable,
+        TableFilter,
+        TableSearch,
     },
     props: {
         // management page sets this, it gets every lecturer and the Actions column but no heading
@@ -153,6 +155,11 @@ export default {
             default: false,
         },
         // all / active / disabled from the dropdown on the page
+        // what's typed in the management page's search box
+        search: {
+            type: String,
+            default: '',
+        },
         statusFilter: {
             type: String,
             default: 'all',
@@ -163,6 +170,10 @@ export default {
     data() {
         return {
             lecturers: [],
+            // the dashboard's own status dropdown, the management page passes statusFilter in instead
+            dashboardStatusFilter: 'all',
+            dashboardSearch: '',
+            statusOptions: lecturerStatusOptions,
             isLoading: true,
             loadError: '',
             tableOptions,
@@ -170,6 +181,13 @@ export default {
     },
 
     computed: {
+        /**
+         * The dashboard has its own search box, the management page passes its one in
+         */
+        searchText() {
+            return this.manage ? this.search : this.dashboardSearch;
+        },
+
         /**
          * Only the management page gets the Actions column
          */
@@ -187,13 +205,20 @@ export default {
          * status dropdown filter, the search box is done by DataTables itself
          */
         shownLecturers() {
-            if (this.statusFilter === 'active') {
+            const statusFilter = this.manage ? this.statusFilter : this.dashboardStatusFilter;
+            if (statusFilter === 'active') {
                 return this.lecturers.filter((lecturer) => lecturer.isEnabled);
             }
-            if (this.statusFilter === 'disabled') {
+            if (statusFilter === 'disabled') {
                 return this.lecturers.filter((lecturer) => !lecturer.isEnabled);
             }
             return this.lecturers;
+        },
+    },
+
+    watch: {
+        searchText(text) {
+            searchTable(this.$refs.dataTable, text);
         },
     },
 
@@ -225,7 +250,7 @@ export default {
          * middle button says Disable or Enable depending on the account
          */
         toggleText(lecturer) {
-            return lecturer.isEnabled ? 'Disable account' : 'Enable account';
+            return lecturer.isEnabled ? 'Disable' : 'Enable';
         },
     },
 };

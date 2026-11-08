@@ -69,7 +69,7 @@ describe('LecturerManagement', () => {
         const page = await openPage();
 
         // Act
-        await pressAndConfirm(page, 'Disable account for Test Lecturer');
+        await pressAndConfirm(page, 'Disable Test Lecturer');
 
         // Assert
         expect(setLecturerEnabled).toHaveBeenCalledWith('lecturer-1', false);

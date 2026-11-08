@@ -1,7 +1,8 @@
 <!-- One row per cohort that opens to show more detail, with paging. The two cohort tables fill in the columns -->
 <template>
-    <div class="cohortTableScroller" role="region" tabindex="0" :aria-label="label">
-        <table class="cohortTable">
+    <!-- same Bootstrap table classes as the DataTables tables, so every table on the site looks alike -->
+    <div class="adminTable cohortTableScroller" role="region" tabindex="0" :aria-label="label">
+        <table class="table table-sm table-hover align-middle mb-0 cohortTable">
             <caption class="visually-hidden">
                 {{
                     label
@@ -10,7 +11,7 @@
             <thead>
                 <tr>
                     <th scope="col"><span class="visually-hidden">Show details</span></th>
-                    <slot name="headings"></slot>
+                    <slot name="headings" :sort="sort" :toggleSort="toggleSort"></slot>
                 </tr>
             </thead>
             <tbody>
@@ -22,7 +23,7 @@
                         <td class="cohortToggleCell">
                             <button
                                 type="button"
-                                class="cohortToggle"
+                                class="btn btn-sm btn-outline-primary cohortToggle"
                                 :aria-expanded="isOpen(cohort)"
                                 :aria-controls="isOpen(cohort) ? detailsID(cohort) : null"
                                 :aria-label="`Show details for ${cohort.cohortName}`"
@@ -48,13 +49,17 @@
         </table>
     </div>
 
+    <!-- laid out like the DataTables footer, count on the left and Bootstrap page buttons on the right -->
     <div class="cohortPaging">
+        <!-- role status so screen readers hear the new total after searching or changing page -->
+        <p class="cohortPagingSummary" role="status">{{ pagingSummary }}</p>
+
         <nav :aria-label="`${label} pages`">
-            <ul class="cohortPageList">
-                <li>
+            <ul class="pagination mb-0">
+                <li class="page-item" :class="{ disabled: page === 1 }">
                     <button
                         type="button"
-                        class="cohortPageButton"
+                        class="page-link"
                         aria-label="Previous page"
                         :disabled="page === 1"
                         @click="page -= 1"
@@ -62,11 +67,10 @@
                         <i class="bi bi-chevron-left" aria-hidden="true"></i>
                     </button>
                 </li>
-                <li v-for="number in pageCount" :key="number">
+                <li v-for="number in pageCount" :key="number" class="page-item" :class="{ active: number === page }">
                     <button
                         type="button"
-                        class="cohortPageButton"
-                        :class="{ cohortPageButtonCurrent: number === page }"
+                        class="page-link"
                         :aria-label="`Page ${number}`"
                         :aria-current="number === page ? 'page' : null"
                         @click="page = number"
@@ -74,10 +78,10 @@
                         {{ number }}
                     </button>
                 </li>
-                <li>
+                <li class="page-item" :class="{ disabled: page === pageCount }">
                     <button
                         type="button"
-                        class="cohortPageButton"
+                        class="page-link"
                         aria-label="Next page"
                         :disabled="page === pageCount"
                         @click="page += 1"
@@ -87,14 +91,12 @@
                 </li>
             </ul>
         </nav>
-
-        <!-- role status so screen readers hear the new total after searching or changing page -->
-        <p class="cohortPagingSummary" role="status">{{ pagingSummary }}</p>
     </div>
 </template>
 
 <script setup>
 import { computed, ref, watch } from 'vue';
+import { nextSort, sortRows } from '../../utils/sortRows';
 
 const PAGE_SIZE = 4;
 
@@ -112,15 +114,28 @@ const props = defineProps({
         type: Number,
         required: true,
     },
+    // for each sortable column, a function that picks the value to sort a cohort by
+    sortValues: {
+        type: Object,
+        required: true,
+    },
+    // the Sort by drop down above the tables, picking from it clears any column sort so it shows straight away
+    toolbarSort: {
+        type: String,
+        default: '',
+    },
 });
 
 const page = ref(1);
 // every cohort starts closed, the details only show once a row is opened
 const openCohortIDs = ref(new Set());
+// no column sorted to start with, so the cohorts stay in the order the page gives them
+const sort = ref({ key: '', direction: '' });
 
+const sortedCohorts = computed(() => sortRows(props.cohorts, sort.value, props.sortValues));
 const pageCount = computed(() => Math.max(1, Math.ceil(props.cohorts.length / PAGE_SIZE)));
 const firstIndex = computed(() => (page.value - 1) * PAGE_SIZE);
-const pageOfCohorts = computed(() => props.cohorts.slice(firstIndex.value, firstIndex.value + PAGE_SIZE));
+const pageOfCohorts = computed(() => sortedCohorts.value.slice(firstIndex.value, firstIndex.value + PAGE_SIZE));
 
 const pagingSummary = computed(() => {
     const total = props.cohorts.length;
@@ -138,6 +153,19 @@ watch(
         page.value = 1;
     },
 );
+
+watch(
+    () => props.toolbarSort,
+    () => {
+        sort.value = { key: '', direction: '' };
+    },
+);
+
+// sorting by a column starts from the first page, like a new search does
+function toggleSort(key) {
+    sort.value = nextSort(sort.value, key);
+    page.value = 1;
+}
 
 function isOpen(cohort) {
     return openCohortIDs.value.has(cohort.cohortID);

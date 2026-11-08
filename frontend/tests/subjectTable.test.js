@@ -215,10 +215,64 @@ describe('SubjectTable', () => {
         ]);
 
         // Act
-        const table = openTable({ statusFilter: 'archived' });
+        const table = openTable({ manage: true, statusFilter: 'archived' });
         await flushPromises();
 
         // Assert
         expect(rowText(table).map((row) => row[0])).toEqual(['Test Archived']);
+    });
+
+    /**
+     * The dashboard table has its own status dropdown, as there's no page one above it (normal)
+     */
+    it('filters the dashboard table with its own status dropdown', async () => {
+        // Arrange
+        vi.mocked(getSubjects).mockResolvedValue([
+            { subjectName: 'Test Web Apps', cohortName: null, testCount: 0, lecturerNames: null, isActive: true },
+            { subjectName: 'Test Archived', cohortName: null, testCount: 0, lecturerNames: null, isActive: false },
+        ]);
+        const table = openTable();
+        await flushPromises();
+
+        // Act
+        await table.get('#dashboardSubjectStatusFilter').setValue('archived');
+
+        // Assert
+        expect(rowText(table).map((row) => row[0])).toEqual(['Test Archived']);
+        expect(table.get('label[for="dashboardSubjectStatusFilter"]').text()).toBe('Status');
+    });
+
+    /**
+     * The management page has its own dropdown, so the table doesn't show a second one (edge)
+     */
+    it('leaves the status dropdown to the management page', async () => {
+        // Arrange
+        vi.mocked(getSubjects).mockResolvedValue([]);
+
+        // Act
+        const table = openTable({ manage: true });
+        await flushPromises();
+
+        // Assert
+        expect(table.find('select').exists()).toBe(false);
+    });
+
+    /**
+     * Archive is the yellow outline button and Restore the solid green one, like Disable and Enable (normal)
+     */
+    it('shows Archive as a yellow button and Restore as a green one', async () => {
+        // Arrange
+        vi.mocked(getSubjects).mockResolvedValue([
+            { subjectName: 'Test Web Apps', cohortName: null, testCount: 0, lecturerNames: null, isActive: true },
+            { subjectName: 'Test Archived', cohortName: null, testCount: 0, lecturerNames: null, isActive: false },
+        ]);
+
+        // Act
+        const table = openTable({ manage: true });
+        await flushPromises();
+
+        // Assert
+        expect(table.get('[aria-label="Archive Test Web Apps"]').classes()).toContain('tableDisableButton');
+        expect(table.get('[aria-label="Restore Test Archived"]').classes()).toContain('tableEnableButton');
     });
 });

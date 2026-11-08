@@ -51,6 +51,13 @@ function cohortNames(page, tableIndex) {
     return table.findAll('.cohortNameCell').map((cell) => cell.text());
 }
 
+/**
+ * The sort button in a column heading, found by the heading's text
+ */
+function sortButton(wrapper, heading) {
+    return wrapper.findAll('.sortableHeadingButton').find((button) => button.text() === heading);
+}
+
 function findButton(page, label) {
     return page.get(`button[aria-label="${label}"]`);
 }
@@ -201,6 +208,101 @@ describe('CohortManagement', () => {
 
         await select.setValue('');
         expect(cohortNames(page, 0)[0]).toBe('DTS 2026');
+    });
+
+    /**
+     * Clicking a heading sorts up, then down, then back to the original order, like DataTables (normal)
+     */
+    it('sorts a cohort table by a column heading', async () => {
+        // Arrange
+        const page = await openPage();
+        const table = page.findAll('.cohortTable')[0];
+        const heading = () => sortButton(table, 'Students').element.closest('th');
+
+        // Act and Assert
+        await sortButton(table, 'Students').trigger('click');
+        expect(cohortNames(page, 0)[0]).toBe('Data Science 2026');
+        expect(heading().getAttribute('aria-sort')).toBe('ascending');
+        expect(heading().querySelector('.sortArrowsAsc')).not.toBeNull();
+
+        await sortButton(table, 'Students').trigger('click');
+        expect(cohortNames(page, 0)[0]).toBe('BSc Computing 2025');
+        expect(heading().getAttribute('aria-sort')).toBe('descending');
+
+        await sortButton(table, 'Students').trigger('click');
+        expect(cohortNames(page, 0)[0]).toBe('DTS 2026');
+        expect(heading().hasAttribute('aria-sort')).toBe(false);
+    });
+
+    /**
+     * Each table sorts on its own, sorting one leaves the other alone (normal)
+     */
+    it('sorts only the table whose heading was clicked', async () => {
+        // Arrange
+        const page = await openPage();
+
+        // Act
+        await sortButton(page.findAll('.cohortTable')[1], 'Subjects').trigger('click');
+
+        // Assert
+        expect(cohortNames(page, 1)[0]).toBe('Data Science 2026');
+        expect(cohortNames(page, 0)[0]).toBe('DTS 2026');
+    });
+
+    /**
+     * Picking from Sort by clears a column sort, so the drop down always does something (edge)
+     */
+    it('clears the column sort when Sort by is used', async () => {
+        // Arrange
+        const page = await openPage();
+        const table = page.findAll('.cohortTable')[0];
+        await sortButton(table, 'Students').trigger('click');
+
+        // Act
+        await page.findAll('select')[1].setValue('nameAsc');
+
+        // Assert
+        expect(cohortNames(page, 0)[0]).toBe('BSc Computing 2024');
+        expect(table.find('[aria-sort]').exists()).toBe(false);
+    });
+
+    /**
+     * The students in an open cohort sort too, before the preview cuts the list down (normal)
+     */
+    it('sorts the students in a cohort by a column heading', async () => {
+        // Arrange
+        const page = await openPage();
+        await findButton(page, 'Show details for DTS 2026').trigger('click');
+        const details = page.get('.cohortDetailsTable');
+
+        // Act
+        await sortButton(details, 'Name').trigger('click');
+
+        // Assert
+        expect(page.get('.cohortDetailsTable tbody th').text()).toBe('Alex Brown');
+    });
+
+    /**
+     * The subjects in an open cohort sort by number of tests (normal)
+     */
+    it('sorts the subjects in a cohort by a column heading', async () => {
+        // Arrange
+        const page = await openPage();
+        await page.findAll('.cohortTable')[1].get('[aria-label="Show details for DTS 2026"]').trigger('click');
+        const details = page.findAll('.cohortTable')[1].get('.cohortDetailsTable');
+
+        // Act
+        await sortButton(details, 'Tests').trigger('click');
+        await sortButton(details, 'Tests').trigger('click');
+
+        // Assert
+        const subjects = page.findAll('.cohortTable')[1].findAll('.cohortDetailsTable tbody th');
+        expect(subjects.map((cell) => cell.text())).toEqual([
+            'Web Applications',
+            'Databases',
+            'Software Testing',
+            'Networking',
+        ]);
     });
 
     /**
@@ -534,7 +636,7 @@ describe('CohortManagement', () => {
         await page.findAll('.cohortTable')[0].get('[aria-label="Show details for DTS 2026"]').trigger('click');
 
         // Assert
-        expect(page.get('.cohortDetailsTable tbody tr').text()).toContain('29/09/2026 09:42');
+        expect(page.get('.cohortDetailsTable tbody tr').text()).toContain('29/09/2026, 09:42');
     });
 
     /**
@@ -660,14 +762,14 @@ describe('CohortManagement', () => {
     });
 
     /**
-     * The delete button has the same look as on student management (normal)
+     * The table buttons use the same Bootstrap outline buttons as every other table (normal)
      */
     it('styles the action buttons like the rest of the site', async () => {
         // Arrange and Act
         const page = await openPage();
 
         // Assert
-        expect(findButton(page, 'Delete DTS 2026').classes()).toContain('tableDeleteButton');
+        expect(findButton(page, 'Delete DTS 2026').classes()).toContain('btn-outline-danger');
         expect(findButton(page, 'Disable DTS 2026').classes()).toContain('tableDisableButton');
     });
 
@@ -1035,14 +1137,14 @@ describe('CohortManagement', () => {
     });
 
     /**
-     * The edit button has the same look as on student management (normal)
+     * The edit button uses the same Bootstrap outline button as every other table (normal)
      */
     it('styles the edit button like the rest of the site', async () => {
         // Arrange and Act
         const page = await openPage();
 
         // Assert
-        expect(findButton(page, 'Edit DTS 2026').classes()).toContain('tableEditButton');
+        expect(findButton(page, 'Edit DTS 2026').classes()).toContain('btn-outline-primary');
     });
 
     /**
@@ -1405,9 +1507,9 @@ describe('CohortManagement', () => {
         const options = () => page.findAll('.cohortDialogOption').map((option) => option.text());
 
         // Act
-        await page.get('.cohortDialogSearch').setValue('GRACE');
+        await page.get('#addStudentsSearch').setValue('GRACE');
         const byName = options();
-        await page.get('.cohortDialogSearch').setValue('382590');
+        await page.get('#addStudentsSearch').setValue('382590');
         const byNumber = options();
 
         // Assert
@@ -1436,6 +1538,26 @@ describe('CohortManagement', () => {
         expect(disabledWithNone).toBeDefined();
         expect(labelWithOne).toBe('Add 1 Student');
         expect(addButton.text()).toBe('Add 2 Students');
+    });
+
+    /**
+     * Every ticked student is sent in one go, not just the first or last one (normal)
+     */
+    it('adds every chosen student at once', async () => {
+        // Arrange
+        moveStudents.mockResolvedValue(structuredClone(sampleCohorts));
+        const page = await openAddStudentsDialog();
+        const options = page.findAll('.cohortDialogOption input');
+        await options[0].setValue(true);
+        await options[1].setValue(true);
+
+        // Act
+        await page.get('.cohortDialogButtons .cohortPrimaryButton').trigger('click');
+        await flushPromises();
+
+        // Assert
+        expect(moveStudents).toHaveBeenCalledTimes(1);
+        expect(moveStudents).toHaveBeenCalledWith('cohort-1', ['ws382590', 'ws382602']);
     });
 
     /**
@@ -1685,8 +1807,8 @@ describe('CohortManagement', () => {
         await page.findAll('.cohortTable')[1].get('[aria-label="Show details for DTS 2026"]').trigger('click');
 
         // Assert
-        expect(findButton(page, 'Remove from cohort: Joe Bloggs').classes()).toContain('tableDeleteButton');
-        expect(findButton(page, 'Remove from cohort: Web Applications').classes()).toContain('tableDeleteButton');
+        expect(findButton(page, 'Remove from cohort: Joe Bloggs').classes()).toContain('btn-outline-danger');
+        expect(findButton(page, 'Remove from cohort: Web Applications').classes()).toContain('btn-outline-danger');
     });
 
     /**
@@ -1698,11 +1820,47 @@ describe('CohortManagement', () => {
         await page.findAll('.cohortDialogOption input')[0].setValue(true);
 
         // Act
-        await page.get('.cohortDialogSearch').setValue('grace');
+        await page.get('#addStudentsSearch').setValue('grace');
 
         // Assert
         expect(page.findAll('.cohortDialogOption').map((option) => option.text())).toEqual(['Grace Okafor ws382602']);
         expect(page.get('.cohortDialogButtons .cohortPrimaryButton').text()).toBe('Add 1 Student');
+    });
+
+    /**
+     * The cohort dropdown lists each current cohort once, and shows only the students in it (normal)
+     */
+    it('filters the students by their current cohort', async () => {
+        // Arrange
+        const page = await openAddStudentsDialog();
+        const filter = page.get('#addStudentsCohortFilter');
+
+        // Act
+        await filter.setValue('DTS 2025');
+
+        // Assert
+        expect(filter.findAll('option').map((option) => option.text())).toEqual([
+            'All cohorts',
+            'BSc Computing 2025',
+            'DTS 2025',
+        ]);
+        expect(page.findAll('.cohortDialogOption').map((option) => option.text())).toEqual(['Grace Okafor ws382602']);
+    });
+
+    /**
+     * The search and the cohort dropdown work together (edge)
+     */
+    it('combines the search with the cohort filter', async () => {
+        // Arrange
+        const page = await openAddStudentsDialog();
+        await page.get('#addStudentsCohortFilter').setValue('DTS 2025');
+
+        // Act
+        await page.get('#addStudentsSearch').setValue('liam');
+
+        // Assert
+        expect(page.findAll('.cohortDialogOption')).toHaveLength(0);
+        expect(page.get('.cohortDialogTable tbody').text()).toBe('No students match your search or filter');
     });
 
     /**
@@ -1713,10 +1871,10 @@ describe('CohortManagement', () => {
         const page = await openAddStudentsDialog();
 
         // Act
-        await page.get('.cohortDialogSearch').setValue('zzz');
+        await page.get('#addStudentsSearch').setValue('zzz');
 
         // Assert
-        expect(page.get('.cohortDialogTable tbody').text()).toBe('No students match your search');
+        expect(page.get('.cohortDialogTable tbody').text()).toBe('No students match your search or filter');
     });
 
     /**

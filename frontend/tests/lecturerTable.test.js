@@ -173,12 +173,12 @@ describe('LecturerTable', () => {
 
         // Act
         await table.get('[aria-label="Edit Test Lecturer"]').trigger('click');
-        await table.get('[aria-label="Disable account for Test Lecturer"]').trigger('click');
+        await table.get('[aria-label="Disable Test Lecturer"]').trigger('click');
         await table.get('[aria-label="Delete Test Lecturer"]').trigger('click');
 
         // Assert
         expect(getRecentLecturers).not.toHaveBeenCalled();
-        expect(table.get('[aria-label="Enable account for Second Lecturer"]').text()).toBe('Enable account');
+        expect(table.get('[aria-label="Enable Second Lecturer"]').text()).toBe('Enable');
         expect(table.emitted('edit')[0]).toEqual([manageLecturers[0]]);
         expect(table.emitted('toggle')[0]).toEqual([manageLecturers[0]]);
         expect(table.emitted('delete')[0]).toEqual([manageLecturers[0]]);
@@ -197,5 +197,74 @@ describe('LecturerTable', () => {
 
         // Assert
         expect(rowText(table).map((row) => row[0])).toEqual(['Second Lecturer']);
+    });
+
+    /**
+     * The dashboard table has its own status dropdown, as there's no page one above it (normal)
+     */
+    it('filters the dashboard table with its own status dropdown', async () => {
+        // Arrange
+        getRecentLecturers.mockResolvedValue(manageLecturers);
+        const table = openTable();
+        await flushPromises();
+
+        // Act
+        await table.get('#dashboardLecturerStatusFilter').setValue('disabled');
+
+        // Assert
+        expect(rowText(table)).toHaveLength(1);
+        expect(rowText(table)[0][3]).toBe('Disabled');
+    });
+
+    /**
+     * The search box sits in the toolbar with the status dropdown, and still searches the table (normal)
+     */
+    it('searches the dashboard table from the toolbar', async () => {
+        // Arrange
+        getRecentLecturers.mockResolvedValue(manageLecturers);
+        const table = openTable();
+        await flushPromises();
+
+        // Act
+        await table.get('#dashboardLecturerSearch').setValue('second');
+
+        // Assert
+        expect(rowText(table).map((row) => row[0])).toEqual(['Second Lecturer']);
+        expect(table.find('.dt-search').exists()).toBe(false);
+    });
+
+    /**
+     * The management page passes in what's typed in its own search box (normal)
+     */
+    it('searches with the text the management page passes in', async () => {
+        // Arrange
+        getLecturers.mockResolvedValue(manageLecturers);
+        const table = openTable({ manage: true });
+        await flushPromises();
+
+        // Act
+        await table.setProps({ search: 'ws000101' });
+
+        // Assert
+        expect(rowText(table).map((row) => row[0])).toEqual(['Test Lecturer']);
+        expect(table.find('#dashboardLecturerSearch').exists()).toBe(false);
+    });
+
+    /**
+     * Disable is the yellow outline button, Enable is the solid green one (normal)
+     */
+    it('shows Disable as a yellow button and Enable as a green one', async () => {
+        // Arrange
+        getLecturers.mockResolvedValue(manageLecturers);
+
+        // Act
+        const table = openTable({ manage: true });
+        await flushPromises();
+
+        // Assert
+        const disable = table.get('[aria-label="Disable Test Lecturer"]');
+        const enable = table.get('[aria-label="Enable Second Lecturer"]');
+        expect(disable.classes()).toContain('tableDisableButton');
+        expect(enable.classes()).toContain('tableEnableButton');
     });
 });

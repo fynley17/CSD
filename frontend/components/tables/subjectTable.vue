@@ -16,45 +16,67 @@
                 <strong>There is a problem:</strong> {{ loadError }}
             </div>
 
-            <div v-else class="adminTable">
-                <DataTable
-                    :columns="tableColumns"
-                    :data="shownSubjects"
-                    :options="tableOptions"
-                    class="table table-sm table-striped table-hover align-middle mb-0"
-                >
-                    <caption class="visually-hidden">
-                        Subjects, active ones first
-                    </caption>
+            <template v-else>
+                <!-- the management page has its own toolbar above the table -->
+                <div v-if="!manage" class="tableToolbar">
+                    <div class="tableToolbarControls">
+                        <TableSearch
+                            id="dashboardSubjectSearch"
+                            v-model="dashboardSearch"
+                            placeholder="Subject, cohort or lecturer"
+                        />
+                        <TableFilter
+                            id="dashboardSubjectStatusFilter"
+                            v-model="dashboardStatusFilter"
+                            label="Status"
+                            :options="statusOptions"
+                        />
+                    </div>
+                </div>
+                <div class="adminTable">
+                    <DataTable
+                        ref="dataTable"
+                        :columns="tableColumns"
+                        :data="shownSubjects"
+                        :options="tableOptions"
+                        class="table table-sm table-striped table-hover align-middle mb-0"
+                    >
+                        <caption class="visually-hidden">
+                            Subjects, active ones first
+                        </caption>
 
-                    <!-- same status pill as the lecturer table, grey for Archived -->
-                    <template #status="props">
-                        <span class="statusPill" :class="props.cellData ? 'statusActive' : 'statusArchived'">
-                            {{ props.cellData ? 'Active' : 'Archived' }}
-                        </span>
-                    </template>
+                        <!-- same status pill as the lecturer table, grey for Archived -->
+                        <template #status="props">
+                            <span class="statusPill" :class="props.cellData ? 'statusActive' : 'statusArchived'">
+                                {{ props.cellData ? 'Active' : 'Archived' }}
+                            </span>
+                        </template>
 
-                    <!-- aria-label has the subject name so a screen reader knows which row its for -->
-                    <template #actions="props">
-                        <button
-                            type="button"
-                            class="btn btn-sm btn-outline-primary me-1"
-                            :aria-label="'Edit ' + props.rowData.subjectName"
-                            @click="$emit('edit', props.rowData)"
-                        >
-                            Edit
-                        </button>
-                        <button
-                            type="button"
-                            class="btn btn-sm btn-outline-primary"
-                            :aria-label="(props.rowData.isActive ? 'Archive ' : 'Restore ') + props.rowData.subjectName"
-                            @click="$emit('toggle', props.rowData)"
-                        >
-                            {{ props.rowData.isActive ? 'Archive' : 'Restore' }}
-                        </button>
-                    </template>
-                </DataTable>
-            </div>
+                        <!-- aria-label has the subject name so a screen reader knows which row its for -->
+                        <template #actions="props">
+                            <button
+                                type="button"
+                                class="btn btn-sm btn-outline-primary me-1"
+                                :aria-label="'Edit ' + props.rowData.subjectName"
+                                @click="$emit('edit', props.rowData)"
+                            >
+                                Edit
+                            </button>
+                            <button
+                                type="button"
+                                class="btn btn-sm"
+                                :class="props.rowData.isActive ? 'tableDisableButton' : 'tableEnableButton'"
+                                :aria-label="
+                                    (props.rowData.isActive ? 'Archive ' : 'Restore ') + props.rowData.subjectName
+                                "
+                                @click="$emit('toggle', props.rowData)"
+                            >
+                                {{ props.rowData.isActive ? 'Archive' : 'Restore' }}
+                            </button>
+                        </template>
+                    </DataTable>
+                </div>
+            </template>
         </div>
     </div>
 </template>
@@ -63,7 +85,12 @@
 import DataTable from 'datatables.net-vue3';
 import DataTablesCore from 'datatables.net-bs5';
 import 'datatables.net-bs5/css/dataTables.bootstrap5.css';
+import TableFilter from './tableFilter.vue';
+import TableSearch from './tableSearch.vue';
 import { getSubjects } from '../../services/subjectService';
+import { subjectStatusOptions } from '../../utils/filterOptions';
+import { tableScrollRegion } from '../../utils/tableScrollRegion';
+import { searchTable, toolbarLayout } from '../../utils/tableSearch';
 
 DataTable.use(DataTablesCore);
 
@@ -85,33 +112,31 @@ const columns = [
 ];
 
 // buttons for this one are down in the #actions slot
-const actionColumn = { data: null, title: 'Actions', orderable: false, render: '#actions' };
+const actionColumn = { data: null, title: 'Actions', orderable: false, className: 'text-nowrap', render: '#actions' };
 
 // 5 a page like the lecturer table. Empty order keeps PHP's order (active first)
 const tableOptions = {
     searching: true,
+    // the search box is in the toolbar above the table, see utils/tableSearch.js
+    layout: toolbarLayout,
     ordering: true,
     paging: true,
     pageLength: 5,
     lengthChange: false,
     order: [],
-    // on phones the table scrolls sideways, so keyboard users need to be able to focus it and use the arrow keys
-    initComplete() {
-        const scroller = this.api().table().container().querySelector('.dt-layout-table');
-        scroller.setAttribute('tabindex', '0');
-        scroller.setAttribute('role', 'region');
-        scroller.setAttribute('aria-label', 'Subjects table');
-    },
+    // on phones the table scrolls sideways, so keyboard users need to be able to focus it
+    initComplete: tableScrollRegion('Subjects table'),
     language: {
         emptyTable: 'No subjects to show yet',
         zeroRecords: 'No subjects match your search',
-        search: 'Search subjects:',
     },
 };
 
 export default {
     components: {
         DataTable,
+        TableFilter,
+        TableSearch,
     },
     props: {
         // manage page turns this on, gets the Actions column and loses the dashboard heading
@@ -120,6 +145,11 @@ export default {
             default: false,
         },
         // all / active / archived from the dropdown
+        // what's typed in the management page's search box
+        search: {
+            type: String,
+            default: '',
+        },
         statusFilter: {
             type: String,
             default: 'all',
@@ -130,6 +160,10 @@ export default {
     data() {
         return {
             subjects: [],
+            // the dashboard's own status dropdown, the management page passes statusFilter in instead
+            dashboardStatusFilter: 'all',
+            dashboardSearch: '',
+            statusOptions: subjectStatusOptions,
             isLoading: true,
             loadError: '',
             tableOptions,
@@ -137,6 +171,13 @@ export default {
     },
 
     computed: {
+        /**
+         * The dashboard has its own search box, the management page passes its one in
+         */
+        searchText() {
+            return this.manage ? this.search : this.dashboardSearch;
+        },
+
         /**
          * Only the manage page gets the Actions column.
          * Each table gets its own copies, DataTable swaps '#actions' for this table's slot on the
@@ -152,13 +193,20 @@ export default {
          * Status dropdown filter. Search box is done by the table itself
          */
         shownSubjects() {
-            if (this.statusFilter === 'active') {
+            const statusFilter = this.manage ? this.statusFilter : this.dashboardStatusFilter;
+            if (statusFilter === 'active') {
                 return this.subjects.filter((subject) => subject.isActive);
             }
-            if (this.statusFilter === 'archived') {
+            if (statusFilter === 'archived') {
                 return this.subjects.filter((subject) => !subject.isActive);
             }
             return this.subjects;
+        },
+    },
+
+    watch: {
+        searchText(text) {
+            searchTable(this.$refs.dataTable, text);
         },
     },
 

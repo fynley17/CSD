@@ -1,6 +1,6 @@
 <script setup>
 // Import Vue functions for lifecycle management, reactive state and DOM updates.
-import { onMounted, onBeforeUnmount, ref, nextTick } from 'vue';
+import { ref, onMounted, nextTick, watch } from 'vue';
 
 // Import DataTables and its Bootstrap 5 integration and styling.
 import DataTable from 'datatables.net-vue3';
@@ -9,6 +9,8 @@ import 'datatables.net-bs5/css/dataTables.bootstrap5.css';
 
 // Import the API function used to retrieve lecturer tests.
 import { getLecturerTests } from '../../services/testService';
+import { tableScrollRegion } from '../../utils/tableScrollRegion';
+import { searchTable, toolbarLayout } from '../../utils/tableSearch';
 
 // Register Bootstrap 5 as the DataTables styling integration.
 DataTable.use(DataTablesCore);
@@ -23,32 +25,29 @@ const tests = ref([]);
 const loading = ref(true);
 const errorMessage = ref('');
 
-// Store the DataTables component and wrapper references.
+// Store the DataTables component reference.
 const dataTable = ref(null);
-const tableWrapper = ref(null);
+
+// the page's search box sits in the toolbar with the filters, the table does the searching
+const props = defineProps({
+    search: {
+        type: String,
+        default: '',
+    },
+});
+
+watch(
+    () => props.search,
+    (text) => searchTable(dataTable.value, text),
+);
 
 // Store unique subjects for the subject filter dropdown.
 const subjects = ref([]);
 
-// Prevent HTML injection when test details are inserted into generated table buttons.
-const escapeHtml = (value) => {
-    return String(value ?? '').replace(
-        /[&<>"']/g,
-        (character) =>
-            ({
-                '&': '&amp;',
-                '<': '&lt;',
-                '>': '&gt;',
-                '"': '&quot;',
-                "'": '&#39;',
-            })[character],
-    );
-};
-
-// Configure the test table columns and the actions available for each test.
+// Configure the test table columns. render.text() shows names as plain text (stops HTML running, XSS).
 const columns = [
-    { data: 'testName', title: 'Test Name' },
-    { data: 'subjectName', title: 'Subject' },
+    { data: 'testName', title: 'Test Name', render: DataTablesCore.render.text() },
+    { data: 'subjectName', title: 'Subject', render: DataTablesCore.render.text() },
     { data: 'questionCount', title: 'Questions' },
     {
         data: 'timeLimit',
@@ -58,75 +57,31 @@ const columns = [
     {
         data: 'isActive',
         title: 'Status',
-        render: (value, type) => {
-            if (type !== 'display') {
-                return value ? 'Active' : 'Archived';
-            }
-
-            return value
-                ? '<span class="badge bg-success">Active</span>'
-                : '<span class="badge bg-secondary">Archived</span>';
-        },
+        // the pill comes from the #status slot, sorting and searching use the word
+        render: { _: (value) => (value ? 'Active' : 'Archived'), display: '#status' },
     },
     {
         data: null,
         title: 'Actions',
         orderable: false,
         searchable: false,
-
-        // Generate action buttons for active tests only.
-        render: (data, type, row) => {
-            if (type !== 'display') {
-                return '';
-            }
-
-            // Archived tests cannot be edited or deleted again.
-            if (!row.isActive) {
-                return '<span class="text-muted">No actions available</span>';
-            }
-
-            const testID = escapeHtml(row.testID);
-            const testName = escapeHtml(row.testName);
-
-            return `
-                <button
-                    type="button"
-                    class="btn btn-sm tableEditButton tableActionButton me-2"
-                    data-action="edit"
-                    data-test-id="${testID}"
-                    aria-label="Edit ${testName}"
-                >
-                    Edit
-                </button>
-                <button
-                    type="button"
-                    class="btn btn-sm tableDeleteButton tableActionButton"
-                    data-action="delete"
-                    data-test-id="${testID}"
-                    aria-label="Delete ${testName}"
-                >
-                    Delete
-                </button>
-            `;
-        },
+        className: 'text-nowrap',
+        render: '#actions',
     },
 ];
 
 // Configure table searching, sorting, pagination and empty-state messages.
 const tableOptions = {
     searching: true,
+    // the search box is in the toolbar above the table, see utils/tableSearch.js
+    layout: toolbarLayout,
     ordering: true,
     paging: true,
     pageLength: 5,
     lengthChange: false,
     order: [[0, 'asc']],
 
-    layout: {
-        topStart: null,
-        topEnd: null,
-        bottomStart: 'info',
-        bottomEnd: 'paging',
-    },
+    initComplete: tableScrollRegion('Tests table'),
 
     language: {
         emptyTable: 'No tests to display.',
@@ -155,43 +110,6 @@ const refreshTests = async () => {
     }
 };
 
-// Handle clicks on the Edit and Delete buttons generated by DataTables.
-const handleTableClick = (event) => {
-    const target = event.target instanceof Element ? event.target : null;
-    const button = target?.closest('button[data-action]');
-
-    if (!button) {
-        return;
-    }
-
-    const action = button.dataset.action;
-    const rowElement = button.closest('tr');
-
-    if (!rowElement) {
-        return;
-    }
-
-    // Retrieve the test associated with the selected table row.
-    const tableApi = dataTable.value?.dt;
-    const selectedTest = tableApi?.row(rowElement).data();
-
-    if (!selectedTest) {
-        return;
-    }
-
-    // Additional protection against actions on archived tests.
-    if (!selectedTest.isActive) {
-        return;
-    }
-
-    // Notify the parent component which action was selected.
-    if (action === 'edit') {
-        emit('edit', selectedTest);
-    } else if (action === 'delete') {
-        emit('delete', selectedTest);
-    }
-};
-
 // Apply the selected subject filter to the Subject column.
 const filterBySubject = async (subject) => {
     await nextTick();
@@ -203,29 +121,15 @@ const filterBySubject = async (subject) => {
     }
 };
 
-// Apply the search term across the table while preserving the subject filter.
-const searchTests = async (searchTerm) => {
-    await nextTick();
-
-    const tableApi = dataTable.value?.dt;
-
-    if (tableApi) {
-        tableApi.search(searchTerm).draw();
-    }
-};
-
 // Expose data and functions so the parent management page can control the table.
 defineExpose({
     subjects,
     filterBySubject,
-    searchTests,
     refreshTests,
 });
 
-// Load tests and register the delegated click listener when the component mounts.
+// Load tests when the component mounts.
 onMounted(async () => {
-    tableWrapper.value?.addEventListener('click', handleTableClick);
-
     loading.value = true;
 
     try {
@@ -236,107 +140,62 @@ onMounted(async () => {
         loading.value = false;
     }
 });
-
-// Remove the event listener when the component is destroyed.
-onBeforeUnmount(() => {
-    tableWrapper.value?.removeEventListener('click', handleTableClick);
-});
 </script>
 
 <template>
-    <div ref="tableWrapper" class="testTableWrapper">
-        <p v-if="loading" role="status">Loading tests...</p>
+    <!-- same white card as the lecturer and subject tables -->
+    <div class="card border-0 rounded-0 h-100">
+        <div class="px-3 px-md-4 pb-4">
+            <p v-if="loading" class="text-center py-4 mb-0" role="status">Loading tests...</p>
 
-        <p v-else-if="errorMessage" role="alert">
-            {{ errorMessage }}
-        </p>
+            <div v-else-if="errorMessage" class="alert alert-danger mb-0" role="alert">
+                {{ errorMessage }}
+            </div>
 
-        <div v-else class="tableResponsive">
-            <DataTable
-                ref="dataTable"
-                :columns="columns"
-                :data="tests"
-                :options="tableOptions"
-                class="table table-sm table-striped table-hover align-middle mb-0"
-            />
+            <div v-else class="adminTable">
+                <DataTable
+                    ref="dataTable"
+                    :columns="columns"
+                    :data="tests"
+                    :options="tableOptions"
+                    class="table table-sm table-striped table-hover align-middle mb-0"
+                >
+                    <!-- screen readers read the caption out, the page heading already says it on screen -->
+                    <caption class="visually-hidden">
+                        Tests
+                    </caption>
+
+                    <!-- house style pill, grey for Archived like the subjects table -->
+                    <template #status="props">
+                        <span class="statusPill" :class="props.rowData.isActive ? 'statusActive' : 'statusArchived'">
+                            {{ props.rowData.isActive ? 'Active' : 'Archived' }}
+                        </span>
+                    </template>
+
+                    <!-- archived tests can't be edited or deleted again -->
+                    <template #actions="props">
+                        <span v-if="!props.rowData.isActive" class="text-body-secondary">No actions available</span>
+                        <template v-else>
+                            <button
+                                type="button"
+                                class="btn btn-sm btn-outline-primary me-1"
+                                :aria-label="'Edit ' + props.rowData.testName"
+                                @click="emit('edit', props.rowData)"
+                            >
+                                Edit
+                            </button>
+                            <button
+                                type="button"
+                                class="btn btn-sm btn-outline-danger"
+                                :aria-label="'Delete ' + props.rowData.testName"
+                                @click="emit('delete', props.rowData)"
+                            >
+                                Delete
+                            </button>
+                        </template>
+                    </template>
+                </DataTable>
+            </div>
         </div>
     </div>
 </template>
-
-<style>
-/* Keep the table within its available container width. */
-.testTableWrapper {
-    width: 100%;
-    min-width: 0;
-    max-width: 100%;
-}
-
-/* Allow horizontal scrolling when the table is wider than the screen. */
-.testTableWrapper .tableResponsive {
-    display: block;
-    width: 100%;
-    max-width: 100%;
-    overflow: auto;
-    -webkit-overflow-scrolling: touch;
-    overscroll-behavior-x: contain;
-}
-
-/* Maintain a readable minimum table width. */
-.testTableWrapper .tableResponsive table {
-    width: 100%;
-    min-width: 760px;
-    margin-bottom: 0;
-}
-
-/* Keep table content vertically aligned and prevent unwanted wrapping. */
-.testTableWrapper .tableResponsive th,
-.testTableWrapper .tableResponsive td {
-    white-space: nowrap;
-    vertical-align: middle;
-}
-
-/* Reserve enough space for the Edit and Delete buttons. */
-.testTableWrapper .tableResponsive td:last-child {
-    min-width: 180px;
-}
-
-/* Shared styling for the table action buttons. */
-.tableActionButton {
-    min-height: 36px;
-    padding: var(--spaceXs) var(--spaceSm);
-    border-radius: var(--radiusSm);
-    font-family: var(--fontBody);
-    font-weight: 600;
-}
-
-/* Edit button styling. */
-.tableEditButton {
-    color: var(--colorPrimary);
-    background-color: var(--colorSurface);
-    border: 1px solid var(--colorPrimary);
-}
-
-.tableEditButton:hover {
-    color: var(--colorSurface);
-    background-color: var(--colorPrimaryHover);
-    border-color: var(--colorPrimaryHover);
-}
-
-/* Delete button styling. */
-.tableDeleteButton {
-    color: var(--colorSurface);
-    background-color: var(--colorError);
-    border: 1px solid var(--colorError);
-}
-
-.tableDeleteButton:hover {
-    background-color: var(--colorErrorHover);
-    border-color: var(--colorErrorHover);
-}
-
-/* Provide a visible focus indicator for keyboard navigation. */
-.tableActionButton:focus-visible {
-    outline: 3px solid var(--colorFocus);
-    outline-offset: 2px;
-}
-</style>

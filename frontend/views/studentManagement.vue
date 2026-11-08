@@ -2,11 +2,15 @@
 import { computed, ref, onMounted, onUnmounted } from 'vue';
 import { getCurrentUser } from '../services/authService';
 import StudentManagementTable from '../components/tables/studentManagementTable.vue';
+import TableFilter from '../components/tables/tableFilter.vue';
+import TableSearch from '../components/tables/tableSearch.vue';
+import { nameOptions, studentStatusOptions } from '../utils/filterOptions';
 import StudentForm from '../components/forms/studentForm.vue';
 
 const currentUser = ref(null);
 
-const canCreateStudent = computed(() => currentUser.value?.accountType === 'lecturer');
+// lecturers and admins can both add students, the backend allows either
+const canCreateStudent = computed(() => ['lecturer', 'admin'].includes(currentUser.value?.accountType));
 
 onMounted(async () => {
     currentUser.value = await getCurrentUser();
@@ -15,10 +19,10 @@ onMounted(async () => {
 // Reference the student table component so the parent view can access its filters.
 const studentManagementTable = ref(null);
 
-// Store the selected cohort, status and search term.
+// Store the selected cohort and status, the search box is the table's own.
+const searchText = ref('');
 const cohortFilter = ref('');
 const statusFilter = ref('');
-const searchTerm = ref('');
 
 // Store the warning displayed when student login emails fail.
 const warningMessage = ref('');
@@ -65,11 +69,6 @@ const filterByStatus = () => {
     studentManagementTable.value?.filterByStatus(statusFilter.value);
 };
 
-// Pass the search term to the student table's global search.
-const searchStudents = () => {
-    studentManagementTable.value?.searchStudents(searchTerm.value);
-};
-
 // Open the form in Add mode.
 const openStudentForm = () => {
     selectedStudent.value = null;
@@ -105,62 +104,48 @@ const handleStudentSaved = (response) => {
 </script>
 
 <template>
-    <main class="studentManagement">
+    <!-- laid out like lecturer and subject management so every table page matches -->
+    <section class="container py-4 adminPage">
         <!-- Warn the lecturer when student login details could not be emailed. -->
         <div v-if="warningMessage" class="studentManagementToast" role="alert" aria-live="assertive">
             <span aria-hidden="true">!</span>
             {{ warningMessage }}
         </div>
 
-        <!-- Display the page title, description and Student Applications button. -->
-        <div class="pageHeading">
-            <div>
-                <h1>Student Management</h1>
-                <p>Manage student accounts, approvals and account status</p>
+        <h1>Student Management</h1>
+        <p>Manage student accounts, approvals and account status</p>
+
+        <!-- search and filters on the left, page buttons on the right -->
+        <div class="tableToolbar">
+            <div class="tableToolbarControls">
+                <TableSearch id="studentSearch" v-model="searchText" placeholder="Name, student number or email" />
+                <TableFilter
+                    id="studentCohortFilter"
+                    v-model="cohortFilter"
+                    label="Cohort"
+                    :options="nameOptions(cohorts, 'All cohorts')"
+                    @change="filterByCohort"
+                />
+                <TableFilter
+                    id="studentStatusFilter"
+                    v-model="statusFilter"
+                    label="Status"
+                    :options="studentStatusOptions"
+                    @change="filterByStatus"
+                />
             </div>
 
-            <button type="button" class="secondaryButton" @click="showPendingApplications">
-                Student Applications ({{ pendingCount }})
-            </button>
+            <div class="tableToolbarActions">
+                <button type="button" class="btn btn-outline-primary" @click="showPendingApplications">
+                    Student Applications ({{ pendingCount }})
+                </button>
+                <button v-if="canCreateStudent" type="button" class="btn btn-primary" @click="openStudentForm">
+                    <span aria-hidden="true">+</span> Add student
+                </button>
+            </div>
         </div>
 
-        <!-- Provide independent filters for cohort, account status and student search. -->
-        <div class="tableToolbar">
-            <label class="studentFilter">
-                <span class="visuallyHidden">Filter students by cohort</span>
-                <select v-model="cohortFilter" @change="filterByCohort">
-                    <option value="">All cohorts</option>
-                    <option v-for="cohort in cohorts" :key="cohort" :value="cohort">
-                        {{ cohort }}
-                    </option>
-                </select>
-            </label>
-
-            <label class="studentFilter">
-                <span class="visuallyHidden">Filter students by status</span>
-                <select v-model="statusFilter" @change="filterByStatus">
-                    <option value="">All statuses</option>
-                    <option value="Active">Active</option>
-                    <option value="Pending">Pending</option>
-                    <option value="Disabled">Disabled</option>
-                </select>
-            </label>
-
-            <label class="studentSearch">
-                <span class="visuallyHidden">Search students</span>
-                <input v-model="searchTerm" type="search" placeholder="Search students..." @input="searchStudents" />
-            </label>
-        </div>
-
-        <!-- Display the student table and its records. -->
-        <div class="tableSection">
-            <StudentManagementTable ref="studentManagementTable" @edit="openEditStudentForm" />
-        </div>
-
-        <!-- Display the Add Student button underneath the table. -->
-        <div v-if="canCreateStudent" class="tableActions">
-            <button type="button" class="addStudentButton" @click="openStudentForm">+ Add New Student</button>
-        </div>
+        <StudentManagementTable ref="studentManagementTable" :search="searchText" @edit="openEditStudentForm" />
 
         <!-- Display the student form in Add or Edit mode. -->
         <StudentForm
@@ -170,20 +155,10 @@ const handleStudentSaved = (response) => {
             @saved="handleStudentSaved"
             @close="closeStudentForm"
         />
-    </main>
+    </section>
 </template>
 
 <style scoped>
-/* Set the main page width, spacing and default typography. */
-.studentManagement {
-    max-width: var(--contentMaxWidth);
-    min-height: 100%;
-    margin: 0 auto;
-    padding: var(--space2xl) var(--spaceLg);
-    color: var(--colorText);
-    font-family: var(--fontBody);
-}
-
 /* Display the temporary email failure warning. */
 .studentManagementToast {
     position: fixed;
@@ -201,144 +176,5 @@ const handleStudentSaved = (response) => {
     background: var(--colorSurface);
     color: var(--colorError);
     font-weight: 600;
-}
-
-/* Arrange the page heading and applications button. */
-.pageHeading {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--spaceMd);
-    margin-bottom: var(--space2xl);
-}
-
-.pageHeading h1 {
-    margin: 0;
-    color: var(--colorBrand);
-    font-family: var(--fontHeading);
-    font-size: var(--fontSizeH1);
-}
-
-.pageHeading p {
-    margin: var(--spaceXs) 0 0;
-    color: var(--colorTextSecondary);
-    font-size: var(--fontSizeSmall);
-}
-
-/* Position the cohort filter, status filter and search field in one row. */
-.tableToolbar {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr)) minmax(0, 1.3fr);
-    align-items: center;
-    gap: var(--spaceLg);
-    margin-bottom: var(--spaceMd);
-}
-
-.tableToolbar label {
-    min-width: 0;
-}
-
-/* Apply consistent styling to the filter dropdowns and search input. */
-.tableToolbar input,
-.tableToolbar select {
-    width: 100%;
-    min-width: 0;
-    min-height: 44px;
-    padding: var(--spaceSm);
-    border: 1px solid var(--colorBorderInput);
-    border-radius: var(--radiusSm);
-    background: var(--colorSurface);
-    color: var(--colorText);
-    font: inherit;
-}
-
-/* Style the Student Applications button. */
-.secondaryButton {
-    min-height: 44px;
-    padding: var(--spaceSm) var(--spaceMd);
-    border: 1px solid var(--colorPrimary);
-    border-radius: var(--radiusSm);
-    background: var(--colorSurface);
-    color: var(--colorPrimary);
-    font: inherit;
-    font-weight: 600;
-    cursor: pointer;
-}
-
-/* Change the button colours when hovered over. */
-.secondaryButton:hover {
-    background: var(--colorPrimary);
-    color: var(--colorSurface);
-}
-
-/* Position the Add Student button at the bottom-right of the table. */
-.tableActions {
-    display: flex;
-    justify-content: flex-end;
-    margin-top: var(--spaceMd);
-}
-
-/* Style the Add Student button to match Create New Test. */
-.addStudentButton {
-    min-height: 44px;
-    padding: var(--spaceSm) var(--spaceLg);
-    border: 1px solid var(--colorPrimary);
-    border-radius: var(--radiusSm);
-    background: var(--colorPrimary);
-    color: var(--colorSurface);
-    font: inherit;
-    font-weight: 600;
-    cursor: pointer;
-}
-
-.addStudentButton:hover {
-    background: var(--colorPrimaryHover);
-    border-color: var(--colorPrimaryHover);
-}
-
-/* Make keyboard focus visible on buttons and form controls. */
-button:focus-visible,
-input:focus-visible,
-select:focus-visible {
-    outline: 3px solid var(--colorFocus);
-    outline-offset: 2px;
-}
-
-/* Hide labels visually while keeping them available to screen readers. */
-.visuallyHidden {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    overflow: hidden;
-    clip-path: inset(50%);
-    white-space: nowrap;
-    border: 0;
-}
-
-/* Adjust the filter layout for medium-sized screens. */
-@media (max-width: 900px) {
-    .tableToolbar {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: var(--spaceMd);
-    }
-}
-
-/* Stack the heading and filters vertically on smaller screens. */
-@media (max-width: 639px) {
-    .studentManagement {
-        padding: var(--spaceLg) var(--spaceMd);
-    }
-
-    .pageHeading {
-        align-items: flex-start;
-        flex-direction: column;
-        margin-bottom: var(--spaceXl);
-    }
-
-    .tableToolbar {
-        grid-template-columns: 1fr;
-        gap: var(--spaceMd);
-    }
 }
 </style>

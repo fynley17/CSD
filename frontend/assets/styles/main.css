@@ -1364,17 +1364,10 @@ main.appMainFullScreen {
     background-color: var(--colorWarning);
 }
 
-/* cohort management tables, only the table scrolls sideways on small screens */
+/* cohort management tables use the same Bootstrap table classes as the DataTables ones,
+   only the table scrolls sideways on small screens */
 .cohortTableScroller {
     overflow-x: auto;
-    border: 1px solid var(--colorDivider);
-    background: var(--colorSurface);
-}
-
-.cohortTable,
-.cohortDetailsTable {
-    width: 100%;
-    border-collapse: collapse;
 }
 
 /* table in the assign subjects pop-up */
@@ -1388,20 +1381,10 @@ main.appMainFullScreen {
     background: var(--colorSurfaceAlt);
 }
 
-/* the details tables sit inside .cohortTable, so they pick up the same cell spacing */
+/* the details tables sit inside .cohortTable, so this covers both */
 .cohortTable th,
 .cohortTable td {
-    padding: var(--spaceSm) var(--spaceMd);
-    border-bottom: 1px solid var(--colorDivider);
     white-space: nowrap;
-}
-
-.cohortTable thead th {
-    font-weight: 600;
-}
-
-.cohortTable > thead th {
-    background: var(--colorSurfaceAlt);
 }
 
 .cohortTable .cohortNameCell {
@@ -1424,36 +1407,68 @@ main.appMainFullScreen {
     width: 1%;
 }
 
-.cohortToggle,
-.cohortPageButton {
-    min-width: var(--minTouchTarget);
-    min-height: var(--minTouchTarget);
-    border: 1px solid var(--colorBorderInput);
-    border-radius: var(--radiusSm);
-    background: var(--colorSurface);
-    color: var(--colorText);
+/* sortable column headings on the cohort tables, laid out like the DataTables ones with the arrows on the right */
+.sortableHeadingButton {
+    display: flex;
+    width: 100%;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--spaceSm);
+    padding: 0;
+    border: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
+    text-align: left;
 }
 
-.cohortPageButton:disabled {
-    background: var(--colorDisabled);
-    color: var(--colorTextSecondary);
-    cursor: not-allowed;
+/* up and down arrows drawn with borders, the same size and fade as the DataTables ones so they match */
+.sortArrows {
+    --sortArrowWidth: 8px;
+    --sortArrowHeight: 7px;
+
+    position: relative;
+    flex-shrink: 0;
+    width: var(--sortArrowWidth);
+    align-self: stretch;
+    min-height: calc(var(--sortArrowHeight) * 2 + 2px);
 }
 
-.cohortToggle:hover,
-.cohortToggle:focus-visible,
-.cohortPageButton:focus-visible,
-.cohortPageButton:hover:not(:disabled) {
-    background: var(--colorPrimaryLight);
+.sortArrows::before,
+.sortArrows::after {
+    position: absolute;
+    left: 0;
+    width: 0;
+    height: 0;
+    border-right: calc(var(--sortArrowWidth) / 2) solid transparent;
+    border-left: calc(var(--sortArrowWidth) / 2) solid transparent;
+    content: '';
+    opacity: 0.125;
+}
+
+.sortArrows::before {
+    bottom: calc(50% + 1px);
+    border-bottom: var(--sortArrowHeight) solid currentColor;
+}
+
+.sortArrows::after {
+    top: calc(50% + 1px);
+    border-top: var(--sortArrowHeight) solid currentColor;
+}
+
+/* the arrow for the current direction is darker */
+.sortArrowsAsc::before,
+.sortArrowsDesc::after {
+    opacity: 0.65;
+}
+
+/* square chevron button */
+.cohortToggle {
+    min-width: 36px;
 }
 
 /* the current page isn't shown by colour alone, it's also bold and aria-current for screen readers */
-.cohortPageButton.cohortPageButtonCurrent,
-.cohortPageButton.cohortPageButtonCurrent:hover,
-.cohortPageButton.cohortPageButtonCurrent:focus-visible {
-    border-color: var(--colorBrand);
-    background: var(--colorBrand);
-    color: var(--colorSurface);
+.cohortPaging [aria-current='page'] {
     font-weight: 700;
 }
 
@@ -1585,8 +1600,10 @@ main.appMainFullScreen {
     gap: var(--spaceSm);
 }
 
+/* grey behind the opened details, and the row doesn't pick up the hover shade */
 .cohortTable .cohortDetailsRow > td {
-    background: var(--colorSurfaceAlt);
+    --bs-table-bg: var(--colorSurfaceAlt);
+    --bs-table-hover-bg: transparent;
 }
 
 .cohortDetails {
@@ -1629,15 +1646,6 @@ main.appMainFullScreen {
     margin-top: var(--spaceMd);
 }
 
-.cohortPageList {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--spaceSm);
-    margin: 0;
-    padding: 0;
-    list-style: none;
-}
-
 .cohortPagingSummary {
     margin: 0;
     color: var(--colorTextSecondary);
@@ -1652,6 +1660,146 @@ main.appMainFullScreen {
 /* stylelint-disable-next-line selector-class-pattern */
 .adminTable .dt-layout-table {
     overflow: auto hidden;
+}
+
+/* DataTables flips number and date column headers so the sort arrows sit on the left,
+   this keeps them on the right like every other column. These are DataTables' class names, so not camelCase */
+/* stylelint-disable selector-class-pattern */
+table.dataTable thead > tr > th.dt-type-numeric div.dt-column-header,
+table.dataTable thead > tr > th.dt-type-date div.dt-column-header {
+    flex-direction: row;
+}
+/* stylelint-enable selector-class-pattern */
+
+/* toolbar above every table: search and filters on the left, page buttons on the right, all one height */
+.tableToolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: var(--spaceMd);
+    margin-bottom: var(--spaceMd);
+}
+
+.tableToolbarControls {
+    display: flex;
+    flex: 1 1 auto;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: var(--spaceMd);
+}
+
+.tableToolbarActions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spaceSm);
+}
+
+/* buttons line up with the search box and dropdowns beside them, and fill the row on phones.
+   Flex drops the space typed after the + on the create buttons, so the gap puts it back */
+.tableToolbarActions .btn {
+    display: inline-flex;
+    flex: 1 1 auto;
+    min-height: var(--minTouchTarget);
+    align-items: center;
+    justify-content: center;
+    gap: var(--spaceXs);
+}
+
+/* full width on phones so they're easy to tap */
+.tableSearch,
+.tableFilter,
+.tableToolbarActions {
+    flex: 1 1 100%;
+}
+
+.tableFilterLabel {
+    margin-bottom: var(--spaceXs);
+    color: var(--colorText);
+    font-size: var(--fontSizeSmall);
+    font-weight: 600;
+}
+
+/* magnifying glass inside the search box, on the left */
+.tableSearchField {
+    position: relative;
+}
+
+.tableSearchIcon {
+    position: absolute;
+    top: 50%;
+    left: 0.75rem;
+    color: var(--colorTextSecondary);
+    pointer-events: none;
+    transform: translateY(-50%);
+}
+
+.tableFilterSelect,
+.tableSearchInput {
+    min-height: var(--minTouchTarget);
+    border-color: var(--colorBorderInput);
+    border-radius: var(--radiusSm);
+    color: var(--colorText);
+}
+
+/* room on the left for the magnifying glass */
+.tableSearchInput {
+    padding-left: var(--spaceXl);
+}
+
+.tableFilterSelect:focus,
+.tableSearchInput:focus {
+    border-color: var(--colorBorderInput);
+    box-shadow: none;
+    outline: 3px solid var(--colorFocus);
+    outline-offset: 2px;
+}
+
+@media (min-width: 576px) {
+    .tableSearch {
+        flex: 1 1 16rem;
+        max-width: 22rem;
+    }
+
+    .tableFilter {
+        flex: 0 1 12rem;
+    }
+
+    .tableToolbarActions {
+        flex: 0 0 auto;
+        margin-left: auto;
+    }
+
+    .tableToolbarActions .btn {
+        flex: 0 0 auto;
+    }
+}
+
+/* solid green Enable and Restore buttons in the tables, darker green on hover */
+.tableEnableButton {
+    --bs-btn-color: var(--colorSurface);
+    --bs-btn-bg: var(--colorSuccess);
+    --bs-btn-border-color: var(--colorSuccess);
+    --bs-btn-hover-color: var(--colorSurface);
+    --bs-btn-hover-bg: var(--colorSuccessHover);
+    --bs-btn-hover-border-color: var(--colorSuccessHover);
+    --bs-btn-active-color: var(--colorSurface);
+    --bs-btn-active-bg: var(--colorSuccessHover);
+    --bs-btn-active-border-color: var(--colorSuccessHover);
+    --bs-btn-focus-shadow-rgb: 21, 128, 61;
+}
+
+/* yellow outline Disable and Archive buttons in the tables, filled yellow on hover. Uses the house amber
+   rather than Bootstrap's warning yellow, which is too pale to read on white */
+.tableDisableButton {
+    --bs-btn-color: var(--colorWarning);
+    --bs-btn-border-color: var(--colorWarning);
+    --bs-btn-hover-color: var(--colorSurface);
+    --bs-btn-hover-bg: var(--colorWarning);
+    --bs-btn-hover-border-color: var(--colorWarning);
+    --bs-btn-active-color: var(--colorSurface);
+    --bs-btn-active-bg: var(--colorWarning);
+    --bs-btn-active-border-color: var(--colorWarning);
+    --bs-btn-focus-shadow-rgb: 180, 83, 9;
 }
 
 /* large number on the results summary cards */
@@ -1827,6 +1975,33 @@ main.appMainFullScreen {
     --bs-btn-disabled-opacity: 1;
 }
 
+/* delete and remove buttons use the house red instead of bootstrap's, darker red on hover */
+[class~='btn-danger'] {
+    --bs-btn-bg: var(--colorError);
+    --bs-btn-border-color: var(--colorError);
+    --bs-btn-hover-bg: var(--colorErrorHover);
+    --bs-btn-hover-border-color: var(--colorErrorHover);
+    --bs-btn-active-bg: var(--colorErrorHover);
+    --bs-btn-active-border-color: var(--colorErrorHover);
+    --bs-btn-disabled-bg: var(--colorError);
+    --bs-btn-disabled-border-color: var(--colorError);
+}
+
+[class~='btn-outline-danger'] {
+    --bs-btn-color: var(--colorError);
+    --bs-btn-border-color: var(--colorError);
+    --bs-btn-hover-bg: var(--colorError);
+    --bs-btn-hover-border-color: var(--colorError);
+    --bs-btn-active-bg: var(--colorErrorHover);
+    --bs-btn-active-border-color: var(--colorErrorHover);
+
+    /* disabled = house style grey, the same as the outline primary buttons */
+    --bs-btn-disabled-bg: var(--colorDisabled);
+    --bs-btn-disabled-border-color: var(--colorDisabled);
+    --bs-btn-disabled-color: var(--colorTextSecondary);
+    --bs-btn-disabled-opacity: 1;
+}
+
 /* size and shape for the admin management pages, 44px high or 36px inside a table */
 .adminPage [class~='btn'] {
     min-height: 44px;
@@ -1834,6 +2009,9 @@ main.appMainFullScreen {
     font-weight: 600;
 }
 
-.adminPage .adminTable [class~='btn'] {
+/* every table uses these, lecturer pages included, so it's not tied to .adminPage */
+.adminTable [class~='btn'] {
     min-height: 36px;
+    border-radius: var(--radiusSm);
+    font-weight: 600;
 }

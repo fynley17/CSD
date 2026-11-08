@@ -4,15 +4,18 @@
         <p v-if="isLoading" class="mb-0" role="status">Loading students</p>
 
         <template v-else-if="students.length > 0">
-            <label class="d-block">
-                <span class="visually-hidden">Search by name or student number</span>
-                <input
-                    v-model="searchText"
-                    class="cohortDialogSearch"
-                    type="search"
-                    placeholder="Search by name or student number..."
-                />
-            </label>
+            <!-- same search box and dropdown as the tables, so the pop-up matches the rest of the site -->
+            <div class="tableToolbar mb-0">
+                <div class="tableToolbarControls">
+                    <TableSearch id="addStudentsSearch" v-model="searchText" placeholder="Name or student number" />
+                    <TableFilter
+                        id="addStudentsCohortFilter"
+                        v-model="cohortFilter"
+                        label="Current cohort"
+                        :options="cohortOptions"
+                    />
+                </div>
+            </div>
 
             <table class="cohortDialogTable">
                 <caption class="visually-hidden">
@@ -26,7 +29,7 @@
                 </thead>
                 <tbody>
                     <tr v-if="visibleStudents.length === 0">
-                        <td colspan="2">No students match your search</td>
+                        <td colspan="2">No students match your search or filter</td>
                     </tr>
                     <tr v-for="student in visibleStudents" :key="student.studentNumber">
                         <td>
@@ -75,6 +78,9 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue';
 import PopupDialog from './popupDialog.vue';
+import TableFilter from '../tables/tableFilter.vue';
+import TableSearch from '../tables/tableSearch.vue';
+import { nameOptions } from '../../utils/filterOptions';
 import { getStudentsOutsideCohort, moveStudents } from '../../services/cohortService';
 
 const props = defineProps({
@@ -90,16 +96,28 @@ const dialog = ref(null);
 const students = ref([]);
 const selectedNumbers = ref([]);
 const searchText = ref('');
+// an empty string shows students from every cohort
+const cohortFilter = ref('');
 const isLoading = ref(true);
 const isSaving = ref(false);
 const errorMessage = ref('');
+
+// each cohort the students are in now, once each and in order
+const cohortOptions = computed(() => {
+    const cohorts = [...new Set(students.value.map((student) => student.currentCohort))];
+    return nameOptions(
+        cohorts.sort((a, b) => a.localeCompare(b)),
+        'All cohorts',
+    );
+});
 
 const visibleStudents = computed(() => {
     const search = searchText.value.trim().toLowerCase();
 
     return students.value.filter(
         (student) =>
-            student.name.toLowerCase().includes(search) || student.studentNumber.toLowerCase().includes(search),
+            (student.name.toLowerCase().includes(search) || student.studentNumber.toLowerCase().includes(search)) &&
+            (cohortFilter.value === '' || student.currentCohort === cohortFilter.value),
     );
 });
 

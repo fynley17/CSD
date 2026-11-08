@@ -4,35 +4,24 @@
         <h1>Cohort Management</h1>
         <p class="cohortManagementIntro">Create and manage cohorts, the students in them and the subjects they study</p>
 
-        <div class="cohortToolbar">
-            <label>
-                <span class="visually-hidden">Search cohorts</span>
-                <input v-model="searchText" type="search" placeholder="Search cohorts..." />
-            </label>
+        <!-- one search for both tables, as they list the same cohorts -->
+        <div class="tableToolbar">
+            <div class="tableToolbarControls">
+                <TableSearch id="cohortSearch" v-model="searchText" placeholder="Cohort name" />
+                <TableFilter
+                    id="cohortStatusFilter"
+                    v-model="statusFilter"
+                    label="Status"
+                    :options="cohortStatusOptions"
+                />
+                <TableFilter id="cohortSort" v-model="sortBy" label="Sort by" :options="sortOptions" />
+            </div>
 
-            <label>
-                <span class="visually-hidden">Filter cohorts by status</span>
-                <select v-model="statusFilter">
-                    <option value="">Status</option>
-                    <option value="active">Active</option>
-                    <option value="disabled">Disabled</option>
-                </select>
-            </label>
-
-            <label>
-                <span class="visually-hidden">Sort cohorts</span>
-                <select v-model="sortBy">
-                    <option value="">Sort by</option>
-                    <option value="nameAsc">Name (A-Z)</option>
-                    <option value="nameDesc">Name (Z-A)</option>
-                    <option value="newest">Newest first</option>
-                    <option value="oldest">Oldest first</option>
-                </select>
-            </label>
-
-            <button type="button" class="cohortPrimaryButton cohortCreateButton" @click="openCohortForm(null)">
-                <span aria-hidden="true">+</span> Create Cohort
-            </button>
+            <div class="tableToolbarActions">
+                <button type="button" class="btn btn-primary cohortCreateButton" @click="openCohortForm(null)">
+                    <span aria-hidden="true">+</span> Create Cohort
+                </button>
+            </div>
         </div>
 
         <div v-if="saveError" class="alert alert-danger mt-3 mb-0" role="alert">
@@ -49,6 +38,7 @@
             <h2>Students in each cohort</h2>
             <CohortStudentsTable
                 :cohorts="visibleCohorts"
+                :toolbarSort="sortBy"
                 @edit="openCohortForm"
                 @toggleStatus="toggleStatus"
                 @delete="deletingCohort = $event"
@@ -59,6 +49,7 @@
             <h2>Subjects for each cohort</h2>
             <CohortSubjectsTable
                 :cohorts="visibleCohorts"
+                :toolbarSort="sortBy"
                 @assign="assigningCohort = $event"
                 @remove="(cohort, subject) => (removing = { cohort, subject })"
             />
@@ -121,6 +112,9 @@ import DeleteCohortDialog from '../components/common/deleteCohortDialog.vue';
 import MoveStudentDialog from '../components/common/moveStudentDialog.vue';
 import RemoveSubjectDialog from '../components/common/removeSubjectDialog.vue';
 import CohortStudentsTable from '../components/tables/cohortStudentsTable.vue';
+import TableFilter from '../components/tables/tableFilter.vue';
+import TableSearch from '../components/tables/tableSearch.vue';
+import { cohortStatusOptions } from '../utils/filterOptions';
 import CohortSubjectsTable from '../components/tables/cohortSubjectsTable.vue';
 import { getCohorts, setCohortActive } from '../services/cohortService';
 
@@ -139,6 +133,14 @@ const editingCohort = ref(null);
 const assigningCohort = ref(null);
 const removing = ref(null);
 const deletingCohort = ref(null);
+
+const sortOptions = [
+    { value: '', label: 'Default order' },
+    { value: 'nameAsc', label: 'Name (A-Z)' },
+    { value: 'nameDesc', label: 'Name (Z-A)' },
+    { value: 'newest', label: 'Newest first' },
+    { value: 'oldest', label: 'Oldest first' },
+];
 
 const sorters = {
     nameAsc: (a, b) => a.cohortName.localeCompare(b.cohortName),
@@ -244,38 +246,9 @@ async function toggleStatus(cohort) {
     color: var(--colorTextSecondary);
 }
 
-/* stacked on phones, one row from tablet up with Create Cohort pushed to the right */
-.cohortToolbar {
-    display: grid;
-    gap: var(--spaceMd);
-}
-
-.cohortToolbar input,
-.cohortToolbar select {
-    width: 100%;
-    min-height: var(--minTouchTarget);
-    padding: var(--spaceSm);
-    border: 1px solid var(--colorBorderInput);
-    border-radius: var(--radiusSm);
-    background: var(--colorSurface);
-    color: var(--colorText);
-    font: inherit;
-}
-
-.cohortToolbar input:focus-visible,
-.cohortToolbar select:focus-visible {
-    outline: 3px solid var(--colorFocus);
-    outline-offset: 2px;
-}
-
 @media (min-width: 768px) {
     .cohortManagement {
         padding: var(--space2xl) var(--spaceLg);
-    }
-
-    .cohortToolbar {
-        grid-template-columns: 1.4fr 1fr 1fr auto;
-        align-items: center;
     }
 }
 </style>

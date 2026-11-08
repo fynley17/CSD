@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, onUnmounted, ref, nextTick } from 'vue';
+import { computed, onMounted, ref, nextTick, watch } from 'vue';
 import DataTable from 'datatables.net-vue3';
 import DataTablesCore from 'datatables.net-bs5';
 import 'datatables.net-bs5/css/dataTables.bootstrap5.css';
@@ -11,6 +11,9 @@ import {
     declineStudent,
     deleteStudent,
 } from '../../services/studentService';
+import { formatLastLogin } from '../../utils/formatLastLogin';
+import { tableScrollRegion } from '../../utils/tableScrollRegion';
+import { searchTable, toolbarLayout } from '../../utils/tableSearch';
 
 DataTable.use(DataTablesCore);
 
@@ -34,181 +37,71 @@ const pendingCount = computed(() => students.value.filter((student) => student.s
 const emit = defineEmits(['edit']);
 
 const dataTable = ref(null);
-const tableWrapper = ref(null);
+
+// the page's search box sits in the toolbar with the filters, the table does the searching
+const props = defineProps({
+    search: {
+        type: String,
+        default: '',
+    },
+});
+
+watch(
+    () => props.search,
+    (text) => searchTable(dataTable.value, text),
+);
 const cohorts = ref([]);
 
-const escapeHtml = (value) =>
-    String(value ?? '').replace(
-        /[&<>"']/g,
-        (character) =>
-            ({
-                '&': '&amp;',
-                '<': '&lt;',
-                '>': '&gt;',
-                '"': '&quot;',
-                "'": '&#39;',
-            })[character],
-    );
+// house style pill for each status, the word is shown too so it isn't colour alone
+const statusPillClasses = {
+    Active: 'statusActive',
+    Pending: 'statusPending',
+    Disabled: 'statusDisabled',
+};
 
+// render.text() shows names and emails as plain text (stops HTML typed into a name running, XSS)
 const columns = [
-    {
-        data: 'name',
-        title: 'Name',
-        render: (value, type) => (type === 'display' ? escapeHtml(value) : value),
-    },
-    {
-        data: 'studentNumber',
-        title: 'Student Number',
-        render: (value, type) => (type === 'display' ? escapeHtml(value) : value),
-    },
-    {
-        data: 'email',
-        title: 'Email',
-        render: (value, type) => (type === 'display' ? escapeHtml(value) : value),
-    },
+    { data: 'name', title: 'Name', render: DataTablesCore.render.text() },
+    { data: 'studentNumber', title: 'Student Number', render: DataTablesCore.render.text() },
+    { data: 'email', title: 'Email', render: DataTablesCore.render.text() },
     {
         data: 'status',
         title: 'Status',
-        render: (value, type) => {
-            if (type !== 'display') {
-                return value;
-            }
-
-            const statusClasses = {
-                Active: 'studentStatusActive',
-                Pending: 'studentStatusPending',
-                Disabled: 'studentStatusDisabled',
-            };
-
-            const statusClass = statusClasses[value] || '';
-
-            return `<span class="studentStatusBadge ${statusClass}">${escapeHtml(value)}</span>`;
-        },
+        // the pill comes from the #status slot, sorting and the status filter use the plain word
+        render: { _: (value) => value, display: '#status' },
     },
     {
         data: 'lastLogin',
         title: 'Last Login',
-        render: (value, type) => (type === 'display' ? escapeHtml(value || 'Never') : value || 'Never'),
+        // sorting needs the raw time to get the date order right. The page shows the UK version
+        render(data, type) {
+            if (type !== 'display') {
+                return data || '';
+            }
+            return formatLastLogin(data);
+        },
     },
-    {
-        data: 'cohort',
-        title: 'Cohort',
-        render: (value, type) => (type === 'display' ? escapeHtml(value) : value),
-    },
+    { data: 'cohort', title: 'Cohort', render: DataTablesCore.render.text() },
     {
         data: null,
         title: 'Actions',
         orderable: false,
         searchable: false,
-        render: (data, type, row) => {
-            if (type !== 'display') {
-                return '';
-            }
-
-            const userID = escapeHtml(row.userID);
-            const name = escapeHtml(row.name);
-
-            if (row.status === 'Pending') {
-                return `
-                    <button
-                        type="button"
-                        class="btn btn-sm tableApproveButton tableActionButton me-2"
-                        data-action="approve"
-                        data-user-id="${userID}"
-                        aria-label="Approve ${name}"
-                    >
-                        Approve
-                    </button>
-                    <button
-                        type="button"
-                        class="btn btn-sm tableDeleteButton tableActionButton"
-                        data-action="decline"
-                        data-user-id="${userID}"
-                        aria-label="Decline ${name}"
-                    >
-                        Decline
-                    </button>
-                `;
-            }
-
-            if (row.status === 'Disabled') {
-                return `
-                    <button
-                        type="button"
-                        class="btn btn-sm tableEditButton tableActionButton me-2"
-                        data-action="edit"
-                        data-user-id="${userID}"
-                        aria-label="Edit ${name}"
-                    >
-                        Edit
-                    </button>
-                    <button
-                        type="button"
-                        class="btn btn-sm tableEnableButton tableActionButton me-2"
-                        data-action="enable"
-                        data-user-id="${userID}"
-                        aria-label="Enable ${name}"
-                    >
-                        Enable
-                    </button>
-                    <button
-                        type="button"
-                        class="btn btn-sm tableDeleteButton tableActionButton"
-                        data-action="delete"
-                        data-user-id="${userID}"
-                        aria-label="Delete ${name}"
-                    >
-                        Delete
-                    </button>
-                `;
-            }
-
-            return `
-                <button
-                    type="button"
-                    class="btn btn-sm tableEditButton tableActionButton me-2"
-                    data-action="edit"
-                    data-user-id="${userID}"
-                    aria-label="Edit ${name}"
-                >
-                    Edit
-                </button>
-                <button
-                    type="button"
-                    class="btn btn-sm tableDisableButton tableActionButton me-2"
-                    data-action="disable"
-                    data-user-id="${userID}"
-                    aria-label="Disable ${name}"
-                >
-                    Disable
-                </button>
-                <button
-                    type="button"
-                    class="btn btn-sm tableDeleteButton tableActionButton"
-                    data-action="delete"
-                    data-user-id="${userID}"
-                    aria-label="Delete ${name}"
-                >
-                    Delete
-                </button>
-            `;
-        },
+        className: 'text-nowrap',
+        render: '#actions',
     },
 ];
 
 const tableOptions = {
     searching: true,
+    // the search box is in the toolbar above the table, see utils/tableSearch.js
+    layout: toolbarLayout,
     ordering: true,
     paging: true,
     pageLength: 5,
     lengthChange: false,
     order: [[0, 'asc']],
-    layout: {
-        topStart: null,
-        topEnd: null,
-        bottomStart: 'info',
-        bottomEnd: 'paging',
-    },
+    initComplete: tableScrollRegion('Students table'),
     language: {
         emptyTable: 'No students to display.',
         zeroRecords: 'No students match your filters.',
@@ -251,65 +144,31 @@ const filterByStatus = async (status) => {
     }
 };
 
-// Apply the search term without clearing the other filters.
-const searchStudents = async (searchTerm) => {
-    await nextTick();
-
-    const tableApi = dataTable.value?.dt;
-
-    if (tableApi) {
-        tableApi.search(searchTerm).draw();
-    }
-};
-
 // Expose the cohort options and filter methods to the parent view.
 defineExpose({
     cohorts,
     pendingCount,
     filterByCohort,
     filterByStatus,
-    searchStudents,
     refreshStudents,
 });
 
-// Handle actions generated by DataTables using event delegation.
-const handleActionClick = async (event) => {
-    const button = event.target?.closest?.('button[data-action]');
+// Middle button says Enable or Disable depending on the account.
+const toggleAction = (student) => (student.status === 'Disabled' ? 'enable' : 'disable');
+const toggleText = (student) => (student.status === 'Disabled' ? 'Enable' : 'Disable');
 
-    if (!button || !tableWrapper.value?.contains(button)) {
-        return;
-    }
+// Handle the action buttons in the #actions slot.
+const handleAction = async (action, student, event) => {
+    actionError.value = '';
 
-    const action = button.dataset.action;
-    const userID = button.dataset.userId;
-
-    // Find the selected student and pass their details to the parent view.
     if (action === 'edit') {
-        const selectedStudent = students.value.find((student) => String(student.userID) === String(userID));
-
-        if (selectedStudent) {
-            emit('edit', selectedStudent);
-        } else {
-            actionError.value = 'Unable to find the selected student.';
-        }
-
-        return;
-    }
-
-    if (!userID) {
-        actionError.value = 'Unable to identify the selected student.';
+        emit('edit', student);
         return;
     }
 
     // Open the decline confirmation popup.
     if (action === 'decline') {
-        studentToDecline.value = students.value.find((student) => String(student.userID) === String(userID));
-
-        if (!studentToDecline.value) {
-            actionError.value = 'Unable to find the selected student.';
-            return;
-        }
-
+        studentToDecline.value = student;
         await nextTick();
         declinePopup.value?.open();
         return;
@@ -317,33 +176,30 @@ const handleActionClick = async (event) => {
 
     // Open the delete confirmation popup.
     if (action === 'delete') {
-        studentToDelete.value = students.value.find((student) => String(student.userID) === String(userID));
-
-        if (!studentToDelete.value) {
-            actionError.value = 'Unable to find the selected student.';
-            return;
-        }
-
+        studentToDelete.value = student;
         await nextTick();
         deletePopup.value?.open();
         return;
     }
 
-    button.disabled = true;
-    actionError.value = '';
+    // DataTables draws the slot once, so the button is disabled directly rather than through Vue
+    const button = event?.currentTarget;
+    if (button) {
+        button.disabled = true;
+    }
 
     try {
         switch (action) {
             case 'enable':
-                await updateStudentStatus(userID, true);
+                await updateStudentStatus(student.userID, true);
                 break;
 
             case 'disable':
-                await updateStudentStatus(userID, false);
+                await updateStudentStatus(student.userID, false);
                 break;
 
             case 'approve':
-                await approveStudent(userID);
+                await approveStudent(student.userID);
                 break;
 
             default:
@@ -355,7 +211,9 @@ const handleActionClick = async (event) => {
     } catch (error) {
         actionError.value = error.response?.data?.error || 'Unable to complete this action. Please try again.';
     } finally {
-        button.disabled = false;
+        if (button) {
+            button.disabled = false;
+        }
     }
 };
 
@@ -430,10 +288,8 @@ const handleDeletePopupClose = () => {
     }
 };
 
-// Retrieve student records and attach the delegated action listener.
+// Retrieve student records when the table first shows.
 onMounted(async () => {
-    tableWrapper.value?.addEventListener('click', handleActionClick);
-
     try {
         await refreshStudents();
     } catch {
@@ -442,214 +298,164 @@ onMounted(async () => {
         loading.value = false;
     }
 });
-
-// Remove the listener when the component is destroyed.
-onUnmounted(() => {
-    tableWrapper.value?.removeEventListener('click', handleActionClick);
-});
 </script>
 
 <template>
-    <div ref="tableWrapper" class="studentTableWrapper">
-        <!-- Show errors returned by student account actions. -->
-        <p v-if="actionError" role="alert">
-            {{ actionError }}
-        </p>
+    <!-- same white card as the lecturer and subject tables -->
+    <div class="card border-0 rounded-0 h-100">
+        <div class="px-3 px-md-4 pb-4">
+            <!-- Show errors returned by student account actions. -->
+            <div v-if="actionError" class="alert alert-danger mt-3" role="alert">
+                {{ actionError }}
+            </div>
 
-        <!-- Show a loading message while student records are being retrieved. -->
-        <p v-if="loading" role="status">Loading students...</p>
+            <!-- Show a loading message while student records are being retrieved. -->
+            <p v-if="loading" class="text-center py-4 mb-0" role="status">Loading students...</p>
 
-        <!-- Show an error if student records could not be loaded. -->
-        <p v-else-if="errorMessage" role="alert">
-            {{ errorMessage }}
-        </p>
+            <!-- Show an error if student records could not be loaded. -->
+            <div v-else-if="errorMessage" class="alert alert-danger mb-0" role="alert">
+                {{ errorMessage }}
+            </div>
 
-        <div v-else class="tableResponsive">
-            <DataTable
-                ref="dataTable"
-                :columns="columns"
-                :data="students"
-                :options="tableOptions"
-                class="table table-sm table-striped table-hover align-middle mb-0"
-            />
+            <div v-else class="adminTable">
+                <DataTable
+                    ref="dataTable"
+                    :columns="columns"
+                    :data="students"
+                    :options="tableOptions"
+                    class="table table-sm table-striped table-hover align-middle mb-0"
+                >
+                    <!-- screen readers read the caption out, the page heading already says it on screen -->
+                    <caption class="visually-hidden">
+                        Students
+                    </caption>
+
+                    <template #status="props">
+                        <span class="statusPill" :class="statusPillClasses[props.rowData.status] || 'statusDisabled'">
+                            {{ props.rowData.status }}
+                        </span>
+                    </template>
+
+                    <!-- name goes in each aria-label so a screen reader knows which row the button is for -->
+                    <template #actions="props">
+                        <template v-if="props.rowData.status === 'Pending'">
+                            <button
+                                type="button"
+                                class="btn btn-sm btn-outline-primary me-1"
+                                :aria-label="'Approve ' + props.rowData.name"
+                                @click="handleAction('approve', props.rowData, $event)"
+                            >
+                                Approve
+                            </button>
+                            <button
+                                type="button"
+                                class="btn btn-sm btn-outline-danger"
+                                :aria-label="'Decline ' + props.rowData.name"
+                                @click="handleAction('decline', props.rowData, $event)"
+                            >
+                                Decline
+                            </button>
+                        </template>
+
+                        <template v-else>
+                            <button
+                                type="button"
+                                class="btn btn-sm btn-outline-primary me-1"
+                                :aria-label="'Edit ' + props.rowData.name"
+                                @click="handleAction('edit', props.rowData, $event)"
+                            >
+                                Edit
+                            </button>
+                            <button
+                                type="button"
+                                class="btn btn-sm me-1"
+                                :class="
+                                    toggleText(props.rowData) === 'Disable' ? 'tableDisableButton' : 'tableEnableButton'
+                                "
+                                :aria-label="toggleText(props.rowData) + ' ' + props.rowData.name"
+                                @click="handleAction(toggleAction(props.rowData), props.rowData, $event)"
+                            >
+                                {{ toggleText(props.rowData) }}
+                            </button>
+                            <button
+                                type="button"
+                                class="btn btn-sm btn-outline-danger"
+                                :aria-label="'Delete ' + props.rowData.name"
+                                @click="handleAction('delete', props.rowData, $event)"
+                            >
+                                Delete
+                            </button>
+                        </template>
+                    </template>
+                </DataTable>
+            </div>
+
+            <!-- Decline confirmation popup. -->
+            <Popup ref="declinePopup" title="Confirm Decline" @close="handleDeclinePopupClose">
+                <h3>Decline this application?</h3>
+
+                <p>Are you sure you want to decline and permanently remove this application?</p>
+
+                <p class="studentDeleteName">
+                    {{ studentToDecline?.name }}
+                </p>
+
+                <template #buttons>
+                    <button
+                        type="button"
+                        class="btn btn-outline-primary flex-fill"
+                        :disabled="decliningStudent"
+                        @click="closeDeclineModal"
+                    >
+                        Cancel
+                    </button>
+
+                    <button
+                        type="button"
+                        class="btn btn-danger flex-fill"
+                        :disabled="decliningStudent"
+                        @click="confirmDeclineStudent"
+                    >
+                        {{ decliningStudent ? 'Declining...' : 'Confirm Decline' }}
+                    </button>
+                </template>
+            </Popup>
+
+            <!-- Delete confirmation popup. -->
+            <Popup ref="deletePopup" title="Confirm Delete" @close="handleDeletePopupClose">
+                <h3>Are you sure?</h3>
+
+                <p>Are you sure you want to delete this student? This action cannot be undone.</p>
+
+                <p class="studentDeleteName">
+                    {{ studentToDelete?.name }}
+                </p>
+
+                <template #buttons>
+                    <button
+                        type="button"
+                        class="btn btn-outline-primary flex-fill"
+                        :disabled="deletingStudent"
+                        @click="closeDeleteModal"
+                    >
+                        Cancel
+                    </button>
+
+                    <button
+                        type="button"
+                        class="btn btn-danger flex-fill"
+                        :disabled="deletingStudent"
+                        @click="confirmDeleteStudent"
+                    >
+                        {{ deletingStudent ? 'Deleting...' : 'Confirm Delete' }}
+                    </button>
+                </template>
+            </Popup>
         </div>
-
-        <!-- Decline confirmation popup. -->
-        <Popup ref="declinePopup" title="Confirm Decline" @close="handleDeclinePopupClose">
-            <h3>Decline this application?</h3>
-
-            <p>Are you sure you want to decline and permanently remove this application?</p>
-
-            <p class="studentDeleteName">
-                {{ studentToDecline?.name }}
-            </p>
-
-            <template #buttons>
-                <button
-                    type="button"
-                    class="btn btn-outline-secondary"
-                    :disabled="decliningStudent"
-                    @click="closeDeclineModal"
-                >
-                    Cancel
-                </button>
-
-                <button
-                    type="button"
-                    class="btn btn-danger"
-                    :disabled="decliningStudent"
-                    @click="confirmDeclineStudent"
-                >
-                    {{ decliningStudent ? 'Declining...' : 'Confirm Decline' }}
-                </button>
-            </template>
-        </Popup>
-
-        <!-- Delete confirmation popup. -->
-        <Popup ref="deletePopup" title="Confirm Delete" @close="handleDeletePopupClose">
-            <h3>Are you sure?</h3>
-
-            <p>Are you sure you want to delete this student? This action cannot be undone.</p>
-
-            <p class="studentDeleteName">
-                {{ studentToDelete?.name }}
-            </p>
-
-            <template #buttons>
-                <button
-                    type="button"
-                    class="btn btn-outline-secondary"
-                    :disabled="deletingStudent"
-                    @click="closeDeleteModal"
-                >
-                    Cancel
-                </button>
-
-                <button type="button" class="btn btn-danger" :disabled="deletingStudent" @click="confirmDeleteStudent">
-                    {{ deletingStudent ? 'Deleting...' : 'Confirm Delete' }}
-                </button>
-            </template>
-        </Popup>
     </div>
 </template>
 
 <style>
-.studentTableWrapper {
-    width: 100%;
-    min-width: 0;
-    max-width: 100%;
-}
-
-.studentTableWrapper .tableResponsive {
-    display: block;
-    width: 100%;
-    max-width: 100%;
-    overflow: auto;
-    -webkit-overflow-scrolling: touch;
-    overscroll-behavior-x: contain;
-}
-
-.studentTableWrapper .tableResponsive table {
-    width: 100%;
-    min-width: 1000px;
-    margin-bottom: 0;
-}
-
-.studentTableWrapper .tableResponsive th,
-.studentTableWrapper .tableResponsive td {
-    white-space: nowrap;
-    vertical-align: middle;
-}
-
-.studentTableWrapper .tableResponsive td:last-child {
-    min-width: 330px;
-}
-
-.studentStatusBadge {
-    display: inline-block;
-    padding: var(--spaceXs) var(--spaceSm);
-    border-radius: var(--radiusSm);
-    font-size: var(--fontSizeSmall);
-    font-weight: 700;
-    line-height: 1.4;
-}
-
-.studentStatusActive {
-    color: var(--colorSurface);
-    background-color: var(--colorSuccess);
-}
-
-.studentStatusPending {
-    color: var(--colorSurface);
-    background-color: var(--colorWarning);
-}
-
-.studentStatusDisabled {
-    color: var(--colorSurface);
-    background-color: var(--colorTextSecondary);
-}
-
-.tableActionButton {
-    min-height: 36px;
-    padding: var(--spaceXs) var(--spaceSm);
-    border-radius: var(--radiusSm);
-    font-family: var(--fontBody);
-    font-weight: 600;
-}
-
-.tableEditButton {
-    color: var(--colorPrimary);
-    background-color: var(--colorSurface);
-    border: 1px solid var(--colorPrimary);
-}
-
-.tableEditButton:hover {
-    color: var(--colorSurface);
-    background-color: var(--colorPrimaryHover);
-    border-color: var(--colorPrimaryHover);
-}
-
-.tableApproveButton,
-.tableEnableButton {
-    color: var(--colorSurface);
-    background-color: var(--colorSuccess);
-    border: 1px solid var(--colorSuccess);
-}
-
-.tableApproveButton:hover,
-.tableEnableButton:hover {
-    color: var(--colorSurface);
-    background-color: var(--colorSuccessHover);
-    border-color: var(--colorSuccessHover);
-}
-
-.tableDisableButton {
-    color: var(--colorWarning);
-    background-color: var(--colorSurface);
-    border: 1px solid var(--colorWarning);
-}
-
-.tableDisableButton:hover {
-    color: var(--colorSurface);
-    background-color: var(--colorWarning);
-}
-
-.tableDeleteButton {
-    color: var(--colorSurface);
-    background-color: var(--colorError);
-    border: 1px solid var(--colorError);
-}
-
-.tableDeleteButton:hover {
-    background-color: var(--colorErrorHover);
-    border-color: var(--colorErrorHover);
-}
-
-.tableActionButton:focus-visible {
-    outline: 3px solid var(--colorFocus);
-    outline-offset: 2px;
-}
-
 /* Centre the selected student's name in the confirmation popup. */
 .studentDeleteName {
     margin: var(--spaceXl) 0;
