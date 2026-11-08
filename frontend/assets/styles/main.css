@@ -1975,6 +1975,33 @@ table.dataTable thead > tr > th.dt-type-date div.dt-column-header {
     --bs-btn-disabled-opacity: 1;
 }
 
+/* delete and remove buttons use the house red instead of bootstrap's, darker red on hover */
+[class~='btn-danger'] {
+    --bs-btn-bg: var(--colorError);
+    --bs-btn-border-color: var(--colorError);
+    --bs-btn-hover-bg: var(--colorErrorHover);
+    --bs-btn-hover-border-color: var(--colorErrorHover);
+    --bs-btn-active-bg: var(--colorErrorHover);
+    --bs-btn-active-border-color: var(--colorErrorHover);
+    --bs-btn-disabled-bg: var(--colorError);
+    --bs-btn-disabled-border-color: var(--colorError);
+}
+
+[class~='btn-outline-danger'] {
+    --bs-btn-color: var(--colorError);
+    --bs-btn-border-color: var(--colorError);
+    --bs-btn-hover-bg: var(--colorError);
+    --bs-btn-hover-border-color: var(--colorError);
+    --bs-btn-active-bg: var(--colorErrorHover);
+    --bs-btn-active-border-color: var(--colorErrorHover);
+
+    /* disabled = house style grey, the same as the outline primary buttons */
+    --bs-btn-disabled-bg: var(--colorDisabled);
+    --bs-btn-disabled-border-color: var(--colorDisabled);
+    --bs-btn-disabled-color: var(--colorTextSecondary);
+    --bs-btn-disabled-opacity: 1;
+}
+
 /* size and shape for the admin management pages, 44px high or 36px inside a table */
 .adminPage [class~='btn'] {
     min-height: 44px;
