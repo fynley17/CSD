@@ -43,20 +43,19 @@ class Administrator extends Lecturer
         ];
     }
 
-
     /**
      * Gets the lecturers for the admin dashboard table and the lecturer management page, latest login first
      *
      * @param int|null $limit how many to get, null gets every lecturer
-     * @param bool $withAdmins true lists admin accounts also - management page wants them so a new admin shows up
+     * @param bool $withAdmins true lists admin accounts as well, the management page wants them so a new admin shows up
      * @return list<array{userID: string, firstName: string, lastName: string, name: string, staffID: string,
      *     email: string, isEnabled: bool, lastLogin: ?string, role: string, hasPassword: bool}>
      */
     public static function getRecentLecturers(?int $limit = 5, bool $withAdmins = false): array
     {
-        // the dashboard only counts lecturer accounts identical to the cards.
+        // the dashboard only counts lecturer accounts, same as the cards
         // anyone who's never logged in goes to the bottom
-        // the staff ID is the username (lecturers log in with it)
+        // the staff ID is the username, that's what lecturers log in with
         $accountTypes = $withAdmins ? "('lecturer', 'admin')" : "('lecturer')";
         $sql = "
             SELECT Users.userID, Lecturer.firstName, Lecturer.lastName, Users.username, Users.email,
@@ -91,7 +90,7 @@ class Administrator extends Lecturer
                 'isEnabled' => (int) $row['isEnabled'] === 1,
                 'lastLogin' => $row['lastLogin'],
                 'role' => $row['accountType'],
-                // isEmailVerifiedis 0 until they've used the emailed link to set a password
+                // isEmailVerified stays 0 until they've used the emailed link to set a password
                 'hasPassword' => (int) $row['isEmailVerified'] === 1,
             ];
         }
@@ -105,7 +104,6 @@ class Administrator extends Lecturer
     public static function getAllLecturers(): array
     {
         return self::getRecentLecturers(null, true);
-        // null for no limit and true to include admins
     }
 
     /**
@@ -159,6 +157,134 @@ class Administrator extends Lecturer
     {
         $this->checkCanManage($lecturer);
 
+        $userID = $lecturer->getUserID();
+        [$firstName, $lastName, $staffID, $email] = self::checkDetails($details, $userID);
+
+        $db = self::getDB();
+
+        // names are in Lecturer and the login details are in Users, both change or neither does
+        $db->beginTransaction();
+        try {
+            $stmt = $db->prepare('UPDATE Users SET username = ?, email = ? WHERE userID = ?');
+            $stmt->execute([$staffID, $email, $userID]);
+
+            $stmt = $db->prepare('UPDATE Lecturer SET firstName = ?, lastName = ? WHERE userID = ?');
+            $stmt->execute([$firstName, $lastName, $userID]);
+
+            $db->commit();
+        } catch (\Throwable $e) {
+            if ($db->inTransaction()) {
+                $db->rollBack();
+            }
+            throw $e;
+        }
+    }
+
+    /**
+     * Makes a lecturer or admin account from the Add Lecturer pop up, nobody knows the password yet
+     * the controller then emails them a link to set their own
+     *
+     * @param array $details firstName, lastName, staffID, email and role ('lecturer' or 'admin')
+     * @return array{userID: string, staffID: string, email: string, firstName: string, role: string}
+     * @throws \InvalidArgumentException with a message for the page if something typed isn't allowed
+     */
+    public function createLecturer(array $details): array
+    {
+        [$firstName, $lastName, $staffID, $email] = self::checkDetails($details, null);
+
+        // only these two, anything else sent in is refused
+        $role = self::readField($details, 'role');
+        if ($role !== 'lecturer' && $role !== 'admin') {
+            throw new \InvalidArgumentException('Choose Lecturer or Administrator');
+        }
+
+        // random password nobody ever sees, they can't log in until they use the emailed link
+        $passwordHash = password_hash(bin2hex(random_bytes(32)), PASSWORD_DEFAULT);
+
+        $db = self::getDB();
+        $userID = $db->query('SELECT UUID()')->fetchColumn();
+        if (!is_string($userID) || $userID === '') {
+            throw new \RuntimeException('Unable to make a user ID');
+        }
+
+        // an admin gets a Lecturer row too so they can own tests, both rows go in or neither does
+        $db->beginTransaction();
+        try {
+            $stmt = $db->prepare(
+                'INSERT INTO Users (userID, username, email, password, accountType, approvalStatus, isEnabled, '
+                . "isEmailVerified) VALUES (?, ?, ?, ?, ?, 'approved', 1, 0)"
+            );
+            $stmt->execute([$userID, $staffID, $email, $passwordHash, $role]);
+
+            $stmt = $db->prepare('INSERT INTO Lecturer (userID, firstName, lastName) VALUES (?, ?, ?)');
+            $stmt->execute([$userID, $firstName, $lastName]);
+
+            $db->commit();
+        } catch (\Throwable $e) {
+            if ($db->inTransaction()) {
+                $db->rollBack();
+            }
+            throw $e;
+        }
+
+        return [
+            'userID' => $userID,
+            'staffID' => $staffID,
+            'email' => $email,
+            'firstName' => $firstName,
+            'role' => $role,
+        ];
+    }
+
+    /**
+     * Resend link button for someone who hasn't set a password yet, links only last 24 hours
+     * works on admin rows too or a new admin who lost the email would be stuck
+     *
+     * @return array{token: string, staffID: string, email: string, firstName: string, role: string}
+     * @throws \InvalidArgumentException if they've already set a password or a link went out under a minute ago
+     */
+    public function makeSetupLink(Lecturer $lecturer): array
+    {
+        if ($lecturer->isEmailVerified()) {
+            throw new \InvalidArgumentException('This account already has a password');
+        }
+
+        $userID = $lecturer->getUserID();
+
+        // stops the button being pressed over and over and filling their inbox
+        if (!PasswordSetup::canResend($userID)) {
+            throw new \InvalidArgumentException('A link was sent less than a minute ago, try again shortly');
+        }
+
+        $stmt = self::getDB()->prepare(
+            'SELECT Users.email, Lecturer.firstName FROM Users JOIN Lecturer ON Lecturer.userID = Users.userID '
+            . 'WHERE Users.userID = ?'
+        );
+        $stmt->execute([$userID]);
+        $row = $stmt->fetch(\PDO::FETCH_ASSOC);
+        if ($row === false) {
+            throw new \RuntimeException('The lecturer details could not be read');
+        }
+
+        // a new link replaces the old one, so an old email stops working
+        return [
+            'token' => PasswordSetup::createToken($userID),
+            'staffID' => $lecturer->getUsername(),
+            'email' => $row['email'],
+            'firstName' => $row['firstName'],
+            'role' => $lecturer->getAccountType(),
+        ];
+    }
+
+    /**
+     * add and edit both use this so the rules are only written once
+     *
+     * @param string|null $userID the account being edited, null when adding (there's no one to leave out)
+     * @return array{0: string, 1: string, 2: string, 3: string} first name, last name, staff ID, email (lower case)
+     * @throws \InvalidArgumentException with a message for the page
+     */
+    private static function checkDetails(array $details, ?string $userID): array
+    {
         $firstName = self::readField($details, 'firstName');
         $lastName = self::readField($details, 'lastName');
         $staffID = self::readField($details, 'staffID');
@@ -177,38 +303,35 @@ class Administrator extends Lecturer
             throw new \InvalidArgumentException('Enter an email address in the correct format, like name@example.com');
         }
 
-        $db = self::getDB();
-        $userID = $lecturer->getUserID();
-
-        // their own row is left out so saving without changing the staff ID or email still works
-        $stmt = $db->prepare('SELECT 1 FROM Users WHERE username = ? AND userID <> ? LIMIT 1');
-        $stmt->execute([$staffID, $userID]);
-        if ($stmt->fetchColumn() !== false) {
+        if (self::isTaken('username', $staffID, $userID)) {
             throw new \InvalidArgumentException('An account with this staff ID already exists');
         }
-
-        $stmt = $db->prepare('SELECT 1 FROM Users WHERE email = ? AND userID <> ? LIMIT 1');
-        $stmt->execute([$email, $userID]);
-        if ($stmt->fetchColumn() !== false) {
+        if (self::isTaken('email', $email, $userID)) {
             throw new \InvalidArgumentException('An account with this email address already exists');
         }
 
-        // names are in Lecturer and the login details are in Users, both change or neither does
-        $db->beginTransaction();
-        try {
-            $stmt = $db->prepare('UPDATE Users SET username = ?, email = ? WHERE userID = ?');
-            $stmt->execute([$staffID, $email, $userID]);
+        return [$firstName, $lastName, $staffID, $email];
+    }
 
-            $stmt = $db->prepare('UPDATE Lecturer SET firstName = ?, lastName = ? WHERE userID = ?');
-            $stmt->execute([$firstName, $lastName, $userID]);
-
-            $db->commit();
-        } catch (\Throwable $e) {
-            if ($db->inTransaction()) {
-                $db->rollBack();
-            }
-            throw $e;
+    /**
+     * True if someone else already has that staff ID or email
+     * when editing their own row is left out, so saving without changing the staff ID or email still works
+     *
+     * @param string $column only ever 'username' or 'email' from this class, never something typed in
+     */
+    private static function isTaken(string $column, string $value, ?string $userID): bool
+    {
+        // adding has no userID to leave out so that part of the query is skipped
+        // putting '' in its place made the check find nothing, so a used staff ID got through
+        if ($userID === null) {
+            $stmt = self::getDB()->prepare("SELECT 1 FROM Users WHERE $column = ? LIMIT 1");
+            $stmt->execute([$value]);
+        } else {
+            $stmt = self::getDB()->prepare("SELECT 1 FROM Users WHERE $column = ? AND userID <> ? LIMIT 1");
+            $stmt->execute([$value, $userID]);
         }
+
+        return $stmt->fetchColumn() !== false;
     }
 
     /**
