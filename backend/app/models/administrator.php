@@ -48,19 +48,22 @@ class Administrator extends Lecturer
      * Gets the lecturers for the admin dashboard table and the lecturer management page, latest login first
      *
      * @param int|null $limit how many to get, null gets every lecturer
+     * @param bool $withAdmins true lists admin accounts also - management page wants them so a new admin shows up
      * @return list<array{userID: string, firstName: string, lastName: string, name: string, staffID: string,
-     *     email: string, isEnabled: bool, lastLogin: ?string}>
+     *     email: string, isEnabled: bool, lastLogin: ?string, role: string, hasPassword: bool}>
      */
-    public static function getRecentLecturers(?int $limit = 5): array
+    public static function getRecentLecturers(?int $limit = 5, bool $withAdmins = false): array
     {
-        // only lecturer accounts, same as the cards. Anyone who's never logged in goes to the bottom
-        // the staff ID is the username, that's what lecturers log in with
+        // the dashboard only counts lecturer accounts identical to the cards.
+        // anyone who's never logged in goes to the bottom
+        // the staff ID is the username (lecturers log in with it)
+        $accountTypes = $withAdmins ? "('lecturer', 'admin')" : "('lecturer')";
         $sql = "
             SELECT Users.userID, Lecturer.firstName, Lecturer.lastName, Users.username, Users.email,
-                Users.isEnabled, Users.lastLogin
+                Users.isEnabled, Users.lastLogin, Users.accountType, Users.isEmailVerified
             FROM Users
             JOIN Lecturer ON Lecturer.userID = Users.userID
-            WHERE Users.accountType = 'lecturer'
+            WHERE Users.accountType IN $accountTypes
             ORDER BY Users.lastLogin IS NULL, Users.lastLogin DESC
         ";
 
@@ -87,6 +90,9 @@ class Administrator extends Lecturer
                 'email' => $row['email'],
                 'isEnabled' => (int) $row['isEnabled'] === 1,
                 'lastLogin' => $row['lastLogin'],
+                'role' => $row['accountType'],
+                // isEmailVerifiedis 0 until they've used the emailed link to set a password
+                'hasPassword' => (int) $row['isEmailVerified'] === 1,
             ];
         }
 
@@ -94,11 +100,12 @@ class Administrator extends Lecturer
     }
 
     /**
-     * Gets every lecturer for the lecturer management page
+     * Gets every lecturer and admin for the lecturer management page
      */
     public static function getAllLecturers(): array
     {
-        return self::getRecentLecturers(null);
+        return self::getRecentLecturers(null, true);
+        // null for no limit and true to include admins
     }
 
     /**
