@@ -24,7 +24,7 @@ async function openPageAs(accountType) {
 }
 
 function createButton(page) {
-    return page.findAll('button').find((button) => button.text() === 'Create test');
+    return page.findAll('button').find((button) => button.text() === '+ Create test');
 }
 
 describe('TestManagement', () => {

@@ -18,7 +18,7 @@
             </div>
 
             <div class="tableToolbarActions">
-                <button type="button" class="cohortPrimaryButton cohortCreateButton" @click="openCohortForm(null)">
+                <button type="button" class="btn btn-primary cohortCreateButton" @click="openCohortForm(null)">
                     <span aria-hidden="true">+</span> Create Cohort
                 </button>
             </div>

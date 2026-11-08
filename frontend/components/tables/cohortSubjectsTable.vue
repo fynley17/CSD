@@ -28,7 +28,7 @@
                     <h3>Subjects studied by {{ cohort.cohortName }} ({{ cohort.subjects.length }})</h3>
                     <button
                         type="button"
-                        class="cohortPrimaryButton"
+                        class="btn btn-primary"
                         :aria-label="`Assign subjects to ${cohort.cohortName}`"
                         @click="emit('assign', cohort)"
                     >

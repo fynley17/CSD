@@ -64,7 +64,7 @@
                     <h3>Students in {{ cohort.cohortName }} ({{ cohort.students.length }})</h3>
                     <button
                         type="button"
-                        class="cohortPrimaryButton"
+                        class="btn btn-primary"
                         :aria-label="`Add students to ${cohort.cohortName}`"
                         @click="emit('addStudents', cohort)"
                     >

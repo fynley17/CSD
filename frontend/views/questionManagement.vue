@@ -229,7 +229,9 @@ onBeforeUnmount(() => {
                 />
             </div>
             <div class="tableToolbarActions">
-                <button type="button" class="btn btn-primary" @click="openCreateForm">Create question</button>
+                <button type="button" class="btn btn-primary" @click="openCreateForm">
+                    <span aria-hidden="true">+</span> Create question
+                </button>
             </div>
         </div>
 

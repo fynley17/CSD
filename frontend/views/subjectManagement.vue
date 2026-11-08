@@ -151,7 +151,9 @@ export default {
                 <TableFilter id="subjectStatusFilter" v-model="statusFilter" label="Status" :options="statusOptions" />
             </div>
             <div class="tableToolbarActions">
-                <button type="button" class="btn btn-primary" @click="addSubject">Add subject</button>
+                <button type="button" class="btn btn-primary" @click="addSubject">
+                    <span aria-hidden="true">+</span> Add subject
+                </button>
             </div>
         </div>
 

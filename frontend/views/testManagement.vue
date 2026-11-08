@@ -214,7 +214,7 @@ onBeforeUnmount(() => {
             </div>
             <div class="tableToolbarActions">
                 <button v-if="canCreateTest" type="button" class="btn btn-primary" @click="openCreateForm">
-                    Create test
+                    <span aria-hidden="true">+</span> Create test
                 </button>
             </div>
         </div>

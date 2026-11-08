@@ -9,7 +9,8 @@ import StudentForm from '../components/forms/studentForm.vue';
 
 const currentUser = ref(null);
 
-const canCreateStudent = computed(() => currentUser.value?.accountType === 'lecturer');
+// lecturers and admins can both add students, the backend allows either
+const canCreateStudent = computed(() => ['lecturer', 'admin'].includes(currentUser.value?.accountType));
 
 onMounted(async () => {
     currentUser.value = await getCurrentUser();
@@ -139,7 +140,7 @@ const handleStudentSaved = (response) => {
                     Student Applications ({{ pendingCount }})
                 </button>
                 <button v-if="canCreateStudent" type="button" class="btn btn-primary" @click="openStudentForm">
-                    Add student
+                    <span aria-hidden="true">+</span> Add student
                 </button>
             </div>
         </div>

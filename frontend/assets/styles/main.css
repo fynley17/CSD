@@ -1690,12 +1690,13 @@ table.dataTable thead > tr > th.dt-type-date div.dt-column-header {
     gap: var(--spaceSm);
 }
 
-/* buttons line up with the search box and dropdowns beside them */
-.tableToolbarActions .btn,
-.tableToolbarActions .cohortPrimaryButton {
+/* buttons line up with the search box and dropdowns beside them. Flex drops the space typed
+   after the + on the create buttons, so the gap puts it back */
+.tableToolbarActions .btn {
     display: inline-flex;
     min-height: var(--minTouchTarget);
     align-items: center;
+    gap: var(--spaceXs);
 }
 
 /* full width on phones so they're easy to tap */
@@ -1705,8 +1706,7 @@ table.dataTable thead > tr > th.dt-type-date div.dt-column-header {
     flex: 1 1 100%;
 }
 
-.tableToolbarActions .btn,
-.tableToolbarActions .cohortPrimaryButton {
+.tableToolbarActions .btn {
     flex: 1 1 auto;
     justify-content: center;
 }
@@ -1767,8 +1767,7 @@ table.dataTable thead > tr > th.dt-type-date div.dt-column-header {
         margin-left: auto;
     }
 
-    .tableToolbarActions .btn,
-    .tableToolbarActions .cohortPrimaryButton {
+    .tableToolbarActions .btn {
         flex: 0 0 auto;
     }
 }
