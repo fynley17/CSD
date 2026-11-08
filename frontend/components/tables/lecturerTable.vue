@@ -47,39 +47,62 @@
                         </caption>
 
                         <!-- house style pill, the word is there so it's not shown by colour alone -->
+                        <!-- someone added from Add lecturer is waiting until they use the emailed link -->
                         <template #status="props">
-                            <span class="statusPill" :class="props.cellData ? 'statusActive' : 'statusDisabled'">
+                            <span
+                                v-if="props.rowData.hasPassword === false"
+                                class="statusPill statusPending text-nowrap"
+                            >
+                                Waiting for password
+                            </span>
+                            <span v-else class="statusPill" :class="props.cellData ? 'statusActive' : 'statusDisabled'">
                                 {{ props.cellData ? 'Active' : 'Disabled' }}
                             </span>
                         </template>
 
                         <!-- name goes in each aria-label so a screen reader knows which row the button is for -->
+                        <!-- admin rows get no Edit, Disable or Delete, PHP refuses those for admins anyway -->
                         <template #actions="props">
+                            <template v-if="props.rowData.role !== 'admin'">
+                                <button
+                                    type="button"
+                                    class="btn btn-sm btn-outline-primary me-1"
+                                    :aria-label="'Edit ' + props.rowData.name"
+                                    @click="$emit('edit', props.rowData)"
+                                >
+                                    Edit
+                                </button>
+                                <button
+                                    type="button"
+                                    class="btn btn-sm me-1"
+                                    :class="props.rowData.isEnabled ? 'tableDisableButton' : 'tableEnableButton'"
+                                    :aria-label="toggleText(props.rowData) + ' ' + props.rowData.name"
+                                    @click="$emit('toggle', props.rowData)"
+                                >
+                                    {{ toggleText(props.rowData) }}
+                                </button>
+                                <button
+                                    type="button"
+                                    class="btn btn-sm btn-outline-danger"
+                                    :aria-label="'Delete ' + props.rowData.name"
+                                    @click="$emit('delete', props.rowData)"
+                                >
+                                    Delete
+                                </button>
+                            </template>
+                            <!-- admins get this one too, or a new admin who lost the email would be stuck -->
                             <button
+                                v-if="props.rowData.hasPassword === false"
                                 type="button"
-                                class="btn btn-sm btn-outline-primary me-1"
-                                :aria-label="'Edit ' + props.rowData.name"
-                                @click="$emit('edit', props.rowData)"
+                                class="btn btn-sm btn-outline-primary ms-1"
+                                :aria-label="'Resend set password link to ' + props.rowData.name"
+                                @click="$emit('resend', props.rowData)"
                             >
-                                Edit
+                                Resend link
                             </button>
-                            <button
-                                type="button"
-                                class="btn btn-sm me-1"
-                                :class="props.rowData.isEnabled ? 'tableDisableButton' : 'tableEnableButton'"
-                                :aria-label="toggleText(props.rowData) + ' ' + props.rowData.name"
-                                @click="$emit('toggle', props.rowData)"
-                            >
-                                {{ toggleText(props.rowData) }}
-                            </button>
-                            <button
-                                type="button"
-                                class="btn btn-sm btn-outline-danger"
-                                :aria-label="'Delete ' + props.rowData.name"
-                                @click="$emit('delete', props.rowData)"
-                            >
-                                Delete
-                            </button>
+                            <span v-else-if="props.rowData.role === 'admin'" class="small text-dark">
+                                Can't be changed here
+                            </span>
                         </template>
                     </DataTable>
                 </div>
@@ -105,7 +128,8 @@ DataTable.use(DataTablesCore);
 // render.text() shows names and emails as plain text (stops HTML typed into a name running, XSS)
 const columns = [
     { data: 'name', title: 'Name', render: DataTablesCore.render.text() },
-    { data: 'staffID', title: 'Staff ID', render: DataTablesCore.render.text() },
+    // text-nowrap keeps the Staff ID heading on one line now the management page has more columns
+    { data: 'staffID', title: 'Staff ID', className: 'text-nowrap', render: DataTablesCore.render.text() },
     { data: 'email', title: 'Email', render: DataTablesCore.render.text() },
     { data: 'isEnabled', title: 'Status', render: '#status' },
     {
@@ -120,6 +144,17 @@ const columns = [
         },
     },
 ];
+
+// management page only. Plain words from a fixed list so there's nothing typed in to escape
+const roleColumn = {
+    data: 'role',
+    title: 'Role',
+    // a gap so Role isn't hard up against the right aligned Last Login dates
+    className: 'ps-4',
+    render(data) {
+        return data === 'admin' ? 'Administrator' : 'Lecturer';
+    },
+};
 
 // buttons for this one are in the #actions slot, only the management page adds it
 const actionColumn = { data: null, title: 'Actions', orderable: false, className: 'text-nowrap', render: '#actions' };
@@ -165,7 +200,7 @@ export default {
             default: 'all',
         },
     },
-    emits: ['edit', 'toggle', 'delete'],
+    emits: ['edit', 'toggle', 'delete', 'resend'],
 
     data() {
         return {
@@ -189,13 +224,15 @@ export default {
         },
 
         /**
-         * Only the management page gets the Actions column
+         * Only the management page gets the Role and Actions columns
          */
         tableColumns() {
             // fresh copies for each table - DataTables swaps '#status' and '#actions' for this table's own slots,
             // a shared copy would keep pointing at the first table ever shown and its buttons wouldn't go anywhere
             const tableColumns = columns.map((column) => Object.assign({}, column));
+            // role goes after Last Login so the newest login sort (column 4) still points at the right one
             if (this.manage) {
+                tableColumns.push(Object.assign({}, roleColumn));
                 tableColumns.push(Object.assign({}, actionColumn));
             }
             return tableColumns;

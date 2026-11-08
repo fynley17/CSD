@@ -267,4 +267,56 @@ describe('LecturerTable', () => {
         expect(disable.classes()).toContain('tableDisableButton');
         expect(enable.classes()).toContain('tableEnableButton');
     });
+
+    /**
+     * Someone just added has not used their emailed link yet, so the status says so and they get a Resend link
+     * button. The ordinary lecturer next to them has neither (normal)
+     */
+    it('shows Waiting for password and a Resend link button for a lecturer who has not set one', async () => {
+        // Arrange
+        const waiting = { ...manageLecturers[0], userID: 'lecturer-3', name: 'New Lecturer', hasPassword: false };
+        vi.mocked(getLecturers).mockResolvedValue([waiting, { ...manageLecturers[1], hasPassword: true }]);
+
+        // Act
+        const table = openTable({ manage: true });
+        await flushPromises();
+        await table.get('[aria-label="Resend set password link to New Lecturer"]').trigger('click');
+
+        // Assert
+        expect(table.get('.statusPending').text()).toBe('Waiting for password');
+        expect(table.emitted('resend')[0]).toEqual([waiting]);
+        expect(table.find('[aria-label="Resend set password link to Second Lecturer"]').exists()).toBe(false);
+    });
+
+    /**
+     * An administrator row has the Role column and no Edit, Disable or Delete, because PHP refuses to change
+     * administrators from this page (normal)
+     */
+    it('shows the role and gives administrators no change buttons', async () => {
+        // Arrange
+        const admin = {
+            ...manageLecturers[0],
+            userID: 'admin-1',
+            name: 'Boss Person',
+            role: 'admin',
+            hasPassword: true,
+        };
+        vi.mocked(getLecturers).mockResolvedValue([{ ...manageLecturers[1], role: 'lecturer' }, admin]);
+
+        // Act
+        const table = openTable({ manage: true });
+        await flushPromises();
+
+        // Assert
+        // both have never logged in so the row order isn't fixed, sorting the words gets round that
+        expect(
+            rowText(table)
+                .map((row) => row[5])
+                .sort(),
+        ).toEqual(['Administrator', 'Lecturer']);
+        expect(table.find('[aria-label="Edit Boss Person"]').exists()).toBe(false);
+        expect(table.find('[aria-label="Delete Boss Person"]').exists()).toBe(false);
+        expect(table.text()).toContain("Can't be changed here");
+        expect(table.find('[aria-label="Edit Second Lecturer"]').exists()).toBe(true);
+    });
 });
