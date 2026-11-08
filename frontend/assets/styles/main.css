@@ -1422,13 +1422,16 @@ main.appMainFullScreen {
     text-align: left;
 }
 
-/* up and down arrows drawn with borders, sized and coloured with the DataTables variables so they match */
+/* up and down arrows drawn with borders, the same size and fade as the DataTables ones so they match */
 .sortArrows {
+    --sortArrowWidth: 8px;
+    --sortArrowHeight: 7px;
+
     position: relative;
     flex-shrink: 0;
-    width: var(--dt-order-arrow-width, 8px);
+    width: var(--sortArrowWidth);
     align-self: stretch;
-    min-height: calc(var(--dt-order-arrow-height, 7px) * 2 + 2px);
+    min-height: calc(var(--sortArrowHeight) * 2 + 2px);
 }
 
 .sortArrows::before,
@@ -1437,26 +1440,26 @@ main.appMainFullScreen {
     left: 0;
     width: 0;
     height: 0;
-    border-right: calc(var(--dt-order-arrow-width, 8px) / 2) solid transparent;
-    border-left: calc(var(--dt-order-arrow-width, 8px) / 2) solid transparent;
+    border-right: calc(var(--sortArrowWidth) / 2) solid transparent;
+    border-left: calc(var(--sortArrowWidth) / 2) solid transparent;
     content: '';
-    opacity: var(--dt-order-arrow_opacity, 0.125);
+    opacity: 0.125;
 }
 
 .sortArrows::before {
-    bottom: calc(50% + var(--dt-order-arrow-gap, 1px));
-    border-bottom: var(--dt-order-arrow-height, 7px) solid var(--dt-order-arrow_color, currentcolor);
+    bottom: calc(50% + 1px);
+    border-bottom: var(--sortArrowHeight) solid currentColor;
 }
 
 .sortArrows::after {
     top: calc(50% + 1px);
-    border-top: var(--dt-order-arrow-height, 7px) solid var(--dt-order-arrow_color, currentcolor);
+    border-top: var(--sortArrowHeight) solid currentColor;
 }
 
 /* the arrow for the current direction is darker */
 .sortArrowsAsc::before,
 .sortArrowsDesc::after {
-    opacity: var(--dt-order-arrow_opacity-current, 0.65);
+    opacity: 0.65;
 }
 
 /* square chevron button */
@@ -1659,13 +1662,14 @@ main.appMainFullScreen {
     overflow: auto hidden;
 }
 
-/* DataTables flips number and date column headers so the sort arrows sit on the left*/
-/* this keeps them on the right like every other column */
-/* stylelint-disable-next-line selector-class-pattern */
+/* DataTables flips number and date column headers so the sort arrows sit on the left,
+   this keeps them on the right like every other column. These are DataTables' class names, so not camelCase */
+/* stylelint-disable selector-class-pattern */
 table.dataTable thead > tr > th.dt-type-numeric div.dt-column-header,
 table.dataTable thead > tr > th.dt-type-date div.dt-column-header {
     flex-direction: row;
 }
+/* stylelint-enable selector-class-pattern */
 
 /* toolbar above every table: search and filters on the left, page buttons on the right, all one height */
 .tableToolbar {
@@ -1690,12 +1694,14 @@ table.dataTable thead > tr > th.dt-type-date div.dt-column-header {
     gap: var(--spaceSm);
 }
 
-/* buttons line up with the search box and dropdowns beside them. Flex drops the space typed
-   after the + on the create buttons, so the gap puts it back */
+/* buttons line up with the search box and dropdowns beside them, and fill the row on phones.
+   Flex drops the space typed after the + on the create buttons, so the gap puts it back */
 .tableToolbarActions .btn {
     display: inline-flex;
+    flex: 1 1 auto;
     min-height: var(--minTouchTarget);
     align-items: center;
+    justify-content: center;
     gap: var(--spaceXs);
 }
 
@@ -1706,15 +1712,10 @@ table.dataTable thead > tr > th.dt-type-date div.dt-column-header {
     flex: 1 1 100%;
 }
 
-.tableToolbarActions .btn {
-    flex: 1 1 auto;
-    justify-content: center;
-}
-
 .tableFilterLabel {
     margin-bottom: var(--spaceXs);
     color: var(--colorText);
-    font-size: 0.875rem;
+    font-size: var(--fontSizeSmall);
     font-weight: 600;
 }
 
@@ -1740,8 +1741,9 @@ table.dataTable thead > tr > th.dt-type-date div.dt-column-header {
     color: var(--colorText);
 }
 
+/* room on the left for the magnifying glass */
 .tableSearchInput {
-    padding-left: 2.25rem;
+    padding-left: var(--spaceXl);
 }
 
 .tableFilterSelect:focus,
