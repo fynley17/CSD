@@ -269,8 +269,8 @@ describe('LecturerTable', () => {
     });
 
     /**
-     * Someone just added has not used their emailed link yet, so the status says so and they get a Resend link
-     * button. The ordinary lecturer next to them has neither (normal)
+     * Someone who hasn't used their emailed link yet shows Waiting for password and gets a Resend link button,
+     * the lecturer next to them doesn't (normal)
      */
     it('shows Waiting for password and a Resend link button for a lecturer who has not set one', async () => {
         // Arrange
@@ -289,8 +289,7 @@ describe('LecturerTable', () => {
     });
 
     /**
-     * An administrator row has the Role column and no Edit, Disable or Delete, because PHP refuses to change
-     * administrators from this page (normal)
+     * An admin row shows the role and has no Edit, Disable or Delete, PHP refuses those for admins anyway (normal)
      */
     it('shows the role and gives administrators no change buttons', async () => {
         // Arrange

@@ -145,7 +145,7 @@ const columns = [
     },
 ];
 
-// management page only. Plain words from a fixed list so there's nothing typed in to escape
+// management page only, role is always one of two words so no need to escape it
 const roleColumn = {
     data: 'role',
     title: 'Role',
