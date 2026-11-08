@@ -534,7 +534,7 @@ describe('CohortManagement', () => {
         await page.findAll('.cohortTable')[0].get('[aria-label="Show details for DTS 2026"]').trigger('click');
 
         // Assert
-        expect(page.get('.cohortDetailsTable tbody tr').text()).toContain('29/09/2026 09:42');
+        expect(page.get('.cohortDetailsTable tbody tr').text()).toContain('29/09/2026, 09:42');
     });
 
     /**

@@ -174,7 +174,7 @@ function formatDate(date) {
     return date.split('-').reverse().join('/');
 }
 
-// turns 2026-09-29 09:42:10 into 29/09/2026 09:42
+// turns 2026-09-29 09:42:10 into 29/09/2026, 09:42
 function formatLastLogin(lastLogin) {
     if (!lastLogin) {
         return 'Never';
@@ -182,6 +182,6 @@ function formatLastLogin(lastLogin) {
 
     const [date, time] = lastLogin.split(' ');
 
-    return `${formatDate(date)} ${time.slice(0, 5)}`;
+    return `${formatDate(date)}, ${time.slice(0, 5)}`;
 }
 </script>
