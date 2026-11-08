@@ -1,6 +1,6 @@
 <script setup>
 // Import Vue functions for reactive data and loading the table on mount.
-import { ref, onMounted } from 'vue';
+import { computed, ref, onMounted, watch } from 'vue';
 
 // Import the Vue integration for DataTables and its Bootstrap 5 styling.
 import DataTable from 'datatables.net-vue3';
@@ -10,7 +10,10 @@ import 'datatables.net-bs5/css/dataTables.bootstrap5.css';
 // Import the service that retrieves recent student activity from the API.
 import { getRecentStudentActivity } from '../../services/lecturerService';
 import { formatLastLogin } from '../../utils/formatLastLogin';
+import TableFilter from './tableFilter.vue';
+import TableSearch from './tableSearch.vue';
 import { tableScrollRegion } from '../../utils/tableScrollRegion';
+import { searchTable, toolbarLayout } from '../../utils/tableSearch';
 
 // Register the Bootstrap 5 version of DataTables with the Vue component.
 DataTable.use(DataTablesCore);
@@ -25,12 +28,29 @@ const loading = ref(true);
 // Store an error message if the API request fails.
 const errorMessage = ref('');
 
+// the status dropdown above the table, an empty string shows every student
+const statusFilter = ref('');
+const statusOptions = [
+    { value: '', label: 'All statuses' },
+    { value: 'Active', label: 'Active' },
+    { value: 'Pending approval', label: 'Pending approval' },
+    { value: 'Disabled', label: 'Disabled' },
+];
+const shownStudents = computed(() =>
+    statusFilter.value ? students.value.filter((student) => student.status === statusFilter.value) : students.value,
+);
+
 // house style pill for each status, the word is shown too so it isn't colour alone
 const statusPillClasses = {
     Active: 'statusActive',
     'Pending approval': 'statusPending',
     Disabled: 'statusDisabled',
 };
+
+// The search box in the toolbar above the table, DataTables does the searching.
+const dataTable = ref(null);
+const searchText = ref('');
+watch(searchText, (text) => searchTable(dataTable.value, text));
 
 // Define the columns displayed in the Recent Student Activity table.
 // The data properties must match the fields returned by the PHP API.
@@ -62,6 +82,8 @@ const columns = [
 const tableOptions = {
     // Allow users to search student details.
     searching: true,
+    // the search box is in the toolbar above the table, see utils/tableSearch.js
+    layout: toolbarLayout,
 
     // Allow users to sort by clicking column headings.
     ordering: true,
@@ -85,7 +107,6 @@ const tableOptions = {
     language: {
         emptyTable: 'No recent student activity to display.',
         zeroRecords: 'No students match your search.',
-        search: 'Search students:',
     },
 };
 
@@ -123,25 +144,46 @@ onMounted(async () => {
             </div>
 
             <!-- Render the searchable, sortable DataTable when loading ends. -->
-            <div v-else class="adminTable">
-                <DataTable
-                    :columns="columns"
-                    :data="students"
-                    :options="tableOptions"
-                    class="table table-sm table-striped table-hover align-middle mb-0"
-                >
-                    <!-- screen readers read the caption out, the heading above already says it on screen -->
-                    <caption class="visually-hidden">
-                        Recent student activity, latest login first
-                    </caption>
+            <template v-else>
+                <div class="tableToolbar">
+                    <div class="tableToolbarControls">
+                        <TableSearch
+                            id="dashboardStudentSearch"
+                            v-model="searchText"
+                            placeholder="Name, student number or email"
+                        />
+                        <TableFilter
+                            id="dashboardStudentStatusFilter"
+                            v-model="statusFilter"
+                            label="Status"
+                            :options="statusOptions"
+                        />
+                    </div>
+                </div>
+                <div class="adminTable">
+                    <DataTable
+                        ref="dataTable"
+                        :columns="columns"
+                        :data="shownStudents"
+                        :options="tableOptions"
+                        class="table table-sm table-striped table-hover align-middle mb-0"
+                    >
+                        <!-- screen readers read the caption out, the heading above already says it on screen -->
+                        <caption class="visually-hidden">
+                            Recent student activity, latest login first
+                        </caption>
 
-                    <template #status="props">
-                        <span class="statusPill" :class="statusPillClasses[props.rowData.status] || 'statusDisabled'">
-                            {{ props.rowData.status }}
-                        </span>
-                    </template>
-                </DataTable>
-            </div>
+                        <template #status="props">
+                            <span
+                                class="statusPill"
+                                :class="statusPillClasses[props.rowData.status] || 'statusDisabled'"
+                            >
+                                {{ props.rowData.status }}
+                            </span>
+                        </template>
+                    </DataTable>
+                </div>
+            </template>
         </div>
     </div>
 </template>

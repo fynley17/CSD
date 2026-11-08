@@ -4,6 +4,7 @@ import { computed, onMounted, ref, watch } from 'vue';
 
 // Import the service that retrieves the leaderboard and the cohort's subjects.
 import { getLeaderboard } from '../../services/leaderboardService';
+import TableFilter from './tableFilter.vue';
 
 // Store the top students and the subjects returned by the API.
 const students = ref([]);
@@ -11,6 +12,12 @@ const subjects = ref([]);
 
 // An empty string is the Overall option.
 const selectedSubjectID = ref('');
+
+// The Overall option first, then each subject by name.
+const subjectOptions = computed(() => [
+    { value: '', label: 'Overall' },
+    ...subjects.value.map((subject) => ({ value: subject.subjectID, label: subject.subjectName })),
+]);
 
 // Track whether the API request is still running.
 const loading = ref(true);
@@ -89,15 +96,12 @@ onMounted(loadLeaderboard);
                 <p class="hintText small mb-0">{{ rankingDescription }}</p>
             </div>
 
-            <div class="leaderboardFilter">
-                <label for="leaderboardSubject" class="form-label fw-semibold mb-1">Subject</label>
-                <select id="leaderboardSubject" v-model="selectedSubjectID" class="form-select leaderboardSelect">
-                    <option value="">Overall</option>
-                    <option v-for="subject in subjects" :key="subject.subjectID" :value="subject.subjectID">
-                        {{ subject.subjectName }}
-                    </option>
-                </select>
-            </div>
+            <TableFilter
+                id="leaderboardSubject"
+                v-model="selectedSubjectID"
+                label="Subject"
+                :options="subjectOptions"
+            />
         </div>
 
         <div class="px-3 px-md-4 pb-4">
@@ -177,24 +181,6 @@ onMounted(loadLeaderboard);
     box-shadow: var(--shadowCard);
 }
 
-/* The filter takes the full width on phones, then sits beside the heading. */
-.leaderboardFilter {
-    width: 100%;
-}
-
-.leaderboardSelect {
-    min-height: var(--minTouchTarget);
-    border-color: var(--colorBorderInput);
-    color: var(--colorText);
-}
-
-.leaderboardSelect:focus {
-    border-color: var(--colorBorderInput);
-    box-shadow: none;
-    outline: 3px solid var(--colorFocus);
-    outline-offset: 2px;
-}
-
 .leaderboardTable th,
 .leaderboardTable td {
     padding: var(--spaceSm);
@@ -255,11 +241,6 @@ onMounted(loadLeaderboard);
 }
 
 @media (min-width: 576px) {
-    .leaderboardFilter {
-        width: auto;
-        min-width: 14rem;
-    }
-
     .leaderboardTable th,
     .leaderboardTable td {
         padding: var(--spaceSm) var(--spaceMd);

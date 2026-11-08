@@ -334,7 +334,7 @@ describe('CohortManagement', () => {
 
         // Assert
         expect(findButton(page, 'Enable DTS 2026').text()).toBe('Enable');
-        expect(findButton(page, 'Enable DTS 2026').classes()).toContain('btn-outline-primary');
+        expect(findButton(page, 'Enable DTS 2026').classes()).toContain('tableEnableButton');
         expect(firstPills()).toEqual(['Disabled', 'Disabled']);
     });
 
@@ -352,7 +352,7 @@ describe('CohortManagement', () => {
         await flushPromises();
 
         // Assert
-        expect(findButton(page, 'Disable DTS 2026').classes()).toContain('btn-outline-primary');
+        expect(findButton(page, 'Disable DTS 2026').classes()).toContain('tableDisableButton');
     });
 
     /**
@@ -770,7 +770,7 @@ describe('CohortManagement', () => {
 
         // Assert
         expect(findButton(page, 'Delete DTS 2026').classes()).toContain('btn-outline-danger');
-        expect(findButton(page, 'Disable DTS 2026').classes()).toContain('btn-outline-primary');
+        expect(findButton(page, 'Disable DTS 2026').classes()).toContain('tableDisableButton');
     });
 
     /**

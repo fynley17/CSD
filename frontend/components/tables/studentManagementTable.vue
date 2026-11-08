@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, ref, nextTick } from 'vue';
+import { computed, onMounted, ref, nextTick, watch } from 'vue';
 import DataTable from 'datatables.net-vue3';
 import DataTablesCore from 'datatables.net-bs5';
 import 'datatables.net-bs5/css/dataTables.bootstrap5.css';
@@ -13,6 +13,7 @@ import {
 } from '../../services/studentService';
 import { formatLastLogin } from '../../utils/formatLastLogin';
 import { tableScrollRegion } from '../../utils/tableScrollRegion';
+import { searchTable, toolbarLayout } from '../../utils/tableSearch';
 
 DataTable.use(DataTablesCore);
 
@@ -36,6 +37,19 @@ const pendingCount = computed(() => students.value.filter((student) => student.s
 const emit = defineEmits(['edit']);
 
 const dataTable = ref(null);
+
+// the page's search box sits in the toolbar with the filters, the table does the searching
+const props = defineProps({
+    search: {
+        type: String,
+        default: '',
+    },
+});
+
+watch(
+    () => props.search,
+    (text) => searchTable(dataTable.value, text),
+);
 const cohorts = ref([]);
 
 // house style pill for each status, the word is shown too so it isn't colour alone
@@ -80,6 +94,8 @@ const columns = [
 
 const tableOptions = {
     searching: true,
+    // the search box is in the toolbar above the table, see utils/tableSearch.js
+    layout: toolbarLayout,
     ordering: true,
     paging: true,
     pageLength: 5,
@@ -89,7 +105,6 @@ const tableOptions = {
     language: {
         emptyTable: 'No students to display.',
         zeroRecords: 'No students match your filters.',
-        search: 'Search students:',
     },
 };
 
@@ -353,7 +368,10 @@ onMounted(async () => {
                             </button>
                             <button
                                 type="button"
-                                class="btn btn-sm btn-outline-primary me-1"
+                                class="btn btn-sm me-1"
+                                :class="
+                                    toggleText(props.rowData) === 'Disable' ? 'tableDisableButton' : 'tableEnableButton'
+                                "
                                 :aria-label="toggleText(props.rowData) + ' ' + props.rowData.name"
                                 @click="handleAction(toggleAction(props.rowData), props.rowData, $event)"
                             >

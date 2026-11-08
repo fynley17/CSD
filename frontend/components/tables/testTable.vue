@@ -1,6 +1,6 @@
 <script setup>
 // Import Vue functions for reactive data and loading the table on mount.
-import { ref, onMounted } from 'vue';
+import { computed, ref, onMounted, watch } from 'vue';
 
 // Import the Vue integration for DataTables and its Bootstrap 5 styling.
 import DataTable from 'datatables.net-vue3';
@@ -9,7 +9,11 @@ import 'datatables.net-bs5/css/dataTables.bootstrap5.css';
 
 // Import the service that retrieves all tests for the lecturer dashboard.
 import { getLecturerTests } from '../../services/testService';
+import { nameOptions } from '../../utils/filterOptions';
 import { tableScrollRegion } from '../../utils/tableScrollRegion';
+import { searchTable, toolbarLayout } from '../../utils/tableSearch';
+import TableFilter from './tableFilter.vue';
+import TableSearch from './tableSearch.vue';
 
 // Register the Bootstrap 5 version of DataTables with the Vue component.
 DataTable.use(DataTablesCore);
@@ -22,6 +26,24 @@ const loading = ref(true);
 
 // Store an error message if the API request fails.
 const errorMessage = ref('');
+
+// The subject dropdown above the table, an empty string shows every test.
+const subjectFilter = ref('');
+const subjectOptions = computed(() => {
+    const subjects = [...new Set(tests.value.map((test) => test.subjectName).filter(Boolean))];
+    return nameOptions(
+        subjects.sort((a, b) => a.localeCompare(b)),
+        'All subjects',
+    );
+});
+const shownTests = computed(() =>
+    subjectFilter.value ? tests.value.filter((test) => test.subjectName === subjectFilter.value) : tests.value,
+);
+
+// The search box in the toolbar above the table, DataTables does the searching.
+const dataTable = ref(null);
+const searchText = ref('');
+watch(searchText, (text) => searchTable(dataTable.value, text));
 
 // Define the columns displayed in the All Tests table.
 // These properties must match the fields returned by the PHP API.
@@ -55,6 +77,8 @@ const columns = [
 const tableOptions = {
     // Allow lecturers to search for tests.
     searching: true,
+    // the search box is in the toolbar above the table, see utils/tableSearch.js
+    layout: toolbarLayout,
 
     // Allow sorting by clicking column headings.
     ordering: true,
@@ -78,7 +102,6 @@ const tableOptions = {
     language: {
         emptyTable: 'No tests to display.',
         zeroRecords: 'No tests match your search.',
-        search: 'Search tests:',
     },
 };
 
@@ -116,19 +139,33 @@ onMounted(async () => {
             </div>
 
             <!-- Render the searchable, sortable DataTable when loading ends. -->
-            <div v-else class="adminTable">
-                <DataTable
-                    :columns="columns"
-                    :data="tests"
-                    :options="tableOptions"
-                    class="table table-sm table-striped table-hover align-middle mb-0"
-                >
-                    <!-- screen readers read the caption out, the heading above already says it on screen -->
-                    <caption class="visually-hidden">
-                        All tests, sorted by name
-                    </caption>
-                </DataTable>
-            </div>
+            <template v-else>
+                <div class="tableToolbar">
+                    <div class="tableToolbarControls">
+                        <TableSearch id="dashboardTestSearch" v-model="searchText" placeholder="Test name or subject" />
+                        <TableFilter
+                            id="dashboardTestSubjectFilter"
+                            v-model="subjectFilter"
+                            label="Subject"
+                            :options="subjectOptions"
+                        />
+                    </div>
+                </div>
+                <div class="adminTable">
+                    <DataTable
+                        ref="dataTable"
+                        :columns="columns"
+                        :data="shownTests"
+                        :options="tableOptions"
+                        class="table table-sm table-striped table-hover align-middle mb-0"
+                    >
+                        <!-- screen readers read the caption out, the heading above already says it on screen -->
+                        <caption class="visually-hidden">
+                            All tests, sorted by name
+                        </caption>
+                    </DataTable>
+                </div>
+            </template>
         </div>
     </div>
 </template>

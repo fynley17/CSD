@@ -2,19 +2,26 @@
 <script>
 import SubjectForm from '../components/forms/subjectForm.vue';
 import SubjectTable from '../components/tables/subjectTable.vue';
+import TableFilter from '../components/tables/tableFilter.vue';
+import TableSearch from '../components/tables/tableSearch.vue';
 import PopupDialog from '../components/common/popupDialog.vue';
 import { setSubjectActive } from '../services/subjectService';
+import { subjectStatusOptions } from '../utils/filterOptions';
 
 export default {
     components: {
         SubjectForm,
         SubjectTable,
+        TableFilter,
+        TableSearch,
         PopupDialog,
     },
 
     data() {
         return {
+            searchText: '',
             statusFilter: 'all',
+            statusOptions: subjectStatusOptions,
             message: '',
             errorMessage: '',
             // the row that was just archived or restored, so Undo knows what to put back
@@ -138,20 +145,25 @@ export default {
             <strong>There is a problem:</strong> {{ errorMessage }}
         </div>
 
-        <div class="d-flex flex-wrap align-items-end justify-content-between gap-3 mb-3">
-            <div>
-                <label for="statusFilter" class="form-label">Show</label>
-                <select id="statusFilter" v-model="statusFilter" class="form-select">
-                    <option value="all">All subjects</option>
-                    <option value="active">Active only</option>
-                    <option value="archived">Archived only</option>
-                </select>
+        <div class="tableToolbar">
+            <div class="tableToolbarControls">
+                <TableSearch id="subjectSearch" v-model="searchText" placeholder="Subject, cohort or lecturer" />
+                <TableFilter id="subjectStatusFilter" v-model="statusFilter" label="Status" :options="statusOptions" />
             </div>
-            <button type="button" class="btn btn-primary" @click="addSubject">Add subject</button>
+            <div class="tableToolbarActions">
+                <button type="button" class="btn btn-primary" @click="addSubject">Add subject</button>
+            </div>
         </div>
 
         <!-- manage switches on the Actions column, statusFilter is the dropdown above -->
-        <SubjectTable ref="table" manage :statusFilter="statusFilter" @edit="editSubject" @toggle="toggleSubject" />
+        <SubjectTable
+            ref="table"
+            manage
+            :search="searchText"
+            :statusFilter="statusFilter"
+            @edit="editSubject"
+            @toggle="toggleSubject"
+        />
         <!-- confirm box for Archive / Restore, flowchart has a Confirm change? step -->
         <PopupDialog ref="confirmDialog" :title="confirmSubject?.isActive ? 'Archive subject' : 'Restore subject'">
             <p v-if="confirmSubject?.isActive" class="mb-0">

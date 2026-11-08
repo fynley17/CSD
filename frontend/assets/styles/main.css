@@ -1667,6 +1667,140 @@ table.dataTable thead > tr > th.dt-type-date div.dt-column-header {
     flex-direction: row;
 }
 
+/* toolbar above every table: search and filters on the left, page buttons on the right, all one height */
+.tableToolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: var(--spaceMd);
+    margin-bottom: var(--spaceMd);
+}
+
+.tableToolbarControls {
+    display: flex;
+    flex: 1 1 auto;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: var(--spaceMd);
+}
+
+.tableToolbarActions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spaceSm);
+}
+
+/* buttons line up with the search box and dropdowns beside them */
+.tableToolbarActions .btn,
+.tableToolbarActions .cohortPrimaryButton {
+    display: inline-flex;
+    min-height: var(--minTouchTarget);
+    align-items: center;
+}
+
+/* full width on phones so they're easy to tap */
+.tableSearch,
+.tableFilter,
+.tableToolbarActions {
+    flex: 1 1 100%;
+}
+
+.tableToolbarActions .btn,
+.tableToolbarActions .cohortPrimaryButton {
+    flex: 1 1 auto;
+    justify-content: center;
+}
+
+.tableFilterLabel {
+    margin-bottom: var(--spaceXs);
+    color: var(--colorText);
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+/* magnifying glass inside the search box, on the left */
+.tableSearchField {
+    position: relative;
+}
+
+.tableSearchIcon {
+    position: absolute;
+    top: 50%;
+    left: 0.75rem;
+    color: var(--colorTextSecondary);
+    pointer-events: none;
+    transform: translateY(-50%);
+}
+
+.tableFilterSelect,
+.tableSearchInput {
+    min-height: var(--minTouchTarget);
+    border-color: var(--colorBorderInput);
+    border-radius: var(--radiusSm);
+    color: var(--colorText);
+}
+
+.tableSearchInput {
+    padding-left: 2.25rem;
+}
+
+.tableFilterSelect:focus,
+.tableSearchInput:focus {
+    border-color: var(--colorBorderInput);
+    box-shadow: none;
+    outline: 3px solid var(--colorFocus);
+    outline-offset: 2px;
+}
+
+@media (min-width: 576px) {
+    .tableSearch {
+        flex: 1 1 16rem;
+        max-width: 22rem;
+    }
+
+    .tableFilter {
+        flex: 0 1 12rem;
+    }
+
+    .tableToolbarActions {
+        flex: 0 0 auto;
+        margin-left: auto;
+    }
+
+    .tableToolbarActions .btn,
+    .tableToolbarActions .cohortPrimaryButton {
+        flex: 0 0 auto;
+    }
+}
+
+/* solid green Enable and Restore buttons in the tables, darker green on hover */
+.tableEnableButton {
+    --bs-btn-color: var(--colorSurface);
+    --bs-btn-bg: var(--colorSuccess);
+    --bs-btn-border-color: var(--colorSuccess);
+    --bs-btn-hover-color: var(--colorSurface);
+    --bs-btn-hover-bg: var(--colorSuccessHover);
+    --bs-btn-hover-border-color: var(--colorSuccessHover);
+    --bs-btn-active-color: var(--colorSurface);
+    --bs-btn-active-bg: var(--colorSuccessHover);
+    --bs-btn-active-border-color: var(--colorSuccessHover);
+    --bs-btn-focus-shadow-rgb: 21, 128, 61;
+}
+
+/* yellow outline Disable and Archive buttons in the tables, filled yellow on hover. Uses the house amber
+   rather than Bootstrap's warning yellow, which is too pale to read on white */
+.tableDisableButton {
+    --bs-btn-color: var(--colorWarning);
+    --bs-btn-border-color: var(--colorWarning);
+    --bs-btn-hover-color: var(--colorSurface);
+    --bs-btn-hover-bg: var(--colorWarning);
+    --bs-btn-hover-border-color: var(--colorWarning);
+    --bs-btn-active-color: var(--colorSurface);
+    --bs-btn-active-bg: var(--colorWarning);
+    --bs-btn-active-border-color: var(--colorWarning);
+    --bs-btn-focus-shadow-rgb: 180, 83, 9;
+}
+
 /* large number on the results summary cards */
 .statValue {
     color: var(--colorText);

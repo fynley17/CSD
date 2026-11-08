@@ -2,19 +2,26 @@
 <script>
 import LecturerForm from '../components/forms/lecturerForm.vue';
 import LecturerTable from '../components/tables/lecturerTable.vue';
+import TableFilter from '../components/tables/tableFilter.vue';
+import TableSearch from '../components/tables/tableSearch.vue';
 import PopupDialog from '../components/common/popupDialog.vue';
 import { deleteLecturer, setLecturerEnabled } from '../services/administratorService';
+import { lecturerStatusOptions } from '../utils/filterOptions';
 
 export default {
     components: {
         LecturerForm,
         LecturerTable,
         PopupDialog,
+        TableFilter,
+        TableSearch,
     },
 
     data() {
         return {
+            searchText: '',
             statusFilter: 'all',
+            statusOptions: lecturerStatusOptions,
             message: '',
             errorMessage: '',
             // the row that was just disabled or enabled, so Undo knows who to put back
@@ -169,18 +176,17 @@ export default {
             <strong>There is a problem:</strong> {{ errorMessage }}
         </div>
 
-        <div class="mb-3">
-            <label for="lecturerStatusFilter" class="form-label">Show</label>
-            <select id="lecturerStatusFilter" v-model="statusFilter" class="form-select w-auto">
-                <option value="all">All lecturers</option>
-                <option value="active">Active only</option>
-                <option value="disabled">Disabled only</option>
-            </select>
+        <div class="tableToolbar">
+            <div class="tableToolbarControls">
+                <TableSearch id="lecturerSearch" v-model="searchText" placeholder="Name, staff ID or email" />
+                <TableFilter id="lecturerStatusFilter" v-model="statusFilter" label="Status" :options="statusOptions" />
+            </div>
         </div>
 
         <LecturerTable
             ref="table"
             manage
+            :search="searchText"
             :statusFilter="statusFilter"
             @edit="editLecturer"
             @toggle="askFirst($event, 'toggle')"

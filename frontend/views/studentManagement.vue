@@ -2,6 +2,9 @@
 import { computed, ref, onMounted, onUnmounted } from 'vue';
 import { getCurrentUser } from '../services/authService';
 import StudentManagementTable from '../components/tables/studentManagementTable.vue';
+import TableFilter from '../components/tables/tableFilter.vue';
+import TableSearch from '../components/tables/tableSearch.vue';
+import { nameOptions, studentStatusOptions } from '../utils/filterOptions';
 import StudentForm from '../components/forms/studentForm.vue';
 
 const currentUser = ref(null);
@@ -16,6 +19,7 @@ onMounted(async () => {
 const studentManagementTable = ref(null);
 
 // Store the selected cohort and status, the search box is the table's own.
+const searchText = ref('');
 const cohortFilter = ref('');
 const statusFilter = ref('');
 
@@ -110,41 +114,27 @@ const handleStudentSaved = (response) => {
         <h1>Student Management</h1>
         <p>Manage student accounts, approvals and account status</p>
 
-        <!-- Filters on the left, page buttons on the right. The search box is part of the table. -->
-        <div class="d-flex flex-wrap align-items-end justify-content-between gap-3 mb-3">
-            <div class="d-flex flex-wrap gap-3">
-                <div>
-                    <label for="studentCohortFilter" class="form-label">Cohort</label>
-                    <select
-                        id="studentCohortFilter"
-                        v-model="cohortFilter"
-                        class="form-select"
-                        @change="filterByCohort"
-                    >
-                        <option value="">All cohorts</option>
-                        <option v-for="cohort in cohorts" :key="cohort" :value="cohort">
-                            {{ cohort }}
-                        </option>
-                    </select>
-                </div>
-
-                <div>
-                    <label for="studentStatusFilter" class="form-label">Status</label>
-                    <select
-                        id="studentStatusFilter"
-                        v-model="statusFilter"
-                        class="form-select"
-                        @change="filterByStatus"
-                    >
-                        <option value="">All statuses</option>
-                        <option value="Active">Active</option>
-                        <option value="Pending">Pending</option>
-                        <option value="Disabled">Disabled</option>
-                    </select>
-                </div>
+        <!-- search and filters on the left, page buttons on the right -->
+        <div class="tableToolbar">
+            <div class="tableToolbarControls">
+                <TableSearch id="studentSearch" v-model="searchText" placeholder="Name, student number or email" />
+                <TableFilter
+                    id="studentCohortFilter"
+                    v-model="cohortFilter"
+                    label="Cohort"
+                    :options="nameOptions(cohorts, 'All cohorts')"
+                    @change="filterByCohort"
+                />
+                <TableFilter
+                    id="studentStatusFilter"
+                    v-model="statusFilter"
+                    label="Status"
+                    :options="studentStatusOptions"
+                    @change="filterByStatus"
+                />
             </div>
 
-            <div class="d-flex flex-wrap gap-2">
+            <div class="tableToolbarActions">
                 <button type="button" class="btn btn-outline-primary" @click="showPendingApplications">
                     Student Applications ({{ pendingCount }})
                 </button>
@@ -154,7 +144,7 @@ const handleStudentSaved = (response) => {
             </div>
         </div>
 
-        <StudentManagementTable ref="studentManagementTable" @edit="openEditStudentForm" />
+        <StudentManagementTable ref="studentManagementTable" :search="searchText" @edit="openEditStudentForm" />
 
         <!-- Display the student form in Add or Edit mode. -->
         <StudentForm

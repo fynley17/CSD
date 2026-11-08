@@ -3,6 +3,8 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
 
 // Import the test table, create/edit form and reusable confirmation dialog.
+import TableFilter from '../components/tables/tableFilter.vue';
+import TableSearch from '../components/tables/tableSearch.vue';
 import TestManagementTable from '../components/tables/testManagementTable.vue';
 import TestForm from '../components/forms/testForm.vue';
 import PopupDialog from '../components/common/popupDialog.vue';
@@ -10,6 +12,7 @@ import PopupDialog from '../components/common/popupDialog.vue';
 // Import the API functions used to retrieve the current user and delete tests.
 import { getCurrentUser } from '../services/authService';
 import { deleteTest } from '../services/testService';
+import { nameOptions } from '../utils/filterOptions';
 
 // Store the signed-in user so only lecturers can create tests.
 const currentUser = ref(null);
@@ -20,6 +23,7 @@ const testManagementTable = ref(null);
 const deleteDialog = ref(null);
 
 // Store the current subject filter, the search box is the table's own.
+const searchText = ref('');
 const subjectFilter = ref('');
 
 // Control whether the create/edit form is displayed and which test is being edited.
@@ -195,23 +199,31 @@ onBeforeUnmount(() => {
             {{ errorMessage }}
         </div>
 
-        <!-- Subject filter on the left, create button on the right. The search box is part of the table. -->
-        <div class="d-flex flex-wrap align-items-end justify-content-between gap-3 mb-3">
-            <div>
-                <label for="testSubjectFilter" class="form-label">Subject</label>
-                <select id="testSubjectFilter" v-model="subjectFilter" class="form-select" @change="filterBySubject">
-                    <option value="">All subjects</option>
-                    <option v-for="subject in subjects" :key="subject" :value="subject">
-                        {{ subject }}
-                    </option>
-                </select>
+        <!-- search and subject filter on the left, create button on the right -->
+        <div class="tableToolbar">
+            <div class="tableToolbarControls">
+                <TableSearch id="testSearch" v-model="searchText" placeholder="Test name or subject" />
+                <TableFilter
+                    id="testSubjectFilter"
+                    v-model="subjectFilter"
+                    label="Subject"
+                    :options="nameOptions(subjects, 'All subjects')"
+                    @change="filterBySubject"
+                />
             </div>
-            <button v-if="canCreateTest" type="button" class="btn btn-primary" @click="openCreateForm">
-                Create test
-            </button>
+            <div class="tableToolbarActions">
+                <button v-if="canCreateTest" type="button" class="btn btn-primary" @click="openCreateForm">
+                    Create test
+                </button>
+            </div>
         </div>
 
-        <TestManagementTable ref="testManagementTable" @edit="openEditForm" @delete="openDeleteDialog" />
+        <TestManagementTable
+            ref="testManagementTable"
+            :search="searchText"
+            @edit="openEditForm"
+            @delete="openDeleteDialog"
+        />
 
         <!-- Reuse the same form for creating and editing tests. -->
         <TestForm v-if="showTestForm" :test="editingTest" @saved="handleTestSaved" @close="closeTestForm" />

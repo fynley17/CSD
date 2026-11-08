@@ -1,6 +1,6 @@
 <script setup>
 // Import Vue functions for lifecycle management, reactive state and DOM updates.
-import { ref, onMounted, nextTick } from 'vue';
+import { ref, onMounted, nextTick, watch } from 'vue';
 
 // Import DataTables and its Bootstrap 5 integration and styling.
 import DataTable from 'datatables.net-vue3';
@@ -10,6 +10,7 @@ import 'datatables.net-bs5/css/dataTables.bootstrap5.css';
 // Import the API function used to retrieve lecturer tests.
 import { getLecturerTests } from '../../services/testService';
 import { tableScrollRegion } from '../../utils/tableScrollRegion';
+import { searchTable, toolbarLayout } from '../../utils/tableSearch';
 
 // Register Bootstrap 5 as the DataTables styling integration.
 DataTable.use(DataTablesCore);
@@ -26,6 +27,19 @@ const errorMessage = ref('');
 
 // Store the DataTables component reference.
 const dataTable = ref(null);
+
+// the page's search box sits in the toolbar with the filters, the table does the searching
+const props = defineProps({
+    search: {
+        type: String,
+        default: '',
+    },
+});
+
+watch(
+    () => props.search,
+    (text) => searchTable(dataTable.value, text),
+);
 
 // Store unique subjects for the subject filter dropdown.
 const subjects = ref([]);
@@ -59,6 +73,8 @@ const columns = [
 // Configure table searching, sorting, pagination and empty-state messages.
 const tableOptions = {
     searching: true,
+    // the search box is in the toolbar above the table, see utils/tableSearch.js
+    layout: toolbarLayout,
     ordering: true,
     paging: true,
     pageLength: 5,
@@ -70,7 +86,6 @@ const tableOptions = {
     language: {
         emptyTable: 'No tests to display.',
         zeroRecords: 'No tests match your filters.',
-        search: 'Search tests:',
     },
 };
 

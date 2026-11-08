@@ -38,7 +38,8 @@
                     </button>
                     <button
                         type="button"
-                        class="btn btn-sm btn-outline-primary"
+                        class="btn btn-sm"
+                        :class="cohort.isActive ? 'tableDisableButton' : 'tableEnableButton'"
                         :aria-label="`${cohort.isActive ? 'Disable' : 'Enable'} ${cohort.cohortName}`"
                         @click="emit('toggleStatus', cohort)"
                     >

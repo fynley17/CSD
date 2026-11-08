@@ -2,6 +2,9 @@
 import { computed, nextTick, onMounted, onBeforeUnmount, ref } from 'vue';
 
 import QuestionManagementTable from '../components/tables/questionManagementTable.vue';
+import TableFilter from '../components/tables/tableFilter.vue';
+import TableSearch from '../components/tables/tableSearch.vue';
+import { nameOptions } from '../utils/filterOptions';
 import QuestionForm from '../components/forms/questionForm.vue';
 import PopupDialog from '../components/common/popupDialog.vue';
 
@@ -13,6 +16,7 @@ const deleteDialog = ref(null);
 
 const availableSubjects = ref([]);
 
+const searchText = ref('');
 const subjectFilter = ref('');
 
 const showQuestionForm = ref(false);
@@ -212,27 +216,26 @@ onBeforeUnmount(() => {
             {{ errorMessage }}
         </div>
 
-        <!-- Subject filter on the left, create button on the right. The search box is part of the table. -->
-        <div class="d-flex flex-wrap align-items-end justify-content-between gap-3 mb-3">
-            <div>
-                <label for="questionSubjectFilter" class="form-label">Subject</label>
-                <select
+        <!-- search and subject filter on the left, create button on the right -->
+        <div class="tableToolbar">
+            <div class="tableToolbarControls">
+                <TableSearch id="questionSearch" v-model="searchText" placeholder="Question text or subject" />
+                <TableFilter
                     id="questionSubjectFilter"
                     v-model="subjectFilter"
-                    class="form-select"
+                    label="Subject"
+                    :options="nameOptions(subjects, 'All subjects')"
                     @change="filterBySubject"
-                >
-                    <option value="">All subjects</option>
-                    <option v-for="subject in subjects" :key="subject" :value="subject">
-                        {{ subject }}
-                    </option>
-                </select>
+                />
             </div>
-            <button type="button" class="btn btn-primary" @click="openCreateForm">Create question</button>
+            <div class="tableToolbarActions">
+                <button type="button" class="btn btn-primary" @click="openCreateForm">Create question</button>
+            </div>
         </div>
 
         <QuestionManagementTable
             ref="questionTable"
+            :search="searchText"
             @editQuestion="openEditForm"
             @deleteQuestion="openDeleteConfirmation"
         />

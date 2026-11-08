@@ -1,7 +1,7 @@
 <script setup>
 // Import Vue functions for component lifecycle, reactive state,
 // and waiting for Vue's updates before accessing the table.
-import { onMounted, ref, nextTick } from 'vue';
+import { onMounted, ref, nextTick, watch } from 'vue';
 
 // Import DataTables and its Bootstrap 5 integration and styling.
 import DataTable from 'datatables.net-vue3';
@@ -11,6 +11,7 @@ import 'datatables.net-bs5/css/dataTables.bootstrap5.css';
 // Import the service that retrieves questions for the lecturer dashboard.
 import { getLecturerQuestions } from '../../services/questionService';
 import { tableScrollRegion } from '../../utils/tableScrollRegion';
+import { searchTable, toolbarLayout } from '../../utils/tableSearch';
 
 // Register Bootstrap 5 as the DataTables styling integration.
 DataTable.use(DataTablesCore);
@@ -27,6 +28,19 @@ const errorMessage = ref('');
 
 // Store the DataTables component reference.
 const dataTable = ref(null);
+
+// the page's search box sits in the toolbar with the filters, the table does the searching
+const props = defineProps({
+    search: {
+        type: String,
+        default: '',
+    },
+});
+
+watch(
+    () => props.search,
+    (text) => searchTable(dataTable.value, text),
+);
 
 // Store the unique subjects used to populate the subject dropdown.
 const subjects = ref([]);
@@ -126,6 +140,8 @@ const columns = [
 // Configure DataTables searching, sorting and pagination.
 const tableOptions = {
     searching: true,
+    // the search box is in the toolbar above the table, see utils/tableSearch.js
+    layout: toolbarLayout,
     ordering: true,
     paging: true,
     pageLength: 5,
@@ -136,7 +152,6 @@ const tableOptions = {
     language: {
         emptyTable: 'No questions to display.',
         zeroRecords: 'No questions match your filters.',
-        search: 'Search questions:',
     },
 };
 </script>
