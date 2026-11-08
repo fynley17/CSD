@@ -19,9 +19,8 @@ const canCreateTest = computed(() => currentUser.value?.accountType === 'lecture
 const testManagementTable = ref(null);
 const deleteDialog = ref(null);
 
-// Store the current subject filter and search input.
+// Store the current subject filter, the search box is the table's own.
 const subjectFilter = ref('');
-const searchTerm = ref('');
 
 // Control whether the create/edit form is displayed and which test is being edited.
 const showTestForm = ref(false);
@@ -79,11 +78,6 @@ function showError(message) {
 // Pass the selected subject filter to the table component.
 const filterBySubject = () => {
     testManagementTable.value?.filterBySubject(subjectFilter.value);
-};
-
-// Pass the search term to the table component.
-const searchTests = () => {
-    testManagementTable.value?.searchTests(searchTerm.value);
 };
 
 // Open the form in create mode and clear any previously selected test.
@@ -184,14 +178,10 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-    <main class="testManagement">
-        <!-- Page heading and description. -->
-        <div class="pageHeading">
-            <div>
-                <h1>Test Management</h1>
-                <p>Create, edit and manage tests</p>
-            </div>
-        </div>
+    <!-- laid out like lecturer and subject management so every table page matches -->
+    <section class="container py-4 adminPage">
+        <h1>Test Management</h1>
+        <p>Create, edit and manage tests</p>
 
         <!-- Display a temporary success notification after an operation. -->
         <div v-if="successMessage" class="toastMessage successMessage" role="status" aria-live="polite">
@@ -205,107 +195,64 @@ onBeforeUnmount(() => {
             {{ errorMessage }}
         </div>
 
-        <!-- Toolbar containing the subject filter and search input. -->
-        <div class="tableToolbar">
-            <label class="subjectFilter">
-                <span class="visuallyHidden">Filter tests by subject</span>
-
-                <select v-model="subjectFilter" @change="filterBySubject">
+        <!-- Subject filter on the left, create button on the right. The search box is part of the table. -->
+        <div class="d-flex flex-wrap align-items-end justify-content-between gap-3 mb-3">
+            <div>
+                <label for="testSubjectFilter" class="form-label">Subject</label>
+                <select id="testSubjectFilter" v-model="subjectFilter" class="form-select" @change="filterBySubject">
                     <option value="">All subjects</option>
-
                     <option v-for="subject in subjects" :key="subject" :value="subject">
                         {{ subject }}
                     </option>
                 </select>
-            </label>
-
-            <label class="testSearch">
-                <span class="visuallyHidden">Search tests</span>
-
-                <input v-model="searchTerm" type="search" placeholder="Search tests..." @input="searchTests" />
-            </label>
-        </div>
-
-        <!-- Display the test management table and its pagination. -->
-        <div class="tableSection">
-            <TestManagementTable ref="testManagementTable" @edit="openEditForm" @delete="openDeleteDialog" />
-
-            <!-- Button to open the form for creating a new test. -->
-            <div class="tableFooter">
-                <button v-if="canCreateTest" type="button" class="primaryButton" @click="openCreateForm">
-                    <span aria-hidden="true">＋</span>
-                    Create New Test
-                </button>
             </div>
+            <button v-if="canCreateTest" type="button" class="btn btn-primary" @click="openCreateForm">
+                Create test
+            </button>
         </div>
+
+        <TestManagementTable ref="testManagementTable" @edit="openEditForm" @delete="openDeleteDialog" />
 
         <!-- Reuse the same form for creating and editing tests. -->
         <TestForm v-if="showTestForm" :test="editingTest" @saved="handleTestSaved" @close="closeTestForm" />
 
         <!-- Explain the archive and permanent deletion behaviour. -->
         <PopupDialog ref="deleteDialog" title="Archive / Delete Test" @close="closeDeleteDialog">
-            <div class="deleteConfirmation">
-                <p>
+            <div class="d-flex flex-column gap-2">
+                <p class="mb-0">
                     Are you sure you want to remove
                     <strong>{{ testToDelete?.testName }}</strong>
                     from the available tests?
                 </p>
 
-                <p>
+                <p class="mb-0">
                     If students have completed attempts, this test will be archived and all existing results and
                     leaderboard history will be preserved.
                 </p>
 
-                <p>If no completed attempts exist, the test will be permanently deleted.</p>
+                <p class="mb-0">If no completed attempts exist, the test will be permanently deleted.</p>
             </div>
 
             <!-- Provide cancel and confirm actions. -->
             <template #buttons>
-                <button type="button" class="secondaryButton" :disabled="deletingTest" @click="deleteDialog?.close()">
+                <button
+                    type="button"
+                    class="btn btn-outline-primary flex-fill"
+                    :disabled="deletingTest"
+                    @click="deleteDialog?.close()"
+                >
                     Cancel
                 </button>
 
-                <button type="button" class="deleteButton" :disabled="deletingTest" @click="confirmDelete">
+                <button type="button" class="btn btn-danger flex-fill" :disabled="deletingTest" @click="confirmDelete">
                     {{ deletingTest ? 'Processing...' : 'Confirm' }}
                 </button>
             </template>
         </PopupDialog>
-    </main>
+    </section>
 </template>
 
 <style scoped>
-/* Main page layout and typography. */
-.testManagement {
-    max-width: var(--contentMaxWidth);
-    min-height: 100%;
-    margin: 0 auto;
-    padding: var(--space2xl) var(--spaceLg);
-    color: var(--colorText);
-    font-family: var(--fontBody);
-}
-
-/* Page heading layout. */
-.pageHeading {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--spaceMd);
-    margin-bottom: var(--space2xl);
-}
-
-.pageHeading h1 {
-    margin: 0;
-    color: var(--colorBrand);
-    font-family: var(--fontHeading);
-    font-size: var(--fontSizeH1);
-}
-
-.pageHeading p {
-    margin: var(--spaceXs) 0 0;
-    color: var(--colorTextSecondary);
-    font-size: var(--fontSizeSmall);
-}
-
 /* Position temporary notifications in the top-right corner. */
 .toastMessage {
     position: fixed;
@@ -325,172 +272,16 @@ onBeforeUnmount(() => {
     font-weight: 600;
 }
 
-/* Success notification styling. */
 .successMessage {
     border-color: var(--colorPrimary);
 }
 
-/* Error notification styling. */
 .errorMessage {
     border-color: var(--colorError);
     color: var(--colorError);
 }
 
-/* Layout for the subject filter and search toolbar. */
-.tableToolbar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--spaceLg);
-    margin-bottom: var(--spaceMd);
-}
-
-.subjectFilter,
-.testSearch {
-    flex: 1;
-    min-width: 0;
-}
-
-.subjectFilter {
-    max-width: 405px;
-}
-
-.testSearch {
-    max-width: 320px;
-    margin-left: auto;
-}
-
-/* Shared styling for toolbar input and select elements. */
-.tableToolbar input,
-.tableToolbar select {
-    width: 100%;
-    min-width: 0;
-    min-height: 44px;
-    padding: var(--spaceSm);
-    border: 1px solid var(--colorBorderInput);
-    border-radius: var(--radiusSm);
-    background: var(--colorSurface);
-    color: var(--colorText);
-    font: inherit;
-}
-
-/* Table and create button layout. */
-.tableSection {
-    width: 100%;
-}
-
-.tableFooter {
-    display: flex;
-    justify-content: flex-end;
-    margin-top: var(--spaceMd);
-}
-
-/* Shared styling for management page buttons. */
-.primaryButton,
-.secondaryButton,
-.deleteButton {
-    min-height: 44px;
-    padding: var(--spaceSm) var(--spaceMd);
-    border: 1px solid var(--colorPrimary);
-    border-radius: var(--radiusSm);
-    font: inherit;
-    font-weight: 600;
-    cursor: pointer;
-}
-
-/* Create button styling. */
-.primaryButton {
-    background: var(--colorPrimary);
-    color: var(--colorSurface);
-}
-
-.primaryButton:hover {
-    background: var(--colorPrimaryHover);
-}
-
-/* Cancel button styling. */
-.secondaryButton {
-    background: var(--colorSurface);
-    color: var(--colorPrimary);
-}
-
-/* Confirm button styling. */
-.deleteButton {
-    border-color: var(--colorError);
-    background: var(--colorError);
-    color: var(--colorSurface);
-}
-
-.deleteButton:hover {
-    background: var(--colorErrorHover);
-}
-
-/* Indicate when an action is unavailable. */
-.primaryButton:disabled,
-.secondaryButton:disabled,
-.deleteButton:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-}
-
-/* Arrange the deletion confirmation message. */
-.deleteConfirmation {
-    display: flex;
-    flex-direction: column;
-    gap: var(--spaceSm);
-}
-
-.deleteConfirmation p {
-    margin: 0;
-}
-
-/* Provide visible focus indicators for keyboard navigation. */
-button:focus-visible,
-input:focus-visible,
-select:focus-visible {
-    outline: 3px solid var(--colorFocus);
-    outline-offset: 2px;
-}
-
-/* Hide labels visually while keeping them available to screen readers. */
-.visuallyHidden {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    overflow: hidden;
-    clip-path: inset(50%);
-    white-space: nowrap;
-    border: 0;
-}
-
-/* Adjust the page layout for smaller screens. */
 @media (max-width: 639px) {
-    .testManagement {
-        padding: var(--spaceLg) var(--spaceMd);
-    }
-
-    .pageHeading {
-        align-items: flex-start;
-        flex-direction: column;
-        margin-bottom: var(--spaceXl);
-    }
-
-    .tableToolbar {
-        flex-direction: column;
-        align-items: stretch;
-        gap: var(--spaceMd);
-    }
-
-    .subjectFilter,
-    .testSearch {
-        max-width: none;
-    }
-
-    .tableFooter .primaryButton {
-        width: 100%;
-    }
-
     .toastMessage {
         top: var(--spaceMd);
         right: var(--spaceMd);

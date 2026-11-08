@@ -14,7 +14,6 @@ const deleteDialog = ref(null);
 const availableSubjects = ref([]);
 
 const subjectFilter = ref('');
-const searchTerm = ref('');
 
 const showQuestionForm = ref(false);
 const selectedQuestion = ref(null);
@@ -77,11 +76,6 @@ const showError = (message) => {
 // Apply the selected subject filter.
 const filterBySubject = () => {
     questionTable.value?.filterBySubject(subjectFilter.value);
-};
-
-// Search questions using the DataTables API.
-const searchQuestions = () => {
-    questionTable.value?.searchQuestions(searchTerm.value);
 };
 
 // Open the form to create a new question.
@@ -201,13 +195,10 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-    <main class="questionManagement">
-        <div class="pageHeading">
-            <div>
-                <h1>Question Management</h1>
-                <p>Create, edit and manage questions</p>
-            </div>
-        </div>
+    <!-- laid out like lecturer and subject management so every table page matches -->
+    <section class="container py-4 adminPage">
+        <h1>Question Management</h1>
+        <p>Create, edit and manage questions</p>
 
         <!-- Temporary success notification. -->
         <div v-if="successMessage" class="toastMessage successMessage" role="status" aria-live="polite">
@@ -221,42 +212,30 @@ onBeforeUnmount(() => {
             {{ errorMessage }}
         </div>
 
-        <!-- Subject filter and search. -->
-        <div class="tableToolbar">
-            <label class="subjectFilter">
-                <span class="visuallyHidden">Filter questions by subject</span>
-
-                <select v-model="subjectFilter" @change="filterBySubject">
+        <!-- Subject filter on the left, create button on the right. The search box is part of the table. -->
+        <div class="d-flex flex-wrap align-items-end justify-content-between gap-3 mb-3">
+            <div>
+                <label for="questionSubjectFilter" class="form-label">Subject</label>
+                <select
+                    id="questionSubjectFilter"
+                    v-model="subjectFilter"
+                    class="form-select"
+                    @change="filterBySubject"
+                >
                     <option value="">All subjects</option>
-
                     <option v-for="subject in subjects" :key="subject" :value="subject">
                         {{ subject }}
                     </option>
                 </select>
-            </label>
-
-            <label class="questionSearch">
-                <span class="visuallyHidden">Search questions</span>
-
-                <input v-model="searchTerm" type="search" placeholder="Search questions..." @input="searchQuestions" />
-            </label>
-        </div>
-
-        <!-- Questions table. -->
-        <div class="tableSection">
-            <QuestionManagementTable
-                ref="questionTable"
-                @editQuestion="openEditForm"
-                @deleteQuestion="openDeleteConfirmation"
-            />
-
-            <div class="tableFooter">
-                <button type="button" class="primaryButton" @click="openCreateForm">
-                    <span aria-hidden="true">＋</span>
-                    Create New Question
-                </button>
             </div>
+            <button type="button" class="btn btn-primary" @click="openCreateForm">Create question</button>
         </div>
+
+        <QuestionManagementTable
+            ref="questionTable"
+            @editQuestion="openEditForm"
+            @deleteQuestion="openDeleteConfirmation"
+        />
 
         <!-- Create/Edit question dialog. -->
         <PopupDialog
@@ -274,71 +253,39 @@ onBeforeUnmount(() => {
             />
         </PopupDialog>
 
-        <!-- Delete confirmation dialog. -->
+        <!-- Delete confirmation dialog, same layout as the lecturer one. -->
         <PopupDialog
             v-if="showDeleteConfirmation"
             ref="deleteDialog"
             title="Confirm Delete"
             @close="handleDeleteDialogClose"
         >
-            <div class="deleteModal">
-                <h2>Are you sure?</h2>
-
-                <p>Are you sure you want to delete this question? This action cannot be undone.</p>
-
-                <div class="questionToDelete">
-                    {{ questionToDelete?.question }}
-                </div>
+            <div class="text-center">
+                <i class="bi bi-exclamation-circle fs-1" aria-hidden="true"></i>
+                <p class="fw-bold mb-2">{{ questionToDelete?.question }}</p>
+                <p class="mb-0">This question will be deleted and can't be brought back</p>
             </div>
 
             <template #buttons>
-                <div class="modalActions">
-                    <button type="button" class="cancelButton" :disabled="saving" @click="closeDeleteConfirmation">
-                        Cancel
-                    </button>
+                <button
+                    type="button"
+                    class="btn btn-outline-primary flex-fill"
+                    :disabled="saving"
+                    @click="closeDeleteConfirmation"
+                >
+                    Cancel
+                </button>
 
-                    <button type="button" class="deleteConfirmButton" :disabled="saving" @click="confirmDelete">
-                        {{ saving ? 'Deleting...' : 'Confirm Delete' }}
-                    </button>
-                </div>
+                <button type="button" class="btn btn-danger flex-fill" :disabled="saving" @click="confirmDelete">
+                    {{ saving ? 'Deleting...' : 'Delete' }}
+                </button>
             </template>
         </PopupDialog>
-    </main>
+    </section>
 </template>
 
 <style scoped>
-.questionManagement {
-    width: 100%;
-    max-width: var(--contentMaxWidth);
-    min-height: 100%;
-    margin: 0 auto;
-    padding: var(--space2xl) var(--spaceLg);
-    color: var(--colorText);
-    font-family: var(--fontBody);
-}
-
-.pageHeading {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--spaceMd);
-    margin-bottom: var(--space2xl);
-}
-
-.pageHeading h1 {
-    margin: 0;
-    color: var(--colorBrand);
-    font-family: var(--fontHeading);
-    font-size: var(--fontSizeH1);
-}
-
-.pageHeading p {
-    margin: var(--spaceXs) 0 0;
-    color: var(--colorTextSecondary);
-    font-size: var(--fontSizeSmall);
-}
-
-/* Temporary notifications. */
+/* Position temporary notifications in the top-right corner. */
 .toastMessage {
     position: fixed;
     z-index: 1100;
@@ -366,190 +313,7 @@ onBeforeUnmount(() => {
     color: var(--colorError);
 }
 
-/* Table toolbar. */
-.tableToolbar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--spaceLg);
-    margin-bottom: var(--spaceMd);
-}
-
-.subjectFilter,
-.questionSearch {
-    flex: 1;
-    min-width: 0;
-}
-
-.subjectFilter {
-    max-width: 405px;
-}
-
-.questionSearch {
-    max-width: 320px;
-    margin-left: auto;
-}
-
-.tableToolbar input,
-.tableToolbar select {
-    width: 100%;
-    min-width: 0;
-    min-height: 44px;
-    padding: var(--spaceSm);
-    border: 1px solid var(--colorBorderInput);
-    border-radius: var(--radiusSm);
-    background: var(--colorSurface);
-    color: var(--colorText);
-    font: inherit;
-}
-
-.tableSection {
-    width: 100%;
-    min-width: 0;
-}
-
-.tableFooter {
-    display: flex;
-    justify-content: flex-end;
-    margin-top: var(--spaceMd);
-}
-
-.primaryButton {
-    min-height: 44px;
-    padding: var(--spaceSm) var(--spaceMd);
-    border: 1px solid var(--colorPrimary);
-    border-radius: var(--radiusSm);
-    background: var(--colorPrimary);
-    color: var(--colorSurface);
-    font: inherit;
-    font-weight: 600;
-    cursor: pointer;
-}
-
-.primaryButton:hover {
-    background: var(--colorPrimaryHover);
-}
-
-/* Delete confirmation content. */
-.deleteModal h2 {
-    margin-top: 0;
-    font-family: var(--fontHeading);
-    color: var(--colorBrand);
-}
-
-.deleteModal > p {
-    color: var(--colorTextSecondary);
-    line-height: 1.5;
-}
-
-.questionToDelete {
-    margin: var(--spaceMd) 0;
-    padding: var(--spaceLg);
-    border: 1px solid var(--colorBorder);
-    border-radius: var(--radiusSm);
-    background: var(--colorSurface);
-    color: var(--colorText);
-    font-size: var(--fontSizeH3);
-    font-weight: 600;
-    line-height: 1.5;
-}
-
-.modalActions {
-    display: flex;
-    justify-content: flex-end;
-    gap: var(--spaceSm);
-    width: 100%;
-}
-
-.modalActions button {
-    min-height: 40px;
-    padding: var(--spaceSm) var(--spaceMd);
-    border-radius: var(--radiusSm);
-    font: inherit;
-    font-weight: 600;
-    cursor: pointer;
-}
-
-.cancelButton {
-    border: 1px solid var(--colorBorderInput);
-    background: var(--colorSurface);
-    color: var(--colorTextSecondary);
-}
-
-.cancelButton:hover:not(:disabled) {
-    background: var(--colorBorderInput);
-    border-color: var(--colorBorderInput);
-    color: var(--colorText);
-}
-
-.deleteConfirmButton {
-    border: 1px solid var(--colorError);
-    background: var(--colorError);
-    color: var(--colorSurface);
-}
-
-.deleteConfirmButton:hover:not(:disabled) {
-    filter: brightness(0.9);
-}
-
-/* Keyboard focus indicators. */
-button:focus-visible,
-input:focus-visible,
-select:focus-visible {
-    outline: 3px solid var(--colorFocus);
-    outline-offset: 2px;
-}
-
-.modalActions button:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-}
-
-.visuallyHidden {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    overflow: hidden;
-    clip-path: inset(50%);
-    white-space: nowrap;
-    border: 0;
-}
-
 @media (max-width: 639px) {
-    .questionManagement {
-        padding: var(--spaceLg) var(--spaceMd);
-    }
-
-    .pageHeading {
-        align-items: flex-start;
-        flex-direction: column;
-        margin-bottom: var(--spaceXl);
-    }
-
-    .tableToolbar {
-        flex-direction: column;
-        align-items: stretch;
-        gap: var(--spaceMd);
-    }
-
-    .subjectFilter,
-    .questionSearch {
-        max-width: none;
-    }
-
-    .tableFooter .primaryButton {
-        width: 100%;
-    }
-
-    .modalActions {
-        flex-direction: column-reverse;
-    }
-
-    .modalActions button {
-        width: 100%;
-    }
-
     .toastMessage {
         top: var(--spaceMd);
         right: var(--spaceMd);
