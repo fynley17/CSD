@@ -3,7 +3,8 @@
 namespace App\Models;
 
 /**
- * Handles password setup tokens for lecturer-created student accounts.
+ * Handles password setup tokens for accounts made for someone else:
+ * students added by a lecturer, and lecturers or administrators added by an admin.
  * Only SHA-256 token hashes are stored in the database.
  */
 class PasswordSetup extends Model
@@ -23,7 +24,7 @@ class PasswordSetup extends Model
         $account = $db->prepare(
             "SELECT 1 FROM Users
              WHERE userID = ?
-             AND accountType = 'student'
+             AND accountType IN ('student', 'lecturer', 'admin')
              AND isEmailVerified = 0
              LIMIT 1"
         );
@@ -31,7 +32,7 @@ class PasswordSetup extends Model
 
         if ($account->fetchColumn() === false) {
             throw new \InvalidArgumentException(
-                'Student account not found or already verified.'
+                'Account not found or its password has already been set.'
             );
         }
 
@@ -176,12 +177,12 @@ class PasswordSetup extends Model
                 return false;
             }
 
-            // Only enabled, unverified student accounts can use setup links.
+            // Only enabled accounts that haven't set a password yet can use setup links.
             $stmt = $db->prepare(
                 "UPDATE Users
                  SET password = ?, isEmailVerified = 1
                  WHERE userID = ?
-                 AND accountType = 'student'
+                 AND accountType IN ('student', 'lecturer', 'admin')
                  AND isEnabled = 1
                  AND isEmailVerified = 0"
             );

@@ -280,9 +280,10 @@ final class PasswordSetupTest extends TestCase
         $this->assertSame(0, (int) $stmt->fetchColumn());
     }
 
-    public function testDoesNotSetPasswordForNonStudentAccount(): void
+    public function testDoesNotSetPasswordForAccountThatAlreadyHasOne(): void
     {
-        $this->createUser(accountType: 'lecturer');
+        // a link can't be used to change the password of an account that's already set up
+        $this->createUser(accountType: 'lecturer', isEmailVerified: 1);
 
         $token = PasswordSetup::makeToken();
 
@@ -305,5 +306,23 @@ final class PasswordSetupTest extends TestCase
         );
 
         $this->assertFalse($result);
+    }
+
+    public function testLecturerAddedByAnAdminCanSetTheirPassword(): void
+    {
+        // Arrange, a lecturer account an admin has just made
+        $this->createUser(userID: 'lecturer-1', accountType: 'lecturer');
+        $token = PasswordSetup::createToken('lecturer-1');
+
+        // Act
+        $result = PasswordSetup::setPassword($token, 'SecurePass123!');
+
+        // Assert
+        $this->assertTrue($result);
+
+        $stmt = $this->db->prepare('SELECT isEmailVerified FROM Users WHERE userID = ?');
+        $stmt->execute(['lecturer-1']);
+
+        $this->assertSame(1, (int) $stmt->fetchColumn());
     }
 }
