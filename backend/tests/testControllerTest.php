@@ -24,7 +24,8 @@ class TestControllerTest extends TestCase
             'testDescription' => '  Biology assessment  ',
             'timeLimit' => 45,
             'dueDate' => '2026-12-15',
-            'questionCount' => 10
+            'questionCount' => 10,
+            'questionSelectionMethod' => 'random'
         ], $result);
     }
 
@@ -41,6 +42,51 @@ class TestControllerTest extends TestCase
         $this->assertNull($result['testDescription']);
         $this->assertNull($result['timeLimit']);
         $this->assertNull($result['dueDate']);
+    }
+
+    public function testQuestionSelectionMethodDefaultsToRandom(): void
+    {
+        $data = [
+            'testName' => 'Biology Test',
+            'subjectID' => 'subject-123',
+            'questionCount' => 10
+        ];
+
+        $result = TestController::validateTestRequestData($data);
+
+        $this->assertSame('random', $result['questionSelectionMethod']);
+    }
+
+    public function testFrequentlyIncorrectSelectionMethodIsAccepted(): void
+    {
+        $data = [
+            'testName' => 'Biology Test',
+            'subjectID' => 'subject-123',
+            'questionCount' => 10,
+            'questionSelectionMethod' => 'frequently_incorrect'
+        ];
+
+        $result = TestController::validateTestRequestData($data);
+
+        $this->assertSame(
+            'frequently_incorrect',
+            $result['questionSelectionMethod']
+        );
+    }
+
+    public function testInvalidQuestionSelectionMethodIsRejected(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage(
+            'Please select a valid question selection method.'
+        );
+
+        TestController::validateTestRequestData([
+            'testName' => 'Biology Test',
+            'subjectID' => 'subject-123',
+            'questionCount' => 10,
+            'questionSelectionMethod' => 'invalid_method'
+        ]);
     }
 
     public function testEmptyTimeLimitIsAcceptedAsNull(): void
