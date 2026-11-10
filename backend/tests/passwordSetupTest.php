@@ -116,6 +116,18 @@ final class PasswordSetupTest extends TestCase
         PasswordSetup::createToken('verified-student');
     }
 
+    public function testRefusesALinkForADisabledAccount(): void
+    {
+        // Arrange
+        $this->createUser(isEnabled: 0);
+
+        // Assert
+        $this->expectException(InvalidArgumentException::class);
+
+        // Act
+        PasswordSetup::createToken('student-1');
+    }
+
     public function testFindsValidToken(): void
     {
         $this->createUser();
@@ -261,9 +273,12 @@ final class PasswordSetupTest extends TestCase
 
     public function testDoesNotSetPasswordForDisabledStudent(): void
     {
-        $this->createUser(isEnabled: 0);
+        // the link goes out while they're enabled, then they get disabled before using it
+        $this->createUser();
 
         $token = PasswordSetup::createToken('student-1');
+
+        $this->db->exec("UPDATE Users SET isEnabled = 0 WHERE userID = 'student-1'");
 
         $result = PasswordSetup::setPassword(
             $token,

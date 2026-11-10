@@ -245,12 +245,17 @@ class Administrator extends Lecturer
      * works on admin rows too or a new admin who lost the email would be stuck
      *
      * @return array{token: string, staffID: string, email: string, firstName: string, role: string}
-     * @throws \InvalidArgumentException if they've already set a password or a link went out under a minute ago
+     * @throws \InvalidArgumentException if they've set a password, are disabled, or a link went out under a minute ago
      */
     public function makeSetupLink(Lecturer $lecturer): array
     {
         if ($lecturer->isEmailVerified()) {
             throw new \InvalidArgumentException('This account already has a password');
+        }
+
+        // a disabled account can't use the link anyway, so there's no point emailing one
+        if ($lecturer->isDisabled()) {
+            throw new \InvalidArgumentException('Enable this account before sending a link');
         }
 
         $userID = $lecturer->getUserID();

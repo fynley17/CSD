@@ -401,6 +401,31 @@ final class LecturerManagementTest extends TestCase
     }
 
     /**
+     * Resend link is refused for a disabled account, the link wouldn't work for them and none is made (error)
+     */
+    public function testResendIsRefusedForADisabledAccount(): void
+    {
+        // Arrange
+        $admin = new Administrator($this->makeRow('admin-id', 'admin'));
+        $row = $this->makeRow('lecturer-id', 'lecturer');
+        $row['isEmailVerified'] = 0;
+        $row['isEnabled'] = 0;
+        $lecturer = new Lecturer($row);
+        $message = '';
+
+        // Act
+        try {
+            $admin->makeSetupLink($lecturer);
+        } catch (\InvalidArgumentException $e) {
+            $message = $e->getMessage();
+        }
+
+        // Assert
+        $this->assertSame('Enable this account before sending a link', $message);
+        $this->assertSame(0, (int) $this->db->query('SELECT COUNT(*) FROM PasswordSetupTokens')->fetchColumn());
+    }
+
+    /**
      * What the Add Lecturer pop-up sends, made up test data
      */
     private function newDetails(string $role): array

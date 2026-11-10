@@ -25,6 +25,7 @@ class PasswordSetup extends Model
             "SELECT 1 FROM Users
              WHERE userID = ?
              AND accountType IN ('student', 'lecturer', 'admin')
+             AND isEnabled = 1
              AND isEmailVerified = 0
              LIMIT 1"
         );
@@ -32,7 +33,7 @@ class PasswordSetup extends Model
 
         if ($account->fetchColumn() === false) {
             throw new \InvalidArgumentException(
-                'Account not found or its password has already been set.'
+                'Account not found, disabled, or its password has already been set.'
             );
         }
 
