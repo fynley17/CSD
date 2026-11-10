@@ -55,6 +55,11 @@ const columns = [
         render: (value) => (value === null ? 'No time limit' : `${value} minutes`),
     },
     {
+        data: 'questionSelectionMethod',
+        title: 'Question Selection',
+        render: (value) => (value === 'frequently_incorrect' ? 'Frequently incorrect' : 'Random'),
+    },
+    {
         data: 'isActive',
         title: 'Status',
         // the pill comes from the #status slot, sorting and searching use the word
