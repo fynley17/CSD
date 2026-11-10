@@ -135,10 +135,15 @@ export default {
             </fieldset>
         </form>
 
-        <!-- save sits down in the footer, form="subjectForm" links it back to the form above -->
+        <!-- Cancel on the left and the action on the right, equal width like the other pop-ups -->
+        <!-- form="subjectForm" links the footer button back up to the form -->
         <template #buttons>
-            <button type="submit" form="subjectForm" class="btn btn-primary" :disabled="isSaving">Save subject</button>
-            <button type="button" class="btn btn-outline-primary" @click="$refs.dialog.close()">Cancel</button>
+            <button type="button" class="btn btn-outline-primary flex-fill" @click="$refs.dialog.close()">
+                Cancel
+            </button>
+            <button type="submit" form="subjectForm" class="btn btn-primary flex-fill" :disabled="isSaving">
+                Save subject
+            </button>
         </template>
     </PopupDialog>
 </template>
