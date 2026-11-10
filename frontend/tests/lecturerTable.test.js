@@ -289,9 +289,9 @@ describe('LecturerTable', () => {
     });
 
     /**
-     * An admin row shows the role and has no Edit, Disable or Delete, PHP refuses those for admins anyway (normal)
+     * An admin row says Administrator and has no Edit, Disable or Delete, PHP refuses those for admins anyway (normal)
      */
-    it('shows the role and gives administrators no change buttons', async () => {
+    it('labels administrators and gives them no change buttons', async () => {
         // Arrange
         const admin = {
             ...manageLecturers[0],
@@ -307,15 +307,9 @@ describe('LecturerTable', () => {
         await flushPromises();
 
         // Assert
-        // both have never logged in so the row order isn't fixed, sorting the words gets round that
-        expect(
-            rowText(table)
-                .map((row) => row[5])
-                .sort(),
-        ).toEqual(['Administrator', 'Lecturer']);
+        expect(table.findAll('td').filter((cell) => cell.text().includes('Administrator'))).toHaveLength(1);
         expect(table.find('[aria-label="Edit Boss Person"]').exists()).toBe(false);
         expect(table.find('[aria-label="Delete Boss Person"]').exists()).toBe(false);
-        expect(table.text()).toContain("Can't be changed here");
         expect(table.find('[aria-label="Edit Second Lecturer"]').exists()).toBe(true);
     });
 });

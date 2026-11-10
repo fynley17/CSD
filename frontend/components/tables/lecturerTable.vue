@@ -90,6 +90,8 @@
                                     Delete
                                 </button>
                             </template>
+                            <!-- admin rows have no buttons above so this word is what says they're an administrator -->
+                            <span v-if="props.rowData.role === 'admin'" class="small text-dark">Administrator</span>
                             <!-- admins get this one too, or a new admin who lost the email would be stuck -->
                             <button
                                 v-if="props.rowData.hasPassword === false"
@@ -100,9 +102,6 @@
                             >
                                 Resend link
                             </button>
-                            <span v-else-if="props.rowData.role === 'admin'" class="small text-dark">
-                                Can't be changed here
-                            </span>
                         </template>
                     </DataTable>
                 </div>
@@ -145,19 +144,15 @@ const columns = [
     },
 ];
 
-// management page only, role is always one of two words so no need to escape it
-const roleColumn = {
-    data: 'role',
-    title: 'Role',
-    // a gap so Role isn't hard up against the right aligned Last Login dates
-    className: 'ps-4',
-    render(data) {
-        return data === 'admin' ? 'Administrator' : 'Lecturer';
-    },
-};
-
 // buttons for this one are in the #actions slot, only the management page adds it
-const actionColumn = { data: null, title: 'Actions', orderable: false, className: 'text-nowrap', render: '#actions' };
+// ps-4 is a gap so the buttons aren't hard up against the right aligned Last Login dates
+const actionColumn = {
+    data: null,
+    title: 'Actions',
+    orderable: false,
+    className: 'text-nowrap ps-4',
+    render: '#actions',
+};
 
 // matches the lecturer dashboard table: 5 a page, newest login first
 const tableOptions = {
@@ -224,15 +219,14 @@ export default {
         },
 
         /**
-         * Only the management page gets the Role and Actions columns
+         * Only the management page gets the Actions column
          */
         tableColumns() {
             // fresh copies for each table - DataTables swaps '#status' and '#actions' for this table's own slots,
             // a shared copy would keep pointing at the first table ever shown and its buttons wouldn't go anywhere
             const tableColumns = columns.map((column) => Object.assign({}, column));
-            // role goes after Last Login so the newest login sort (column 4) still points at the right one
+            // actions go after Last Login so the newest login sort (column 4) still points at the right one
             if (this.manage) {
-                tableColumns.push(Object.assign({}, roleColumn));
                 tableColumns.push(Object.assign({}, actionColumn));
             }
             return tableColumns;
