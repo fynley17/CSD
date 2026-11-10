@@ -87,14 +87,21 @@ export default {
         },
 
         /**
-         * Form worked, so green box and fresh rows
+         * Form worked, so fresh rows and a green box (red if the email didn't go)
          * staffID only comes from Add lecturer, a new person hasn't logged in so they'd be on the last page
          * so the search box gets their staff ID to show them straight away
          */
-        async saved(message, staffID) {
-            this.errorMessage = '';
+        async saved(message, staffID, emailSent) {
             this.undoLecturer = null;
-            this.message = message;
+            // only Add sends emailSent, false = account is made but the email didn't go
+            // green would say success on something the admin still has to fix, so its the red box
+            if (emailSent === false) {
+                this.message = '';
+                this.errorMessage = message;
+            } else {
+                this.errorMessage = '';
+                this.message = message;
+            }
             await this.$refs.table.loadLecturers();
             if (staffID) {
                 // a Disabled filter would hide the new person, so back to all first

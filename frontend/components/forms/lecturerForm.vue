@@ -85,9 +85,9 @@ export default {
                 if (this.isAdding) {
                     const result = await createLecturer(this.form);
                     this.$refs.dialog.close();
-                    // php says whether the email went, so that message goes to the page
+                    // php says whether the email went, the page needs that to pick a green or red box
                     // the staff ID goes too so the page can find the new row for the admin
-                    this.$emit('saved', result.message, this.form.staffID.trim());
+                    this.$emit('saved', result.message, this.form.staffID.trim(), result.emailSent);
                 } else {
                     // edit doesn't change the role, so only the four boxes go
                     const { firstName, lastName, staffID, email } = this.form;

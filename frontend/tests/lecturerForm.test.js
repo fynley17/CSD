@@ -119,7 +119,27 @@ describe('LecturerForm', () => {
             email: 'new.lecturer@example.test',
             role: 'lecturer',
         });
-        expect(wrapper.emitted('saved')[0]).toEqual([message, 'L2001']);
+        expect(wrapper.emitted('saved')[0]).toEqual([message, 'L2001', true]);
+    });
+
+    /**
+     * PHP says the account is made but the email didn't go, the form passes that on to the page (error)
+     */
+    it('passes on that the email did not send', async () => {
+        // Arrange
+        const message = "Lecturer added, but the email couldn't be sent. Wait a minute then use Resend link";
+        vi.mocked(createLecturer).mockResolvedValue({ message, emailSent: false, userID: 'new-id' });
+        const wrapper = mount(LecturerForm);
+        wrapper.vm.open();
+        await flushPromises();
+        await fillIn(wrapper);
+
+        // Act
+        await wrapper.get('form').trigger('submit');
+        await flushPromises();
+
+        // Assert
+        expect(wrapper.emitted('saved')[0]).toEqual([message, 'L2001', false]);
     });
 
     /**

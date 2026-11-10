@@ -135,4 +135,23 @@ describe('LecturerManagement', () => {
         expect(page.get('#lecturerSearch').element.value).toBe('L2001');
         expect(page.get('.alert-success').text()).toContain('Lecturer added');
     });
+
+    /**
+     * Account made but the email didn't go, so the red problem box shows and not the green success one (error)
+     */
+    it('shows the problem box when the email did not send', async () => {
+        // Arrange
+        vi.mocked(getLecturers).mockResolvedValue([lecturer]);
+        const page = await openPage();
+        const message = "Lecturer added, but the email couldn't be sent. Wait a minute then use Resend link";
+
+        // Act
+        page.getComponent({ name: 'LecturerForm' }).vm.$emit('saved', message, 'L2001', false);
+        await flushPromises();
+
+        // Assert
+        expect(page.find('.alert-success').exists()).toBe(false);
+        expect(page.get('.alert-danger').text()).toContain('There is a problem:');
+        expect(page.get('.alert-danger').text()).toContain('Wait a minute then use Resend link');
+    });
 });
