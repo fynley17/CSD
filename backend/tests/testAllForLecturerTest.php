@@ -32,6 +32,7 @@ final class TestAllForLecturerTest extends TestCase
                 testDescription TEXT NULL,
                 dueDate TEXT NULL,
                 questionCount INTEGER NOT NULL DEFAULT 10,
+                questionSelectionMethod TEXT NOT NULL DEFAULT "random",
                 timeLimit INTEGER NULL,
                 isActive INTEGER NOT NULL DEFAULT 1
             )'

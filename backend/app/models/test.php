@@ -7,6 +7,13 @@ class Test extends Model
     // Matches the Tests.questionCount default.
     private const DEFAULT_QUESTIONS_PER_ATTEMPT = 10;
 
+    // Supported question selection methods.
+    private const SELECTION_RANDOM = 'random';
+    private const SELECTION_FREQUENTLY_INCORRECT = 'frequently_incorrect';
+
+    // Personalised selection starts after three completed attempts.
+    private const PERSONALISATION_ATTEMPT_THRESHOLD = 3;
+
     // Number of questions in a test's subject pool.
     private const POOL_SIZE = "(
         SELECT COUNT(*)
@@ -103,6 +110,7 @@ class Test extends Model
                 s.subjectName,
                 " . self::POOL_SIZE . " AS questionPoolSize,
                 t.questionCount AS questionsPerAttempt,
+                t.questionSelectionMethod,
                 t.timeLimit,
                 t.isActive
             FROM Tests AS t
@@ -167,10 +175,10 @@ class Test extends Model
     }
 
     /**
-     * Creates a test.
-     * createdBy remains a lecturer ID because the existing
-     * Tests foreign key references Lecturer.userID.
-     */
+ * Creates a test.
+ * createdBy remains a lecturer ID because the existing
+ * Tests foreign key references Lecturer.userID.
+ */
     public static function create(
         string $testName,
         string $subjectID,
@@ -178,7 +186,8 @@ class Test extends Model
         ?int $timeLimit,
         ?string $dueDate,
         int $questionCount,
-        string $createdBy
+        string $createdBy,
+        string $questionSelectionMethod = self::SELECTION_RANDOM
     ): string {
         self::validateTestData(
             $testName,
@@ -186,15 +195,26 @@ class Test extends Model
             $testDescription,
             $timeLimit,
             $dueDate,
-            $questionCount
+            $questionCount,
+            $questionSelectionMethod
         );
 
         $testID = self::newUuid();
 
         $stmt = self::getDB()->prepare(
             "INSERT INTO Tests
-                (testID, testName, subjectID, testDescription, timeLimit, dueDate, questionCount, createdBy)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+            (
+                testID,
+                testName,
+                subjectID,
+                testDescription,
+                timeLimit,
+                dueDate,
+                questionCount,
+                questionSelectionMethod,
+                createdBy
+            )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
         );
 
         $stmt->execute([
@@ -207,6 +227,7 @@ class Test extends Model
             $timeLimit,
             $dueDate === '' ? null : $dueDate,
             $questionCount,
+            $questionSelectionMethod,
             $createdBy
         ]);
 
@@ -214,10 +235,10 @@ class Test extends Model
     }
 
     /**
-     * Updates a test.
-     * Its subject cannot be changed after attempts exist,
-     * because that would change the question pool represented by old results.
-     */
+ * Updates a test.
+ * Its subject cannot be changed after attempts exist,
+ * because that would change the question pool represented by old results.
+ */
     public static function update(
         string $testID,
         string $testName,
@@ -225,7 +246,8 @@ class Test extends Model
         ?string $testDescription,
         ?int $timeLimit,
         ?string $dueDate,
-        int $questionCount
+        int $questionCount,
+        string $questionSelectionMethod = self::SELECTION_RANDOM
     ): bool {
         $db = self::getDB();
 
@@ -249,6 +271,7 @@ class Test extends Model
             $timeLimit,
             $dueDate,
             $questionCount,
+            $questionSelectionMethod,
             false
         );
 
@@ -256,8 +279,8 @@ class Test extends Model
         if ((string) $currentTest['subjectID'] !== $subjectID) {
             $subject = $db->prepare(
                 "SELECT subjectID
-            FROM Subjects
-            WHERE subjectID = ? AND isActive = 1"
+             FROM Subjects
+             WHERE subjectID = ? AND isActive = 1"
             );
 
             $subject->execute([$subjectID]);
@@ -283,9 +306,10 @@ class Test extends Model
 
         $stmt = $db->prepare(
             "UPDATE Tests
-        SET testName = ?, subjectID = ?, testDescription = ?,
-            timeLimit = ?, dueDate = ?, questionCount = ?
-        WHERE testID = ?"
+         SET testName = ?, subjectID = ?, testDescription = ?,
+             timeLimit = ?, dueDate = ?, questionCount = ?,
+             questionSelectionMethod = ?
+         WHERE testID = ?"
         );
 
         $stmt->execute([
@@ -297,6 +321,7 @@ class Test extends Model
             $timeLimit,
             $dueDate === '' ? null : $dueDate,
             $questionCount,
+            $questionSelectionMethod,
             $testID
         ]);
 
@@ -369,6 +394,7 @@ class Test extends Model
     /**
      * Validates test details before they are inserted or updated.
      */
+
     private static function validateTestData(
         string $testName,
         string $subjectID,
@@ -376,6 +402,7 @@ class Test extends Model
         ?int $timeLimit,
         ?string $dueDate,
         int $questionCount,
+        string $questionSelectionMethod = self::SELECTION_RANDOM,
         bool $validateActiveSubject = true
     ): void {
         $testName = trim($testName);
@@ -404,6 +431,16 @@ class Test extends Model
         if ($questionCount < 1 || $questionCount > 999) {
             throw new \InvalidArgumentException(
                 'Question count must be between 1 and 999.'
+            );
+        }
+
+        if (!in_array(
+            $questionSelectionMethod,
+            [self::SELECTION_RANDOM, self::SELECTION_FREQUENTLY_INCORRECT],
+            true
+        )) {
+            throw new \InvalidArgumentException(
+                'Please select a valid question selection method.'
             );
         }
 
@@ -450,9 +487,9 @@ class Test extends Model
         );
     }
 
+
     /**
-     * Starts an attempt: returns the test with questions drawn at random
-     * from its pool, each with its answer options.
+     * Starts an attempt by selecting questions from the test's subject pool.
      *
      * Correct answers are never sent to the browser while the test is running.
      */
@@ -477,22 +514,42 @@ class Test extends Model
             return null;
         }
 
-        // Shuffle the pool so each question has an equal chance.
-        shuffle($pool);
-
-        $questions = array_slice(
-            $pool,
-            0,
-            self::attemptSize(
-                $test['questionsPerAttempt'],
-                count($pool)
-            )
+        $questionCount = self::attemptSize(
+            $test['questionsPerAttempt'],
+            count($pool)
         );
+
+        $selectionMethod = $test['questionSelectionMethod']
+            ?? self::SELECTION_RANDOM;
+
+        if ($selectionMethod === self::SELECTION_FREQUENTLY_INCORRECT) {
+            $completedAttempts = self::getCompletedAttemptCount(
+                $testID,
+                $userID
+            );
+
+            if ($completedAttempts >= self::PERSONALISATION_ATTEMPT_THRESHOLD) {
+                $questions = self::selectFrequentlyIncorrectQuestions(
+                    $pool,
+                    $testID,
+                    $userID,
+                    $questionCount
+                );
+            } else {
+                shuffle($pool);
+                $questions = array_slice($pool, 0, $questionCount);
+            }
+        } else {
+            // Random remains the default selection method.
+            shuffle($pool);
+            $questions = array_slice($pool, 0, $questionCount);
+        }
 
         unset(
             $test['questionsPerAttempt'],
             $test['subjectIsActive'],
-            $test['testIsActive']
+            $test['testIsActive'],
+            $test['questionSelectionMethod']
         );
 
         $test['timeLimit'] = $test['timeLimit'] === null
@@ -530,34 +587,45 @@ class Test extends Model
         return self::findTest($testID, $userID, false);
     }
 
+
     /**
-     * The shared query behind findForStudent() and findStartedByStudent()
+     * The shared query behind findForStudent() and findStartedByStudent().
      */
-    private static function findTest(string $testID, string $userID, bool $checkCohort): ?array
-    {
+    private static function findTest(
+        string $testID,
+        string $userID,
+        bool $checkCohort
+    ): ?array {
         $cohortCheck = $checkCohort
             ? "INNER JOIN Students AS student ON student.cohortID = s.cohortID AND student.userID = ?"
             : '';
 
         $stmt = self::getDB()->prepare(
             "SELECT
-                t.testID,
-                t.testName,
-                t.testDescription,
-                t.timeLimit,
-                t.questionCount AS questionsPerAttempt,
-                s.subjectName,
-                s.isActive AS subjectIsActive,
-                t.isActive AS testIsActive,
-                NOT " . self::FULL_MARKS_ATTEMPT . " AS earnsPoints
-            FROM Tests AS t
-            INNER JOIN Subjects AS s ON s.subjectID = t.subjectID
-            $cohortCheck
-            WHERE t.testID = ?
-            AND " . self::POOL_SIZE . " > 0"
+            t.testID,
+            t.testName,
+            t.testDescription,
+            t.timeLimit,
+            t.questionCount AS questionsPerAttempt,
+            t.questionSelectionMethod,
+            s.subjectName,
+            s.isActive AS subjectIsActive,
+            t.isActive AS testIsActive,
+            NOT " . self::FULL_MARKS_ATTEMPT . " AS earnsPoints
+        FROM Tests AS t
+        INNER JOIN Subjects AS s ON s.subjectID = t.subjectID
+        $cohortCheck
+        WHERE t.testID = ?
+        AND " . self::POOL_SIZE . " > 0"
         );
-        // the first ? is the full marks check in the SELECT
-        $stmt->execute($checkCohort ? [$userID, $userID, $testID] : [$userID, $testID]);
+
+        // The first ? is the full marks check in the SELECT.
+        $stmt->execute(
+            $checkCohort
+                ? [$userID, $userID, $testID]
+                : [$userID, $testID]
+        );
+
         $test = $stmt->fetch(\PDO::FETCH_ASSOC);
 
         if ($test === false) {
@@ -669,4 +737,151 @@ class Test extends Model
 
         return $chosen;
     }
+
+
+    /**
+     * Gets the number of completed attempts a student has made at a test.
+     */
+    private static function getCompletedAttemptCount(
+        string $testID,
+        string $userID
+    ): int {
+        $statement = self::getDB()->prepare(
+            "SELECT COUNT(*)
+        FROM CompletedTests
+        WHERE testID = ? AND userID = ?"
+        );
+
+        $statement->execute([$testID, $userID]);
+
+        return (int) $statement->fetchColumn();
+    }
+
+
+    /**
+     * Gets a student's answer history for each question in a test.
+     *
+     * Unanswered questions are excluded from the correctness calculation.
+     */
+    private static function getStudentQuestionHistory(
+        string $testID,
+        string $userID
+    ): array {
+        $statement = self::getDB()->prepare(
+            "SELECT
+            sa.questionID,
+            COUNT(*) AS answeredCount,
+            SUM(
+                CASE
+                    WHEN a.isCorrect = 1 THEN 1
+                    ELSE 0
+                END
+            ) AS correctCount
+        FROM CompletedTests ct
+        INNER JOIN StudentAnswers sa
+            ON sa.completedID = ct.completedID
+        INNER JOIN Answers a
+            ON a.answerID = sa.selectedAnswerID
+        WHERE ct.testID = ?
+            AND ct.userID = ?
+            AND sa.selectedAnswerID IS NOT NULL
+        GROUP BY sa.questionID"
+        );
+
+        $statement->execute([$testID, $userID]);
+
+        $history = [];
+
+        foreach ($statement->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+            $history[$row['questionID']] = [
+                'answeredCount' => (int) $row['answeredCount'],
+                'correctCount' => (int) $row['correctCount'],
+            ];
+        }
+
+        return $history;
+    }
+
+
+    /**
+     * Gets the selection weight for a question based on a student's history.
+     */
+    private static function getQuestionSelectionWeight(
+        string $questionID,
+        array $history
+    ): int {
+        // Never-answered questions receive high priority.
+        if (!isset($history[$questionID])) {
+            return 4;
+        }
+
+        $answeredCount = $history[$questionID]['answeredCount'];
+        $correctCount = $history[$questionID]['correctCount'];
+
+        if ($answeredCount === 0) {
+            return 4;
+        }
+
+        $percentageCorrect = ($correctCount / $answeredCount) * 100;
+
+        return match (true) {
+            $percentageCorrect <= 20 => 5,
+            $percentageCorrect <= 40 => 4,
+            $percentageCorrect <= 60 => 3,
+            $percentageCorrect <= 80 => 2,
+            default => 1,
+        };
+    }
+
+
+    /**
+     * Selects questions using weighted random selection without replacement.
+     */
+    private static function selectFrequentlyIncorrectQuestions(
+        array $pool,
+        string $testID,
+        string $userID,
+        int $questionCount
+    ): array {
+        $history = self::getStudentQuestionHistory($testID, $userID);
+        $selectedQuestions = [];
+
+        while (
+            count($selectedQuestions) < $questionCount
+            && count($pool) > 0
+        ) {
+            $totalWeight = 0;
+            $weights = [];
+
+            foreach ($pool as $index => $question) {
+                $weight = self::getQuestionSelectionWeight(
+                    $question['questionID'],
+                    $history
+                );
+
+                $weights[$index] = $weight;
+                $totalWeight += $weight;
+            }
+
+            $randomWeight = random_int(1, $totalWeight);
+            $cumulativeWeight = 0;
+
+            foreach ($pool as $index => $question) {
+                $cumulativeWeight += $weights[$index];
+
+                if ($randomWeight <= $cumulativeWeight) {
+                    $selectedQuestions[] = $question;
+                    unset($pool[$index]);
+                    break;
+                }
+            }
+
+            // Re-index the remaining pool after removing a question.
+            $pool = array_values($pool);
+        }
+
+        return $selectedQuestions;
+    }
+
+
 }
