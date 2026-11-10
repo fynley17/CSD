@@ -32,6 +32,7 @@ const form = ref({
     timeLimit: '',
     dueDate: '',
     questionCount: '',
+    questionSelectionMethod: 'random',
 });
 
 // Update the dialog title depending on the current operation.
@@ -59,6 +60,7 @@ function populateForm() {
         timeLimit: props.test.timeLimit ?? '',
         dueDate: props.test.dueDate ? String(props.test.dueDate).slice(0, 10) : '',
         questionCount: props.test.questionCount ?? '',
+        questionSelectionMethod: props.test.questionSelectionMethod ?? 'random',
     };
 }
 
@@ -152,6 +154,7 @@ async function submitTest() {
         timeLimit: form.value.timeLimit === '' ? null : Number(form.value.timeLimit),
         dueDate: form.value.dueDate || null,
         questionCount: Number(form.value.questionCount),
+        questionSelectionMethod: form.value.questionSelectionMethod,
     };
 
     submitting.value = true;
@@ -236,7 +239,6 @@ onMounted(async () => {
             <div v-if="form.subjectID && selectedSubject" class="formGroup cohortDisplay">
                 <label for="cohortName">Cohort</label>
                 <input id="cohortName" :value="selectedCohortName" type="text" readonly aria-readonly="true" />
-                <small>The cohort is determined automatically by the selected subject.</small>
             </div>
 
             <!-- Optional description with a maximum length of 100 characters. -->
@@ -255,7 +257,7 @@ onMounted(async () => {
             <!-- Configure how many questions are included and the optional time limit. -->
             <div class="formRow">
                 <div class="formGroup">
-                    <label for="questionCount"> Questions per attempt <span aria-hidden="true">*</span> </label>
+                    <label for="questionCount">Questions per attempt <span aria-hidden="true">*</span></label>
                     <input
                         id="questionCount"
                         v-model="form.questionCount"
@@ -279,6 +281,20 @@ onMounted(async () => {
                         placeholder="No limit"
                     />
                 </div>
+            </div>
+
+            <!-- Choose how questions are selected for each attempt. -->
+            <div class="formGroup">
+                <label for="questionSelectionMethod">Question selection method</label>
+                <select id="questionSelectionMethod" v-model="form.questionSelectionMethod" required>
+                    <option value="random">Random</option>
+                    <option value="frequently_incorrect">Frequently incorrect</option>
+                </select>
+                <small v-if="form.questionSelectionMethod === 'frequently_incorrect'">
+                    Prioritises questions each student has previously answered incorrectly. Personalised selection
+                    starts after three completed attempts.
+                </small>
+                <small v-else> Questions are selected randomly from the subject's question pool. </small>
             </div>
 
             <!-- The due date is optional. -->

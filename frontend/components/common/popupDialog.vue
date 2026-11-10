@@ -32,7 +32,7 @@ export default {
         <div class="popupBody">
             <slot />
         </div>
-        <div class="popupFooter d-flex gap-2">
+        <div class="popupFooter d-flex justify-content-end gap-2">
             <slot name="buttons" />
         </div>
     </dialog>
