@@ -169,6 +169,25 @@ final class TestManagementModelTest extends TestCase
         self::assertSame(1, (int) $test['isActive']);
     }
 
+    public function testCreateRejectsInvalidQuestionSelectionMethod(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage(
+            'Please select a valid question selection method.'
+        );
+
+        Test::create(
+            'Test name',
+            'subject-1',
+            null,
+            null,
+            null,
+            1,
+            'lecturer-1',
+            'invalid_method'
+        );
+    }
+
     public function testRejectsAnEmptyTestName(): void
     {
         $this->expectException(\InvalidArgumentException::class);

@@ -296,6 +296,162 @@ final class CompletedTestTest extends TestCase
     }
 
 
+
+    public function testNeverAnsweredQuestionsReceiveHigherPriorityThanCorrectlyAnsweredQuestions(): void
+    {
+        $this->db->exec(
+            "UPDATE Tests
+         SET questionSelectionMethod = 'frequently_incorrect',
+             questionCount = 1
+         WHERE testID = 'test-1'"
+        );
+
+        for ($i = 1; $i <= 3; $i++) {
+            $completedID = "never-answered-$i";
+
+            $this->db->prepare(
+                "INSERT INTO CompletedTests (
+                completedID, userID, testID, questionCount
+            ) VALUES (?, 'student-1', 'test-1', 3)"
+            )->execute([$completedID]);
+
+            $this->db->prepare(
+                "INSERT INTO StudentAnswers (
+                completedID, questionID, selectedAnswerID
+            ) VALUES (?, 'question-1', 'a2')"
+            )->execute([$completedID]);
+
+            $this->db->prepare(
+                "INSERT INTO StudentAnswers (
+                completedID, questionID, selectedAnswerID
+            ) VALUES (?, 'question-2', 'b1')"
+            )->execute([$completedID]);
+        }
+
+        $drawn = [];
+
+        for ($i = 0; $i < 200; $i++) {
+            $test = Test::getForStudent('test-1', 'student-1');
+
+            $questionID = $test['questions'][0]['questionID'];
+
+            $drawn[$questionID] = ($drawn[$questionID] ?? 0) + 1;
+        }
+
+        self::assertGreaterThan(
+            $drawn['question-2'] ?? 0,
+            $drawn['question-3'] ?? 0
+        );
+    }
+
+
+
+    public function testQuestionSelectionHistoryIsIsolatedBetweenStudents(): void
+    {
+        $this->db->exec(
+            "UPDATE Tests
+         SET questionSelectionMethod = 'frequently_incorrect',
+             questionCount = 1
+         WHERE testID = 'test-1'"
+        );
+
+        $this->db->exec(
+            "UPDATE Students
+     SET cohortID = 'cohort-1'
+     WHERE userID = 'student-2'"
+        );
+
+        for ($i = 1; $i <= 3; $i++) {
+            $completedID = "student-isolation-$i";
+
+            $this->db->prepare(
+                "INSERT INTO CompletedTests (
+                completedID, userID, testID, questionCount
+            ) VALUES (?, 'student-1', 'test-1', 2)"
+            )->execute([$completedID]);
+
+            $this->db->prepare(
+                "INSERT INTO StudentAnswers (
+                completedID, questionID, selectedAnswerID
+            ) VALUES (?, 'question-1', 'a2')"
+            )->execute([$completedID]);
+
+            $this->db->prepare(
+                "INSERT INTO StudentAnswers (
+                completedID, questionID, selectedAnswerID
+            ) VALUES (?, 'question-2', 'b1')"
+            )->execute([$completedID]);
+        }
+
+        $drawn = [];
+
+        for ($i = 0; $i < 200; $i++) {
+            $test = Test::getForStudent('test-1', 'student-2');
+
+            $questionID = $test['questions'][0]['questionID'];
+
+            $drawn[$questionID] = ($drawn[$questionID] ?? 0) + 1;
+        }
+
+        self::assertGreaterThan(0, $drawn['question-1'] ?? 0);
+        self::assertGreaterThan(0, $drawn['question-2'] ?? 0);
+        self::assertGreaterThan(0, $drawn['question-3'] ?? 0);
+    }
+
+
+
+    public function testQuestionSelectionHistoryIsIsolatedBetweenTests(): void
+    {
+        $this->db->exec(
+            "UPDATE Tests
+         SET questionSelectionMethod = 'frequently_incorrect',
+             questionCount = 1
+         WHERE testID = 'test-1'"
+        );
+
+        $this->db->exec(
+            "INSERT INTO Tests (
+            testID, testName, questionCount, subjectID,
+            questionSelectionMethod
+        ) VALUES (
+            'test-2', 'Databases Test', 1, 'subject-2',
+            'frequently_incorrect'
+        )"
+        );
+
+        for ($i = 1; $i <= 3; $i++) {
+            $completedID = "test-isolation-$i";
+
+            $this->db->prepare(
+                "INSERT INTO CompletedTests (
+                completedID, userID, testID, questionCount
+            ) VALUES (?, 'student-1', 'test-2', 1)"
+            )->execute([$completedID]);
+
+            $this->db->prepare(
+                "INSERT INTO StudentAnswers (
+                completedID, questionID, selectedAnswerID
+            ) VALUES (?, 'question-4', NULL)"
+            )->execute([$completedID]);
+        }
+
+        $drawn = [];
+
+        for ($i = 0; $i < 200; $i++) {
+            $test = Test::getForStudent('test-1', 'student-1');
+
+            $questionID = $test['questions'][0]['questionID'];
+
+            $drawn[$questionID] = ($drawn[$questionID] ?? 0) + 1;
+        }
+
+        self::assertGreaterThan(0, $drawn['question-1'] ?? 0);
+        self::assertGreaterThan(0, $drawn['question-2'] ?? 0);
+        self::assertGreaterThan(0, $drawn['question-3'] ?? 0);
+    }
+
+
+
     public function testNeverDrawsMoreQuestionsThanThePoolHolds(): void
     {
         // Arrange
