@@ -22,6 +22,7 @@ final class TestManagementModelTest extends TestCase
                 timeLimit INTEGER NULL,
                 dueDate TEXT NULL,
                 questionCount INTEGER NOT NULL DEFAULT 10,
+                questionSelectionMethod TEXT NOT NULL DEFAULT "random",
                 subjectID TEXT NOT NULL,
                 createdBy TEXT NOT NULL,
                 isActive INTEGER NOT NULL DEFAULT 1

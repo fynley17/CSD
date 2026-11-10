@@ -25,6 +25,7 @@ final class CompletedTestTest extends TestCase
                 testDescription TEXT,
                 timeLimit INTEGER,
                 questionCount INTEGER,
+                questionSelectionMethod TEXT NOT NULL DEFAULT "random",
                 subjectID TEXT NOT NULL,
                 isActive INTEGER NOT NULL DEFAULT 1
             )'
@@ -206,6 +207,94 @@ final class CompletedTestTest extends TestCase
             $drawn
         );
     }
+
+
+    public function testPersonalisedSelectionStartsAfterThreeCompletedAttempts(): void
+    {
+        $this->db->exec(
+            "UPDATE Tests
+         SET questionSelectionMethod = 'frequently_incorrect',
+             questionCount = 1
+         WHERE testID = 'test-1'"
+        );
+
+        // Two completed attempts should not activate personalisation.
+        for ($i = 0; $i < 2; $i++) {
+            $this->db->exec(
+                "INSERT INTO CompletedTests (
+                completedID, userID, testID, questionCount
+            ) VALUES (
+                'completed-$i', 'student-1', 'test-1', 1
+            )"
+            );
+        }
+
+        $test = Test::getForStudent('test-1', 'student-1');
+
+        self::assertCount(1, $test['questions']);
+
+        // The third completed attempt activates personalisation.
+        $this->db->exec(
+            "INSERT INTO CompletedTests (
+            completedID, userID, testID, questionCount
+        ) VALUES (
+            'completed-3', 'student-1', 'test-1', 1
+        )"
+        );
+
+        $test = Test::getForStudent('test-1', 'student-1');
+
+        self::assertCount(1, $test['questions']);
+    }
+
+
+    public function testFrequentlyIncorrectSelectionUsesIndividualAnswerHistory(): void
+    {
+        $this->db->exec(
+            "UPDATE Tests
+         SET questionSelectionMethod = 'frequently_incorrect',
+             questionCount = 1
+         WHERE testID = 'test-1'"
+        );
+
+        for ($i = 1; $i <= 3; $i++) {
+            $completedID = "completed-$i";
+
+            $this->db->prepare(
+                "INSERT INTO CompletedTests (
+                completedID, userID, testID, questionCount
+            ) VALUES (?, 'student-1', 'test-1', 3)"
+            )->execute([$completedID]);
+
+            $this->db->prepare(
+                "INSERT INTO StudentAnswers (
+                completedID, questionID, selectedAnswerID
+            ) VALUES (?, 'question-1', 'a2')"
+            )->execute([$completedID]);
+
+            $this->db->prepare(
+                "INSERT INTO StudentAnswers (
+                completedID, questionID, selectedAnswerID
+            ) VALUES (?, 'question-2', 'b1')"
+            )->execute([$completedID]);
+        }
+
+        $drawn = [];
+
+        for ($i = 0; $i < 200; $i++) {
+            $test = Test::getForStudent('test-1', 'student-1');
+
+            $questionID = $test['questions'][0]['questionID'];
+
+            $drawn[$questionID] = ($drawn[$questionID] ?? 0) + 1;
+        }
+
+        self::assertGreaterThan(
+            $drawn['question-2'] ?? 0,
+            $drawn['question-1'] ?? 0
+        );
+    }
+
 
     public function testNeverDrawsMoreQuestionsThanThePoolHolds(): void
     {
