@@ -224,6 +224,10 @@ class Administrator extends Lecturer
             if ($db->inTransaction()) {
                 $db->rollBack();
             }
+            // two admins adding the same person at once both pass the check above, so the unique keys stop the second
+            if ($e instanceof \PDOException && (string) $e->getCode() === '23000') {
+                throw new \InvalidArgumentException('An account with this staff ID or email address already exists');
+            }
             throw $e;
         }
 
