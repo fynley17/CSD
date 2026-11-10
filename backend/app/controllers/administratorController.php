@@ -75,15 +75,15 @@ class AdministratorController extends Controller
             $created = $admin->createLecturer($this->readBody());
 
             // the account is saved by now, so if the email goes wrong it's still a 201
-            // the page tells the admin and they can use Resend link
+            // the page tells the admin and they can use Resend link a minute later
             $emailSent = self::emailSetupLink($created, null);
             $word = $created['role'] === 'admin' ? 'Administrator' : 'Lecturer';
 
             $this->jsonResponse([
                 'message' => $emailSent
                     ? $word . ' added. They have been emailed a link to set their password'
-                    : $word . " added, but the email couldn't be sent. Use Resend link to try again",
-                'emailSent' => $emailSent,
+                    : $word . " added, but the email couldn't be sent. Wait a minute then use Resend link",
+                    'emailSent' => $emailSent,
                 'userID' => $created['userID'],
             ], 201);
         } catch (\InvalidArgumentException $e) {
