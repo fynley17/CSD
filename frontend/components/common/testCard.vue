@@ -104,6 +104,8 @@ const dueDate = computed(() => {
 <style scoped>
 /* Keep the card compact enough to sit in a grid of student tests. */
 .testCard {
+    /* fill the grid cell so every card is the same height, the Start button stays at the bottom */
+    height: 100%;
     border: 1px solid var(--colorDivider);
     border-radius: var(--radiusMd);
     box-shadow: var(--shadowCard);

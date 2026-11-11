@@ -98,7 +98,7 @@ describe('TestSelectionPage', () => {
         expect(wrapper.get('[role="alert"]').text()).toBe('Unable to load tests.');
     });
 
-    it('deals the cards across three columns so each stacks under the one above it', async () => {
+    it('lays the cards out in date order in a single grid', async () => {
         // Arrange
         getAvailableTests.mockResolvedValue(
             ['a', 'b', 'c', 'd'].map((id) => ({ ...test, testID: id, testName: `Test ${id}` })),
@@ -109,10 +109,11 @@ describe('TestSelectionPage', () => {
         await flushPromises();
 
         // Assert
-        const columns = wrapper
-            .findAll('.testCardColumn')
-            .map((column) => column.findAll('.testCardTitle').map((title) => title.text()));
-        expect(columns).toEqual([['Test a', 'Test d'], ['Test b'], ['Test c']]);
+        const titles = wrapper
+            .get('.testCardGrid')
+            .findAll('.testCardTitle')
+            .map((title) => title.text());
+        expect(titles).toEqual(['Test a', 'Test b', 'Test c', 'Test d']);
     });
 
     it('opens the testing page for the test whose Start button was clicked', async () => {
