@@ -189,4 +189,71 @@ describe('router guard for student only pages', () => {
         await router.push('/testing/answers/completed-1');
         expect(router.currentRoute.value.name).toBe('testAnswers');
     });
+
+    /**
+     * Someone already logged in can't go back to the landing, login or register pages,
+     * they're sent to their own dashboard instead (error)
+     */
+    it.each([
+        ['/', 'admin', 'administratorDashboard'],
+        ['/login', 'lecturer', 'lecturerDashboard'],
+        ['/register', 'student', 'testSelection'],
+    ])('sends a signed-in user away from %s to their dashboard', async (path, accountType, dashboard) => {
+        // Arrange
+        await router.push('/privacy-policy');
+        getCurrentUser.mockResolvedValue({ username: 'user01', accountType });
+
+        // Act
+        await router.push(path);
+
+        // Assert
+        expect(router.currentRoute.value.name).toBe(dashboard);
+    });
+
+    /**
+     * Nobody logged in can still open the landing, login and register pages (normal)
+     */
+    it.each([
+        ['/', 'landingPage'],
+        ['/login', 'login'],
+        ['/register', 'register'],
+    ])('lets a visitor open %s', async (path, name) => {
+        // Arrange
+        await router.push('/privacy-policy');
+        getCurrentUser.mockResolvedValue(null);
+
+        // Act
+        await router.push(path);
+
+        // Assert
+        expect(router.currentRoute.value.name).toBe(name);
+    });
+
+    /**
+     * If PHP can't be reached the login page still opens, so people aren't locked out of it (boundary)
+     */
+    it('still shows the login page when the backend cannot be reached', async () => {
+        // Arrange
+        getCurrentUser.mockRejectedValue(new Error('Network Error'));
+
+        // Act
+        await router.push('/login');
+
+        // Assert
+        expect(router.currentRoute.value.name).toBe('login');
+    });
+
+    /**
+     * Pages anyone can use, i.e. the privacy policy, stay open when logged in (normal)
+     */
+    it('lets a signed-in user open the privacy policy', async () => {
+        // Arrange
+        getCurrentUser.mockResolvedValue({ username: 'user01', accountType: 'student' });
+
+        // Act
+        await router.push('/privacy-policy');
+
+        // Assert
+        expect(router.currentRoute.value.name).toBe('privacyPolicy');
+    });
 });
