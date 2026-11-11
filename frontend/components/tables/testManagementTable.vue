@@ -44,6 +44,17 @@ watch(
 // Store unique subjects for the subject filter dropdown.
 const subjects = ref([]);
 
+// Archived wins over Overdue, an archived test can't be taken at all.
+// Overdue tests can still be practised but don't earn points, so lecturers can extend or archive them.
+const testStatus = (test) => {
+    if (!test.isActive) {
+        return 'Archived';
+    }
+    return test.isOverdue ? 'Overdue' : 'Active';
+};
+
+const statusClasses = { Active: 'statusActive', Overdue: 'statusPending', Archived: 'statusArchived' };
+
 // Configure the test table columns. render.text() shows names as plain text (stops HTML running, XSS).
 const columns = [
     { data: 'testName', title: 'Test Name', render: DataTablesCore.render.text() },
@@ -58,7 +69,7 @@ const columns = [
         data: 'isActive',
         title: 'Status',
         // the pill comes from the #status slot, sorting and searching use the word
-        render: { _: (value) => (value ? 'Active' : 'Archived'), display: '#status' },
+        render: { _: (value, type, row) => testStatus(row), display: '#status' },
     },
     {
         data: null,
@@ -165,10 +176,10 @@ onMounted(async () => {
                         Tests
                     </caption>
 
-                    <!-- house style pill, grey for Archived like the subjects table -->
+                    <!-- house style pill, grey for Archived like the subjects table, amber for Overdue -->
                     <template #status="props">
-                        <span class="statusPill" :class="props.rowData.isActive ? 'statusActive' : 'statusArchived'">
-                            {{ props.rowData.isActive ? 'Active' : 'Archived' }}
+                        <span class="statusPill" :class="statusClasses[testStatus(props.rowData)]">
+                            {{ testStatus(props.rowData) }}
                         </span>
                     </template>
 

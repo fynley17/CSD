@@ -35,8 +35,12 @@
                 <template v-if="hasTimeLimit">When the time runs out the test is handed in automatically.</template>
             </p>
 
-            <!-- the backend still marks a retake after full marks, it just doesn't award points -->
-            <p v-if="isPracticeAttempt" class="fullMarksNote">
+            <!-- the backend still marks an attempt after the due date or full marks, it just doesn't award points -->
+            <p v-if="test.isOverdue" class="fullMarksNote overdueNote">
+                <i class="bi bi-calendar-x-fill" aria-hidden="true"></i>
+                This test is past its due date. You can still practise it, but it won't earn points.
+            </p>
+            <p v-else-if="isPracticeAttempt" class="fullMarksNote">
                 <i class="bi bi-trophy-fill" aria-hidden="true"></i>
                 You already have full marks on this test. You can practise it again, but it won't earn points.
             </p>
@@ -72,7 +76,11 @@
             </p>
 
             <!-- after full marks the test can still be retaken, but only the first full marks earns points -->
-            <p v-if="result.earnsPoints === false" class="fullMarksNote">
+            <p v-if="result.isOverdue" class="fullMarksNote overdueNote">
+                <i class="bi bi-calendar-x-fill" aria-hidden="true"></i>
+                Practice attempt. This test was past its due date, so no points were added.
+            </p>
+            <p v-else-if="result.earnsPoints === false" class="fullMarksNote">
                 <i class="bi bi-trophy-fill" aria-hidden="true"></i>
                 Practice attempt. You already have full marks on this test, so no points were added.
             </p>
@@ -260,7 +268,7 @@ const formattedTime = computed(() => {
 });
 
 const hasFullMarks = computed(() => result.value !== null && result.value.correctCount === result.value.questionCount);
-// false only once the student has full marks, older responses without the field still earn points
+// false once the student has full marks or the test is overdue, older responses without the field still earn points
 const isPracticeAttempt = computed(() => test.value?.earnsPoints === false);
 
 // The most questions answered correctly in a row.
@@ -597,6 +605,12 @@ onBeforeUnmount(stopTimer);
     background: var(--colorSuccessLight);
     color: var(--colorSuccess);
     font-weight: 700;
+}
+
+/* Warning colours for an overdue test, the calendar icon and text say it without colour. */
+.overdueNote {
+    background: var(--colorWarningLight);
+    color: var(--colorWarning);
 }
 
 /* Colour, font and size come from the global h2 style, it only needs to line up with the cards. */

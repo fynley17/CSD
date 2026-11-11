@@ -24,6 +24,7 @@ final class CompletedTestTest extends TestCase
                 testName TEXT NOT NULL,
                 testDescription TEXT,
                 timeLimit INTEGER,
+                dueDate TEXT,
                 questionCount INTEGER,
                 subjectID TEXT NOT NULL,
                 isActive INTEGER NOT NULL DEFAULT 1
@@ -725,6 +726,63 @@ final class CompletedTestTest extends TestCase
         )->fetchColumn();
 
         self::assertEquals(190, $points);
+    }
+
+    public function testOverdueTestCanBeTakenAsPracticeButEarnsNoPoints(): void
+    {
+        // Arrange
+        $this->db->exec("UPDATE Tests SET dueDate = '2000-01-01' WHERE testID = 'test-1'");
+        $fullMarks = [
+            'question-1' => 'a1',
+            'question-2' => 'b1',
+            'question-3' => 'c1',
+        ];
+
+        // Act
+        $test = Test::getForStudent('test-1', 'student-1');
+        $result = CompletedTest::submit('student-1', 'test-1', self::ALL_QUESTIONS, $fullMarks);
+
+        // Assert
+        // it still opens, flagged as overdue so the page can say why there are no points
+        self::assertNotNull($test);
+        self::assertTrue($test['isOverdue']);
+        self::assertFalse($test['earnsPoints']);
+        self::assertArrayNotHasKey('hasFullMarks', $test);
+
+        // marked and saved, but every question scores 0 and the total doesn't move
+        self::assertEquals(100, $result['percentageCorrect']);
+        self::assertTrue($result['isOverdue']);
+        self::assertFalse($result['earnsPoints']);
+        self::assertSame(0, $result['pointsEarned']);
+        self::assertSame([0, 0, 0], array_column($result['questions'], 'pointsAwarded'));
+        self::assertSame(
+            100,
+            (int) $this->db->query("SELECT points FROM Students WHERE userID = 'student-1'")->fetchColumn()
+        );
+    }
+
+    public function testAttemptStartedOnTheDueDateStillEarnsPointsWhenHandedInAfterIt(): void
+    {
+        // Arrange
+        // started on the due date, handed in after midnight
+        $yesterday = date('Y-m-d', strtotime('-1 day'));
+        $this->db->exec("UPDATE Tests SET dueDate = '$yesterday' WHERE testID = 'test-1'");
+
+        // Act
+        $startedOnDueDate = CompletedTest::submit(
+            'student-1',
+            'test-1',
+            self::ALL_QUESTIONS,
+            ['question-1' => 'a1'],
+            $yesterday
+        );
+        $startedToday = CompletedTest::submit('student-1', 'test-1', self::ALL_QUESTIONS, ['question-1' => 'a1']);
+
+        // Assert
+        self::assertFalse($startedOnDueDate['isOverdue']);
+        self::assertSame(30, $startedOnDueDate['pointsEarned']);
+        self::assertTrue($startedToday['isOverdue']);
+        self::assertSame(0, $startedToday['pointsEarned']);
     }
 
     public function testFullMarksOnAnotherStudentsAttemptDoesNotStopYourPoints(): void

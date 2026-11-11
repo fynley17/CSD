@@ -66,6 +66,24 @@ describe('TestCard', () => {
         expect(practiceCard.find('.testCardStartButton').exists()).toBe(true);
     });
 
+    it('marks an overdue test and says attempts are practice, but it can still be started', () => {
+        // Arrange
+        const overdueTest = { ...baseTest, isOverdue: true, earnsPoints: false };
+
+        // Act
+        const normalCard = mount(TestCard, { props: { test: baseTest } });
+        const overdueCard = mount(TestCard, { props: { test: overdueTest } });
+
+        // Assert
+        expect(normalCard.find('.testCardOverdueBadge').exists()).toBe(false);
+        expect(overdueCard.get('.testCardOverdueBadge').text()).toBe('Overdue');
+        // only the overdue note, not the full marks one as well
+        const notes = overdueCard.findAll('.testCardPracticeNote');
+        expect(notes).toHaveLength(1);
+        expect(notes[0].text()).toContain('Past due date');
+        expect(overdueCard.find('.testCardStartButton').exists()).toBe(true);
+    });
+
     it('emits the selected test when Start test is clicked', async () => {
         // Arrange
         const wrapper = mount(TestCard, { props: { test: baseTest } });
