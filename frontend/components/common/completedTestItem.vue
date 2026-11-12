@@ -147,6 +147,15 @@ async function exportResults() {
     gap: var(--spaceXs);
 }
 
+/* On tablets and phones the details go one per line down the left, rather than wrapping
+   wherever they happen to run out of room. Same breakpoint as Bootstrap's lg. */
+@media (max-width: 991.98px) {
+    .completedTestDetails {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}
+
 .completedTestDetails dt {
     font-weight: 400;
 }

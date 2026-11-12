@@ -24,11 +24,26 @@ class Test extends Model
             AND ct.percentageCorrect >= 100
     )";
 
+    // The due date is the last day points can be earned, so a test is overdue from the day after.
+    // The date compared against comes from PHP's clock, so it doesn't matter what timezone the
+    // database is set to. Overdue tests can still be taken as practice, they just don't earn points.
+    private const OVERDUE = "(t.dueDate IS NOT NULL AND t.dueDate < ?)";
+
+    /**
+     * Today's date, the one due dates are checked against.
+     */
+    public static function today(): string
+    {
+        return date('Y-m-d');
+    }
+
     /**
      * Returns the tests a student can view and start.
      *
      * Only includes tests whose subject is active and has questions,
      * and whose subject belongs to the student's cohort.
+     * Tests still open come first, soonest due first, then ones with no due date,
+     * then overdue ones, which can only be taken as practice.
      */
     public static function getAvailableForStudents(string $userID): array
     {
@@ -46,7 +61,8 @@ class Test extends Model
                     'Unknown lecturer'
                 ) AS createdByName,
                 t.questionCount AS questionsPerAttempt,
-                NOT " . self::FULL_MARKS_ATTEMPT . " AS earnsPoints
+                " . self::FULL_MARKS_ATTEMPT . " AS hasFullMarks,
+                " . self::OVERDUE . " AS isOverdue
             FROM Tests AS t
             INNER JOIN Subjects AS s ON s.subjectID = t.subjectID
             INNER JOIN Lecturer AS l ON l.userID = t.createdBy
@@ -59,10 +75,10 @@ class Test extends Model
             AND s.isActive = 1
             AND t.isActive = 1
             AND " . self::POOL_SIZE . " > 0
-            ORDER BY t.dueDate IS NULL, t.dueDate, t.testName"
+            ORDER BY isOverdue, t.dueDate IS NULL, t.dueDate, t.testName"
         );
 
-        $stmt->execute([$userID, $userID]);
+        $stmt->execute([$userID, self::today(), $userID]);
 
         // Normalise SQL output to the types expected by the frontend.
         $tests = $stmt->fetchAll(\PDO::FETCH_ASSOC);
@@ -80,7 +96,7 @@ class Test extends Model
 
             unset($test['questionsPerAttempt']);
 
-            $test['earnsPoints'] = (bool) $test['earnsPoints'];
+            self::setEarnsPoints($test);
         }
 
         unset($test);
@@ -124,6 +140,10 @@ class Test extends Model
             $test['questionPoolSize'] = (int) $test['questionPoolSize'];
 
             $test['isActive'] = (bool) $test['isActive'];
+
+            // so lecturers can see which tests have closed and extend or archive them
+            $test['isOverdue'] = $test['dueDate'] !== null
+                && substr((string) $test['dueDate'], 0, 10) < self::today();
         }
 
         unset($test);
@@ -515,7 +535,7 @@ class Test extends Model
     {
         // Same checks as getAvailableForStudents(), so a student can't open another
         // cohort's test, or one whose subject has no questions, by typing its ID into the URL.
-        return self::findTest($testID, $userID, true);
+        return self::findTest($testID, $userID, true, self::today());
     }
 
     /**
@@ -523,17 +543,20 @@ class Test extends Model
      * There's no cohort check, so an attempt still counts if its subject has left their cohort since it started.
      * Only call this with an attempt from the student's session, startTest only saves one after the cohort check.
      *
+     * @param string|null $startedOn the date (Y-m-d) the attempt started. The due date is checked against
+     *                               this, not the hand in time, so a test started on its due date
+     *                               still earns points if it's handed in after midnight. Defaults to today.
      * @return array|null null if the test doesn't exist or has no questions
      */
-    public static function findStartedByStudent(string $testID, string $userID): ?array
+    public static function findStartedByStudent(string $testID, string $userID, ?string $startedOn = null): ?array
     {
-        return self::findTest($testID, $userID, false);
+        return self::findTest($testID, $userID, false, $startedOn ?? self::today());
     }
 
     /**
      * The shared query behind findForStudent() and findStartedByStudent()
      */
-    private static function findTest(string $testID, string $userID, bool $checkCohort): ?array
+    private static function findTest(string $testID, string $userID, bool $checkCohort, string $onDate): ?array
     {
         $cohortCheck = $checkCohort
             ? "INNER JOIN Students AS student ON student.cohortID = s.cohortID AND student.userID = ?"
@@ -545,28 +568,45 @@ class Test extends Model
                 t.testName,
                 t.testDescription,
                 t.timeLimit,
+                t.dueDate,
                 t.questionCount AS questionsPerAttempt,
                 s.subjectName,
                 s.isActive AS subjectIsActive,
                 t.isActive AS testIsActive,
-                NOT " . self::FULL_MARKS_ATTEMPT . " AS earnsPoints
+                " . self::FULL_MARKS_ATTEMPT . " AS hasFullMarks,
+                " . self::OVERDUE . " AS isOverdue
             FROM Tests AS t
             INNER JOIN Subjects AS s ON s.subjectID = t.subjectID
             $cohortCheck
             WHERE t.testID = ?
             AND " . self::POOL_SIZE . " > 0"
         );
-        // the first ? is the full marks check in the SELECT
-        $stmt->execute($checkCohort ? [$userID, $userID, $testID] : [$userID, $testID]);
+        // the first two ? are the full marks and overdue checks in the SELECT
+        $stmt->execute($checkCohort
+            ? [$userID, $onDate, $userID, $testID]
+            : [$userID, $onDate, $testID]);
         $test = $stmt->fetch(\PDO::FETCH_ASSOC);
 
         if ($test === false) {
             return null;
         }
 
-        $test['earnsPoints'] = (bool) $test['earnsPoints'];
+        self::setEarnsPoints($test);
 
         return $test;
+    }
+
+    /**
+     * An attempt earns points unless the student already has full marks on the test
+     * or the test is past its due date. Either way it can still be taken as practice.
+     * Replaces the hasFullMarks column with earnsPoints, and keeps isOverdue so the
+     * page can say why no points are earned.
+     */
+    private static function setEarnsPoints(array &$test): void
+    {
+        $test['isOverdue'] = (bool) $test['isOverdue'];
+        $test['earnsPoints'] = !$test['hasFullMarks'] && !$test['isOverdue'];
+        unset($test['hasFullMarks']);
     }
 
     /**
