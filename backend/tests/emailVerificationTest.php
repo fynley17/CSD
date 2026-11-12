@@ -101,4 +101,23 @@ final class EmailVerificationTest extends TestCase
         self::assertNull($noToken);
         self::assertNull($notAnArray);
     }
+
+    /**
+     * Change email only waits a minute when the address is the same one again, a new address is sent straight away
+     */
+    public function testOnlyTheSameAddressCountsAsAResend(): void
+    {
+        // Arrange
+        $current = 'student@example.com';
+
+        // Act
+        $sameAddress = VerificationController::isSameEmail($current, 'student@example.com');
+        $sameWithCaseAndSpaces = VerificationController::isSameEmail($current, '  Student@Example.COM ');
+        $newAddress = VerificationController::isSameEmail($current, 'student@example.org');
+
+        // Assert
+        self::assertTrue($sameAddress);
+        self::assertTrue($sameWithCaseAndSpaces);
+        self::assertFalse($newAddress);
+    }
 }
