@@ -17,23 +17,32 @@ class CompletedTest extends Model
      * Marks the student's answers, saves the attempt and adds the points to their total.
      * Once the student has full marks on the test, retakes are still marked and saved but
      * earn no points, so a test can't be retaken over and over to climb the leaderboard.
+     * Attempts started after the test's due date are practice in the same way.
      *
      * @param string[] $questionIDs the questions drawn for this attempt when it started, in the order
      *                              they were asked. Only these are marked, whatever the browser sends.
      * @param array $submittedAnswers questionID => answerID, or null for a question left unanswered
      *                                (e.g. the timer ran out). Missing questions also count as unanswered.
+     * @param string|null $startedOn the date (Y-m-d) the attempt started, checked against the due date.
+     *                               Defaults to today.
      * @return array|null the marked test for the results screen, null if the test no longer exists
      * @throws \InvalidArgumentException if an answer doesn't belong to its question
      */
-    public static function submit(string $userID, string $testID, array $questionIDs, array $submittedAnswers): ?array
-    {
+    public static function submit(
+        string $userID,
+        string $testID,
+        array $questionIDs,
+        array $submittedAnswers,
+        ?string $startedOn = null
+    ): ?array {
         // the cohort was checked when the attempt started, so removing its subject since then doesn't lose the attempt
-        $test = Test::findStartedByStudent($testID, $userID);
+        $test = Test::findStartedByStudent($testID, $userID, $startedOn);
         if ($test === null) {
             return null;
         }
         // checked when the test is handed in, so full marks in another tab also counts
         $earnsPoints = $test['earnsPoints'];
+        $isOverdue = $test['isOverdue'];
 
         $questions = Test::getQuestions($testID, true, $questionIDs);
         if (count($questions) === 0) {
@@ -69,7 +78,7 @@ class CompletedTest extends Model
                 $pointsAwarded = self::POINTS_INCORRECT;
             }
 
-            // a practice retake is still marked right or wrong, it just doesn't score
+            // a practice attempt is still marked right or wrong, it just doesn't score
             if (!$earnsPoints) {
                 $pointsAwarded = 0;
             }
@@ -147,6 +156,7 @@ class CompletedTest extends Model
             'pointsEarned' => $pointsEarned,
             'percentageCorrect' => $percentageCorrect,
             'earnsPoints' => $earnsPoints,
+            'isOverdue' => $isOverdue,
             'questions' => $markedQuestions,
         ];
     }
