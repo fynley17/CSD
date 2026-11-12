@@ -191,6 +191,10 @@ const router = createRouter({
     },
 });
 
+// how long the landing, login and register pages wait to hear who's logged in before opening anyway
+// only these pages give up early, on a private page a slow reply would otherwise log the user out
+export const GUEST_CHECK_TIMEOUT_MS = 3000;
+
 // the dashboard each account type is sent to when it opens a page it can't use
 const dashboardRoutes = {
     admin: 'administratorDashboard',
@@ -206,9 +210,9 @@ router.beforeEach(async (to) => {
     if (to.meta.guestOnly) {
         let user;
         try {
-            user = await getCurrentUser();
+            user = await getCurrentUser({ timeout: GUEST_CHECK_TIMEOUT_MS });
         } catch {
-            // backend couldn't be reached, so show the page as normal
+            // backend couldn't be reached or was too slow, so show the page as normal
             return true;
         }
 

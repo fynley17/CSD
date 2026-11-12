@@ -4,7 +4,7 @@
 // it makes sure each account type only gets into its own pages, i.e. a lecturer can't open lecturer management
 // each test is laid out Arrange (pick the account), Act (try to open the page), Assert (check where they ended up)
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import router from '../router/router';
+import router, { GUEST_CHECK_TIMEOUT_MS } from '../router/router';
 import { getCurrentUser } from '../services/authService';
 
 // swaps the real getCurrentUser() for a pretend one, so no PHP or database is needed
@@ -255,5 +255,50 @@ describe('router guard for student only pages', () => {
 
         // Assert
         expect(router.currentRoute.value.name).toBe('privacyPolicy');
+    });
+
+    /**
+     * The landing, login and register pages only wait 3 seconds to hear who's logged in (boundary)
+     */
+    it('limits how long the login page waits for the backend', async () => {
+        // Arrange
+        getCurrentUser.mockResolvedValue(null);
+
+        // Act
+        await router.push('/login');
+
+        // Assert
+        expect(GUEST_CHECK_TIMEOUT_MS).toBe(3000);
+        expect(getCurrentUser).toHaveBeenCalledWith({ timeout: GUEST_CHECK_TIMEOUT_MS });
+    });
+
+    /**
+     * If the backend is too slow the login page opens anyway (boundary)
+     */
+    it('opens the login page when the backend takes too long', async () => {
+        // Arrange: axios rejects with ECONNABORTED when the timeout runs out
+        getCurrentUser.mockRejectedValue(
+            Object.assign(new Error('timeout of 3000ms exceeded'), { code: 'ECONNABORTED' }),
+        );
+
+        // Act
+        await router.push('/login');
+
+        // Assert
+        expect(router.currentRoute.value.name).toBe('login');
+    });
+
+    /**
+     * Private pages keep waiting, a slow reply there shouldn't log someone out (normal)
+     */
+    it('does not put a time limit on private pages', async () => {
+        // Arrange
+        getCurrentUser.mockResolvedValue({ username: 'adm01', accountType: 'admin' });
+
+        // Act
+        await router.push('/cohort-management');
+
+        // Assert
+        expect(getCurrentUser).toHaveBeenLastCalledWith();
     });
 });

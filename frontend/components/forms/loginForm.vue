@@ -1,5 +1,6 @@
 <script>
 import { login } from '../../services/authService';
+import { safeRedirect } from '../../utils/safeRedirect';
 import PopupDialog from '../common/popupDialog.vue';
 
 // each account type has its own home after logging in, students, lecturers and admins never share a dashboard
@@ -59,8 +60,8 @@ export default {
 
             try {
                 const user = await login(this.username.trim(), this.password);
-                // all good, so off to the dashboard for their account type
-                this.$router.push(DASHBOARD_PATHS[user.accountType] || '/');
+                // all good, so back to the page they wanted, or the dashboard for their account type
+                this.$router.push(safeRedirect(this.$route.query.redirect) || DASHBOARD_PATHS[user.accountType] || '/');
             } catch (error) {
                 // 429 means PHP has locked the account after too many wrong passwords
                 if (error.response?.status === 429) {
