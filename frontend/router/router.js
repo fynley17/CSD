@@ -42,6 +42,8 @@ const routes = [
         path: '/',
         name: 'landingPage',
         component: LandingPage,
+        // guestOnly pages send anyone already logged in to their own dashboard
+        meta: { guestOnly: true },
     },
     {
         path: '/privacy-policy',
@@ -53,6 +55,7 @@ const routes = [
         name: 'register',
         // Loads the registration page, which contains the registration form.
         component: RegisterPage,
+        meta: { guestOnly: true },
     },
     {
         path: '/check-email',
@@ -81,7 +84,7 @@ const routes = [
         path: '/login',
         name: 'login',
         component: LoginPage,
-        meta: { title: 'Login | RevisionHub' },
+        meta: { title: 'Login | RevisionHub', guestOnly: true },
     },
     {
         path: '/admin-dashboard',
@@ -188,6 +191,10 @@ const router = createRouter({
     },
 });
 
+// how long the landing, login and register pages wait to hear who's logged in before opening anyway
+// only these pages give up early, on a private page a slow reply would otherwise log the user out
+export const GUEST_CHECK_TIMEOUT_MS = 3000;
+
 // the dashboard each account type is sent to when it opens a page it can't use
 const dashboardRoutes = {
     admin: 'administratorDashboard',
@@ -198,7 +205,22 @@ const dashboardRoutes = {
 // runs before every page change, private pages ask the backend who's logged in first
 // this is what stops the back button showing a private page after logging out
 router.beforeEach(async (to) => {
-    // pages without role restrictions are public
+    // the landing, login and register pages are only for people who aren't logged in,
+    // anyone who is goes to their own dashboard, so the back button can't take them to the login form
+    if (to.meta.guestOnly) {
+        let user;
+        try {
+            user = await getCurrentUser({ timeout: GUEST_CHECK_TIMEOUT_MS });
+        } catch {
+            // backend couldn't be reached or was too slow, so show the page as normal
+            return true;
+        }
+
+        const dashboard = user ? dashboardRoutes[user.accountType] : undefined;
+        return dashboard ? { name: dashboard } : true;
+    }
+
+    // other pages without role restrictions are public
     if (!to.meta.requiredRoles && !to.meta.studentOnly) {
         return true;
     }
