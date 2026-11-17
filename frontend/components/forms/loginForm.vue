@@ -208,9 +208,6 @@ export default {
                             {{ isPasswordShown ? 'Hide' : 'Show' }}
                         </button>
                     </div>
-                    <p class="mt-2 mb-0 text-end">
-                        <router-link to="/forgot-password">Forgot your password?</router-link>
-                    </p>
                 </div>
 
                 <button ref="loginButton" type="submit" class="headerButton loginButton w-100" :disabled="isSubmitting">
@@ -220,6 +217,9 @@ export default {
 
             <p class="secondaryText text-center mt-4 mb-0">
                 New here? <router-link to="/register">Register</router-link>
+            </p>
+            <p class="secondaryText text-center mt-2 mb-0">
+                <router-link to="/forgot-password">Forgot your password?</router-link>
             </p>
 
             <!-- pops up on the 3rd wrong password, and on every try after that while it's still locked -->
