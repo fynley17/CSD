@@ -27,7 +27,8 @@ management page; existing cohorts get the date the migration is run. The cohort
 disable tracking migration adds `Users.disabledByCohort` and
 `Subjects.archivedByCohort`, so enabling a cohort only undoes what disabling it changed. The subjects optional
 cohort migration lets `Subjects.cohortID` be NULL, for a subject not in a cohort. The cohorts unique
-name migration stops two cohorts having the same name; rename any duplicates first. Do not run migrations through the init directory; init scripts run only
+name migration stops two cohorts having the same name; rename any duplicates first. The password reset
+tokens migration adds the `PasswordResetTokens` table used by the forgot password link. Do not run migrations through the init directory; init scripts run only
 for a new volume.
 
 ## Sample data
