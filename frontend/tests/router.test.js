@@ -301,4 +301,32 @@ describe('router guard for student only pages', () => {
         // Assert
         expect(getCurrentUser).toHaveBeenLastCalledWith();
     });
+
+    /**
+     * Forgot password is only for people who aren't logged in (error)
+     */
+    it('sends a signed-in user away from forgot password', async () => {
+        // Arrange
+        getCurrentUser.mockResolvedValue({ username: 'ws000001', accountType: 'student' });
+
+        // Act
+        await router.push('/forgot-password');
+
+        // Assert
+        expect(router.currentRoute.value.name).toBe('testSelection');
+    });
+
+    /**
+     * The reset link from the email opens whoever is logged in (normal)
+     */
+    it('opens the reset password page from the email link', async () => {
+        // Arrange
+        getCurrentUser.mockResolvedValue({ username: 'ws000001', accountType: 'student' });
+
+        // Act
+        await router.push('/reset-password?token=abc');
+
+        // Assert
+        expect(router.currentRoute.value.name).toBe('resetPassword');
+    });
 });

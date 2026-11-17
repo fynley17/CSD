@@ -208,6 +208,9 @@ export default {
                             {{ isPasswordShown ? 'Hide' : 'Show' }}
                         </button>
                     </div>
+                    <p class="mt-2 mb-0 text-end">
+                        <router-link to="/forgot-password">Forgot your password?</router-link>
+                    </p>
                 </div>
 
                 <button ref="loginButton" type="submit" class="headerButton loginButton w-100" :disabled="isSubmitting">
