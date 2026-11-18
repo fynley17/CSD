@@ -6,10 +6,20 @@
         <p v-else-if="loadError" class="alert alert-danger" role="alert">{{ loadError }}</p>
         <p v-else-if="tests.length === 0" class="hintText">There are no tests available right now.</p>
 
-        <!-- every card is the same size, the tallest card sets the height of every row -->
-        <div v-else class="testCardGrid mt-4">
-            <TestCard v-for="test in tests" :key="test.testID" :test="test" @start="startTest" />
-        </div>
+        <template v-else>
+            <!-- every card is the same size, the tallest card sets the height of every row -->
+            <div class="testCardGrid mt-4">
+                <TestCard v-for="test in visibleTests" :key="test.testID" :test="test" @start="startTest" />
+            </div>
+
+            <!-- two full rows per page, so the completed tests below are never pushed too far down -->
+            <ListPagination
+                v-model:page="currentPage"
+                :pageSize="pageSize"
+                :total="tests.length"
+                label="Tests to complete pages"
+            />
+        </template>
 
         <section class="mt-5" aria-labelledby="completedTestsHeading">
             <h2 id="completedTestsHeading">Completed tests</h2>
@@ -24,9 +34,10 @@
 </template>
 
 <script setup>
-import { onMounted, ref } from 'vue';
+import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import CompletedTestList from '../components/common/completedTestList.vue';
+import ListPagination from '../components/common/listPagination.vue';
 import TestCard from '../components/common/testCard.vue';
 import { getCompletedTests } from '../services/resultService';
 import { getAvailableTests } from '../services/testService';
@@ -40,6 +51,45 @@ function startTest(test) {
 }
 const isLoading = ref(true);
 const loadError = ref('');
+
+// 3 columns on desktop, 2 on tablets and 1 on phones, the same breakpoints as the grid's CSS below.
+// A page is two full rows, so 6, 4 or 2 cards.
+const ROWS_PER_PAGE = 2;
+const tabletQuery = '(max-width: 991.98px)';
+const phoneQuery = '(max-width: 575.98px)';
+const columnCount = ref(3);
+const mediaQueries = [];
+
+function updateColumnCount() {
+    // the first test on screen, so resizing keeps it in view rather than jumping back to page 1
+    const firstShownIndex = (currentPage.value - 1) * pageSize.value;
+
+    if (window.matchMedia(phoneQuery).matches) {
+        columnCount.value = 1;
+    } else if (window.matchMedia(tabletQuery).matches) {
+        columnCount.value = 2;
+    } else {
+        columnCount.value = 3;
+    }
+
+    page.value = Math.floor(firstShownIndex / pageSize.value) + 1;
+}
+
+const pageSize = computed(() => columnCount.value * ROWS_PER_PAGE);
+const page = ref(1);
+const pageCount = computed(() => Math.ceil(tests.value.length / pageSize.value));
+
+// stays on a real page if the list gets shorter
+const currentPage = computed({
+    get: () => Math.min(page.value, Math.max(pageCount.value, 1)),
+    set: (value) => {
+        page.value = value;
+    },
+});
+
+const visibleTests = computed(() =>
+    tests.value.slice((currentPage.value - 1) * pageSize.value, currentPage.value * pageSize.value),
+);
 
 const completedTests = ref([]);
 const isLoadingCompleted = ref(true);
@@ -66,8 +116,26 @@ async function loadCompletedTests() {
     }
 }
 
-// Load both lists side by side so a failure in one does not hide the other.
-onMounted(() => Promise.all([loadAvailableTests(), loadCompletedTests()]));
+onMounted(() => {
+    // matchMedia is missing in some test environments, the page then keeps 3 columns
+    if (typeof window.matchMedia === 'function') {
+        updateColumnCount();
+        for (const query of [tabletQuery, phoneQuery]) {
+            const mediaQuery = window.matchMedia(query);
+            mediaQuery.addEventListener('change', updateColumnCount);
+            mediaQueries.push(mediaQuery);
+        }
+    }
+
+    // Load both lists side by side so a failure in one does not hide the other.
+    return Promise.all([loadAvailableTests(), loadCompletedTests()]);
+});
+
+onUnmounted(() => {
+    for (const mediaQuery of mediaQueries) {
+        mediaQuery.removeEventListener('change', updateColumnCount);
+    }
+});
 </script>
 
 <style scoped>

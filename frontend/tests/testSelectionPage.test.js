@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { flushPromises, mount } from '@vue/test-utils';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import TestSelectionPage from '../views/testSelectionPage.vue';
 import { getAvailableTests } from '../services/testService';
 import { getCompletedTests } from '../services/resultService';
@@ -187,5 +187,109 @@ describe('TestSelectionPage', () => {
         // Assert
         expect(wrapper.findAll('.testCard')).toHaveLength(1);
         expect(wrapper.get('[role="alert"]').text()).toBe('Unable to load completed tests. Please try again later.');
+    });
+
+    describe('tests to complete pages', () => {
+        const manyTests = (count) =>
+            Array.from({ length: count }, (_, index) => ({
+                ...test,
+                testID: `test-${index + 1}`,
+                testName: `Test ${index + 1}`,
+            }));
+
+        // pretends the screen is a given width, listeners lets a test fire a resize
+        let listeners;
+        function setScreen(width) {
+            listeners = [];
+            window.matchMedia = vi.fn((query) => {
+                const maxWidth = Number(query.match(/max-width: ([\d.]+)px/)[1]);
+                return {
+                    get matches() {
+                        return currentWidth <= maxWidth;
+                    },
+                    addEventListener: (_, listener) => listeners.push(listener),
+                    removeEventListener: vi.fn(),
+                };
+            });
+            let currentWidth = width;
+            return {
+                resize(newWidth) {
+                    currentWidth = newWidth;
+                    listeners.forEach((listener) => listener());
+                },
+            };
+        }
+
+        const titles = (wrapper) => wrapper.findAll('.testCardTitle').map((title) => title.text());
+        const pageButton = (wrapper, text) => wrapper.findAll('.page-link').find((link) => link.text() === text);
+
+        afterEach(() => {
+            delete window.matchMedia;
+        });
+
+        it('shows two rows of three on desktop, then pages the rest', async () => {
+            // Arrange
+            setScreen(1200);
+            getAvailableTests.mockResolvedValue(manyTests(8));
+
+            // Act
+            const wrapper = mount(TestSelectionPage);
+            await flushPromises();
+            const firstPage = titles(wrapper);
+            await pageButton(wrapper, 'Next').trigger('click');
+
+            // Assert
+            expect(firstPage).toEqual(['Test 1', 'Test 2', 'Test 3', 'Test 4', 'Test 5', 'Test 6']);
+            expect(titles(wrapper)).toEqual(['Test 7', 'Test 8']);
+            expect(wrapper.text()).toContain('Showing 7 to 8 of 8 tests');
+        });
+
+        it('has no pages when the tests fit in two rows', async () => {
+            // Arrange
+            setScreen(1200);
+            getAvailableTests.mockResolvedValue(manyTests(6));
+
+            // Act
+            const wrapper = mount(TestSelectionPage);
+            await flushPromises();
+
+            // Assert
+            expect(titles(wrapper)).toHaveLength(6);
+            expect(wrapper.find('[aria-label="Tests to complete pages"]').exists()).toBe(false);
+        });
+
+        it.each([
+            [800, 4],
+            [400, 2],
+        ])('shows two rows on a %ipx screen, %i cards', async (width, perPage) => {
+            // Arrange
+            setScreen(width);
+            getAvailableTests.mockResolvedValue(manyTests(8));
+
+            // Act
+            const wrapper = mount(TestSelectionPage);
+            await flushPromises();
+
+            // Assert
+            expect(titles(wrapper)).toHaveLength(perPage);
+            expect(wrapper.text()).toContain(`Showing 1 to ${perPage} of 8 tests`);
+        });
+
+        it('keeps the first card on screen when the window is resized', async () => {
+            // Arrange: desktop, on page 2, which starts at Test 7
+            const screen = setScreen(1200);
+            getAvailableTests.mockResolvedValue(manyTests(12));
+            const wrapper = mount(TestSelectionPage);
+            await flushPromises();
+            await pageButton(wrapper, 'Next').trigger('click');
+
+            // Act: down to a phone, 2 cards a page
+            screen.resize(400);
+            await flushPromises();
+
+            // Assert: Test 7 is the first card on page 4 of the phone layout
+            expect(titles(wrapper)).toEqual(['Test 7', 'Test 8']);
+            expect(wrapper.find('[aria-current="page"]').text()).toBe('4');
+        });
     });
 });
