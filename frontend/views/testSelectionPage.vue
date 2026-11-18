@@ -7,9 +7,26 @@
         <p v-else-if="tests.length === 0" class="hintText">There are no tests available right now.</p>
 
         <template v-else>
+            <!-- search and subject filter, they narrow both tabs so the counts stay right -->
+            <div class="tableToolbar mt-4">
+                <div class="tableToolbarControls">
+                    <TableSearch
+                        id="testSelectionSearch"
+                        v-model="searchText"
+                        placeholder="Test name, subject or lecturer"
+                    />
+                    <TableFilter
+                        id="testSelectionSubject"
+                        v-model="subjectFilter"
+                        label="Subject"
+                        :options="nameOptions(subjects, 'All subjects')"
+                    />
+                </div>
+            </div>
+
             <!-- Upcoming and Overdue tabs, like Teams assignments. The arrow keys move between them,
                  only the chosen tab is in the Tab order, the standard pattern screen readers expect -->
-            <div class="testTabs mt-4" role="tablist" aria-label="Tests to complete">
+            <div class="testTabs" role="tablist" aria-label="Tests to complete">
                 <button
                     v-for="tab in tabs"
                     :id="`${tab.key}Tab`"
@@ -31,7 +48,16 @@
             </div>
 
             <div id="testTabPanel" role="tabpanel" :aria-labelledby="`${activeTab}Tab`" class="pt-4">
-                <p v-if="tabTests.length === 0" class="hintText mb-0">{{ activeTabDetails.emptyText }}</p>
+                <!-- nothing matches the search or subject, so offer a quick way back to every test -->
+                <div v-if="tabTests.length === 0 && isFiltering">
+                    <p class="hintText" role="status">
+                        No {{ activeTabDetails.label.toLowerCase() }} tests match your search.
+                    </p>
+                    <button type="button" class="btn btn-outline-secondary btn-sm clearFilters" @click="clearFilters">
+                        Clear search and filter
+                    </button>
+                </div>
+                <p v-else-if="tabTests.length === 0" class="hintText mb-0">{{ activeTabDetails.emptyText }}</p>
 
                 <template v-else>
                     <!-- every card is the same size, the tallest card sets the height of every row -->
@@ -63,13 +89,16 @@
 </template>
 
 <script setup>
-import { computed, onMounted, onUnmounted, ref } from 'vue';
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import CompletedTestList from '../components/common/completedTestList.vue';
 import ListPagination from '../components/common/listPagination.vue';
+import TableFilter from '../components/tables/tableFilter.vue';
+import TableSearch from '../components/tables/tableSearch.vue';
 import TestCard from '../components/common/testCard.vue';
 import { getCompletedTests } from '../services/resultService';
 import { getAvailableTests } from '../services/testService';
+import { nameOptions } from '../utils/filterOptions';
 
 const router = useRouter();
 const tests = ref([]);
@@ -81,19 +110,49 @@ function startTest(test) {
 const isLoading = ref(true);
 const loadError = ref('');
 
+// the subjects the student has tests in, for the dropdown
+const subjects = computed(() =>
+    [...new Set(tests.value.map((test) => test.subjectName))].sort((a, b) => a.localeCompare(b)),
+);
+const searchText = ref('');
+const subjectFilter = ref('');
+const isFiltering = computed(() => searchText.value.trim() !== '' || subjectFilter.value !== '');
+
+// the search looks at everything written on the card, upper or lower case doesn't matter
+const filteredTests = computed(() => {
+    const search = searchText.value.trim().toLowerCase();
+
+    return tests.value.filter((test) => {
+        if (subjectFilter.value && test.subjectName !== subjectFilter.value) {
+            return false;
+        }
+        if (search === '') {
+            return true;
+        }
+        return [test.testName, test.testDescription, test.subjectName, test.createdByName]
+            .filter(Boolean)
+            .some((text) => text.toLowerCase().includes(search));
+    });
+});
+
+function clearFilters() {
+    searchText.value = '';
+    subjectFilter.value = '';
+}
+
 // Upcoming is every test that can still earn points, including ones with no due date.
 // The backend has already sorted them, soonest due first.
 const tabs = computed(() => [
     {
         key: 'upcoming',
         label: 'Upcoming',
-        tests: tests.value.filter((test) => !test.isOverdue),
+        tests: filteredTests.value.filter((test) => !test.isOverdue),
         emptyText: 'You have no upcoming tests.',
     },
     {
         key: 'overdue',
         label: 'Overdue',
-        tests: tests.value.filter((test) => test.isOverdue),
+        tests: filteredTests.value.filter((test) => test.isOverdue),
         emptyText: 'You have no overdue tests.',
     },
 ]);
@@ -163,6 +222,11 @@ const currentPage = computed({
     },
 });
 
+// a new search or subject starts from the first page, so the matches aren't hidden on a later one
+watch([searchText, subjectFilter], () => {
+    page.value = 1;
+});
+
 const visibleTests = computed(() =>
     tabTests.value.slice((currentPage.value - 1) * pageSize.value, currentPage.value * pageSize.value),
 );
@@ -215,6 +279,11 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+/* the clear button is as tall as the other buttons on the page, so it's easy to tap */
+.clearFilters {
+    min-height: var(--minTouchTarget);
+}
+
 /* Tabs sit on a divider line, the chosen one is underlined in the brand colour, like Teams. */
 .testTabs {
     display: flex;

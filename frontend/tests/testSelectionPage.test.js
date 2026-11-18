@@ -385,4 +385,93 @@ describe('TestSelectionPage', () => {
             wrapper.unmount();
         });
     });
+
+    describe('search and subject filter', () => {
+        const filterTests = [
+            { ...test, testID: 'sql', testName: 'SQL Joins', subjectName: 'Databases', createdByName: 'Helen Carter' },
+            { ...test, testID: 'vue', testName: 'Vue Components', subjectName: 'Web Apps', createdByName: 'Tom Reid' },
+            {
+                ...test,
+                testID: 'er',
+                testName: 'ER Diagrams',
+                subjectName: 'Databases',
+                createdByName: 'Tom Reid',
+                isOverdue: true,
+            },
+        ];
+        const titles = (wrapper) => wrapper.findAll('.testCardTitle').map((title) => title.text());
+        const tabText = (wrapper) => wrapper.findAll('[role="tab"]').map((tab) => tab.text());
+
+        async function mountPage(tests = filterTests) {
+            getAvailableTests.mockResolvedValue(tests);
+            const wrapper = mount(TestSelectionPage);
+            await flushPromises();
+            return wrapper;
+        }
+
+        it('lists the subjects the student has tests in, in order', async () => {
+            // Act
+            const wrapper = await mountPage();
+
+            // Assert
+            const options = wrapper.findAll('#testSelectionSubject option').map((option) => option.text());
+            expect(options).toEqual(['All subjects', 'Databases', 'Web Apps']);
+        });
+
+        it('searches names, subjects and lecturers whatever the case, and updates the tab counts', async () => {
+            // Arrange
+            const wrapper = await mountPage();
+
+            // Act
+            await wrapper.get('#testSelectionSearch').setValue('  tom REID ');
+
+            // Assert
+            expect(titles(wrapper)).toEqual(['Vue Components']);
+            expect(tabText(wrapper)).toEqual(['Upcoming 1', 'Overdue 1']);
+        });
+
+        it('filters both tabs by subject', async () => {
+            // Arrange
+            const wrapper = await mountPage();
+
+            // Act
+            await wrapper.get('#testSelectionSubject').setValue('Databases');
+
+            // Assert
+            expect(titles(wrapper)).toEqual(['SQL Joins']);
+            expect(tabText(wrapper)).toEqual(['Upcoming 1', 'Overdue 1']);
+        });
+
+        it('says when nothing matches and clears the search and filter', async () => {
+            // Arrange
+            const wrapper = await mountPage();
+            await wrapper.get('#testSelectionSearch').setValue('networking');
+
+            // Act
+            const message = wrapper.get('[role="tabpanel"]').text();
+            await wrapper.get('.clearFilters').trigger('click');
+
+            // Assert
+            expect(message).toContain('No upcoming tests match your search.');
+            expect(wrapper.get('#testSelectionSearch').element.value).toBe('');
+            expect(titles(wrapper)).toEqual(['SQL Joins', 'Vue Components']);
+        });
+
+        it('goes back to the first page when the search changes', async () => {
+            // Arrange: 8 tests is two pages on desktop
+            const wrapper = await mountPage(
+                Array.from({ length: 8 }, (_, index) => ({ ...test, testID: `t${index}`, testName: `Quiz ${index}` })),
+            );
+            await wrapper
+                .findAll('.page-link')
+                .find((link) => link.text() === 'Next')
+                .trigger('click');
+
+            // Act
+            await wrapper.get('#testSelectionSearch').setValue('quiz');
+
+            // Assert
+            expect(titles(wrapper)[0]).toBe('Quiz 0');
+        });
+    });
 });
