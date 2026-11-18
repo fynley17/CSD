@@ -310,8 +310,9 @@ export default {
 </template>
 
 <style scoped>
-/* main.css rounds every registration box, inside a group only the outer corners should be round */
-.input-group > .form-control {
+/* main.css rounds every registration box, inside a group only the outer corners should be round.
+   [class~=...] matches Bootstrap's hyphenated class names, the same way main.css does */
+[class~='input-group'] > [class~='form-control'] {
     border-top-right-radius: 0;
     border-bottom-right-radius: 0;
 }
@@ -321,7 +322,9 @@ export default {
     min-width: var(--minTouchTarget);
     border: 1px solid var(--colorDivider);
     border-left: 0;
-    border-radius: 0 var(--radiusSm) var(--radiusSm) 0;
+    border-radius: 0;
+    border-top-right-radius: var(--radiusSm);
+    border-bottom-right-radius: var(--radiusSm);
     background-color: var(--colorSurface);
     color: var(--colorTextSecondary);
 }
