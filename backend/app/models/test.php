@@ -7,10 +7,6 @@ class Test extends Model
     // Matches the Tests.questionCount default.
     private const DEFAULT_QUESTIONS_PER_ATTEMPT = 10;
 
-    // Supported question selection methods.
-    private const SELECTION_RANDOM = 'random';
-    private const SELECTION_FREQUENTLY_INCORRECT = 'frequently_incorrect';
-
     // Personalised selection starts after three completed attempts.
     private const PERSONALISATION_ATTEMPT_THRESHOLD = 3;
 
@@ -110,7 +106,6 @@ class Test extends Model
                 s.subjectName,
                 " . self::POOL_SIZE . " AS questionPoolSize,
                 t.questionCount AS questionsPerAttempt,
-                t.questionSelectionMethod,
                 t.timeLimit,
                 t.isActive
             FROM Tests AS t
@@ -186,8 +181,7 @@ class Test extends Model
         ?int $timeLimit,
         ?string $dueDate,
         int $questionCount,
-        string $createdBy,
-        string $questionSelectionMethod = self::SELECTION_RANDOM
+        string $createdBy
     ): string {
         self::validateTestData(
             $testName,
@@ -195,8 +189,7 @@ class Test extends Model
             $testDescription,
             $timeLimit,
             $dueDate,
-            $questionCount,
-            $questionSelectionMethod
+            $questionCount
         );
 
         $testID = self::newUuid();
@@ -211,10 +204,9 @@ class Test extends Model
                 timeLimit,
                 dueDate,
                 questionCount,
-                questionSelectionMethod,
                 createdBy
             )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
         );
 
         $stmt->execute([
@@ -227,7 +219,6 @@ class Test extends Model
             $timeLimit,
             $dueDate === '' ? null : $dueDate,
             $questionCount,
-            $questionSelectionMethod,
             $createdBy
         ]);
 
@@ -246,8 +237,7 @@ class Test extends Model
         ?string $testDescription,
         ?int $timeLimit,
         ?string $dueDate,
-        int $questionCount,
-        string $questionSelectionMethod = self::SELECTION_RANDOM
+        int $questionCount
     ): bool {
         $db = self::getDB();
 
@@ -271,7 +261,6 @@ class Test extends Model
             $timeLimit,
             $dueDate,
             $questionCount,
-            $questionSelectionMethod,
             false
         );
 
@@ -307,8 +296,7 @@ class Test extends Model
         $stmt = $db->prepare(
             "UPDATE Tests
          SET testName = ?, subjectID = ?, testDescription = ?,
-             timeLimit = ?, dueDate = ?, questionCount = ?,
-             questionSelectionMethod = ?
+             timeLimit = ?, dueDate = ?, questionCount = ?
          WHERE testID = ?"
         );
 
@@ -321,7 +309,6 @@ class Test extends Model
             $timeLimit,
             $dueDate === '' ? null : $dueDate,
             $questionCount,
-            $questionSelectionMethod,
             $testID
         ]);
 
@@ -402,7 +389,6 @@ class Test extends Model
         ?int $timeLimit,
         ?string $dueDate,
         int $questionCount,
-        string $questionSelectionMethod = self::SELECTION_RANDOM,
         bool $validateActiveSubject = true
     ): void {
         $testName = trim($testName);
@@ -431,16 +417,6 @@ class Test extends Model
         if ($questionCount < 1 || $questionCount > 999) {
             throw new \InvalidArgumentException(
                 'Question count must be between 1 and 999.'
-            );
-        }
-
-        if (!in_array(
-            $questionSelectionMethod,
-            [self::SELECTION_RANDOM, self::SELECTION_FREQUENTLY_INCORRECT],
-            true
-        )) {
-            throw new \InvalidArgumentException(
-                'Please select a valid question selection method.'
             );
         }
 
@@ -519,28 +495,19 @@ class Test extends Model
             count($pool)
         );
 
-        $selectionMethod = $test['questionSelectionMethod']
-            ?? self::SELECTION_RANDOM;
+        $completedAttempts = self::getCompletedAttemptCount(
+            $testID,
+            $userID
+        );
 
-        if ($selectionMethod === self::SELECTION_FREQUENTLY_INCORRECT) {
-            $completedAttempts = self::getCompletedAttemptCount(
+        if ($completedAttempts >= self::PERSONALISATION_ATTEMPT_THRESHOLD) {
+            $questions = self::selectFrequentlyIncorrectQuestions(
+                $pool,
                 $testID,
-                $userID
+                $userID,
+                $questionCount
             );
-
-            if ($completedAttempts >= self::PERSONALISATION_ATTEMPT_THRESHOLD) {
-                $questions = self::selectFrequentlyIncorrectQuestions(
-                    $pool,
-                    $testID,
-                    $userID,
-                    $questionCount
-                );
-            } else {
-                shuffle($pool);
-                $questions = array_slice($pool, 0, $questionCount);
-            }
         } else {
-            // Random remains the default selection method.
             shuffle($pool);
             $questions = array_slice($pool, 0, $questionCount);
         }
@@ -548,8 +515,7 @@ class Test extends Model
         unset(
             $test['questionsPerAttempt'],
             $test['subjectIsActive'],
-            $test['testIsActive'],
-            $test['questionSelectionMethod']
+            $test['testIsActive']
         );
 
         $test['timeLimit'] = $test['timeLimit'] === null
@@ -607,7 +573,6 @@ class Test extends Model
             t.testDescription,
             t.timeLimit,
             t.questionCount AS questionsPerAttempt,
-            t.questionSelectionMethod,
             s.subjectName,
             s.isActive AS subjectIsActive,
             t.isActive AS testIsActive,

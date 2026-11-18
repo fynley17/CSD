@@ -32,7 +32,6 @@ const form = ref({
     timeLimit: '',
     dueDate: '',
     questionCount: '',
-    questionSelectionMethod: 'random',
 });
 
 // Update the dialog title depending on the current operation.
@@ -60,7 +59,6 @@ function populateForm() {
         timeLimit: props.test.timeLimit ?? '',
         dueDate: props.test.dueDate ? String(props.test.dueDate).slice(0, 10) : '',
         questionCount: props.test.questionCount ?? '',
-        questionSelectionMethod: props.test.questionSelectionMethod ?? 'random',
     };
 }
 
@@ -154,7 +152,6 @@ async function submitTest() {
         timeLimit: form.value.timeLimit === '' ? null : Number(form.value.timeLimit),
         dueDate: form.value.dueDate || null,
         questionCount: Number(form.value.questionCount),
-        questionSelectionMethod: form.value.questionSelectionMethod,
     };
 
     submitting.value = true;
@@ -281,20 +278,6 @@ onMounted(async () => {
                         placeholder="No limit"
                     />
                 </div>
-            </div>
-
-            <!-- Choose how questions are selected for each attempt. -->
-            <div class="formGroup">
-                <label for="questionSelectionMethod">Question selection method</label>
-                <select id="questionSelectionMethod" v-model="form.questionSelectionMethod" required>
-                    <option value="random">Random</option>
-                    <option value="frequently_incorrect">Frequently incorrect</option>
-                </select>
-                <small v-if="form.questionSelectionMethod === 'frequently_incorrect'">
-                    Prioritises questions each student has previously answered incorrectly. Personalised selection
-                    starts after three completed attempts.
-                </small>
-                <small v-else> Questions are selected randomly from the subject's question pool. </small>
             </div>
 
             <!-- The due date is optional. -->

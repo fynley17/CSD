@@ -212,8 +212,7 @@ class TestController extends Controller
                 $data['timeLimit'],
                 $data['dueDate'],
                 $data['questionCount'],
-                $createdBy,
-                $data['questionSelectionMethod']
+                $createdBy
             );
 
             $this->jsonResponse([
@@ -249,8 +248,7 @@ class TestController extends Controller
                 $data['testDescription'],
                 $data['timeLimit'],
                 $data['dueDate'],
-                $data['questionCount'],
-                $data['questionSelectionMethod']
+                $data['questionCount']
             );
 
             if (!$updated) {
@@ -401,29 +399,13 @@ class TestController extends Controller
             );
         }
 
-        $questionSelectionMethod = $data['questionSelectionMethod'] ?? 'random';
-
-        if (
-            !is_string($questionSelectionMethod)
-            || !in_array(
-                $questionSelectionMethod,
-                ['random', 'frequently_incorrect'],
-                true
-            )
-        ) {
-            throw new \InvalidArgumentException(
-                'Please select a valid question selection method.'
-            );
-        }
-
         return [
             'testName' => trim($data['testName']),
             'subjectID' => trim($data['subjectID']),
             'testDescription' => $testDescription,
             'timeLimit' => $timeLimit,
             'dueDate' => $dueDate,
-            'questionCount' => $questionCount,
-            'questionSelectionMethod' => $questionSelectionMethod
+            'questionCount' => $questionCount
         ];
     }
 

@@ -89,7 +89,6 @@ describe('testService', () => {
             timeLimit: 60,
             dueDate: null,
             questionCount: 10,
-            questionSelectionMethod: 'random',
         };
 
         const result = {
@@ -112,7 +111,6 @@ describe('testService', () => {
             timeLimit: 90,
             dueDate: null,
             questionCount: 12,
-            questionSelectionMethod: 'frequently_incorrect',
         };
 
         const result = { message: 'Test updated successfully.' };

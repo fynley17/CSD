@@ -76,7 +76,6 @@ const tests = [
         subjectName: 'Mathematics',
         questionCount: 10,
         timeLimit: 30,
-        questionSelectionMethod: 'random',
         isActive: true,
     },
     {
@@ -85,7 +84,6 @@ const tests = [
         subjectName: 'Biology',
         questionCount: 15,
         timeLimit: 45,
-        questionSelectionMethod: 'frequently_incorrect',
         isActive: true,
     },
     {
@@ -111,37 +109,15 @@ describe('TestManagementTable', () => {
         return wrapper;
     }
 
-    it('displays the Question Selection column', async () => {
+    it('does not display a Question Selection column', async () => {
         // Arrange
         const wrapper = await mountTable();
 
-        // Assert
-        expect(wrapper.text()).toContain('Question Selection');
-    });
-
-    it('displays Random for tests using random selection', async () => {
-        // Arrange
-        const wrapper = await mountTable();
+        // Act
+        const columnHeadings = wrapper.findAll('thead th').map((heading) => heading.text());
 
         // Assert
-        expect(wrapper.text()).toContain('Random');
-    });
-
-    it('displays Frequently incorrect for personalised tests', async () => {
-        // Arrange
-        const wrapper = await mountTable();
-
-        // Assert
-        expect(wrapper.text()).toContain('Frequently incorrect');
-    });
-
-    it('defaults to Random when the selection method is missing', async () => {
-        // Arrange
-        const wrapper = await mountTable();
-
-        // Assert
-        expect(wrapper.text()).toContain('Older Test');
-        expect(wrapper.text()).toContain('Random');
+        expect(columnHeadings).not.toContain('Question Selection');
     });
 
     it('retrieves lecturer tests when the table loads', async () => {

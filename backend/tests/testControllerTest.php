@@ -24,8 +24,7 @@ class TestControllerTest extends TestCase
             'testDescription' => '  Biology assessment  ',
             'timeLimit' => 45,
             'dueDate' => '2026-12-15',
-            'questionCount' => 10,
-            'questionSelectionMethod' => 'random'
+            'questionCount' => 10
         ], $result);
     }
 
@@ -44,49 +43,16 @@ class TestControllerTest extends TestCase
         $this->assertNull($result['dueDate']);
     }
 
-    public function testQuestionSelectionMethodDefaultsToRandom(): void
+    public function testLegacyQuestionSelectionMethodIsIgnored(): void
     {
-        $data = [
-            'testName' => 'Biology Test',
-            'subjectID' => 'subject-123',
-            'questionCount' => 10
-        ];
-
-        $result = TestController::validateTestRequestData($data);
-
-        $this->assertSame('random', $result['questionSelectionMethod']);
-    }
-
-    public function testFrequentlyIncorrectSelectionMethodIsAccepted(): void
-    {
-        $data = [
+        $result = TestController::validateTestRequestData([
             'testName' => 'Biology Test',
             'subjectID' => 'subject-123',
             'questionCount' => 10,
             'questionSelectionMethod' => 'frequently_incorrect'
-        ];
-
-        $result = TestController::validateTestRequestData($data);
-
-        $this->assertSame(
-            'frequently_incorrect',
-            $result['questionSelectionMethod']
-        );
-    }
-
-    public function testInvalidQuestionSelectionMethodIsRejected(): void
-    {
-        $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage(
-            'Please select a valid question selection method.'
-        );
-
-        TestController::validateTestRequestData([
-            'testName' => 'Biology Test',
-            'subjectID' => 'subject-123',
-            'questionCount' => 10,
-            'questionSelectionMethod' => 'invalid_method'
         ]);
+
+        $this->assertArrayNotHasKey('questionSelectionMethod', $result);
     }
 
     public function testEmptyTimeLimitIsAcceptedAsNull(): void

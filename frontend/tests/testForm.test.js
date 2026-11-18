@@ -45,7 +45,6 @@ const existingTest = {
     timeLimit: 30,
     dueDate: '2026-12-01',
     questionCount: 5,
-    questionSelectionMethod: 'frequently_incorrect',
 };
 
 describe('TestForm', () => {
@@ -68,44 +67,20 @@ describe('TestForm', () => {
         });
     }
 
-    it('defaults to random question selection when creating a test', async () => {
+    it('does not display a question selection method field', async () => {
+        // Arrange
         const wrapper = mountForm();
         await flushPromises();
 
-        expect(wrapper.get('#questionSelectionMethod').element.value).toBe('random');
-        expect(wrapper.text()).toContain("Questions are selected randomly from the subject's question pool.");
+        // Act
+        const selectionField = wrapper.find('#questionSelectionMethod');
+
+        // Assert
+        expect(selectionField.exists()).toBe(false);
     });
 
-    it('provides both question selection methods', async () => {
-        const wrapper = mountForm();
-        await flushPromises();
-
-        const options = wrapper.findAll('#questionSelectionMethod option');
-
-        expect(options).toHaveLength(2);
-        expect(options.map((option) => option.element.value)).toEqual(['random', 'frequently_incorrect']);
-    });
-
-    it('retains frequently incorrect selection when editing an existing test', async () => {
-        const wrapper = mountForm(existingTest);
-        await flushPromises();
-
-        expect(wrapper.get('#questionSelectionMethod').element.value).toBe('frequently_incorrect');
-        expect(wrapper.get('#testName').element.value).toBe('Existing Test');
-        expect(wrapper.text()).toContain('Personalised selection starts after three completed attempts.');
-    });
-
-    it('shows the correct explanation when the selection method changes', async () => {
-        const wrapper = mountForm();
-        await flushPromises();
-
-        await wrapper.get('#questionSelectionMethod').setValue('frequently_incorrect');
-
-        expect(wrapper.text()).toContain('Prioritises questions each student has previously answered incorrectly.');
-        expect(wrapper.text()).toContain('Personalised selection starts after three completed attempts.');
-    });
-
-    it('creates a test using the selected question selection method', async () => {
+    it('creates a test without a question selection method', async () => {
+        // Arrange
         const wrapper = mountForm();
         await flushPromises();
 
@@ -114,12 +89,13 @@ describe('TestForm', () => {
         await wrapper.get('#description').setValue('Test description');
         await wrapper.get('#questionCount').setValue('5');
         await wrapper.get('#timeLimit').setValue('30');
-        await wrapper.get('#questionSelectionMethod').setValue('frequently_incorrect');
         await wrapper.get('#dueDate').setValue('2026-12-01');
 
+        // Act
         await wrapper.get('form').trigger('submit');
         await flushPromises();
 
+        // Assert
         expect(createTest).toHaveBeenCalledWith({
             testName: 'New Test',
             subjectID: 'subject-1',
@@ -127,21 +103,21 @@ describe('TestForm', () => {
             timeLimit: 30,
             dueDate: '2026-12-01',
             questionCount: 5,
-            questionSelectionMethod: 'frequently_incorrect',
         });
 
         expect(wrapper.emitted('saved')).toHaveLength(1);
     });
 
-    it('updates an existing test using the selected question selection method', async () => {
+    it('updates an existing test without a question selection method', async () => {
+        // Arrange
         const wrapper = mountForm(existingTest);
         await flushPromises();
 
-        await wrapper.get('#questionSelectionMethod').setValue('random');
-
+        // Act
         await wrapper.get('form').trigger('submit');
         await flushPromises();
 
+        // Assert
         expect(updateTest).toHaveBeenCalledWith('test-1', {
             testName: 'Existing Test',
             subjectID: 'subject-1',
@@ -149,7 +125,6 @@ describe('TestForm', () => {
             timeLimit: 30,
             dueDate: '2026-12-01',
             questionCount: 5,
-            questionSelectionMethod: 'random',
         });
 
         expect(wrapper.emitted('saved')).toHaveLength(1);
