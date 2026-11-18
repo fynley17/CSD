@@ -7,18 +7,47 @@
         <p v-else-if="tests.length === 0" class="hintText">There are no tests available right now.</p>
 
         <template v-else>
-            <!-- every card is the same size, the tallest card sets the height of every row -->
-            <div class="testCardGrid mt-4">
-                <TestCard v-for="test in visibleTests" :key="test.testID" :test="test" @start="startTest" />
+            <!-- Upcoming and Overdue tabs, like Teams assignments. The arrow keys move between them,
+                 only the chosen tab is in the Tab order, the standard pattern screen readers expect -->
+            <div class="testTabs mt-4" role="tablist" aria-label="Tests to complete">
+                <button
+                    v-for="tab in tabs"
+                    :id="`${tab.key}Tab`"
+                    :key="tab.key"
+                    :ref="(element) => (tabButtons[tab.key] = element)"
+                    type="button"
+                    role="tab"
+                    class="testTab"
+                    :class="{ testTabActive: activeTab === tab.key }"
+                    :aria-selected="activeTab === tab.key ? 'true' : 'false'"
+                    aria-controls="testTabPanel"
+                    :tabindex="activeTab === tab.key ? 0 : -1"
+                    @click="selectTab(tab.key)"
+                    @keydown="moveBetweenTabs"
+                >
+                    {{ tab.label }}
+                    <span class="testTabCount">{{ tab.tests.length }}</span>
+                </button>
             </div>
 
-            <!-- two full rows per page, so the completed tests below are never pushed too far down -->
-            <ListPagination
-                v-model:page="currentPage"
-                :pageSize="pageSize"
-                :total="tests.length"
-                label="Tests to complete pages"
-            />
+            <div id="testTabPanel" role="tabpanel" :aria-labelledby="`${activeTab}Tab`" class="pt-4">
+                <p v-if="tabTests.length === 0" class="hintText mb-0">{{ activeTabDetails.emptyText }}</p>
+
+                <template v-else>
+                    <!-- every card is the same size, the tallest card sets the height of every row -->
+                    <div class="testCardGrid">
+                        <TestCard v-for="test in visibleTests" :key="test.testID" :test="test" @start="startTest" />
+                    </div>
+
+                    <!-- two full rows per page, so the completed tests below are never pushed too far down -->
+                    <ListPagination
+                        v-model:page="currentPage"
+                        :pageSize="pageSize"
+                        :total="tabTests.length"
+                        :label="`${activeTabDetails.label} tests pages`"
+                    />
+                </template>
+            </div>
         </template>
 
         <section class="mt-5" aria-labelledby="completedTestsHeading">
@@ -52,6 +81,53 @@ function startTest(test) {
 const isLoading = ref(true);
 const loadError = ref('');
 
+// Upcoming is every test that can still earn points, including ones with no due date.
+// The backend has already sorted them, soonest due first.
+const tabs = computed(() => [
+    {
+        key: 'upcoming',
+        label: 'Upcoming',
+        tests: tests.value.filter((test) => !test.isOverdue),
+        emptyText: 'You have no upcoming tests.',
+    },
+    {
+        key: 'overdue',
+        label: 'Overdue',
+        tests: tests.value.filter((test) => test.isOverdue),
+        emptyText: 'You have no overdue tests.',
+    },
+]);
+const activeTab = ref('upcoming');
+const tabButtons = {};
+const activeTabDetails = computed(() => tabs.value.find((tab) => tab.key === activeTab.value));
+const tabTests = computed(() => activeTabDetails.value.tests);
+
+// each tab starts on its first page
+function selectTab(key) {
+    activeTab.value = key;
+    page.value = 1;
+}
+
+// Left and Right move to the other tab, Home and End go to the first or last
+function moveBetweenTabs(event) {
+    const keys = tabs.value.map((tab) => tab.key);
+    const index = keys.indexOf(activeTab.value);
+    const nextIndex = {
+        ArrowRight: (index + 1) % keys.length,
+        ArrowLeft: (index - 1 + keys.length) % keys.length,
+        Home: 0,
+        End: keys.length - 1,
+    }[event.key];
+
+    if (nextIndex === undefined) {
+        return;
+    }
+
+    event.preventDefault();
+    selectTab(keys[nextIndex]);
+    tabButtons[keys[nextIndex]]?.focus();
+}
+
 // 3 columns on desktop, 2 on tablets and 1 on phones, the same breakpoints as the grid's CSS below.
 // A page is two full rows, so 6, 4 or 2 cards.
 const ROWS_PER_PAGE = 2;
@@ -77,7 +153,7 @@ function updateColumnCount() {
 
 const pageSize = computed(() => columnCount.value * ROWS_PER_PAGE);
 const page = ref(1);
-const pageCount = computed(() => Math.ceil(tests.value.length / pageSize.value));
+const pageCount = computed(() => Math.ceil(tabTests.value.length / pageSize.value));
 
 // stays on a real page if the list gets shorter
 const currentPage = computed({
@@ -88,7 +164,7 @@ const currentPage = computed({
 });
 
 const visibleTests = computed(() =>
-    tests.value.slice((currentPage.value - 1) * pageSize.value, currentPage.value * pageSize.value),
+    tabTests.value.slice((currentPage.value - 1) * pageSize.value, currentPage.value * pageSize.value),
 );
 
 const completedTests = ref([]);
@@ -139,6 +215,58 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+/* Tabs sit on a divider line, the chosen one is underlined in the brand colour, like Teams. */
+.testTabs {
+    display: flex;
+    gap: var(--spaceLg);
+    border-bottom: 1px solid var(--colorDivider);
+}
+
+.testTab {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spaceSm);
+    min-height: var(--minTouchTarget);
+    margin-bottom: -1px;
+    padding: 0 var(--spaceXs);
+    border: 0;
+    border-bottom: 3px solid transparent;
+    background: none;
+    color: var(--colorTextSecondary);
+    font-weight: 600;
+}
+
+.testTab:hover {
+    color: var(--colorText);
+}
+
+.testTab:focus-visible {
+    outline: 2px solid var(--colorHighlight);
+    outline-offset: 2px;
+}
+
+/* bold text and the underline both mark the chosen tab, so it isn't shown by colour alone */
+.testTabActive {
+    border-bottom-color: var(--colorBrand);
+    color: var(--colorBrand);
+    font-weight: 700;
+}
+
+.testTabCount {
+    min-width: 1.75rem;
+    padding: 0 var(--spaceSm);
+    border-radius: var(--radiusPill);
+    background: var(--colorSurfaceAlt);
+    color: var(--colorText);
+    font-size: var(--fontSizeSmall);
+    text-align: center;
+}
+
+.testTabActive .testTabCount {
+    background: var(--colorBrand);
+    color: var(--colorSurface);
+}
+
 /* 3 columns on desktop, 2 on tablets and 1 on phones, the same breakpoints as Bootstrap's lg and sm.
    Every row is as tall as the tallest card and each card fills its cell, so all the cards match. */
 .testCardGrid {

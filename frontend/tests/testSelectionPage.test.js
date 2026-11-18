@@ -292,4 +292,97 @@ describe('TestSelectionPage', () => {
             expect(wrapper.find('[aria-current="page"]').text()).toBe('4');
         });
     });
+
+    describe('Upcoming and Overdue tabs', () => {
+        const tabTests = [
+            { ...test, testID: 'up-1', testName: 'Up 1' },
+            { ...test, testID: 'up-2', testName: 'Up 2' },
+            { ...test, testID: 'late-1', testName: 'Late 1', isOverdue: true },
+        ];
+        const titles = (wrapper) => wrapper.findAll('.testCardTitle').map((title) => title.text());
+        const tab = (wrapper, name) => wrapper.findAll('[role="tab"]').find((button) => button.text().startsWith(name));
+
+        it('opens on Upcoming, with a count on each tab', async () => {
+            // Arrange
+            getAvailableTests.mockResolvedValue(tabTests);
+
+            // Act
+            const wrapper = mount(TestSelectionPage);
+            await flushPromises();
+
+            // Assert
+            expect(tab(wrapper, 'Upcoming').attributes('aria-selected')).toBe('true');
+            expect(tab(wrapper, 'Upcoming').text()).toBe('Upcoming 2');
+            expect(tab(wrapper, 'Overdue').text()).toBe('Overdue 1');
+            expect(titles(wrapper)).toEqual(['Up 1', 'Up 2']);
+        });
+
+        it('shows only overdue tests on the Overdue tab', async () => {
+            // Arrange
+            getAvailableTests.mockResolvedValue(tabTests);
+            const wrapper = mount(TestSelectionPage);
+            await flushPromises();
+
+            // Act
+            await tab(wrapper, 'Overdue').trigger('click');
+
+            // Assert
+            expect(tab(wrapper, 'Overdue').attributes('aria-selected')).toBe('true');
+            expect(tab(wrapper, 'Upcoming').attributes('tabindex')).toBe('-1');
+            expect(titles(wrapper)).toEqual(['Late 1']);
+            expect(wrapper.get('[role="tabpanel"]').attributes('aria-labelledby')).toBe('overdueTab');
+        });
+
+        it('says so when a tab has no tests', async () => {
+            // Arrange
+            getAvailableTests.mockResolvedValue(tabTests.slice(0, 2));
+            const wrapper = mount(TestSelectionPage);
+            await flushPromises();
+
+            // Act
+            await tab(wrapper, 'Overdue').trigger('click');
+
+            // Assert
+            expect(wrapper.get('[role="tabpanel"]').text()).toBe('You have no overdue tests.');
+        });
+
+        it('starts each tab on its first page', async () => {
+            // Arrange: 8 upcoming tests is two pages on desktop
+            getAvailableTests.mockResolvedValue([
+                ...Array.from({ length: 8 }, (_, index) => ({ ...test, testID: `u${index}`, testName: `U${index}` })),
+                { ...test, testID: 'late', testName: 'Late', isOverdue: true },
+            ]);
+            const wrapper = mount(TestSelectionPage);
+            await flushPromises();
+            await wrapper
+                .findAll('.page-link')
+                .find((link) => link.text() === 'Next')
+                .trigger('click');
+
+            // Act
+            await tab(wrapper, 'Overdue').trigger('click');
+            await tab(wrapper, 'Upcoming').trigger('click');
+
+            // Assert
+            expect(titles(wrapper)[0]).toBe('U0');
+        });
+
+        it('moves between tabs with the arrow keys', async () => {
+            // Arrange
+            getAvailableTests.mockResolvedValue(tabTests);
+            const wrapper = mount(TestSelectionPage, { attachTo: document.body });
+            await flushPromises();
+
+            // Act
+            await tab(wrapper, 'Upcoming').trigger('keydown', { key: 'ArrowRight' });
+            const afterRight = document.activeElement?.id;
+            await tab(wrapper, 'Overdue').trigger('keydown', { key: 'Home' });
+
+            // Assert
+            expect(afterRight).toBe('overdueTab');
+            expect(tab(wrapper, 'Upcoming').attributes('aria-selected')).toBe('true');
+            expect(document.activeElement?.id).toBe('upcomingTab');
+            wrapper.unmount();
+        });
+    });
 });
