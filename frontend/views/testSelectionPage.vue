@@ -40,9 +40,10 @@
                         id="testSelectionSubject"
                         v-model="subjectFilter"
                         label="Subject"
+                        hideLabel
                         :options="nameOptions(subjects, 'All subjects')"
                     />
-                    <TableSearch id="testSelectionSearch" v-model="searchText" placeholder="Search tests" />
+                    <TableSearch id="testSelectionSearch" v-model="searchText" placeholder="Search tests" hideLabel />
                 </div>
             </div>
 
@@ -305,21 +306,9 @@ onUnmounted(() => {
     padding-bottom: var(--spaceSm);
 }
 
-.testTabsFilters :deep(.tableSearch) {
+/* .tableSearch is the outside of the TableSearch component, so scoped styles reach it without :deep */
+.testTabsFilters .tableSearch {
     width: 16rem;
-}
-
-/* the same as Bootstrap's visually-hidden, the label is still there for screen readers */
-.testTabsFilters :deep(.tableFilterLabel) {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    margin: -1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    white-space: nowrap;
-    border: 0;
 }
 
 /* phones and small tablets: subject and search go above the tabs, each taking half the width,
@@ -341,7 +330,7 @@ onUnmounted(() => {
         min-width: 0;
     }
 
-    .testTabsFilters :deep(.tableSearch) {
+    .testTabsFilters .tableSearch {
         width: auto;
     }
 
@@ -355,7 +344,6 @@ onUnmounted(() => {
     align-items: center;
     gap: var(--spaceSm);
     min-height: var(--minTouchTarget);
-    margin-bottom: -1px;
     padding: 0 var(--spaceXs);
     border: 0;
     border-bottom: 3px solid transparent;
