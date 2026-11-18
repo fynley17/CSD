@@ -69,3 +69,50 @@ export default {
         </div>
     </div>
 </template>
+
+<style scoped>
+/* moved from main.css, only this component uses these styles */
+
+/* Registration-specific appearance uses the shared design tokens above. */
+.registrationIntroTitle {
+    color: var(--colorBrand);
+    font-family: var(--fontHeading);
+    font-weight: 700;
+}
+
+.registrationIntroText,
+.registrationFeatureText,
+.registrationSignIn {
+    color: var(--colorTextSecondary);
+}
+
+.registrationHeroFrame {
+    background-color: var(--colorSurfaceAlt);
+    border: 1px solid var(--colorDivider);
+    border-radius: var(--radiusMd);
+}
+
+.registrationHeroImage {
+    object-fit: cover;
+}
+
+.registrationFeatureTitle {
+    color: var(--colorText);
+    font-family: var(--fontBody);
+    font-size: var(--fontSizeBody);
+    font-weight: 700;
+}
+
+.registrationFeatureNumber {
+    min-width: 2rem;
+    padding: var(--spaceXs);
+    border: 1px solid var(--colorDivider);
+    border-radius: var(--radiusSm);
+    color: var(--colorBrand);
+    text-align: center;
+}
+
+.registrationFormColumn .registrationSignIn a {
+    color: var(--colorPrimary);
+}
+</style>
