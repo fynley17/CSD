@@ -1,11 +1,13 @@
 <!-- add and edit subject pop up, the page calls open() to show it -->
 <script>
 import PopupDialog from '../common/popupDialog.vue';
+import TableSearch from '../tables/tableSearch.vue';
 import { createSubject, getCohorts, getLecturerOptions, updateSubject } from '../../services/subjectService';
 
 export default {
     components: {
         PopupDialog,
+        TableSearch,
     },
     emits: ['saved'],
 
@@ -16,6 +18,8 @@ export default {
             form: { subjectName: '', cohortID: '', lecturerIDs: [] },
             cohorts: [],
             lecturers: [],
+            // what is typed above the lecturer list
+            lecturerSearch: '',
             errorMessage: '',
             isSaving: false,
         };
@@ -28,6 +32,14 @@ export default {
         title() {
             return this.subjectID === null ? 'Add Subject' : 'Edit Subject';
         },
+
+        /**
+         * Lecturers whose name has the search text in it, all of them when the box is empty
+         */
+        visibleLecturers() {
+            const search = this.lecturerSearch.trim().toLowerCase();
+            return this.lecturers.filter((lecturer) => lecturer.name.toLowerCase().includes(search));
+        },
     },
 
     methods: {
@@ -37,6 +49,8 @@ export default {
          */
         async open(subject = null) {
             this.errorMessage = '';
+            // start with an empty search, it could still have the last text in it
+            this.lecturerSearch = '';
             this.subjectID = subject === null ? null : subject.subjectID;
             this.form = {
                 subjectName: subject === null ? '' : subject.subjectName,
@@ -119,7 +133,17 @@ export default {
 
             <fieldset>
                 <legend class="form-label fs-6">Lecturers</legend>
-                <div v-for="lecturer in lecturers" :key="lecturer.lecturerID" class="form-check">
+                <!-- enter in the search box would save the whole form so its stopped here -->
+                <TableSearch
+                    v-if="lecturers.length > 0"
+                    id="lecturerSearch"
+                    v-model="lecturerSearch"
+                    label="Search lecturers"
+                    placeholder="Lecturer name"
+                    class="mb-2"
+                    @keydown.enter.prevent
+                />
+                <div v-for="lecturer in visibleLecturers" :key="lecturer.lecturerID" class="form-check">
                     <input
                         :id="'lecturer-' + lecturer.lecturerID"
                         v-model="form.lecturerIDs"
@@ -132,6 +156,9 @@ export default {
                     </label>
                 </div>
                 <p v-if="lecturers.length === 0" class="mb-0">No lecturers to pick from yet</p>
+                <p v-else-if="visibleLecturers.length === 0" class="mb-0" role="status">
+                    No lecturers match your search
+                </p>
             </fieldset>
         </form>
 
