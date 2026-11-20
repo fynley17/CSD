@@ -2020,4 +2020,5 @@ table.dataTable thead > tr > th.dt-type-date div.dt-column-header {
 .lecturerPickList {
     max-height: 16rem;
     overflow-y: auto;
+    overscroll-behavior: contain;
 }
