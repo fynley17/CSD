@@ -123,7 +123,7 @@
             <h2>10. Contact</h2>
             <p>
                 For questions about these terms or access to RevisionHub, contact the project team at
-                <a href="mailto:WS381211@weston.ac.uk">WS381211@weston.ac.uk</a>.
+                <a href="mailto:revisionhub.help@gmail.com">revisionhub.help@gmail.com</a>.
             </p>
         </section>
     </div>

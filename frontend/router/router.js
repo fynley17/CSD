@@ -19,6 +19,9 @@ import VerifyEmailPage from '../views/verifyEmailPage.vue';
 // one login page for every account type
 import LoginPage from '../views/loginPage.vue';
 import SetupPasswordPage from '../views/setupPasswordPage.vue';
+// forgot password asks for an email, the link in that email opens the reset password page
+import ForgotPasswordPage from '../views/forgotPasswordPage.vue';
+import ResetPasswordPage from '../views/resetPasswordPage.vue';
 // admin home page, only admins can open it
 import AdministratorDashboard from '../views/administratorDashboard.vue';
 import LecturerDashboard from '../views/lecturerDashboard.vue';
@@ -74,6 +77,19 @@ const routes = [
         name: 'setupPassword',
         component: SetupPasswordPage,
         meta: { title: 'Set Password | RevisionHub' },
+    },
+    {
+        path: '/forgot-password',
+        name: 'forgotPassword',
+        component: ForgotPasswordPage,
+        meta: { title: 'Forgot password | RevisionHub', guestOnly: true },
+    },
+    {
+        // not guestOnly, the link in the email has to work whoever is logged in on this browser
+        path: '/reset-password',
+        name: 'resetPassword',
+        component: ResetPasswordPage,
+        meta: { title: 'Reset password | RevisionHub' },
     },
     {
         path: '/terms',

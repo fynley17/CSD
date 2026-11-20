@@ -13,6 +13,7 @@ use App\Controllers\AdministratorController;
 use App\Controllers\QuestionController;
 use App\Controllers\SubjectController;
 use App\Controllers\PasswordSetupController;
+use App\Controllers\PasswordResetController;
 
 $router = new Router();
 
@@ -162,6 +163,19 @@ $router->addRoute(
     'POST',
     '/^\/api\/setup-password$/',
     [new PasswordSetupController(), 'setPassword']
+);
+
+// Forgot password.
+$router->addRoute(
+    'POST',
+    '/^\/api\/forgot-password$/',
+    [new PasswordResetController(), 'requestReset']
+);
+
+$router->addRoute(
+    'POST',
+    '/^\/api\/reset-password$/',
+    [new PasswordResetController(), 'resetPassword']
 );
 
 // Authentication and CSRF.

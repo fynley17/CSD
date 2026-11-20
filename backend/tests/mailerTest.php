@@ -167,4 +167,51 @@ final class MailerTest extends TestCase
         self::assertStringContainsString('An administrator has created', $email['text']);
         self::assertStringNotContainsString('student', $email['text']);
     }
+
+    // The reset email only has the link in it, nothing about the account.
+    public function testPasswordResetEmailIncludesLinkButNoAccountDetails(): void
+    {
+        // Arrange
+        $link = 'http://localhost:5173/reset-password?token=abc123';
+
+        // Act
+        $email = Mailer::buildPasswordResetEmail($link);
+
+        // Assert
+        self::assertStringContainsString('Reset your RevisionHub password', $email['subject']);
+        self::assertStringContainsString('href="' . $link . '"', $email['html']);
+        self::assertStringContainsString($link, $email['text']);
+        self::assertStringContainsString('60 minutes', $email['text']);
+        self::assertStringContainsString('ignore this email', $email['text']);
+        self::assertStringNotContainsString('Username', $email['html']);
+    }
+
+    public function testPasswordResetLinkUsesAppUrl(): void
+    {
+        // Arrange
+        $originalUrl = getenv('APP_URL');
+        putenv('APP_URL=https://revisionhub.example/');
+
+        // Act
+        try {
+            $link = Mailer::passwordResetLink('abc123');
+        } finally {
+            putenv($originalUrl === false ? 'APP_URL' : 'APP_URL=' . $originalUrl);
+        }
+
+        // Assert
+        self::assertSame('https://revisionhub.example/reset-password?token=abc123', $link);
+    }
+
+    // The changed email tells them what to do if it wasn't them.
+    public function testPasswordChangedEmailSaysWhatToDoIfItWasNotThem(): void
+    {
+        // Act
+        $email = Mailer::buildPasswordChangedEmail();
+
+        // Assert
+        self::assertStringContainsString('password has been changed', $email['subject']);
+        self::assertStringContainsString('If it was not you', $email['text']);
+        self::assertStringContainsString('cid:revisionhub-logo', $email['html']);
+    }
 }

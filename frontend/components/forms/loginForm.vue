@@ -218,6 +218,9 @@ export default {
             <p class="secondaryText text-center mt-4 mb-0">
                 New here? <router-link to="/register">Register</router-link>
             </p>
+            <p class="secondaryText text-center mt-2 mb-0">
+                <router-link to="/forgot-password">Forgot your password?</router-link>
+            </p>
 
             <!-- pops up on the 3rd wrong password, and on every try after that while it's still locked -->
             <PopupDialog ref="lockedPopup" title="Account locked" @close="returnFocusToLogin">

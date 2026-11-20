@@ -3,6 +3,7 @@
 namespace App\Helpers;
 
 use App\Models\EmailVerification;
+use App\Models\PasswordReset;
 use App\Models\PasswordSetup;
 use PHPMailer\PHPMailer\Exception;
 use PHPMailer\PHPMailer\PHPMailer;
@@ -250,6 +251,151 @@ class Mailer
         return $appUrl . '/setup-password?token=' . urlencode($token);
     }
 
+
+    /**
+     * Sends the forgot password email with the reset link.
+     */
+    public static function sendPasswordResetEmail(string $toEmail, string $token): bool
+    {
+        $email = self::buildPasswordResetEmail(self::passwordResetLink($token));
+
+        return self::sendEmail($toEmail, '', $email['subject'], $email['html'], $email['text']);
+    }
+
+    /**
+     * Builds the forgot password email.
+     * No name or username in it, only the link, so it gives nothing away if it reaches the wrong inbox.
+     *
+     * @return array{subject: string, html: string, text: string}
+     */
+    public static function buildPasswordResetEmail(string $link): array
+    {
+        $safeLink = htmlspecialchars($link, ENT_QUOTES, 'UTF-8');
+        $minutes = PasswordReset::LINK_LIFETIME_MINUTES;
+        $subject = 'Reset your RevisionHub password';
+
+        $content = <<<HTML
+            <h1 style="margin:0 0 16px;font-size:22px;color:#0f1b33;">
+                Reset your password
+            </h1>
+
+            <p style="margin:0 0 16px;">
+                We received a request to reset the password for your RevisionHub account.
+                Select the button below to choose a new password.
+            </p>
+
+            <table role="presentation" cellpadding="0" cellspacing="0"
+                style="margin:8px 0 24px;">
+                <tr>
+                    <td style="border-radius:6px;background-color:#0a66c2;">
+                        <a href="{$safeLink}"
+                            style="display:inline-block;padding:14px 28px;font-size:16px;
+                            font-weight:bold;color:#ffffff;text-decoration:none;border-radius:6px;">
+                            Reset my password
+                        </a>
+                    </td>
+                </tr>
+            </table>
+
+            <p style="margin:0 0 16px;">
+                This link will expire in {$minutes} minutes and can only be used once.
+                If the button does not work, copy this link into your browser:
+            </p>
+
+            <p style="margin:0 0 16px;font-size:14px;word-break:break-all;">
+                <a href="{$safeLink}" style="color:#0a66c2;">{$safeLink}</a>
+            </p>
+
+            <p style="margin:0 0 16px;">
+                If you did not ask to reset your password, you can ignore this email.
+                Your password will not change.
+            </p>
+
+            <p style="margin:24px 0 0;">
+                Kind regards,<br>
+                <strong>The RevisionHub Team</strong>
+            </p>
+        HTML;
+
+        $text = "Reset your password\n\n"
+            . "We received a request to reset the password for your RevisionHub account. "
+            . "Open the link below to choose a new password.\n\n"
+            . "{$link}\n\n"
+            . "This link will expire in {$minutes} minutes and can only be used once.\n\n"
+            . "If you did not ask to reset your password, you can ignore this email. "
+            . "Your password will not change.\n\n"
+            . "Kind regards,\nThe RevisionHub Team\n\n"
+            . "This is an automated message, please do not reply to this email.";
+
+        return [
+            'subject' => $subject,
+            'html' => self::wrapLayout($subject, $content),
+            'text' => $text,
+        ];
+    }
+
+    /**
+     * Makes the link opened by the forgot password email button.
+     */
+    public static function passwordResetLink(string $token): string
+    {
+        $appUrl = rtrim(getenv('APP_URL') ?: self::DEFAULT_APP_URL, '/');
+
+        return $appUrl . '/reset-password?token=' . urlencode($token);
+    }
+
+    /**
+     * Tells the account owner their password was changed, so they know if it wasn't them.
+     */
+    public static function sendPasswordChangedEmail(string $toEmail): bool
+    {
+        $email = self::buildPasswordChangedEmail();
+
+        return self::sendEmail($toEmail, '', $email['subject'], $email['html'], $email['text']);
+    }
+
+    /**
+     * Builds the password changed email.
+     *
+     * @return array{subject: string, html: string, text: string}
+     */
+    public static function buildPasswordChangedEmail(): array
+    {
+        $subject = 'Your RevisionHub password has been changed';
+
+        $content = <<<HTML
+            <h1 style="margin:0 0 16px;font-size:22px;color:#0f1b33;">
+                Your password has been changed
+            </h1>
+
+            <p style="margin:0 0 16px;">
+                The password for your RevisionHub account was just reset using a forgot password link.
+            </p>
+
+            <p style="margin:0 0 16px;">
+                If this was you, there is nothing else to do.
+                If it was not you, contact your lecturer or an administrator straight away.
+            </p>
+
+            <p style="margin:24px 0 0;">
+                Kind regards,<br>
+                <strong>The RevisionHub Team</strong>
+            </p>
+        HTML;
+
+        $text = "Your password has been changed\n\n"
+            . "The password for your RevisionHub account was just reset using a forgot password link.\n\n"
+            . "If this was you, there is nothing else to do. "
+            . "If it was not you, contact your lecturer or an administrator straight away.\n\n"
+            . "Kind regards,\nThe RevisionHub Team\n\n"
+            . "This is an automated message, please do not reply to this email.";
+
+        return [
+            'subject' => $subject,
+            'html' => self::wrapLayout($subject, $content),
+            'text' => $text,
+        ];
+    }
 
     /**
      * Sends the welcome email a student receives once they've verified their email.
