@@ -43,6 +43,18 @@ class TestControllerTest extends TestCase
         $this->assertNull($result['dueDate']);
     }
 
+    public function testLegacyQuestionSelectionMethodIsIgnored(): void
+    {
+        $result = TestController::validateTestRequestData([
+            'testName' => 'Biology Test',
+            'subjectID' => 'subject-123',
+            'questionCount' => 10,
+            'questionSelectionMethod' => 'frequently_incorrect'
+        ]);
+
+        $this->assertArrayNotHasKey('questionSelectionMethod', $result);
+    }
+
     public function testEmptyTimeLimitIsAcceptedAsNull(): void
     {
         $data = [
