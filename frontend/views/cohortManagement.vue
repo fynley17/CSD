@@ -40,7 +40,7 @@
         <template v-else>
             <h2>Students in each cohort</h2>
             <p class="cohortManagementIntro">
-                Press the arrow (Show details) next to a cohort to see its students, add students or move a student to
+                Press the arrow next to a cohort to show its details, where you can add students or move a student to
                 another cohort
             </p>
             <CohortStudentsTable
@@ -55,7 +55,7 @@
 
             <h2>Subjects for each cohort</h2>
             <p class="cohortManagementIntro">
-                Press the arrow (Show details) next to a cohort to see its subjects, assign subjects or remove them
+                Press the arrow next to a cohort to show its details, where you can assign or remove subjects
             </p>
             <CohortSubjectsTable
                 :cohorts="visibleCohorts"
