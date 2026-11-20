@@ -13,6 +13,7 @@ import { getActiveSubjects, createQuestion, updateQuestion, deleteQuestion } fro
 const questionTable = ref(null);
 const questionDialog = ref(null);
 const deleteDialog = ref(null);
+const errorToast = ref(null);
 
 const availableSubjects = ref([]);
 
@@ -67,11 +68,15 @@ const showSuccess = (message) => {
 };
 
 // Display a temporary error notification.
-const showError = (message) => {
+const showError = async (message) => {
     clearMessages();
     errorMessage.value = message;
 
+    await nextTick();
+    errorToast.value?.showPopover();
+
     messageTimeout = setTimeout(() => {
+        errorToast.value?.hidePopover();
         errorMessage.value = '';
         messageTimeout = null;
     }, 10000);
@@ -103,8 +108,9 @@ const openEditForm = async (question) => {
 };
 
 // Close the create/edit dialog.
-const closeQuestionForm = () => {
+const closeQuestionForm = async () => {
     questionDialog.value?.close();
+    await nextTick();
 };
 
 // Handle the dialog closing, including when Escape is pressed.
@@ -127,14 +133,14 @@ const saveQuestion = async (questionData) => {
         if (selectedQuestion.value) {
             await updateQuestion(selectedQuestion.value.questionID, questionData);
 
-            closeQuestionForm();
+            await closeQuestionForm();
             await refreshQuestions();
 
             showSuccess('Question updated successfully.');
         } else {
             await createQuestion(questionData);
 
-            closeQuestionForm();
+            await closeQuestionForm();
             await refreshQuestions();
 
             showSuccess('Question created successfully.');
@@ -157,8 +163,9 @@ const openDeleteConfirmation = async (question) => {
 };
 
 // Close the delete confirmation dialog.
-const closeDeleteConfirmation = () => {
+const closeDeleteConfirmation = async () => {
     deleteDialog.value?.close();
+    await nextTick();
 };
 
 // Handle the delete dialog closing, including Escape.
@@ -179,7 +186,7 @@ const confirmDelete = async () => {
     try {
         await deleteQuestion(questionToDelete.value.questionID);
 
-        closeDeleteConfirmation();
+        await closeDeleteConfirmation();
         await refreshQuestions();
 
         showSuccess('Question deleted successfully.');
@@ -211,7 +218,14 @@ onBeforeUnmount(() => {
         </div>
 
         <!-- Temporary error notification. -->
-        <div v-if="errorMessage" class="toastMessage errorMessage" role="alert" aria-live="assertive">
+        <div
+            v-if="errorMessage"
+            ref="errorToast"
+            popover="manual"
+            class="toastMessage errorMessage"
+            role="alert"
+            aria-live="assertive"
+        >
             <span aria-hidden="true">!</span>
             {{ errorMessage }}
         </div>
@@ -316,6 +330,8 @@ onBeforeUnmount(() => {
 .errorMessage {
     border-color: var(--colorError);
     color: var(--colorError);
+    margin: 0;
+    inset: var(--spaceLg) var(--spaceLg) auto auto;
 }
 
 @media (max-width: 639px) {
