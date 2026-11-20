@@ -2016,3 +2016,8 @@ table.dataTable thead > tr > th.dt-type-date div.dt-column-header {
     border-radius: var(--radiusSm);
     font-weight: 600;
 }
+/* lecturer tick boxes on the subject form, a long list scrolls inside here */
+.lecturerPickList {
+    max-height: 16rem;
+    overflow-y: auto;
+}

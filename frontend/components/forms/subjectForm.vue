@@ -143,22 +143,25 @@ export default {
                     class="mb-2"
                     @keydown.enter.prevent
                 />
-                <div v-for="lecturer in visibleLecturers" :key="lecturer.lecturerID" class="form-check">
-                    <input
-                        :id="'lecturer-' + lecturer.lecturerID"
-                        v-model="form.lecturerIDs"
-                        :value="lecturer.lecturerID"
-                        type="checkbox"
-                        class="form-check-input"
-                    />
-                    <label :for="'lecturer-' + lecturer.lecturerID" class="form-check-label">
-                        {{ lecturer.name }}
-                    </label>
+                <!-- only the names scroll so the search box stays in view -->
+                <div class="lecturerPickList">
+                    <div v-for="lecturer in visibleLecturers" :key="lecturer.lecturerID" class="form-check">
+                        <input
+                            :id="'lecturer-' + lecturer.lecturerID"
+                            v-model="form.lecturerIDs"
+                            :value="lecturer.lecturerID"
+                            type="checkbox"
+                            class="form-check-input"
+                        />
+                        <label :for="'lecturer-' + lecturer.lecturerID" class="form-check-label">
+                            {{ lecturer.name }}
+                        </label>
+                    </div>
+                    <p v-if="lecturers.length === 0" class="mb-0">No lecturers to pick from yet</p>
+                    <p v-else-if="visibleLecturers.length === 0" class="mb-0" role="status">
+                        No lecturers match your search
+                    </p>
                 </div>
-                <p v-if="lecturers.length === 0" class="mb-0">No lecturers to pick from yet</p>
-                <p v-else-if="visibleLecturers.length === 0" class="mb-0" role="status">
-                    No lecturers match your search
-                </p>
             </fieldset>
         </form>
 
