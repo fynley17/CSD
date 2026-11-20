@@ -30,6 +30,24 @@ export async function getLecturers() {
 }
 
 /**
+ * Add Lecturer pop-up, makes the account and PHP emails them a link to set their own password
+ * @param details firstName, lastName, staffID, email and role ('lecturer' or 'admin')
+ * @returns { message, emailSent, userID }, message says if the email went or not
+ */
+export async function createLecturer(details) {
+    const response = await api.post('/admin/lecturers', details);
+    return response.data;
+}
+
+/**
+ * Resend link button, a fresh set password email for someone who hasn't set one yet
+ */
+export async function resendSetupLink(userID) {
+    const response = await api.post(`/admin/lecturers/${encodeURIComponent(userID)}/setup-link`);
+    return response.data;
+}
+
+/**
  * Saves the Edit Lecturer pop-up, PHP sends a 400 with the message if something typed isn't allowed
  * @param details firstName, lastName, staffID and email
  */

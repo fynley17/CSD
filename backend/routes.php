@@ -296,8 +296,14 @@ $router->addRoute(
     [new SubjectController(), 'setSubjectActive']
 );
 
-// lecturer management page, every lecturer and the disable or enable buttons, admins only
+// lecturer management page, every lecturer, add, edit, disable or enable, delete and resend link, admins only
 $router->addRoute('GET', '/^\\/api\\/admin\\/lecturers$/', [new AdministratorController(), 'getLecturers']);
+$router->addRoute('POST', '/^\\/api\\/admin\\/lecturers$/', [new AdministratorController(), 'createLecturer']);
+$router->addRoute(
+    'POST',
+    '/^\\/api\\/admin\\/lecturers\\/([0-9a-zA-Z-]+)\\/setup-link$/',
+    [new AdministratorController(), 'resendSetupLink']
+);
 $router->addRoute(
     'PUT',
     '/^\\/api\\/admin\\/lecturers\\/([0-9a-zA-Z-]+)$/',

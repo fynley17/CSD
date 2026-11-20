@@ -126,12 +126,14 @@ class Mailer
         string $toEmail,
         string $firstName,
         string $username,
-        string $token
+        string $token,
+        string $accountType = 'student'
     ): bool {
         $email = self::buildPasswordSetupEmail(
             $firstName,
             $username,
-            self::passwordSetupLink($token)
+            self::passwordSetupLink($token),
+            $accountType
         );
 
         return self::sendEmail(
@@ -151,14 +153,18 @@ class Mailer
     public static function buildPasswordSetupEmail(
         string $firstName,
         string $username,
-        string $link
+        string $link,
+        string $accountType = 'student'
     ): array {
         $name = htmlspecialchars($firstName, ENT_QUOTES, 'UTF-8');
         $safeUsername = htmlspecialchars($username, ENT_QUOTES, 'UTF-8');
         $safeLink = htmlspecialchars($link, ENT_QUOTES, 'UTF-8');
         $hours = PasswordSetup::LINK_LIFETIME_HOURS;
 
-        $subject = 'Set up your RevisionHub student account';
+        // lecturers and admins are added by an admin, anyone else gets the student wording
+        $accountWord = ['lecturer' => 'lecturer', 'admin' => 'administrator'][$accountType] ?? 'student';
+        $createdBy = $accountWord === 'student' ? 'Your lecturer' : 'An administrator';
+        $subject = "Set up your RevisionHub {$accountWord} account";
 
         $content = <<<HTML
         <h1 style="margin:0 0 16px;font-size:22px;color:#0f1b33;">
@@ -166,7 +172,7 @@ class Mailer
         </h1>
 
         <p style="margin:0 0 16px;">
-            Your lecturer has created a RevisionHub student account for you.
+            {$createdBy} has created a RevisionHub {$accountWord} account for you.
             Before you can sign in, you need to set your password.
         </p>
 
@@ -214,7 +220,7 @@ class Mailer
     HTML;
 
         $text = "Welcome to RevisionHub, {$firstName}\n\n"
-            . "Your lecturer has created a RevisionHub student account for you.\n"
+            . "{$createdBy} has created a RevisionHub {$accountWord} account for you.\n"
             . "Before you can sign in, you need to set your password.\n\n"
             . "Username: {$username}\n\n"
             . "Set your password using this link:\n{$link}\n\n"

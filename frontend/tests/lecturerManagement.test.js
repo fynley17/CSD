@@ -6,7 +6,7 @@
 import { flushPromises, mount } from '@vue/test-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import LecturerManagement from '../views/lecturerManagement.vue';
-import { deleteLecturer, getLecturers, setLecturerEnabled } from '../services/administratorService';
+import { deleteLecturer, getLecturers, resendSetupLink, setLecturerEnabled } from '../services/administratorService';
 
 vi.mock('../services/administratorService', () => ({
     getLecturers: vi.fn(),
@@ -14,6 +14,8 @@ vi.mock('../services/administratorService', () => ({
     updateLecturer: vi.fn(),
     setLecturerEnabled: vi.fn(),
     deleteLecturer: vi.fn(),
+    createLecturer: vi.fn(),
+    resendSetupLink: vi.fn(),
 }));
 
 // one enabled lecturer is enough for these
@@ -96,5 +98,60 @@ describe('LecturerManagement', () => {
             "There is a problem: Administrator accounts can't be changed on this page",
         );
         expect(page.find('.alert-success').exists()).toBe(false);
+    });
+
+    /**
+     * Resend link on someone still waiting sends a new link and says who it went to (normal)
+     */
+    it('resends the set password link', async () => {
+        // Arrange
+        const waiting = { ...lecturer, userID: 'lecturer-2', name: 'New Lecturer', hasPassword: false };
+        vi.mocked(getLecturers).mockResolvedValue([waiting]);
+        vi.mocked(resendSetupLink).mockResolvedValue({ message: 'Link sent' });
+        const page = await openPage();
+
+        // Act
+        await page.get('[aria-label="Resend set password link to New Lecturer"]').trigger('click');
+        await flushPromises();
+
+        // Assert
+        expect(resendSetupLink).toHaveBeenCalledWith('lecturer-2');
+        expect(page.get('[role="status"]').text()).toContain('A new link has been sent to New Lecturer');
+    });
+
+    /**
+     * After Add lecturer saves the search box gets the new staff ID so they show up straight away (normal)
+     */
+    it('searches for the new lecturer after adding', async () => {
+        // Arrange
+        vi.mocked(getLecturers).mockResolvedValue([lecturer]);
+        const page = await openPage();
+
+        // Act
+        page.getComponent({ name: 'LecturerForm' }).vm.$emit('saved', 'Lecturer added', 'L2001');
+        await flushPromises();
+
+        // Assert
+        expect(page.get('#lecturerSearch').element.value).toBe('L2001');
+        expect(page.get('.alert-success').text()).toContain('Lecturer added');
+    });
+
+    /**
+     * Account made but the email didn't go, so the red problem box shows and not the green success one (error)
+     */
+    it('shows the problem box when the email did not send', async () => {
+        // Arrange
+        vi.mocked(getLecturers).mockResolvedValue([lecturer]);
+        const page = await openPage();
+        const message = "Lecturer added, but the email couldn't be sent. Wait a minute then use Resend link";
+
+        // Act
+        page.getComponent({ name: 'LecturerForm' }).vm.$emit('saved', message, 'L2001', false);
+        await flushPromises();
+
+        // Assert
+        expect(page.find('.alert-success').exists()).toBe(false);
+        expect(page.get('.alert-danger').text()).toContain('There is a problem:');
+        expect(page.get('.alert-danger').text()).toContain('Wait a minute then use Resend link');
     });
 });

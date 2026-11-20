@@ -4,10 +4,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import api from '../services/api';
 import {
+    createLecturer,
     deleteLecturer,
     getDashboardSummary,
     getLecturers,
     getRecentLecturers,
+    resendSetupLink,
     setLecturerEnabled,
     updateLecturer,
 } from '../services/administratorService';
@@ -16,6 +18,7 @@ import {
 vi.mock('../services/api', () => ({
     default: {
         get: vi.fn(),
+        post: vi.fn(),
         put: vi.fn(),
         patch: vi.fn(),
         delete: vi.fn(),
@@ -145,5 +148,42 @@ describe('administratorService', () => {
         // Assert
         expect(api.delete).toHaveBeenCalledWith('/admin/lecturers/admin-1');
         await expect(request).rejects.toBe(refused);
+    });
+
+    /**
+     * Add Lecturer posts what was typed to the lecturers address and gives back PHP's answer (normal)
+     */
+    it('posts a new lecturer and gives back the message', async () => {
+        // Arrange
+        const details = {
+            firstName: 'New',
+            lastName: 'Lecturer',
+            staffID: 'L2001',
+            email: 'new.lecturer@example.test',
+            role: 'admin',
+        };
+        const reply = { message: 'Administrator added', emailSent: true, userID: 'new-id' };
+        vi.mocked(api.post).mockResolvedValue({ data: reply });
+
+        // Act
+        const result = await createLecturer(details);
+
+        // Assert
+        expect(api.post).toHaveBeenCalledWith('/admin/lecturers', details);
+        expect(result).toEqual(reply);
+    });
+
+    /**
+     * Resend link puts the ID in the address safely, a slash can't turn it into a different address (boundary)
+     */
+    it('encodes the ID when resending a link', async () => {
+        // Arrange
+        vi.mocked(api.post).mockResolvedValue({ data: { message: 'Link sent' } });
+
+        // Act
+        await resendSetupLink('abc/def');
+
+        // Assert
+        expect(api.post).toHaveBeenCalledWith('/admin/lecturers/abc%2Fdef/setup-link');
     });
 });

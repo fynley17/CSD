@@ -152,4 +152,19 @@ final class MailerTest extends TestCase
         self::assertStringContainsString('&lt;script&gt;', $email['html']);
         self::assertStringContainsString('&lt;username&gt;', $email['html']);
     }
+
+    // A lecturer added by an admin gets lecturer wording, not the student wording.
+    public function testPasswordSetupEmailForALecturerSaysLecturer(): void
+    {
+        // Arrange
+        $link = 'https://revisionhub.example/setup-password?token=abc123';
+
+        // Act
+        $email = Mailer::buildPasswordSetupEmail('Lena', 'L1001', $link, 'lecturer');
+
+        // Assert
+        self::assertSame('Set up your RevisionHub lecturer account', $email['subject']);
+        self::assertStringContainsString('An administrator has created', $email['text']);
+        self::assertStringNotContainsString('student', $email['text']);
+    }
 }

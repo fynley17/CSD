@@ -97,6 +97,20 @@ class Authentication
     {
         (new self())->startSession();
         $_SESSION['testAttempts'][$testID] = $questionIDs;
+        // the due date is checked against the day the attempt started, not when it's handed in
+        $_SESSION['testAttemptStartedOn'][$testID] = date('Y-m-d');
+    }
+
+    /**
+     * Returns the date (Y-m-d) the student last started this test.
+     *
+     * @return string|null null if they haven't started it, or it's already been handed in
+     */
+    public static function getTestAttemptStartedOn(string $testID): ?string
+    {
+        (new self())->startSession();
+
+        return $_SESSION['testAttemptStartedOn'][$testID] ?? null;
     }
 
     /**
@@ -117,7 +131,7 @@ class Authentication
     public static function clearTestAttempt(string $testID): void
     {
         (new self())->startSession();
-        unset($_SESSION['testAttempts'][$testID]);
+        unset($_SESSION['testAttempts'][$testID], $_SESSION['testAttemptStartedOn'][$testID]);
     }
 
     /**

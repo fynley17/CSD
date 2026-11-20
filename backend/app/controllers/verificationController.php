@@ -97,7 +97,8 @@ class VerificationController extends Controller
         try {
             $student = $this->findPendingStudent();
             $userID = Authentication::getPendingVerificationUserID();
-            $this->checkCanSend($student, $userID);
+            $this->checkNotVerified($student);
+            $this->checkResendWait($userID);
 
             $this->sendNewLink($userID, $student['email']);
         } catch (\Throwable $e) {
@@ -120,8 +121,15 @@ class VerificationController extends Controller
         try {
             $student = $this->findPendingStudent();
             $userID = Authentication::getPendingVerificationUserID();
-            $this->checkCanSend($student, $userID);
+            $this->checkNotVerified($student);
 
+            // a different address hasn't had an email yet, so it can be sent straight away
+            // the same address again is really a resend, so it still has to wait
+            if (self::isSameEmail($student['email'], $email)) {
+                $this->checkResendWait($userID);
+            }
+
+            // checks the format and that no other account has it, before anything is sent
             $newEmail = Student::changeEmail($userID, $email);
             $this->sendNewLink($userID, $newEmail);
         } catch (\InvalidArgumentException $e) {
@@ -148,6 +156,16 @@ class VerificationController extends Controller
     }
 
     /**
+     * Checks whether an address typed into change email is the one the account already has,
+     * ignoring case and spaces at either end, the same way Student::changeEmail() saves it
+     * public and static so a unit test can check it without a request
+     */
+    public static function isSameEmail(string $currentEmail, string $newEmail): bool
+    {
+        return strtolower(trim($currentEmail)) === strtolower(trim($newEmail));
+    }
+
+    /**
      * Finds the unverified account this browser registered or logged in to
      * Stops with a 401 if there isn't one, or it's been disabled since
      */
@@ -165,14 +183,20 @@ class VerificationController extends Controller
     }
 
     /**
-     * Stops the request if the account is already verified, or an email was sent less than a minute ago
+     * Stops the request if the account is already verified
      */
-    private function checkCanSend(array $student, string $userID): void
+    private function checkNotVerified(array $student): void
     {
         if ($student['isEmailVerified']) {
             $this->jsonResponse(['error' => self::ALREADY_VERIFIED], 400);
         }
+    }
 
+    /**
+     * Stops the request if an email was sent to this account less than a minute ago
+     */
+    private function checkResendWait(string $userID): void
+    {
         // 429 = too many requests
         if (!EmailVerification::canResend($userID)) {
             $this->jsonResponse(['error' => self::WAIT_BEFORE_RESEND], 429);

@@ -23,7 +23,9 @@ final class AdministratorRecentLecturersTest extends TestCase
 
         $this->db->exec(
             'CREATE TABLE Users (userID TEXT PRIMARY KEY, username TEXT NOT NULL, email TEXT NOT NULL, '
-            . 'accountType TEXT NOT NULL, isEnabled INTEGER NOT NULL, lastLogin TEXT)'
+            . 'accountType TEXT NOT NULL, isEnabled INTEGER NOT NULL, lastLogin TEXT, '
+            . 'isEmailVerified INTEGER NOT NULL DEFAULT 1)'
+            //DEFAULT 1 for isEmailVerified so the test can add lecturers with passwords already set
         );
         $this->db->exec(
             'CREATE TABLE Lecturer (userID TEXT PRIMARY KEY, firstName TEXT NOT NULL, lastName TEXT NOT NULL)'
@@ -67,6 +69,8 @@ final class AdministratorRecentLecturersTest extends TestCase
                     'email' => 'ws000102@example.test',
                     'isEnabled' => false,
                     'lastLogin' => '2026-10-25 14:30:00',
+                    'role' => 'lecturer',
+                    'hasPassword' => true,
                 ],
                 [
                     'userID' => 'id-ws000101',
@@ -77,6 +81,8 @@ final class AdministratorRecentLecturersTest extends TestCase
                     'email' => 'ws000101@example.test',
                     'isEnabled' => true,
                     'lastLogin' => '2026-10-20 09:00:00',
+                    'role' => 'lecturer',
+                    'hasPassword' => true,
                 ],
             ],
             $lecturers
@@ -123,6 +129,24 @@ final class AdministratorRecentLecturersTest extends TestCase
         // Assert
         $this->assertCount(6, $lecturers);
         $this->assertSame('ws000100', $lecturers[5]['staffID']);
+    }
+
+    /**
+     * The management page lists admins as well so a new admin shows up, students still stay out (normal)
+     */
+    public function testGetAllLecturersIncludesAdminsButNotStudents(): void
+    {
+        // Arrange
+        $this->addLecturer('ws000101', 'Test', 'Lecturer', 'lecturer', 1, '2026-10-20 09:00:00');
+        $this->addLecturer('ws000201', 'Test', 'Administrator', 'admin', 1, '2026-10-25 09:00:00');
+        $this->addLecturer('ws000301', 'Test', 'Student', 'student', 1, '2026-10-25 10:00:00');
+
+        // Act
+        $lecturers = Administrator::getAllLecturers();
+
+        // Assert
+        $this->assertSame(['ws000201', 'ws000101'], array_column($lecturers, 'staffID'));
+        $this->assertSame(['admin', 'lecturer'], array_column($lecturers, 'role'));
     }
 
     /**

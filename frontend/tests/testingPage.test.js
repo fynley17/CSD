@@ -202,6 +202,34 @@ describe('TestingPage', () => {
         expect(wrapper.get('.fullMarksNote').text()).toContain("retakes won't earn points");
     });
 
+    it('marks an attempt at an overdue test as practice, before and after the test', async () => {
+        // Arrange
+        startTestAttempt.mockResolvedValue({ ...test, isOverdue: true, earnsPoints: false });
+        const practice = structuredClone(result);
+        practice.isOverdue = true;
+        practice.earnsPoints = false;
+        practice.pointsEarned = 0;
+        practice.questions.forEach((question) => {
+            question.pointsAwarded = 0;
+        });
+        submitTest.mockResolvedValue(practice);
+
+        // Act
+        const wrapper = await mountPage();
+        const notesBeforeTest = wrapper.findAll('.fullMarksNote').map((note) => note.text());
+
+        await wrapper.get('.testingPrimaryButton').trigger('click');
+        await wrapper.findAll('.answerButton')[0].trigger('click');
+        await wrapper.findAll('.answerButton')[1].trigger('click');
+        await flushPromises();
+
+        // Assert
+        expect(notesBeforeTest).toHaveLength(1);
+        expect(notesBeforeTest[0]).toContain('past its due date');
+        expect(wrapper.get('.fullMarksNote').text()).toContain('past its due date, so no points were added');
+        expect(wrapper.text()).toContain('0 PTS');
+    });
+
     it('marks a retake after full marks as practice, before and after the test', async () => {
         // Arrange
         startTestAttempt.mockResolvedValue({ ...test, earnsPoints: false });

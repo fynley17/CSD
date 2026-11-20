@@ -4,7 +4,7 @@
 // it makes sure each account type only gets into its own pages, i.e. a lecturer can't open lecturer management
 // each test is laid out Arrange (pick the account), Act (try to open the page), Assert (check where they ended up)
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import router from '../router/router';
+import router, { GUEST_CHECK_TIMEOUT_MS } from '../router/router';
 import { getCurrentUser } from '../services/authService';
 
 // swaps the real getCurrentUser() for a pretend one, so no PHP or database is needed
@@ -188,5 +188,117 @@ describe('router guard for student only pages', () => {
 
         await router.push('/testing/answers/completed-1');
         expect(router.currentRoute.value.name).toBe('testAnswers');
+    });
+
+    /**
+     * Someone already logged in can't go back to the landing, login or register pages,
+     * they're sent to their own dashboard instead (error)
+     */
+    it.each([
+        ['/', 'admin', 'administratorDashboard'],
+        ['/login', 'lecturer', 'lecturerDashboard'],
+        ['/register', 'student', 'testSelection'],
+    ])('sends a signed-in user away from %s to their dashboard', async (path, accountType, dashboard) => {
+        // Arrange
+        await router.push('/privacy-policy');
+        getCurrentUser.mockResolvedValue({ username: 'user01', accountType });
+
+        // Act
+        await router.push(path);
+
+        // Assert
+        expect(router.currentRoute.value.name).toBe(dashboard);
+    });
+
+    /**
+     * Nobody logged in can still open the landing, login and register pages (normal)
+     */
+    it.each([
+        ['/', 'landingPage'],
+        ['/login', 'login'],
+        ['/register', 'register'],
+    ])('lets a visitor open %s', async (path, name) => {
+        // Arrange
+        await router.push('/privacy-policy');
+        getCurrentUser.mockResolvedValue(null);
+
+        // Act
+        await router.push(path);
+
+        // Assert
+        expect(router.currentRoute.value.name).toBe(name);
+    });
+
+    /**
+     * If PHP can't be reached the login page still opens, so people aren't locked out of it (boundary)
+     */
+    it('still shows the login page when the backend cannot be reached', async () => {
+        // Arrange
+        getCurrentUser.mockRejectedValue(new Error('Network Error'));
+
+        // Act
+        await router.push('/login');
+
+        // Assert
+        expect(router.currentRoute.value.name).toBe('login');
+    });
+
+    /**
+     * Pages anyone can use, i.e. the privacy policy, stay open when logged in (normal)
+     */
+    it('lets a signed-in user open the privacy policy', async () => {
+        // Arrange
+        getCurrentUser.mockResolvedValue({ username: 'user01', accountType: 'student' });
+
+        // Act
+        await router.push('/privacy-policy');
+
+        // Assert
+        expect(router.currentRoute.value.name).toBe('privacyPolicy');
+    });
+
+    /**
+     * The landing, login and register pages only wait 3 seconds to hear who's logged in (boundary)
+     */
+    it('limits how long the login page waits for the backend', async () => {
+        // Arrange
+        getCurrentUser.mockResolvedValue(null);
+
+        // Act
+        await router.push('/login');
+
+        // Assert
+        expect(GUEST_CHECK_TIMEOUT_MS).toBe(3000);
+        expect(getCurrentUser).toHaveBeenCalledWith({ timeout: GUEST_CHECK_TIMEOUT_MS });
+    });
+
+    /**
+     * If the backend is too slow the login page opens anyway (boundary)
+     */
+    it('opens the login page when the backend takes too long', async () => {
+        // Arrange: axios rejects with ECONNABORTED when the timeout runs out
+        getCurrentUser.mockRejectedValue(
+            Object.assign(new Error('timeout of 3000ms exceeded'), { code: 'ECONNABORTED' }),
+        );
+
+        // Act
+        await router.push('/login');
+
+        // Assert
+        expect(router.currentRoute.value.name).toBe('login');
+    });
+
+    /**
+     * Private pages keep waiting, a slow reply there shouldn't log someone out (normal)
+     */
+    it('does not put a time limit on private pages', async () => {
+        // Arrange
+        getCurrentUser.mockResolvedValue({ username: 'adm01', accountType: 'admin' });
+
+        // Act
+        await router.push('/cohort-management');
+
+        // Assert
+        expect(getCurrentUser).toHaveBeenLastCalledWith();
     });
 });

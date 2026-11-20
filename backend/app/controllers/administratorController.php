@@ -3,8 +3,10 @@
 namespace App\Controllers;
 
 use App\Helpers\Authentication;
+use App\Helpers\Mailer;
 use App\Models\Administrator;
 use App\Models\Lecturer;
+use App\Models\PasswordSetup;
 use App\Models\User;
 
 /**
@@ -58,6 +60,68 @@ class AdministratorController extends Controller
         } catch (\Throwable $e) {
             error_log('Loading the lecturer management list failed: ' . $e->getMessage());
             $this->jsonResponse(['error' => 'Unable to load the lecturers'], 500);
+        }
+    }
+
+    /**
+     * POST /api/admin/lecturers, the Add Lecturer pop-up. Makes the account then emails a set password link
+     */
+    public function createLecturer(): void
+    {
+        Authentication::requireRole(['admin']);
+
+        try {
+            $admin = $this->getLoggedInAdmin();
+            $created = $admin->createLecturer($this->readBody());
+
+            // the account is saved by now, so if the email goes wrong it's still a 201
+            // the page tells the admin and they can use Resend link a minute later
+            $emailSent = self::emailSetupLink($created, null);
+            $word = $created['role'] === 'admin' ? 'Administrator' : 'Lecturer';
+
+            $this->jsonResponse([
+                'message' => $emailSent
+                    ? $word . ' added. They have been emailed a link to set their password'
+                    : $word . " added, but the email couldn't be sent. Wait a minute then use Resend link",
+                    'emailSent' => $emailSent,
+                'userID' => $created['userID'],
+            ], 201);
+        } catch (\InvalidArgumentException $e) {
+            // these messages are written in Administrator for the page, nothing from the database
+            $this->jsonResponse(['error' => $e->getMessage()], 400);
+        } catch (\Throwable $e) {
+            error_log('Adding the lecturer failed: ' . $e->getMessage());
+            $this->jsonResponse(['error' => 'Unable to add the lecturer'], 500);
+        }
+    }
+
+    /**
+     * POST /api/admin/lecturers/{id}/setup-link, the Resend link button for someone who hasn't set a password yet
+     */
+    public function resendSetupLink(string $userID): void
+    {
+        Authentication::requireRole(['admin']);
+
+        try {
+            $admin = $this->getLoggedInAdmin();
+            $lecturer = self::findLecturer($userID);
+            if ($lecturer === null) {
+                $this->jsonResponse(['error' => 'Lecturer not found'], 404);
+                return;
+            }
+
+            $link = $admin->makeSetupLink($lecturer);
+            if (!self::emailSetupLink($link, $link['token'])) {
+                $this->jsonResponse(['error' => "The email couldn't be sent, try again later"], 500);
+                return;
+            }
+
+            $this->jsonResponse(['message' => 'Link sent']);
+        } catch (\InvalidArgumentException $e) {
+            $this->jsonResponse(['error' => $e->getMessage()], 400);
+        } catch (\Throwable $e) {
+            error_log('Making a new set password link failed: ' . $e->getMessage());
+            $this->jsonResponse(['error' => 'Unable to send a new link'], 500);
         }
     }
 
@@ -166,6 +230,31 @@ class AdministratorController extends Controller
     public static function readIsEnabled(array $data): ?bool
     {
         return is_bool($data['isEnabled'] ?? null) ? $data['isEnabled'] : null;
+    }
+
+    /**
+     * Emails the set password link with PasswordSetup and Mailer, true if it went
+     * token is null for a brand new account, it gets made here once the account exists
+     *
+     * @param array{userID?: string, staffID: string, email: string, firstName: string, role: string} $account
+     */
+    private static function emailSetupLink(array $account, ?string $token): bool
+    {
+        try {
+            $token ??= PasswordSetup::createToken($account['userID'] ?? '');
+
+            return Mailer::sendPasswordSetupEmail(
+                $account['email'],
+                $account['firstName'],
+                $account['staffID'],
+                $token,
+                $account['role']
+            );
+        } catch (\Throwable $e) {
+            // logged for us, the admin just sees that the email didn't go
+            error_log('Sending the set password email failed: ' . $e->getMessage());
+            return false;
+        }
     }
 
     /**

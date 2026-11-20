@@ -90,7 +90,8 @@ class TestController extends Controller
                 $userID,
                 $testID,
                 $questionIDs,
-                $data['answers']
+                $data['answers'],
+                Authentication::getTestAttemptStartedOn($testID)
             );
 
             if ($result === null) {

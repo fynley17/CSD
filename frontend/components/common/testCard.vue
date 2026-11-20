@@ -26,12 +26,21 @@
                 </div>
                 <div v-if="dueDate">
                     <dt>Due by</dt>
-                    <dd>{{ dueDate }}</dd>
+                    <dd>
+                        <span v-if="test.isOverdue" class="testCardOverdueBadge">Overdue</span>
+                        {{ dueDate }}
+                    </dd>
                 </div>
             </dl>
 
+            <!-- past its due date, the test can still be taken for practice -->
+            <p v-if="test.isOverdue" class="testCardPracticeNote testCardOverdueNote">
+                <i class="bi bi-calendar-x-fill" aria-hidden="true"></i>
+                Past due date. Attempts are practice and don't earn points.
+            </p>
+
             <!-- full marks already earned, the test can still be taken for practice -->
-            <p v-if="test.earnsPoints === false" class="testCardPracticeNote">
+            <p v-else-if="test.earnsPoints === false" class="testCardPracticeNote">
                 <i class="bi bi-trophy-fill" aria-hidden="true"></i>
                 Full marks achieved. Retakes are practice and don't earn points.
             </p>
@@ -95,6 +104,8 @@ const dueDate = computed(() => {
 <style scoped>
 /* Keep the card compact enough to sit in a grid of student tests. */
 .testCard {
+    /* fill the grid cell so every card is the same height, the Start button stays at the bottom */
+    height: 100%;
     border: 1px solid var(--colorDivider);
     border-radius: var(--radiusMd);
     box-shadow: var(--shadowCard);
@@ -141,6 +152,21 @@ const dueDate = computed(() => {
     color: var(--colorSuccess);
     font-size: var(--fontSizeSmall);
     font-weight: 600;
+}
+
+/* Overdue uses the warning colours, the word and calendar icon say it without colour. */
+.testCardOverdueBadge {
+    margin-right: var(--spaceXs);
+    padding: 0 var(--spaceSm);
+    border-radius: var(--radiusPill);
+    background: var(--colorWarningLight);
+    color: var(--colorWarning);
+    font-size: var(--fontSizeSmall);
+}
+
+.testCardOverdueNote {
+    background: var(--colorWarningLight);
+    color: var(--colorWarning);
 }
 
 /* Brand coloured start button with a comfortable touch target. */

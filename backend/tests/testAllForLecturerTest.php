@@ -139,6 +139,29 @@ final class TestAllForLecturerTest extends TestCase
         self::assertFalse($tests[1]['isActive']);
     }
 
+    public function testFlagsTestsPastTheirDueDate(): void
+    {
+        // Arrange: a test due yesterday, one due today and one with no due date.
+        $yesterday = date('Y-m-d', strtotime('-1 day'));
+        $today = Test::today();
+        $this->db->exec(
+            "INSERT INTO Subjects (subjectID, subjectName)
+             VALUES ('subject-1', 'Mathematics')"
+        );
+        $this->db->exec(
+            "INSERT INTO Tests (testID, testName, subjectID, dueDate) VALUES
+                ('test-1', 'A Overdue', 'subject-1', '$yesterday'),
+                ('test-2', 'B Due Today', 'subject-1', '$today'),
+                ('test-3', 'C No Due Date', 'subject-1', NULL)"
+        );
+
+        // Act
+        $tests = Test::getAllForLecturer();
+
+        // Assert: only the test whose due date has passed is overdue.
+        self::assertSame([true, false, false], array_column($tests, 'isOverdue'));
+    }
+
     public function testReturnsAnEmptyArrayWhenThereAreNoTests(): void
     {
         // Arrange: add a subject but leave the Tests table empty.

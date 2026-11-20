@@ -16,10 +16,10 @@ vi.mock('../services/authService', () => ({
  */
 
 // the form reads ?signedOut from the route and links to other pages, neither needs a real router
-function mountForm() {
+function mountForm(query = {}) {
     return mount(LoginForm, {
         global: {
-            mocks: { $route: { query: {} }, $router: { push: vi.fn() } },
+            mocks: { $route: { query }, $router: { push: vi.fn() } },
             stubs: { RouterLink: { template: '<a><slot /></a>' } },
         },
     });
@@ -91,5 +91,54 @@ describe('LoginForm locked pop-up', () => {
         // Assert
         expect(HTMLDialogElement.prototype.showModal).not.toHaveBeenCalled();
         expect(wrapper.get('[role="alert"]').text()).toContain('Username or password is incorrect');
+    });
+});
+
+describe('LoginForm after logging in', () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+        login.mockResolvedValue({ accountType: 'student' });
+    });
+
+    /**
+     * With no redirect they go to the dashboard for their account type (normal)
+     */
+    it('goes to the dashboard when there is no redirect', async () => {
+        // Arrange
+        const wrapper = mountForm();
+
+        // Act
+        await submitLogin(wrapper);
+
+        // Assert
+        expect(wrapper.vm.$router.push).toHaveBeenCalledWith('/student-dashboard');
+    });
+
+    /**
+     * A logged-out visitor sent to login from a private page goes back to it (normal)
+     */
+    it('goes back to the page they wanted', async () => {
+        // Arrange
+        const wrapper = mountForm({ redirect: '/student-results' });
+
+        // Act
+        await submitLogin(wrapper);
+
+        // Assert
+        expect(wrapper.vm.$router.push).toHaveBeenCalledWith('/student-results');
+    });
+
+    /**
+     * A redirect to another website is ignored and they go to their dashboard (error)
+     */
+    it('ignores a redirect to another website', async () => {
+        // Arrange
+        const wrapper = mountForm({ redirect: '//evil.example' });
+
+        // Act
+        await submitLogin(wrapper);
+
+        // Assert
+        expect(wrapper.vm.$router.push).toHaveBeenCalledWith('/student-dashboard');
     });
 });

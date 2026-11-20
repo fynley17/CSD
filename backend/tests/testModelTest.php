@@ -91,7 +91,7 @@ final class TestModelTest extends TestCase
                 createdBy
              ) VALUES
                 ('test-with-questions', 'Web Apps Test', 'Review web apps', 75,
-                 '2026-10-30', 2, 'subject-1', 'lecturer-1'),
+                 '2999-10-30', 2, 'subject-1', 'lecturer-1'),
                 ('untimed-test', 'Untimed Test', NULL, NULL, NULL, NULL,
                  'subject-1', 'lecturer-1'),
                 ('empty-test', 'Empty Test', 'Subject has no questions', NULL,
@@ -142,6 +142,7 @@ final class TestModelTest extends TestCase
                 'questionCount',
                 'subjectName',
                 'createdByName',
+                'isOverdue',
                 'earnsPoints',
             ],
             array_keys($tests[0])
@@ -150,10 +151,11 @@ final class TestModelTest extends TestCase
         self::assertSame('test-with-questions', $tests[0]['testID']);
         self::assertSame('Review web apps', $tests[0]['testDescription']);
         self::assertSame(75, $tests[0]['timeLimit']);
-        self::assertSame('2026-10-30', $tests[0]['dueDate']);
+        self::assertSame('2999-10-30', $tests[0]['dueDate']);
         self::assertSame(2, $tests[0]['questionCount']);
         self::assertSame('Web Apps', $tests[0]['subjectName']);
         self::assertSame('Alex Lecturer', $tests[0]['createdByName']);
+        self::assertFalse($tests[0]['isOverdue']);
         self::assertTrue($tests[0]['earnsPoints']);
     }
 
@@ -288,6 +290,31 @@ final class TestModelTest extends TestCase
 
         self::assertSame([false, true], array_column($tests, 'earnsPoints'));
         self::assertSame([true], array_column($otherStudentsTests, 'earnsPoints'));
+    }
+
+    public function testOverdueTestsAreListedLastAsPracticeThatEarnsNoPoints(): void
+    {
+        // Arrange
+        // due yesterday is overdue, due today is still open until the end of the day
+        $yesterday = date('Y-m-d', strtotime('-1 day'));
+        $today = Test::today();
+        $this->db->exec(
+            "INSERT INTO Tests (testID, testName, dueDate, questionCount, subjectID, createdBy) VALUES
+                ('overdue-test', 'Overdue Test', '$yesterday', 1, 'subject-1', 'lecturer-1'),
+                ('due-today-test', 'Due Today Test', '$today', 1, 'subject-1', 'lecturer-1')"
+        );
+
+        // Act
+        $tests = Test::getAvailableForStudents('student-user-1');
+
+        // Assert
+        // open tests soonest due first, then no due date, then overdue
+        self::assertSame(
+            ['due-today-test', 'test-with-questions', 'untimed-test', 'overdue-test'],
+            array_column($tests, 'testID')
+        );
+        self::assertSame([false, false, false, true], array_column($tests, 'isOverdue'));
+        self::assertSame([true, true, true, false], array_column($tests, 'earnsPoints'));
     }
 
     public function testReturnsOnlyTestsForTheLoggedInStudentsCohort(): void

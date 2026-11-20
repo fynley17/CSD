@@ -28,11 +28,13 @@ export async function logout() {
 
 /**
  * Asks GET /api/current-user who's logged in, router.js uses this before showing a private page
- * if PHP can't be reached axios throws an error, and whoever called this deals with it
+ * if PHP can't be reached, or takes longer than timeout, axios throws an error and whoever called this deals with it
+ * @param {object} [options]
+ * @param {number} [options.timeout] milliseconds to wait for PHP, leave it out to wait as long as the browser does
  * @returns {Promise<object|null>} username and account type, or null if nobody is logged in
  */
-export async function getCurrentUser() {
-    const response = await api.get('/current-user');
+export async function getCurrentUser({ timeout } = {}) {
+    const response = await api.get('/current-user', timeout ? { timeout } : undefined);
 
     // PHP says loggedIn false when nobody's logged in, the pages treat null as logged out
     if (!response.data.loggedIn) {

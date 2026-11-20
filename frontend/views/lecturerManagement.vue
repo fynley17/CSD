@@ -1,11 +1,11 @@
-<!-- lecturer management, edit disable/enable and delete lecturer accounts -->
+<!-- lecturer management, add, edit, disable/enable and delete lecturer accounts -->
 <script>
 import LecturerForm from '../components/forms/lecturerForm.vue';
 import LecturerTable from '../components/tables/lecturerTable.vue';
 import TableFilter from '../components/tables/tableFilter.vue';
 import TableSearch from '../components/tables/tableSearch.vue';
 import PopupDialog from '../components/common/popupDialog.vue';
-import { deleteLecturer, setLecturerEnabled } from '../services/administratorService';
+import { deleteLecturer, resendSetupLink, setLecturerEnabled } from '../services/administratorService';
 import { lecturerStatusOptions } from '../utils/filterOptions';
 
 export default {
@@ -60,19 +60,55 @@ export default {
     },
 
     methods: {
+        // Add lecturer button, empty form with the Role dropdown
+        addLecturer() {
+            this.$refs.form.open();
+        },
+
         // Edit button on a row, the form fills itself in from it
         editLecturer(lecturer) {
             this.$refs.form.open(lecturer);
         },
 
         /**
-         * Form worked, so green box and fresh rows
+         * Resend link on someone still waiting to set their password, sends them a fresh email
          */
-        saved(message) {
+        async resendLink(lecturer) {
             this.errorMessage = '';
             this.undoLecturer = null;
-            this.message = message;
-            this.$refs.table.loadLecturers();
+
+            try {
+                await resendSetupLink(lecturer.userID);
+                this.message = 'A new link has been sent to ' + lecturer.name;
+            } catch (error) {
+                this.message = '';
+                this.errorMessage = error.response?.data?.error || 'Unable to send a new link';
+            }
+        },
+
+        /**
+         * Form worked, so fresh rows and a green box (red if the email didn't go)
+         * staffID only comes from Add lecturer, a new person hasn't logged in so they'd be on the last page
+         * so the search box gets their staff ID to show them straight away
+         */
+        async saved(message, staffID, emailSent) {
+            this.undoLecturer = null;
+            // only Add sends emailSent, false = account is made but the email didn't go
+            // green would say success on something the admin still has to fix, so its the red box
+            if (emailSent === false) {
+                this.message = '';
+                this.errorMessage = message;
+            } else {
+                this.errorMessage = '';
+                this.message = message;
+            }
+            await this.$refs.table.loadLecturers();
+            if (staffID) {
+                // a Disabled filter would hide the new person, so back to all first
+                this.statusFilter = 'all';
+                await this.$nextTick();
+                this.searchText = staffID;
+            }
         },
 
         /**
@@ -152,7 +188,7 @@ export default {
 <template>
     <section class="container py-4 adminPage">
         <h1>Lecturer Management</h1>
-        <p>Edit, disable and delete lecturer accounts</p>
+        <p>Add, edit, disable and delete lecturer accounts</p>
 
         <div
             v-if="message"
@@ -181,6 +217,11 @@ export default {
                 <TableSearch id="lecturerSearch" v-model="searchText" placeholder="Name, staff ID or email" />
                 <TableFilter id="lecturerStatusFilter" v-model="statusFilter" label="Status" :options="statusOptions" />
             </div>
+            <div class="tableToolbarActions">
+                <button type="button" class="btn btn-primary" @click="addLecturer">
+                    <span aria-hidden="true">+</span> Add lecturer
+                </button>
+            </div>
         </div>
 
         <LecturerTable
@@ -191,6 +232,7 @@ export default {
             @edit="editLecturer"
             @toggle="askFirst($event, 'toggle')"
             @delete="askFirst($event, 'delete')"
+            @resend="resendLink"
         />
 
         <!-- one confirm box for disable, enable and delete, the words change with the button pressed -->

@@ -135,10 +135,15 @@ export default {
             </fieldset>
         </form>
 
-        <!-- save sits down in the footer, form="subjectForm" links it back to the form above -->
+        <!-- buttons sit on the right with Cancel first, like the student and cohort pop-ups -->
+        <!-- form="subjectForm" links the footer button back up to the form -->
         <template #buttons>
-            <button type="submit" form="subjectForm" class="btn btn-primary" :disabled="isSaving">Save subject</button>
-            <button type="button" class="btn btn-outline-primary" @click="$refs.dialog.close()">Cancel</button>
+            <div class="d-flex justify-content-end gap-2 w-100">
+                <button type="button" class="btn btn-outline-primary" @click="$refs.dialog.close()">Cancel</button>
+                <button type="submit" form="subjectForm" class="btn btn-primary" :disabled="isSaving">
+                    Save subject
+                </button>
+            </div>
         </template>
     </PopupDialog>
 </template>

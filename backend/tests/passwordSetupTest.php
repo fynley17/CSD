@@ -116,6 +116,18 @@ final class PasswordSetupTest extends TestCase
         PasswordSetup::createToken('verified-student');
     }
 
+    public function testRefusesALinkForADisabledAccount(): void
+    {
+        // Arrange
+        $this->createUser(isEnabled: 0);
+
+        // Assert
+        $this->expectException(InvalidArgumentException::class);
+
+        // Act
+        PasswordSetup::createToken('student-1');
+    }
+
     public function testFindsValidToken(): void
     {
         $this->createUser();
@@ -261,9 +273,12 @@ final class PasswordSetupTest extends TestCase
 
     public function testDoesNotSetPasswordForDisabledStudent(): void
     {
-        $this->createUser(isEnabled: 0);
+        // the link goes out while they're enabled, then they get disabled before using it
+        $this->createUser();
 
         $token = PasswordSetup::createToken('student-1');
+
+        $this->db->exec("UPDATE Users SET isEnabled = 0 WHERE userID = 'student-1'");
 
         $result = PasswordSetup::setPassword(
             $token,
@@ -280,9 +295,10 @@ final class PasswordSetupTest extends TestCase
         $this->assertSame(0, (int) $stmt->fetchColumn());
     }
 
-    public function testDoesNotSetPasswordForNonStudentAccount(): void
+    public function testDoesNotSetPasswordForAccountThatAlreadyHasOne(): void
     {
-        $this->createUser(accountType: 'lecturer');
+        // a link can't be used to change the password of an account that's already set up
+        $this->createUser(accountType: 'lecturer', isEmailVerified: 1);
 
         $token = PasswordSetup::makeToken();
 
@@ -305,5 +321,23 @@ final class PasswordSetupTest extends TestCase
         );
 
         $this->assertFalse($result);
+    }
+
+    public function testLecturerAddedByAnAdminCanSetTheirPassword(): void
+    {
+        // Arrange, a lecturer account an admin has just made
+        $this->createUser(userID: 'lecturer-1', accountType: 'lecturer');
+        $token = PasswordSetup::createToken('lecturer-1');
+
+        // Act
+        $result = PasswordSetup::setPassword($token, 'SecurePass123!');
+
+        // Assert
+        $this->assertTrue($result);
+
+        $stmt = $this->db->prepare('SELECT isEmailVerified FROM Users WHERE userID = ?');
+        $stmt->execute(['lecturer-1']);
+
+        $this->assertSame(1, (int) $stmt->fetchColumn());
     }
 }
