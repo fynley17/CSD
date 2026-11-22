@@ -356,11 +356,6 @@ onUnmounted(() => {
     color: var(--colorText);
 }
 
-.testTab:focus-visible {
-    outline: 2px solid var(--colorHighlight);
-    outline-offset: 2px;
-}
-
 /* bold text and the underline both mark the chosen tab, so it isn't shown by colour alone */
 .testTabActive {
     border-bottom-color: var(--colorBrand);
