@@ -177,3 +177,12 @@ export default {
         </template>
     </PopupDialog>
 </template>
+
+<style scoped>
+/* lecturer tick boxes on the subject form, a long list scrolls inside */
+.lecturerPickList {
+    max-height: 16rem;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+</style>
