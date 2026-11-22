@@ -39,7 +39,9 @@ CREATE TABLE `EmailVerifications` (
   `userID` uuid NOT NULL,
   `tokenHash` char(64) NOT NULL COMMENT 'SHA-256 hash of the emailed link code, never the code itself',
   `expiresAt` datetime NOT NULL,
-  `sentAt` datetime NOT NULL DEFAULT current_timestamp() COMMENT 'Used to stop repeated resend requests'
+  `sentAt` datetime NOT NULL DEFAULT current_timestamp() COMMENT 'Used to stop repeated resend requests',
+  `newEmail` varchar(255) DEFAULT NULL
+    COMMENT 'Address that replaces Users.email once this link is used, NULL = verifying the current address'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE `PasswordSetupTokens` (
