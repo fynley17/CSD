@@ -62,6 +62,14 @@ function findButton(page, label) {
     return page.get(`button[aria-label="${label}"]`);
 }
 
+/**
+ * Presses Disable on a cohort then says yes in the pop-up
+ */
+async function disableCohort(page, cohortName) {
+    await findButton(page, `Disable ${cohortName}`).trigger('click');
+    await page.get('.cohortDialogButtons .cohortPrimaryButton').trigger('click');
+}
+
 describe('CohortManagement', () => {
     beforeEach(() => {
         vi.clearAllMocks();
@@ -329,7 +337,7 @@ describe('CohortManagement', () => {
         const firstPills = () => page.findAll('.cohortTable').map((table) => table.get('.statusPill').text());
 
         // Act
-        await findButton(page, 'Disable DTS 2026').trigger('click');
+        await disableCohort(page, 'DTS 2026');
         await flushPromises();
 
         // Assert
@@ -344,7 +352,7 @@ describe('CohortManagement', () => {
     it('enables a cohort again', async () => {
         // Arrange
         const page = await openPage();
-        await findButton(page, 'Disable DTS 2026').trigger('click');
+        await disableCohort(page, 'DTS 2026');
         await flushPromises();
 
         // Act
@@ -366,7 +374,7 @@ describe('CohortManagement', () => {
         const cohortName = cohortNames(page, 0)[0];
 
         // Act
-        await findButton(page, `Disable ${cohortName}`).trigger('click');
+        await disableCohort(page, cohortName);
         await flushPromises();
 
         // Assert
@@ -382,7 +390,7 @@ describe('CohortManagement', () => {
         await page.findAll('select')[0].setValue('active');
 
         // Act
-        await findButton(page, 'Disable DTS 2026').trigger('click');
+        await disableCohort(page, 'DTS 2026');
         await flushPromises();
 
         // Assert
@@ -397,7 +405,7 @@ describe('CohortManagement', () => {
         const page = await openPage();
 
         // Act
-        await findButton(page, 'Disable DTS 2026').trigger('click');
+        await disableCohort(page, 'DTS 2026');
         await flushPromises();
 
         // Assert
@@ -419,7 +427,7 @@ describe('CohortManagement', () => {
         await findButton(page, 'Show details for DTS 2026').trigger('click');
 
         // Act
-        await findButton(page, 'Disable DTS 2026').trigger('click');
+        await disableCohort(page, 'DTS 2026');
         await flushPromises();
 
         // Assert
@@ -435,7 +443,7 @@ describe('CohortManagement', () => {
         const page = await openPage();
 
         // Act
-        await findButton(page, 'Disable DTS 2026').trigger('click');
+        await disableCohort(page, 'DTS 2026');
         await flushPromises();
 
         // Assert
@@ -780,16 +788,16 @@ describe('CohortManagement', () => {
         // Arrange
         setCohortActive.mockRejectedValueOnce(new Error('Network Error'));
         const page = await openPage();
-        await findButton(page, 'Disable DTS 2026').trigger('click');
+        await disableCohort(page, 'DTS 2026');
         await flushPromises();
         const problem = page.get('[role="alert"]').text();
 
         // Act
-        await findButton(page, 'Disable DTS 2026').trigger('click');
+        await disableCohort(page, 'DTS 2026');
         await flushPromises();
 
         // Assert
-        expect(problem).toContain('Unable to update DTS 2026');
+        expect(problem).toContain('Unable to disable DTS 2026');
         expect(page.find('[role="alert"]').exists()).toBe(false);
     });
 
