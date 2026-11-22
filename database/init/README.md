@@ -28,7 +28,9 @@ disable tracking migration adds `Users.disabledByCohort` and
 `Subjects.archivedByCohort`, so enabling a cohort only undoes what disabling it changed. The subjects optional
 cohort migration lets `Subjects.cohortID` be NULL, for a subject not in a cohort. The cohorts unique
 name migration stops two cohorts having the same name; rename any duplicates first. The password reset
-tokens migration adds the `PasswordResetTokens` table used by the forgot password link. Do not run migrations through the init directory; init scripts run only
+tokens migration adds the `PasswordResetTokens` table used by the forgot password link. The email change
+pending migration adds `EmailVerifications.newEmail`, which holds a new address typed on the My profile page
+until its confirm link is opened, so the account keeps its old address until then. Do not run migrations through the init directory; init scripts run only
 for a new volume.
 
 ## Sample data

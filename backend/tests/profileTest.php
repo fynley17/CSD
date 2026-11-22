@@ -312,6 +312,23 @@ final class ProfileTest extends TestCase
     }
 
     /**
+     * An account with no Students row says the names couldn't be saved instead of pretending they were (edge)
+     */
+    public function testUpdateProfileRefusesAnAccountWithNoNameRow(): void
+    {
+        // Arrange
+        $this->db->exec("DELETE FROM Students WHERE userID = 'student-1'");
+        $student = $this->account('student-1');
+
+        // Assert
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessageMatches('/could not be saved/');
+
+        // Act
+        $student->updateProfile(['firstName' => 'Sam', 'lastName' => 'Smith', 'email' => 'new@example.com']);
+    }
+
+    /**
      * If someone else takes the address before the link is opened, the change is refused (edge)
      */
     public function testConfirmRefusesAnAddressTakenSinceTheLinkWasSent(): void

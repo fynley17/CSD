@@ -311,11 +311,23 @@ abstract class User extends Model
      * @param array{firstName: string, lastName: string, email: string} $details from checkProfileDetails()
      * @return string|null the code for the confirm link to email to the new address,
      *                     or null if the address didn't change
-     * @throws \InvalidArgumentException if another account already uses the new address
+     * @throws \InvalidArgumentException if another account already uses the new address,
+     *                                   or the account has no row to save its names in
      */
     public function updateProfile(array $details): ?string
     {
         $db = self::getDB();
+
+        // without a Students or Lecturer row there's nothing to save the names into, so say so instead of
+        // reporting a save that didn't happen
+        $stmt = $db->prepare('SELECT 1 FROM ' . static::nameTable() . ' WHERE userID = ?');
+        $stmt->execute([$this->userID]);
+        if ($stmt->fetchColumn() === false) {
+            throw new \InvalidArgumentException(
+                'Your name could not be saved because your account details are incomplete. '
+                . 'Contact your lecturer or an administrator'
+            );
+        }
 
         $stmt = $db->prepare('SELECT email FROM Users WHERE userID = ?');
         $stmt->execute([$this->userID]);
