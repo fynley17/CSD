@@ -138,12 +138,13 @@
     cursor: not-allowed;
 }
 
+/* same colours as the btn-primary and btn-outline-primary pop up buttons on other admin pages */
 .cohortPrimaryButton {
     min-height: var(--minTouchTarget);
     padding: var(--spaceSm) var(--spaceMd);
-    border: 1px solid var(--colorBrand);
+    border: 1px solid var(--colorPrimary);
     border-radius: var(--radiusSm);
-    background: var(--colorBrand);
+    background: var(--colorPrimary);
     color: var(--colorSurface);
     font-weight: 600;
     white-space: nowrap;
@@ -158,12 +159,30 @@
 .cohortSecondaryButton {
     min-height: var(--minTouchTarget);
     padding: var(--spaceSm) var(--spaceMd);
-    border: 1px solid var(--colorBorderInput);
+    border: 1px solid var(--colorPrimary);
     border-radius: var(--radiusSm);
     background: var(--colorSurface);
-    color: var(--colorText);
+    color: var(--colorPrimary);
     font-weight: 600;
     white-space: nowrap;
+}
+
+.cohortSecondaryButton:hover,
+.cohortSecondaryButton:focus-visible {
+    background: var(--colorPrimary);
+    color: var(--colorSurface);
+}
+
+/* delete is red like every other delete button, house style danger button */
+.cohortDangerButton {
+    border-color: var(--colorError);
+    background: var(--colorError);
+}
+
+.cohortDangerButton:hover,
+.cohortDangerButton:focus-visible {
+    border-color: var(--colorErrorHover);
+    background: var(--colorErrorHover);
 }
 
 .cohortPrimaryButton:disabled,
@@ -224,6 +243,7 @@
 .cohortDialogConfirm h3 {
     font-size: var(--fontSizeH3);
     font-weight: 700;
+    overflow-wrap: anywhere;
 }
 
 .cohortDialogIcon {
@@ -233,11 +253,18 @@
     font-size: var(--fontSizeH1);
 }
 
+/* house style pop ups have Cancel on the left and action on the right, same width, stacked on a phone */
 .cohortDialogButtons {
-    display: flex;
+    display: grid;
     width: 100%;
-    justify-content: flex-end;
     gap: var(--spaceSm);
+}
+
+@media (min-width: 576px) {
+    .cohortDialogButtons {
+        grid-auto-flow: column;
+        grid-auto-columns: minmax(0, 1fr);
+    }
 }
 
 /* grey behind the opened details, and the row doesn't pick up the hover shade */
