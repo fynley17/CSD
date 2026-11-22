@@ -141,4 +141,63 @@ describe('Navbar', () => {
         expect(header.find('.accountBadge').exists()).toBe(false);
         expect(header.get('.navbar-brand').attributes('href')).toBe('/');
     });
+
+    /**
+     * Every signed in account type gets the My profile icon next to Sign out, on desktop and in the phone menu (normal)
+     */
+    it.each(['student', 'lecturer'])('shows a %s the My profile icon next to Sign out', async (accountType) => {
+        // Arrange
+        vi.mocked(getCurrentUser).mockResolvedValue({ username: 'user01', accountType });
+
+        // Act
+        const header = await loadHeader();
+
+        // Assert
+        const desktopLink = header.get('.desktopActions .profileLink');
+        expect(desktopLink.attributes('href')).toBe('/profile');
+        // the icon has no words, so the label is what a screen reader says
+        expect(desktopLink.attributes('aria-label')).toBe('My profile');
+        expect(desktopLink.get('i').classes()).toContain('bi-person-circle');
+        expect(desktopLink.get('i').attributes('aria-hidden')).toBe('true');
+        // sits straight before the Sign out button
+        expect(desktopLink.element.nextElementSibling.textContent.trim()).toBe('Sign out');
+
+        const mobileLink = header.get('#mobileNavigation .profileLink');
+        expect(mobileLink.attributes('href')).toBe('/profile');
+        expect(mobileLink.text()).toBe('My profile');
+    });
+
+    /**
+     * An admin's Administrator label becomes the My profile link, and the label still says Administrator (normal)
+     */
+    it('turns the administrator label into the My profile link', async () => {
+        // Arrange
+        vi.mocked(getCurrentUser).mockResolvedValue({ username: 'adm01', accountType: 'admin' });
+
+        // Act
+        const header = await loadHeader();
+
+        // Assert
+        const desktopLink = header.get('.desktopActions .accountBadge');
+        expect(desktopLink.element.tagName).toBe('A');
+        expect(desktopLink.attributes('href')).toBe('/profile');
+        // the visible word is part of the label, so voice control users can say what they see
+        expect(desktopLink.attributes('aria-label')).toBe('My profile (Administrator)');
+        expect(header.findAll('.desktopActions .profileLink')).toHaveLength(1);
+        expect(header.get('#mobileNavigation .profileLink').text()).toBe('Administrator');
+    });
+
+    /**
+     * Nobody logged in, so there's no profile to link to (boundary)
+     */
+    it('shows no My profile icon to a visitor', async () => {
+        // Arrange
+        vi.mocked(getCurrentUser).mockResolvedValue(null);
+
+        // Act
+        const header = await loadHeader();
+
+        // Assert
+        expect(header.find('.profileLink').exists()).toBe(false);
+    });
 });
