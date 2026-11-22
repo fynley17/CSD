@@ -252,6 +252,17 @@ abstract class User extends Model
     }
 
     /**
+     * Looks up the account's email address, only the MFA login needs it so it isn't loaded with the rest
+     */
+    public function findEmail(): string
+    {
+        $stmt = self::getDB()->prepare('SELECT email FROM Users WHERE userID = ?');
+        $stmt->execute([$this->userID]);
+
+        return (string) $stmt->fetchColumn();
+    }
+
+    /**
      * Returns the account type (student, lecturer or admin).
      */
     public function getAccountType(): string

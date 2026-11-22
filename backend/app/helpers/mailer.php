@@ -398,6 +398,82 @@ class Mailer
     }
 
     /**
+     * Sends the 6 digit security code someone needs to finish logging in when MFA is on.
+     */
+    public static function sendLoginCodeEmail(string $toEmail, string $code): bool
+    {
+        $email = self::buildLoginCodeEmail($code);
+
+        return self::sendEmail($toEmail, '', $email['subject'], $email['html'], $email['text']);
+    }
+
+    /**
+     * Builds the security code email, the last bit tells them what to do if it wasn't them.
+     *
+     * @return array{subject: string, html: string, text: string}
+     */
+    public static function buildLoginCodeEmail(string $code): array
+    {
+        $subject = 'Your RevisionHub security code';
+        $safeCode = htmlspecialchars($code, ENT_QUOTES, 'UTF-8');
+        $minutes = LoginCode::LIFETIME_MINUTES;
+        $resetLink = htmlspecialchars(self::forgotPasswordLink(), ENT_QUOTES, 'UTF-8');
+
+        $content = <<<HTML
+            <h1 style="margin:0 0 16px;font-size:22px;color:#0f1b33;">
+                Your security code
+            </h1>
+
+            <p style="margin:0 0 16px;">
+                Enter this code on the login page to finish logging in to RevisionHub:
+            </p>
+
+            <p style="margin:0 0 16px;font-size:32px;font-weight:bold;letter-spacing:6px;">
+                {$safeCode}
+            </p>
+
+            <p style="margin:0 0 16px;">
+                The code expires in {$minutes} minutes and only works once.
+            </p>
+
+            <p style="margin:0 0 16px;">
+                If this was not you, someone may know your password.
+                <a href="{$resetLink}" style="color:#0a66c2;">Reset your password</a> straight away.
+            </p>
+
+            <p style="margin:24px 0 0;">
+                Kind regards,<br>
+                <strong>The RevisionHub Team</strong>
+            </p>
+        HTML;
+
+        $text = "Your security code\n\n"
+            . "Enter this code on the login page to finish logging in to RevisionHub:\n\n"
+            . $code . "\n\n"
+            . "The code expires in " . $minutes . " minutes and only works once.\n\n"
+            . "If this was not you, someone may know your password. Reset your password straight away:\n"
+            . self::forgotPasswordLink() . "\n\n"
+            . "Kind regards,\nThe RevisionHub Team\n\n"
+            . "This is an automated message, please do not reply to this email.";
+
+        return [
+            'subject' => $subject,
+            'html' => self::wrapLayout($subject, $content),
+            'text' => $text,
+        ];
+    }
+
+    /**
+     * Builds the link to the forgot password page, used in the security code email.
+     */
+    public static function forgotPasswordLink(): string
+    {
+        $appUrl = rtrim(getenv('APP_URL') ?: self::DEFAULT_APP_URL, '/');
+
+        return $appUrl . '/forgot-password';
+    }
+
+    /**
      * Sends the welcome email a student receives once they've verified their email.
      */
     public static function sendWelcomeEmail(

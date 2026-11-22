@@ -52,6 +52,8 @@ class Authentication
         unset($_SESSION['csrfToken']);
         // handing in only checks the session has the attempt, so one account's attempts can't carry over to the next
         unset($_SESSION['testAttempts']);
+        // the security code has done its job, so it can't be used again
+        unset($_SESSION['pendingLogin']);
     }
 
     /**
@@ -85,6 +87,39 @@ class Authentication
     {
         (new self())->startSession();
         unset($_SESSION['pendingVerificationUserID']);
+    }
+
+    /**
+     * Remembers whose password was right while they get the security code from their email (MFA).
+     * They aren't logged in yet, so nothing that needs userID in the session will let them in.
+     */
+    public function savePendingLogin(LoginCode $loginCode): void
+    {
+        $this->startSession();
+        // new session ID for the same reason as saveLogin(), stops session fixation
+        session_regenerate_id(true);
+        $_SESSION['pendingLogin'] = $loginCode->saveForSession();
+    }
+
+    /**
+     * Returns the login waiting for its security code, read from the session on the server.
+     *
+     * @return LoginCode|null null if this browser hasn't got the password right yet
+     */
+    public function getPendingLogin(): ?LoginCode
+    {
+        $this->startSession();
+
+        return LoginCode::fromSession($_SESSION['pendingLogin'] ?? null);
+    }
+
+    /**
+     * Forgets the login waiting for a code, used when it's locked or a new login starts
+     */
+    public function clearPendingLogin(): void
+    {
+        $this->startSession();
+        unset($_SESSION['pendingLogin']);
     }
 
     /**

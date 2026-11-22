@@ -68,6 +68,13 @@ CREATE TABLE `LecturerSubjects` (
   `subjectID` uuid NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE `MfaBackupCodes` (
+  -- Up to 8 one-use codes per account, for logging in when the security code email can't be reached.
+  `backupCodeID` uuid NOT NULL DEFAULT uuid(),
+  `userID` uuid NOT NULL,
+  `codeHash` varchar(255) NOT NULL COMMENT 'password_hash of a backup code, never the code itself'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE `Questions` (
   `questionID` uuid NOT NULL DEFAULT uuid(),
   `subjectID` uuid NOT NULL,
@@ -162,6 +169,10 @@ ALTER TABLE `LecturerSubjects`
   ADD PRIMARY KEY (`lecturerID`,`subjectID`),
   ADD KEY `idx_ls_subject` (`subjectID`);
 
+ALTER TABLE `MfaBackupCodes`
+  ADD PRIMARY KEY (`backupCodeID`),
+  ADD KEY `idx_mfa_backup_codes_user` (`userID`);
+
 ALTER TABLE `Questions`
   ADD PRIMARY KEY (`questionID`),
   ADD KEY `idx_questions_subject` (`subjectID`);
@@ -220,6 +231,10 @@ ALTER TABLE `LecturerSubjects`
     REFERENCES `Lecturer` (`userID`) ON DELETE CASCADE ON UPDATE CASCADE,
   ADD CONSTRAINT `fk_ls_subject` FOREIGN KEY (`subjectID`)
     REFERENCES `Subjects` (`subjectID`) ON UPDATE CASCADE;
+
+ALTER TABLE `MfaBackupCodes`
+  ADD CONSTRAINT `fk_mfa_backup_codes_user` FOREIGN KEY (`userID`)
+    REFERENCES `Users` (`userID`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 ALTER TABLE `Questions`
   ADD CONSTRAINT `fk_questions_subject` FOREIGN KEY (`subjectID`)

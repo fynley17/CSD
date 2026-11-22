@@ -3,12 +3,14 @@
 namespace App\Controllers;
 
 use App\Helpers\Authentication;
+use App\Helpers\LoginCode;
+use App\Helpers\Mailer;
 use App\Models\User;
 use App\Models\Lecturer;
 
 /**
  * Auth controller, answers the login page's login, logout and "who's logged in" requests
- * goes in the same order as the login flowchart
+ * goes in the same order as the login flowchart, LoginCodeController carries on from here when MFA is on
  * the session itself is looked after by the Authentication object this controller keeps
  */
 class AuthController extends Controller
@@ -19,10 +21,12 @@ class AuthController extends Controller
     private const EMAIL_NOT_VERIFIED = 'You need to verify your email address before you can login';
     private const ACCOUNT_PENDING = 'Your account is waiting for lecturer approval. '
         . 'You will get an email when it is ready';
-    private const ACCOUNT_DISABLED = 'Your account has been disabled. Contact your lecturer or an administrator';
+    // protected so LoginCodeController can use the same wording
+    protected const ACCOUNT_DISABLED = 'Your account has been disabled. Contact your lecturer or an administrator';
+    protected const CODE_NOT_SENT = 'We could not send the security code. Try again later';
 
     // the login session helper, made once and shared by every method below
-    private Authentication $authentication;
+    protected Authentication $authentication;
 
     /**
      * Sets up the session helper as soon as the controller is made
@@ -37,6 +41,9 @@ class AuthController extends Controller
      */
     public function login(): void
     {
+        // a new login throws away any half finished one in this browser, i.e. someone else's on a shared computer
+        $this->authentication->clearPendingLogin();
+
         $details = $this->readLoginDetails();
 
         if ($details === null) {
@@ -75,8 +82,11 @@ class AuthController extends Controller
             }
 
             // right password, so earlier wrong ones don't count towards a lock any more
-            $user->clearFailedAttempts();
-            $user->saveLoginAttempts();
+            // with MFA on they stay until the code is right too, otherwise logging in again would give 3 more guesses
+            if (!LoginCode::isRequired()) {
+                $user->clearFailedAttempts();
+                $user->saveLoginAttempts();
+            }
 
             // these only get checked once the password is right, a stranger never sees them
             // disabled comes first, so a disabled account can't get to the check your email page
@@ -95,11 +105,16 @@ class AuthController extends Controller
                 $this->jsonResponse(['error' => self::ACCOUNT_DISABLED], 403);
             }
 
-            $user->recordLogin();
-            $this->authentication->saveLogin($user);
+            // MFA on, so the password isn't enough yet, LoginCodeController logs them in once the code is right
+            if (LoginCode::isRequired()) {
+                // fails closed, no email means no login
+                if (!$this->emailNewCode($user, time())) {
+                    $this->jsonResponse(['error' => self::CODE_NOT_SENT], 500);
+                }
+                $this->jsonResponse(['mfaRequired' => true, 'maskedEmail' => LoginCode::maskEmail($user->findEmail())]);
+            }
 
-            // page uses accountType to pick which dashboard to go to
-            $this->jsonResponse(['accountType' => $user->getAccountType()]);
+            $this->finishLogin($user);
         } catch (\Throwable $e) {
             $this->serverError('Login', $e);
         }
@@ -217,10 +232,45 @@ class AuthController extends Controller
     }
 
     /**
+     * Logs them in and tells the page which dashboard to go to, the last step with or without MFA
+     *
+     * @param array $reply anything else the page needs, i.e. a new set of backup codes
+     */
+    protected function finishLogin(User $user, array $reply = []): void
+    {
+        $user->recordLogin();
+        $this->authentication->saveLogin($user);
+
+        // page uses accountType to pick which dashboard to go to
+        $reply['accountType'] = $user->getAccountType();
+        $this->jsonResponse($reply);
+    }
+
+    /**
+     * Emails a new security code and keeps its hash in the session, any older code stops working
+     *
+     * @param int $startedAt when the password was right, a resend keeps the first time
+     * @return bool false if the email didn't send
+     */
+    protected function emailNewCode(User $user, int $startedAt): bool
+    {
+        $code = LoginCode::makeCode();
+
+        if (!Mailer::sendLoginCodeEmail($user->findEmail(), $code)) {
+            return false;
+        }
+
+        // only saved once the email's gone, so a failed send doesn't replace a code they already have
+        $codeHash = LoginCode::hashCode($code);
+        $this->authentication->savePendingLogin(new LoginCode($user->getUserID(), $codeHash, time(), $startedAt));
+        return true;
+    }
+
+    /**
      * The locked message, with the real time left so it's still right if they come back after 10 minutes
      * built from User's numbers so it can't say something different to what the code does
      */
-    private function lockedMessage(User $user): string
+    protected function lockedMessage(User $user): string
     {
         $minutes = $user->getMinutesUntilUnlock();
 
@@ -238,7 +288,7 @@ class AuthController extends Controller
     /**
      * Puts the real error in the server log and gives the user a plain message
      */
-    private function serverError(string $action, \Throwable $e): void
+    protected function serverError(string $action, \Throwable $e): void
     {
         // doesn't send the real error to the browser, it can show how the system works
         error_log($action . ' failed: ' . $e->getMessage());

@@ -96,6 +96,9 @@ Gmail app password are never committed.
 
    # the live address, used for the links in emails
    APP_URL=https://your-domain.example
+
+   # emails a security code at every login, see "Security codes (MFA)" below
+   MFA_ENABLED=true
    ```
 
 ## 5. Check it works
@@ -121,6 +124,25 @@ Database changes are not deployed by git. Apply any new files in
 
 To roll back, revert the change on `main`. The workflow then builds and
 deploys the reverted code.
+
+## Security codes (MFA)
+
+With `MFA_ENABLED=true` in `httpdocs/config/.env`, every login needs a 6 digit
+code from an email as well as the password. Only turn it on once
+`database/migrations/20261122-mfa-backup-codes.sql` has been run and the SMTP
+settings work.
+
+- **Email not working for everyone:** set `MFA_ENABLED=false`. Logins go back
+  to password only straight away and nothing is deleted.
+- **Someone lost access to their email:** an administrator changes their email
+  address with Edit on the student or lecturer management page.
+- **Break glass, lost their email and their backup codes:** in phpMyAdmin,
+  run this on the SQL tab with their username. They get a new set of backup
+  codes at their next login.
+
+  ```sql
+  DELETE b FROM MfaBackupCodes b JOIN Users u ON u.userID = b.userID WHERE u.username = 'ws123456';
+  ```
 
 ### Without GitHub Actions
 

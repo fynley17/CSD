@@ -4,6 +4,7 @@ use App\Router;
 use App\Controllers\StudentController;
 use App\Controllers\CohortController;
 use App\Controllers\AuthController;
+use App\Controllers\LoginCodeController;
 use App\Controllers\LeaderboardController;
 use App\Controllers\LecturerController;
 use App\Controllers\ResultController;
@@ -183,6 +184,19 @@ $router->addRoute(
     'POST',
     '/^\/api\/login$/',
     [new AuthController(), 'login']
+);
+
+// Security code after the password, only used when MFA_ENABLED is true.
+$router->addRoute(
+    'POST',
+    '/^\/api\/login\/code$/',
+    [new LoginCodeController(), 'verifyCode']
+);
+
+$router->addRoute(
+    'POST',
+    '/^\/api\/login\/code\/resend$/',
+    [new LoginCodeController(), 'resendCode']
 );
 
 $router->addRoute(
