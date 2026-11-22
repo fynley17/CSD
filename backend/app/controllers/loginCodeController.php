@@ -2,6 +2,7 @@
 
 namespace App\Controllers;
 
+use App\Helpers\Authentication;
 use App\Helpers\LoginCode;
 use App\Models\BackupCode;
 use App\Models\User;
@@ -22,6 +23,7 @@ class LoginCodeController extends AuthController
     private const NO_PENDING_LOGIN = 'Your session has ended. Login again to get a new code';
     private const WAIT_BEFORE_RESEND = 'Wait a minute before asking for another email';
     private const CODE_RESENT = 'We have sent a new security code';
+    private const NO_NEW_CODES = 'There are no new backup codes to save. Login again to get a new set';
 
     /**
      * POST /api/login/code, checks the emailed security code or a backup code then logs them in
@@ -71,10 +73,11 @@ class LoginCodeController extends AuthController
             $user->saveLoginAttempts();
 
             // first MFA login, or they just used their last backup code, so they get a new set to save
-            // made before finishLogin() so a database problem doesn't leave them logged in without seeing them
+            // only the hashes wait in the session, saveBackupCodes() puts them in the database once they're saved
             $reply = [];
             if (BackupCode::countLeft($user->getUserID()) === 0) {
-                $reply['backupCodes'] = BackupCode::createSet($user->getUserID());
+                $reply['backupCodes'] = BackupCode::makeSet();
+                $this->authentication->saveNewBackupCodes(BackupCode::hashSet($reply['backupCodes']));
             }
 
             $this->finishLogin($user, $reply);
@@ -112,6 +115,28 @@ class LoginCodeController extends AuthController
             $this->jsonResponse(['message' => self::CODE_RESENT]);
         } catch (\Throwable $e) {
             $this->serverError('Resending the security code', $e);
+        }
+    }
+
+    /**
+     * POST /api/login/backup-codes, saves the new backup codes once the page says they've been copied or downloaded
+     * nothing is saved before this, so refreshing the codes page means a new set shows at the next login
+     */
+    public function saveBackupCodes(): void
+    {
+        // they're logged in by now, any account type can have backup codes
+        Authentication::requireRole(['student', 'lecturer', 'admin']);
+
+        $hashes = $this->authentication->takeNewBackupCodes();
+        if ($hashes === null) {
+            $this->jsonResponse(['error' => self::NO_NEW_CODES], 400);
+        }
+
+        try {
+            BackupCode::saveSet(Authentication::getLoggedInUserID(), $hashes);
+            $this->jsonResponse(['message' => 'Backup codes saved']);
+        } catch (\Throwable $e) {
+            $this->serverError('Saving backup codes', $e);
         }
     }
 

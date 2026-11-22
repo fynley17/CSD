@@ -162,20 +162,28 @@ export default {
                     />
                 </div>
 
-                <button type="submit" class="headerButton loginButton w-100" :disabled="isSubmitting">Continue</button>
+                <!-- every button waits while one request is going, so Continue and Resend can't cross over -->
+                <button type="submit" class="headerButton loginButton w-100" :disabled="isSubmitting || isSending">
+                    Continue
+                </button>
             </form>
 
             <div class="d-flex flex-column flex-sm-row gap-2 mt-3 mb-4">
                 <button
                     type="button"
                     class="headerButton registerButton flex-fill"
-                    :disabled="isSending"
+                    :disabled="isSubmitting || isSending"
                     @click="sendAgain"
                 >
                     Resend code
                 </button>
                 <!-- the password has to be typed again, that sends a new code -->
-                <button type="button" class="headerButton registerButton flex-fill" @click="$emit('back')">
+                <button
+                    type="button"
+                    class="headerButton registerButton flex-fill"
+                    :disabled="isSubmitting || isSending"
+                    @click="$emit('back')"
+                >
                     Back to login
                 </button>
             </div>

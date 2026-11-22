@@ -201,6 +201,12 @@ $router->addRoute(
 
 $router->addRoute(
     'POST',
+    '/^\/api\/login\/backup-codes$/',
+    [new LoginCodeController(), 'saveBackupCodes']
+);
+
+$router->addRoute(
+    'POST',
     '/^\/api\/logout$/',
     [new AuthController(), 'logout']
 );

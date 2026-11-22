@@ -36,14 +36,15 @@ final class BackupCodeTest extends TestCase
     }
 
     /**
-     * A new set is 8 different codes like K7QM-2XPA, all saved (normal)
+     * A new set is 8 different codes like K7QM-2XPA, all saved once saveSet() runs (normal)
      */
     public function testNewSetHasEightDifferentCodes(): void
     {
         // Arrange: nothing to set up, the account has no codes yet
 
         // Act
-        $codes = BackupCode::createSet(self::USER_ID);
+        $codes = BackupCode::makeSet();
+        BackupCode::saveSet(self::USER_ID, BackupCode::hashSet($codes));
 
         // Assert
         self::assertCount(BackupCode::SET_SIZE, array_unique($codes));
@@ -57,7 +58,8 @@ final class BackupCodeTest extends TestCase
     public function testCodeOnlyWorksOnce(): void
     {
         // Arrange
-        $codes = BackupCode::createSet(self::USER_ID);
+        $codes = BackupCode::makeSet();
+        BackupCode::saveSet(self::USER_ID, BackupCode::hashSet($codes));
         $typedSloppily = strtolower(str_replace('-', ' ', $codes[0]));
 
         // Act
@@ -76,7 +78,7 @@ final class BackupCodeTest extends TestCase
     public function testWrongCodeIsTurnedAway(): void
     {
         // Arrange
-        BackupCode::createSet(self::USER_ID);
+        BackupCode::saveSet(self::USER_ID, BackupCode::hashSet(BackupCode::makeSet()));
 
         // Act
         $isUsed = BackupCode::useCode(self::USER_ID, 'AAAA-AAAA');

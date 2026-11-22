@@ -15,17 +15,41 @@ class BackupCode extends Model
     private const LETTERS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 
     /**
-     * Throws away the account's old codes and saves a new set of 8.
+     * Makes a new set of 8 codes, nothing gets saved here.
      *
      * @return string[] the codes to show the user, this is the only time they're ever shown
      */
-    public static function createSet(string $userID): array
+    public static function makeSet(): array
     {
         $codes = [];
         for ($i = 0; $i < self::SET_SIZE; $i++) {
             $codes[] = self::makeCode();
         }
 
+        return $codes;
+    }
+
+    /**
+     * Hashes a set of codes, the hashes wait in the session until the user has copied or downloaded the codes.
+     *
+     * @return string[] password_hash of each code, without the dash
+     */
+    public static function hashSet(array $codes): array
+    {
+        $hashes = [];
+        foreach ($codes as $code) {
+            // hashed without the dash, normalise() takes it off what they type as well
+            $hashes[] = password_hash(self::normalise($code), PASSWORD_DEFAULT);
+        }
+
+        return $hashes;
+    }
+
+    /**
+     * Throws away the account's old codes and saves the new hashes.
+     */
+    public static function saveSet(string $userID, array $hashes): void
+    {
         $db = self::getDB();
 
         // delete and save together, so a crash halfway can't leave them with no codes
@@ -35,9 +59,8 @@ class BackupCode extends Model
             $stmt->execute([$userID]);
 
             $stmt = $db->prepare('INSERT INTO MfaBackupCodes (userID, codeHash) VALUES (?, ?)');
-            foreach ($codes as $code) {
-                // hashed without the dash, normalise() takes it off what they type as well
-                $stmt->execute([$userID, password_hash(self::normalise($code), PASSWORD_DEFAULT)]);
+            foreach ($hashes as $hash) {
+                $stmt->execute([$userID, $hash]);
             }
 
             $db->commit();
@@ -47,8 +70,6 @@ class BackupCode extends Model
             }
             throw $e;
         }
-
-        return $codes;
     }
 
     /**

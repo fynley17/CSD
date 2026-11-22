@@ -114,6 +114,30 @@ class Authentication
     }
 
     /**
+     * Keeps the hashes of a new set of backup codes until the user has copied or downloaded the codes
+     * so if they refresh or close the page first nothing is saved and they get a new set next login
+     */
+    public function saveNewBackupCodes(array $hashes): void
+    {
+        $this->startSession();
+        $_SESSION['newBackupCodes'] = $hashes;
+    }
+
+    /**
+     * Hands back the waiting backup code hashes and forgets them, so they can only be saved once
+     *
+     * @return array|null null if there aren't any waiting
+     */
+    public function takeNewBackupCodes(): ?array
+    {
+        $this->startSession();
+        $hashes = $_SESSION['newBackupCodes'] ?? null;
+        unset($_SESSION['newBackupCodes']);
+
+        return is_array($hashes) ? $hashes : null;
+    }
+
+    /**
      * Forgets the login waiting for a code, used when it's locked or a new login starts
      */
     public function clearPendingLogin(): void

@@ -42,6 +42,15 @@ export async function resendLoginCode() {
 }
 
 /**
+ * Tells POST /api/login/backup-codes the new backup codes have been copied or downloaded, so PHP saves them
+ * until this runs nothing is saved, so a refresh means a new set at the next login
+ */
+export async function saveBackupCodes() {
+    const response = await api.post('/login/backup-codes');
+    return response.data;
+}
+
+/**
  * Tells PHP to end the session, used when someone signs out
  */
 export async function logout() {

@@ -1,7 +1,10 @@
 <script>
+import { saveBackupCodes } from '../../services/authService';
+
 // Backup codes card, shown once after an MFA login when the account has no backup codes left
 // each code logs in once without the email, PHP only keeps hashes so this is the only time they're shown
 // a step in the login card and not a pop-up, so Esc or the X can't skip it
+// PHP only saves the codes once Continue works, so a refresh before then means a new set next login
 export default {
     props: {
         // the 8 new codes from PHP, i.e. K7QM-2XPA
@@ -14,11 +17,14 @@ export default {
     data() {
         return {
             hasSaved: false,
+            // true once Copy codes or Download codes has worked, Continue needs one of them
+            hasCopiedOrDownloaded: false,
             // filled in when Continue is pressed without ticking the box
             fieldError: '',
-            // set when the browser won't let the codes be copied
-            copyError: '',
+            // set when copying fails or PHP couldn't save the codes
+            serverError: '',
             successMessage: '',
+            isSaving: false,
         };
     },
     computed: {
@@ -40,10 +46,11 @@ export default {
 
             try {
                 await navigator.clipboard.writeText(this.codesText);
+                this.hasCopiedOrDownloaded = true;
                 this.successMessage = 'Backup codes copied';
             } catch {
                 // i.e. the browser has clipboard access turned off
-                this.copyError = 'Your browser did not let the codes be copied. Use Download codes instead';
+                this.serverError = 'Your browser did not let the codes be copied. Use Download codes instead';
             }
             await this.focusMessage();
         },
@@ -60,26 +67,41 @@ export default {
             // frees the file from memory once the download has started
             URL.revokeObjectURL(link.href);
 
+            this.hasCopiedOrDownloaded = true;
             this.successMessage = 'Backup codes downloaded';
             await this.focusMessage();
         },
 
-        // Continue only goes on once the box is ticked, the codes can't be shown again after this
+        // Continue needs the codes copied or downloaded and the box ticked, they can't be shown again after this
         async finish() {
             this.clearMessages();
 
+            if (!this.hasCopiedOrDownloaded) {
+                this.serverError = 'Copy or download your backup codes before you continue';
+                await this.focusMessage();
+                return;
+            }
             if (!this.hasSaved) {
                 this.fieldError = 'Tick the box to confirm you have saved your backup codes';
                 await this.focusMessage();
                 return;
             }
 
-            this.$emit('done');
+            this.isSaving = true;
+            try {
+                await saveBackupCodes();
+                this.$emit('done');
+            } catch (error) {
+                this.serverError = error.response?.data?.error || 'Unable to save your backup codes. Try again';
+                await this.focusMessage();
+            } finally {
+                this.isSaving = false;
+            }
         },
 
         clearMessages() {
             this.fieldError = '';
-            this.copyError = '';
+            this.serverError = '';
             this.successMessage = '';
         },
 
@@ -95,7 +117,7 @@ export default {
 <template>
     <div class="card surfaceCard loginForm">
         <div class="card-body p-4 p-md-5">
-            <h1 ref="heading" class="mb-3" tabindex="-1">Save your backup codes</h1>
+            <h1 ref="heading" class="mb-3" tabindex="-1">Save your backup codes now</h1>
 
             <p>
                 If you can't get the security code email, you can login with one of these codes instead. Each code only
@@ -120,7 +142,7 @@ export default {
 
             <!-- one message box for every reply, it stays until the next button press -->
             <div
-                v-if="fieldError || copyError"
+                v-if="fieldError || serverError"
                 ref="messageBox"
                 class="alert alert-danger d-flex gap-2"
                 role="alert"
@@ -139,7 +161,7 @@ export default {
                         </li>
                     </ul>
                 </div>
-                <p v-else class="mb-0"><strong>There is a problem:</strong> {{ copyError }}</p>
+                <p v-else class="mb-0"><strong>There is a problem:</strong> {{ serverError }}</p>
             </div>
             <div
                 v-else-if="successMessage"
@@ -180,7 +202,7 @@ export default {
                     <label for="savedCodes" class="form-check-label">I have saved these codes somewhere safe</label>
                 </div>
 
-                <button type="submit" class="headerButton loginButton w-100">Continue</button>
+                <button type="submit" class="headerButton loginButton w-100" :disabled="isSaving">Continue</button>
             </form>
         </div>
     </div>
