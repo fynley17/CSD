@@ -24,8 +24,11 @@
     white-space: nowrap;
 }
 
+/* long cohort names wraps and the row gets taller - so the table doesn't scroll sideways */
 .cohortTable .cohortNameCell {
     font-weight: 700;
+    white-space: normal;
+    overflow-wrap: anywhere;
 }
 
 .cohortTable .cohortDetailsTable tbody th {

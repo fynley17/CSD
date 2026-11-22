@@ -999,6 +999,20 @@ describe('CohortManagement', () => {
     });
 
     /**
+     * the form says how long a name can be, so a name that stops at 50 isnt a surprise (boundary)
+     */
+    it('shows the cohort name limit', async () => {
+        // Arrange
+        const page = await openPage();
+
+        // Act
+        await page.get('.cohortCreateButton').trigger('click');
+
+        // Assert
+        expect(page.get('label[for="cohortName"]').text()).toContain('Up to 50 characters');
+    });
+
+    /**
      * Saving adds the new cohort to the top of the tables and closes the pop-up (normal)
      */
     it('creates a cohort and shows it straight away', async () => {
