@@ -146,8 +146,9 @@
 
 /* Check your email and verify email cards, the rest of their look comes from the .loginForm rules above */
 
-/* house style success box, same shape as the problem box but green, dark text so it passes contrast */
-.verificationCard .successMessage {
+/* house style success box, same shape as the problem box but green, dark text so it passes contrast
+   on every card that uses the login styles, i.e. check your email, verify email, forgot and reset password */
+.loginForm .successMessage {
     background-color: var(--colorSuccessLight);
     border: 0;
     border-left: 6px solid var(--colorSuccess);
@@ -155,13 +156,13 @@
     color: var(--colorText);
 }
 
-.verificationCard .successMessage:focus-visible {
+.loginForm .successMessage:focus-visible {
     outline: 3px solid var(--colorFocus);
     outline-offset: 2px;
 }
 
 /* green tick instead of the red warning icon */
-.verificationCard .successMessage .messageIcon {
+.loginForm .successMessage .messageIcon {
     stroke: var(--colorSuccess);
 }
 

@@ -214,16 +214,16 @@
         </section>
 
         <!-- Section 10: Provides a contact route for privacy questions.
-         Replace the placeholder with your university email address. -->
+         All contact goes to the RevisionHub help address. -->
         <section class="mb-4">
             <h2>10. Contact Us</h2>
 
             <p>
                 If you have questions about this Privacy Policy or how your personal information is handled, please
-                contact the RevisionHub project team using the designated university email address.
+                contact the RevisionHub project team by email.
             </p>
 
-            <p>Contact email: <a href="mailto:WS381211@weston.ac.uk">WS381211@weston.ac.uk</a></p>
+            <p>Contact email: <a href="mailto:revisionhub.help@gmail.com">revisionhub.help@gmail.com</a></p>
         </section>
     </div>
 </template>

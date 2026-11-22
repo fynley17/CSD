@@ -124,7 +124,7 @@
                     </div>
                     <div>
                         <h3>Email</h3>
-                        <a href="mailto:support@revisionhub.co.uk"> WS382593@weston.ac.uk </a>
+                        <a href="mailto:revisionhub.help@gmail.com">revisionhub.help@gmail.com</a>
                     </div>
                 </div>
 

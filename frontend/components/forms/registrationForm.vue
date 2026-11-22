@@ -10,6 +10,9 @@ export default {
             formError: '',
             isSubmitting: false,
             termsAccepted: false,
+            // each password box has its own eye button, so one can be checked without showing the other
+            isPasswordShown: false,
+            isConfirmPasswordShown: false,
             form: {
                 firstName: '',
                 lastName: '',
@@ -113,6 +116,8 @@ export default {
                 confirmPassword: '',
             };
             this.termsAccepted = false;
+            this.isPasswordShown = false;
+            this.isConfirmPasswordShown = false;
         },
     },
 };
@@ -213,32 +218,67 @@ export default {
                     <div class="row g-3">
                         <div class="col-12 col-sm-6">
                             <label for="password" class="form-label">Password</label>
-                            <input
-                                v-model="form.password"
-                                type="password"
-                                class="form-control"
-                                id="password"
-                                placeholder="Enter a password"
-                                minlength="8"
-                                pattern="(?=.*[A-Z])(?=.*[a-z])(?=.*[0-9])(?=.*[^A-Za-z0-9\s]).{8,}"
-                                title="Use 8+ characters with uppercase, lowercase, a number, and a symbol."
-                                required
-                            />
+                            <div class="input-group">
+                                <input
+                                    v-model="form.password"
+                                    :type="isPasswordShown ? 'text' : 'password'"
+                                    class="form-control"
+                                    id="password"
+                                    placeholder="Enter a password"
+                                    autocomplete="new-password"
+                                    minlength="8"
+                                    pattern="(?=.*[A-Z])(?=.*[a-z])(?=.*[0-9])(?=.*[^A-Za-z0-9\s]).{8,}"
+                                    title="Use 8+ characters with uppercase, lowercase, a number, and a symbol."
+                                    required
+                                />
+                                <!-- the icon has no words, so aria-label tells screen readers what the button does -->
+                                <button
+                                    type="button"
+                                    class="btn passwordToggle"
+                                    aria-controls="password"
+                                    :aria-label="isPasswordShown ? 'Hide password' : 'Show password'"
+                                    :aria-pressed="isPasswordShown ? 'true' : 'false'"
+                                    @click="isPasswordShown = !isPasswordShown"
+                                >
+                                    <i
+                                        :class="isPasswordShown ? 'bi bi-eye-slash' : 'bi bi-eye'"
+                                        aria-hidden="true"
+                                    ></i>
+                                </button>
+                            </div>
                         </div>
 
                         <div class="col-12 col-sm-6">
                             <label for="confirmPassword" class="form-label">Confirm password</label>
-                            <input
-                                v-model="form.confirmPassword"
-                                type="password"
-                                class="form-control"
-                                id="confirmPassword"
-                                placeholder="Re-enter your password"
-                                minlength="8"
-                                pattern="(?=.*[A-Z])(?=.*[a-z])(?=.*[0-9])(?=.*[^A-Za-z0-9\s]).{8,}"
-                                title="Re-enter password."
-                                required
-                            />
+                            <div class="input-group">
+                                <input
+                                    v-model="form.confirmPassword"
+                                    :type="isConfirmPasswordShown ? 'text' : 'password'"
+                                    class="form-control"
+                                    id="confirmPassword"
+                                    placeholder="Re-enter your password"
+                                    autocomplete="new-password"
+                                    minlength="8"
+                                    pattern="(?=.*[A-Z])(?=.*[a-z])(?=.*[0-9])(?=.*[^A-Za-z0-9\s]).{8,}"
+                                    title="Re-enter password."
+                                    required
+                                />
+                                <button
+                                    type="button"
+                                    class="btn passwordToggle"
+                                    aria-controls="confirmPassword"
+                                    :aria-label="
+                                        isConfirmPasswordShown ? 'Hide confirm password' : 'Show confirm password'
+                                    "
+                                    :aria-pressed="isConfirmPasswordShown ? 'true' : 'false'"
+                                    @click="isConfirmPasswordShown = !isConfirmPasswordShown"
+                                >
+                                    <i
+                                        :class="isConfirmPasswordShown ? 'bi bi-eye-slash' : 'bi bi-eye'"
+                                        aria-hidden="true"
+                                    ></i>
+                                </button>
+                            </div>
                         </div>
                         <div class="col-12">
                             <small class="registrationHelpText">
@@ -340,5 +380,30 @@ export default {
     background-color: var(--colorSuccessLight);
     border-color: var(--colorSuccess);
     color: var(--colorSuccess);
+}
+
+/* .registrationForm [class~='form-control'] rounds every box, inside a group only the outer corners should be round.
+   Starting with .registrationForm makes this more specific than that rule, so it wins wherever it sits */
+.registrationForm [class~='input-group'] > [class~='form-control'] {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
+/* the eye button joins on to the right of the box and uses the same border, big enough to tap on a phone */
+.passwordToggle {
+    min-width: var(--minTouchTarget);
+    border: 1px solid var(--colorDivider);
+    border-left: 0;
+    border-radius: 0;
+    border-top-right-radius: var(--radiusSm);
+    border-bottom-right-radius: var(--radiusSm);
+    background-color: var(--colorSurface);
+    color: var(--colorTextSecondary);
+}
+
+.passwordToggle:hover,
+.passwordToggle:focus-visible {
+    background-color: var(--colorSurfaceAlt);
+    color: var(--colorText);
 }
 </style>
