@@ -53,6 +53,10 @@
     --fontSizeHeroTitleMobile: clamp(2rem, 7vw, 3rem);
     --fontSizeFooter: 0.6875rem;
 
+    /* My profile icon next to Sign out, big enough to spot without words, smaller in the phone menu next to text */
+    --fontSizeAccountIcon: 1.75rem;
+    --fontSizeAccountIconMenu: 1.25rem;
+
     /* Spacing */
     --spaceXs: 0.25rem;
     --spaceSm: 0.5rem;

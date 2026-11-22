@@ -596,13 +596,13 @@ async function signOut() {
 }
 
 .profileLink .bi {
-    font-size: 1.75rem;
+    font-size: var(--fontSizeAccountIcon);
     line-height: 1;
 }
 
 /* the admin link keeps the smaller icon it had as a label */
 .profileLink.accountBadge .bi {
-    font-size: 1rem;
+    font-size: var(--fontSizeBody);
 }
 
 .profileLink:hover {
@@ -628,7 +628,7 @@ async function signOut() {
 }
 
 .mobileNavigation .profileLink .bi {
-    font-size: 1.25rem;
+    font-size: var(--fontSizeAccountIconMenu);
 }
 
 .siteHeader .headerButton {
