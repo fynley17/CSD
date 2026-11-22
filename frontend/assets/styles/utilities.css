@@ -1,0 +1,6 @@
+/* Utilities: small one job classes that can go on anything, loaded last so they win */
+
+/* House-style colour for hint and supporting text. */
+.hintText {
+    color: var(--colorTextSecondary);
+}

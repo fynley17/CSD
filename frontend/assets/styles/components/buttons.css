@@ -1,0 +1,109 @@
+/* House style buttons: the header buttons, and Bootstrap's buttons in the house colours.
+   Loaded after the tables so the house colours still win over the table button styles, as before */
+
+/* Shared buttons */
+.headerButton {
+    display: inline-flex;
+    min-height: 44px;
+    align-items: center;
+    justify-content: center;
+    padding: var(--spaceXs) var(--spaceMd);
+    border: 1px solid var(--colorPrimary);
+    border-radius: var(--radiusSm);
+    font-family: var(--fontBody);
+    font-size: var(--fontSizeButton);
+    font-weight: 600;
+    line-height: 1.5;
+    text-decoration: none;
+    background-color: var(--colorPrimary);
+    color: var(--colorSurface);
+}
+
+.headerButton:hover {
+    background-color: var(--colorPrimaryHover);
+    border-color: var(--colorPrimaryHover);
+    color: var(--colorSurface);
+}
+
+.loginButton {
+    background-color: var(--colorPrimary);
+    color: var(--colorSurface);
+}
+
+.loginButton:hover {
+    border-color: var(--colorPrimaryHover);
+    background-color: var(--colorPrimaryHover);
+    color: var(--colorSurface);
+}
+
+.registerButton {
+    background-color: var(--colorSurface);
+    color: var(--colorPrimary);
+}
+
+.registerButton:hover {
+    background-color: var(--colorPrimaryLight);
+    color: var(--colorPrimaryHover);
+}
+
+.headerButton:disabled,
+.headerButton:disabled:hover {
+    background-color: var(--colorDisabled);
+    border-color: var(--colorDivider);
+    color: var(--colorTextSecondary);
+    cursor: not-allowed;
+}
+
+/* house style buttons, slate blue (secondary = slate blue outline on white) */
+[class~='btn-primary'] {
+    --bs-btn-bg: var(--colorPrimary);
+    --bs-btn-border-color: var(--colorPrimary);
+    --bs-btn-hover-bg: var(--colorPrimaryHover);
+    --bs-btn-hover-border-color: var(--colorPrimaryHover);
+    --bs-btn-active-bg: var(--colorPrimaryHover);
+    --bs-btn-active-border-color: var(--colorPrimaryHover);
+    --bs-btn-disabled-bg: var(--colorPrimary);
+    --bs-btn-disabled-border-color: var(--colorPrimary);
+}
+
+[class~='btn-outline-primary'] {
+    --bs-btn-color: var(--colorPrimary);
+    --bs-btn-border-color: var(--colorPrimary);
+    --bs-btn-hover-bg: var(--colorPrimary);
+    --bs-btn-hover-border-color: var(--colorPrimary);
+    --bs-btn-active-bg: var(--colorPrimary);
+    --bs-btn-active-border-color: var(--colorPrimary);
+
+    /* disabled = house style grey, not bootstrap's see through version */
+    --bs-btn-disabled-bg: var(--colorDisabled);
+    --bs-btn-disabled-border-color: var(--colorDisabled);
+    --bs-btn-disabled-color: var(--colorTextSecondary);
+    --bs-btn-disabled-opacity: 1;
+}
+
+/* delete and remove buttons use the house red instead of bootstrap's, darker red on hover */
+[class~='btn-danger'] {
+    --bs-btn-bg: var(--colorError);
+    --bs-btn-border-color: var(--colorError);
+    --bs-btn-hover-bg: var(--colorErrorHover);
+    --bs-btn-hover-border-color: var(--colorErrorHover);
+    --bs-btn-active-bg: var(--colorErrorHover);
+    --bs-btn-active-border-color: var(--colorErrorHover);
+    --bs-btn-disabled-bg: var(--colorError);
+    --bs-btn-disabled-border-color: var(--colorError);
+}
+
+[class~='btn-outline-danger'] {
+    --bs-btn-color: var(--colorError);
+    --bs-btn-border-color: var(--colorError);
+    --bs-btn-hover-bg: var(--colorError);
+    --bs-btn-hover-border-color: var(--colorError);
+    --bs-btn-active-bg: var(--colorErrorHover);
+    --bs-btn-active-border-color: var(--colorErrorHover);
+
+    /* disabled = house style grey, the same as the outline primary buttons */
+    --bs-btn-disabled-bg: var(--colorDisabled);
+    --bs-btn-disabled-border-color: var(--colorDisabled);
+    --bs-btn-disabled-color: var(--colorTextSecondary);
+    --bs-btn-disabled-opacity: 1;
+}

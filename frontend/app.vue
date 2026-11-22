@@ -24,3 +24,22 @@ const route = useRoute();
         <IdleWarning />
     </div>
 </template>
+
+<style scoped>
+/* moved from main.css, only this component uses these styles */
+.appLayout {
+    display: flex;
+    min-height: 100vh;
+    flex-direction: column;
+}
+
+/* Allow the main content to take up available space */
+.appMain {
+    flex: 1;
+}
+
+/* No navbar on full screen pages, so no space is reserved for it */
+main.appMainFullScreen {
+    padding-top: 0;
+}
+</style>
