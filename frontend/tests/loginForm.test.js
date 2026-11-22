@@ -7,6 +7,8 @@ import { login } from '../services/authService';
 
 vi.mock('../services/authService', () => ({
     login: vi.fn(),
+    verifyLoginCode: vi.fn(),
+    resendLoginCode: vi.fn(),
 }));
 
 /**
@@ -126,6 +128,23 @@ describe('LoginForm after logging in', () => {
 
         // Assert
         expect(wrapper.vm.$router.push).toHaveBeenCalledWith('/student-results');
+    });
+
+    /**
+     * With MFA on the security code card shows instead of going to the dashboard (normal)
+     */
+    it('shows the security code card when PHP asks for a code', async () => {
+        // Arrange
+        login.mockResolvedValue({ mfaRequired: true, maskedEmail: 'w***@example.com' });
+        const wrapper = mountForm();
+
+        // Act
+        await submitLogin(wrapper);
+
+        // Assert
+        expect(wrapper.get('h1').text()).toBe('Check your email');
+        expect(wrapper.get('.verificationEmail').text()).toBe('w***@example.com');
+        expect(wrapper.vm.$router.push).not.toHaveBeenCalled();
     });
 
     /**

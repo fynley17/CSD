@@ -8,12 +8,36 @@ import { startIdleTimer, stopIdleTimer } from './idleTimer';
  * if they're right, PHP starts a session and the browser keeps the cookie by itself
  * if they're wrong - axios throws an error, the login form catches it and shows PHP's message
  * @returns {Promise<object>} the account type, i.e. { accountType: 'admin' }, used to pick their dashboard
+ * or { mfaRequired: true, maskedEmail } when MFA is on and PHP has emailed a security code instead
  */
 export async function login(username, password) {
     // axios turns this object into JSON before sending it
     const response = await api.post('/login', { username, password });
     // logged in, so the 30 minute countdown starts
+    // not when MFA is on, they aren't logged in until verifyLoginCode() works
+    if (response.data.accountType) {
+        startIdleTimer();
+    }
+    return response.data;
+}
+
+/**
+ * Sends the security code, or a backup code, to POST /api/login/code, the second step when MFA is on
+ * @returns {Promise<object>} the account type, plus backupCodes if PHP has just made a new set
+ */
+export async function verifyLoginCode(code) {
+    const response = await api.post('/login/code', { code });
+    // logged in now, so the countdown starts
     startIdleTimer();
+    return response.data;
+}
+
+/**
+ * Asks POST /api/login/code/resend to email a new security code, the old one stops working
+ * @returns {Promise<object>} PHP's message, i.e. { message: 'We have sent a new security code' }
+ */
+export async function resendLoginCode() {
+    const response = await api.post('/login/code/resend');
     return response.data;
 }
 

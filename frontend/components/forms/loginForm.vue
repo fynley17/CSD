@@ -2,6 +2,8 @@
 import { login } from '../../services/authService';
 import { safeRedirect } from '../../utils/safeRedirect';
 import PopupDialog from '../common/popupDialog.vue';
+import BackupCodesForm from './backupCodesForm.vue';
+import LoginCodeForm from './loginCodeForm.vue';
 
 // each account type has its own home after logging in, students, lecturers and admins never share a dashboard
 const DASHBOARD_PATHS = {
@@ -13,8 +15,11 @@ const DASHBOARD_PATHS = {
 // Login form for every account type, sits inside loginPage.vue
 // sends the details off in the background so the page never reloads (AJAX)
 // and shows any problems in a house style message box above the boxes
+// with MFA on it also swaps in the security code card, then the backup codes card if there's a new set
 export default {
     components: {
+        BackupCodesForm,
+        LoginCodeForm,
         PopupDialog,
     },
     data() {
@@ -31,6 +36,13 @@ export default {
             lockedMessage: '',
             // true when the password was right but the email isn't verified yet, shows the check your email link
             needsVerification: false,
+            // which card is showing, 'details' for username and password, then 'code' and 'backupCodes' with MFA
+            step: 'details',
+            // where PHP sent the security code, most of it hidden
+            maskedEmail: '',
+            // a new set from PHP, only kept here until the backup codes card is done with
+            backupCodes: [],
+            accountType: '',
         };
     },
     computed: {
@@ -60,8 +72,15 @@ export default {
 
             try {
                 const user = await login(this.username.trim(), this.password);
-                // all good, so back to the page they wanted, or the dashboard for their account type
-                this.$router.push(safeRedirect(this.$route.query.redirect) || DASHBOARD_PATHS[user.accountType] || '/');
+
+                // MFA is on, so PHP has emailed a code and they aren't logged in yet
+                if (user.mfaRequired) {
+                    this.maskedEmail = user.maskedEmail;
+                    this.step = 'code';
+                    return;
+                }
+
+                this.goToDashboard(user.accountType);
             } catch (error) {
                 // 429 means PHP has locked the account after too many wrong passwords
                 if (error.response?.status === 429) {
@@ -75,6 +94,41 @@ export default {
             } finally {
                 this.isSubmitting = false;
             }
+        },
+
+        // the security code was right, new backup codes get shown before the dashboard if PHP made some
+        finishLogin(result) {
+            if (result.backupCodes) {
+                this.backupCodes = result.backupCodes;
+                this.accountType = result.accountType;
+                this.step = 'backupCodes';
+                return;
+            }
+
+            this.goToDashboard(result.accountType);
+        },
+
+        // all good, so back to the page they wanted, or the dashboard for their account type
+        goToDashboard(accountType) {
+            this.$router.push(safeRedirect(this.$route.query.redirect) || DASHBOARD_PATHS[accountType] || '/');
+        },
+
+        // Back to login on the code card, the password goes in again and that sends a new code
+        async backToDetails() {
+            this.step = 'details';
+            this.password = '';
+            await this.$nextTick();
+            this.$refs.passwordInput.focus();
+        },
+
+        // 3 wrong codes, so back to the login card with the same locked pop-up wrong passwords get
+        async showLocked(message) {
+            this.step = 'details';
+            this.password = '';
+            this.lockedMessage = message;
+            // the pop-up is inside the login card, so it has to be back on the page before it can open
+            await this.$nextTick();
+            this.$refs.lockedPopup.open();
         },
 
         // catches empty boxes before bothering the server, and sets the house style error for each one
@@ -99,7 +153,7 @@ export default {
 </script>
 
 <template>
-    <div class="card surfaceCard loginForm">
+    <div v-if="step === 'details'" class="card surfaceCard loginForm">
         <div class="card-body p-4 p-md-5">
             <!-- logo and slogan on wider screens, hidden on phones as loginPage.vue shows them under the form -->
             <div class="d-none d-md-block text-center mb-5">
@@ -189,6 +243,7 @@ export default {
                         <!-- paste and password managers allowed, WCAG 3.3.8 says login can't rely on memory -->
                         <input
                             id="password"
+                            ref="passwordInput"
                             v-model="password"
                             :type="isPasswordShown ? 'text' : 'password'"
                             class="form-control"
@@ -241,4 +296,14 @@ export default {
             </PopupDialog>
         </div>
     </div>
+
+    <!-- the MFA cards take the login card's place once the password is right -->
+    <LoginCodeForm
+        v-else-if="step === 'code'"
+        :maskedEmail="maskedEmail"
+        @loggedIn="finishLogin"
+        @locked="showLocked"
+        @back="backToDetails"
+    />
+    <BackupCodesForm v-else :codes="backupCodes" @done="goToDashboard(accountType)" />
 </template>

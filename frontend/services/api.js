@@ -41,10 +41,12 @@ api.interceptors.request.use(async (config) => {
 // runs when a reply comes back from PHP, every request starts PHP's 30 minutes again,
 // so the countdown on the page starts again as well
 // PHP makes a new secret code at login and ends the session at logout, so the saved one is thrown away then
+// with MFA on the login actually happens at /login/code, so that one counts too
 api.interceptors.response.use(
     (response) => {
         restartIdleTimer();
-        if (response.config.url === '/login' || response.config.url === '/logout') {
+        const url = response.config.url;
+        if (url === '/login' || url === '/login/code' || url === '/logout') {
             csrfToken = null;
         }
         return response;
