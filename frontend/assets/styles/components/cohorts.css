@@ -240,6 +240,7 @@
 .cohortDialogConfirm h3 {
     font-size: var(--fontSizeH3);
     font-weight: 700;
+    overflow-wrap: anywhere;
 }
 
 .cohortDialogIcon {
