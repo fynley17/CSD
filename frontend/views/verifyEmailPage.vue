@@ -8,6 +8,8 @@ export default {
         return {
             isVerifying: true,
             isVerified: false,
+            // set when the link confirmed a new address from the My profile page, not a new account
+            emailChangedMessage: '',
             serverError: '',
         };
     },
@@ -22,7 +24,10 @@ export default {
         }
 
         try {
-            await verifyEmail(token);
+            const result = await verifyEmail(token);
+            if (result?.emailChanged) {
+                this.emailChangedMessage = result.message;
+            }
             this.isVerified = true;
         } catch (error) {
             // PHP's messages already use the house style wording, so they're shown as they come
@@ -44,6 +49,24 @@ export default {
                         <template v-if="isVerifying">
                             <h1 class="mb-3">Verifying your email</h1>
                             <p class="secondaryText mb-0" role="status">Please wait…</p>
+                        </template>
+
+                        <!-- an existing account confirming a new address, so there's no approval to wait for -->
+                        <template v-else-if="emailChangedMessage">
+                            <h1 class="mb-3">Email address changed</h1>
+                            <div class="alert successMessage d-flex gap-2" role="status">
+                                <svg class="messageIcon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                    <circle cx="12" cy="12" r="10" />
+                                    <polyline points="8 12 11 15 16 9" />
+                                </svg>
+                                <p class="mb-0 verificationEmail">
+                                    <strong>Success:</strong> {{ emailChangedMessage }}
+                                </p>
+                            </div>
+                            <p>We will use this address for your RevisionHub emails from now on.</p>
+                            <router-link to="/profile" class="headerButton loginButton w-100">
+                                Go to my profile
+                            </router-link>
                         </template>
 
                         <template v-else-if="isVerified">

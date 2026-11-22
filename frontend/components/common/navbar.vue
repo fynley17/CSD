@@ -22,11 +22,19 @@
                 <!-- Desktop navigation -->
                 <div class="headerActions desktopActions">
                     <p v-if="authError" class="navbarError" role="alert">{{ authError }}</p>
-                    <!-- admins see the lecturer pages too, so this shows which account is logged in -->
-                    <p v-if="isAdmin" class="accountBadge">
+                    <!-- My profile, next to Sign out. Admins see the lecturer pages too, so their link also says
+                         Administrator to show which account is logged in -->
+                    <RouterLink
+                        v-if="currentUser"
+                        to="/profile"
+                        class="profileLink"
+                        :class="{ accountBadge: isAdmin }"
+                        :aria-label="profileLabel"
+                        :title="profileLabel"
+                    >
                         <i class="bi bi-person-circle" aria-hidden="true"></i>
-                        Administrator
-                    </p>
+                        <template v-if="isAdmin">Administrator</template>
+                    </RouterLink>
                     <button
                         v-if="currentUser"
                         type="button"
@@ -58,10 +66,6 @@
 
                 <!-- Mobile dropdown -->
                 <div id="mobileNavigation" class="mobileNavigation" :class="{ isOpen: menuOpen }" :hidden="!menuOpen">
-                    <p v-if="isAdmin" class="accountBadge">
-                        <i class="bi bi-person-circle" aria-hidden="true"></i>
-                        Administrator
-                    </p>
                     <nav v-if="navigation" :class="navigation.mobileClass" :aria-label="navigation.label">
                         <RouterLink
                             v-for="link in navigation.links"
@@ -73,6 +77,18 @@
                         </RouterLink>
                     </nav>
                     <p v-if="authError" class="navbarError" role="alert">{{ authError }}</p>
+                    <!-- the same My profile link as the desktop header, with words as there's room in the menu -->
+                    <RouterLink
+                        v-if="currentUser"
+                        to="/profile"
+                        class="profileLink"
+                        :class="{ accountBadge: isAdmin }"
+                        :aria-label="profileLabel"
+                        @click="menuOpen = false"
+                    >
+                        <i class="bi bi-person-circle" aria-hidden="true"></i>
+                        {{ isAdmin ? 'Administrator' : 'My profile' }}
+                    </RouterLink>
                     <button
                         v-if="currentUser"
                         type="button"
@@ -113,6 +129,8 @@ const isStudent = computed(() => currentUser.value?.accountType === 'student');
 let authRequest = 0;
 const isLecturer = computed(() => currentUser.value?.accountType === 'lecturer');
 const isAdmin = computed(() => currentUser.value?.accountType === 'admin');
+// what screen readers hear for the profile link, an admin's also says Administrator because that word is on screen
+const profileLabel = computed(() => (isAdmin.value ? 'My profile (Administrator)' : 'My profile'));
 // the page links for each account type, the desktop header and the phone menu both read from here
 // so the two menus always match. An Administrator is a Lecturer too, so admins share the lecturer link styles
 const NAVIGATION = {
@@ -562,6 +580,55 @@ async function signOut() {
 /* lines the account icon up with the links in the hamburger menu */
 .mobileNavigation .accountBadge {
     padding: 0 var(--spaceSm);
+}
+
+/* My profile link next to Sign out, 44px so it's big enough to tap, Royal Blue to match the nav links */
+.profileLink {
+    display: inline-flex;
+    min-width: var(--minTouchTarget);
+    min-height: var(--minTouchTarget);
+    align-items: center;
+    justify-content: center;
+    gap: var(--spaceXs);
+    border-radius: var(--radiusSm);
+    color: var(--colorBrand);
+    text-decoration: none;
+}
+
+.profileLink .bi {
+    font-size: 1.75rem;
+    line-height: 1;
+}
+
+/* the admin link keeps the smaller icon it had as a label */
+.profileLink.accountBadge .bi {
+    font-size: 1rem;
+}
+
+.profileLink:hover {
+    color: var(--colorPrimary);
+}
+
+.profileLink:focus-visible {
+    outline: 3px solid var(--colorFocus);
+    outline-offset: 2px;
+}
+
+/* on the profile page itself the icon is filled in, the same way the page links show where you are */
+.profileLink.routerLinkExactActive {
+    background-color: var(--colorBrand);
+    color: var(--colorSurface);
+}
+
+/* in the menu it's a full width row with words, like the page links above it */
+.mobileNavigation .profileLink {
+    justify-content: flex-start;
+    padding: 0 var(--spaceSm);
+    font-weight: 600;
+}
+
+.mobileNavigation .profileLink .bi {
+    font-size: 1.25rem;
 }
 
 .siteHeader .headerButton {
