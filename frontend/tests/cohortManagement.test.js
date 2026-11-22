@@ -379,6 +379,7 @@ describe('CohortManagement', () => {
 
         // Assert
         expect(page.findAll('.cohortPagingSummary')[0].text()).toBe(summary);
+        expect(findButton(page, `Enable ${cohortName}`).text()).toBe('Enable');
     });
 
     /**
