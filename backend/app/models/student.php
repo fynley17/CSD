@@ -4,6 +4,32 @@ namespace App\Models;
 
 class Student extends User
 {
+    /**
+     * Students keep their names in the Students table.
+     */
+    protected static function nameTable(): string
+    {
+        return 'Students';
+    }
+
+    /**
+     * The My profile details, plus the student's cohort, which only a lecturer or admin can change.
+     */
+    public function getProfile(): array
+    {
+        $profile = parent::getProfile();
+
+        $stmt = self::getDB()->prepare(
+            'SELECT Cohorts.cohortName FROM Students '
+            . 'JOIN Cohorts ON Cohorts.cohortID = Students.cohortID WHERE Students.userID = ?'
+        );
+        $stmt->execute([$this->getUserID()]);
+        $cohortName = $stmt->fetchColumn();
+        $profile['cohortName'] = $cohortName === false ? null : $cohortName;
+
+        return $profile;
+    }
+
     public static function getAll(): array
     {
         $db = self::getDB();
