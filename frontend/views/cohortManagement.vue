@@ -2,7 +2,10 @@
 <template>
     <section class="cohortManagement">
         <h1>Cohort Management</h1>
-        <p class="cohortManagementIntro">Create and manage cohorts, the students in them and the subjects they study</p>
+        <p class="cohortManagementIntro">
+            Create and manage cohorts, the students in them and the subjects they study. Every student has to be in a
+            cohort, so taking a student out of one means moving them to another
+        </p>
 
         <!-- one search for both tables, as they list the same cohorts -->
         <div class="tableToolbar">
@@ -55,6 +58,10 @@
 
         <template v-else>
             <h2>Students in each cohort</h2>
+            <p class="cohortManagementIntro">
+                Press the arrow next to a cohort to show its details, where you can add students or move a student to
+                another cohort
+            </p>
             <CohortStudentsTable
                 :cohorts="visibleCohorts"
                 :toolbarSort="sortBy"
@@ -66,6 +73,9 @@
             />
 
             <h2>Subjects for each cohort</h2>
+            <p class="cohortManagementIntro">
+                Press the arrow next to a cohort to show its details, where you can assign or remove subjects
+            </p>
             <CohortSubjectsTable
                 :cohorts="visibleCohorts"
                 :toolbarSort="sortBy"

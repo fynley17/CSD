@@ -310,9 +310,81 @@ export default {
 </template>
 
 <style scoped>
-/* main.css rounds every registration box, inside a group only the outer corners should be round.
-   [class~=...] matches Bootstrap's hyphenated class names, the same way main.css does */
-[class~='input-group'] > [class~='form-control'] {
+/* moved from main.css, only this component uses these styles */
+.registrationFormTitle {
+    color: var(--colorBrand);
+    font-family: var(--fontHeading);
+    font-size: var(--fontSizeH3);
+    font-weight: 700;
+    line-height: 1.4;
+}
+
+.registrationFormDescription,
+.registrationHelpText,
+.registrationError,
+.registrationTermsText {
+    color: var(--colorTextSecondary);
+}
+
+.registrationError {
+    color: var(--colorError);
+}
+
+.registrationForm [class~='form-control'],
+.registrationForm [class~='form-select'] {
+    background-color: var(--colorSurface);
+    border-color: var(--colorDivider);
+    border-radius: var(--radiusSm);
+    color: var(--colorText);
+    font-family: var(--fontBody);
+}
+
+.registrationForm [class~='form-control']::placeholder {
+    color: var(--colorTextSecondary);
+    opacity: 0.7;
+}
+
+.registrationForm [class~='form-control']:disabled,
+.registrationForm [class~='form-select']:disabled {
+    background-color: var(--colorDisabled);
+}
+
+.registrationForm [class~='form-check-input'] {
+    border-color: var(--colorBorderInput);
+}
+
+.registrationForm [class~='form-control']:focus,
+.registrationForm [class~='form-select']:focus,
+.registrationForm [class~='form-check-input']:focus {
+    border-color: var(--colorHighlight);
+    box-shadow: var(--shadowFocus);
+}
+
+.registrationForm [class~='form-check-input']:checked {
+    background-color: var(--colorPrimary);
+    border-color: var(--colorPrimary);
+}
+
+.registrationForm [class~='form-label'] {
+    color: var(--colorText);
+    font-weight: 600;
+}
+
+.registrationForm [class~='alert-danger'] {
+    background-color: var(--colorErrorLight);
+    border-color: var(--colorError);
+    color: var(--colorError);
+}
+
+.registrationForm [class~='alert-success'] {
+    background-color: var(--colorSuccessLight);
+    border-color: var(--colorSuccess);
+    color: var(--colorSuccess);
+}
+
+/* .registrationForm [class~='form-control'] rounds every box, inside a group only the outer corners should be round.
+   Starting with .registrationForm makes this more specific than that rule, so it wins wherever it sits */
+.registrationForm [class~='input-group'] > [class~='form-control'] {
     border-top-right-radius: 0;
     border-bottom-right-radius: 0;
 }
