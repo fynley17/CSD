@@ -163,6 +163,16 @@ onMounted(() => Promise.all([loadSummary(), loadCompletedTests()]));
 </template>
 
 <style scoped>
+/* moved from main.css, only this component uses these styles */
+
+/* large number on the results summary cards */
+.statValue {
+    color: var(--colorText);
+    font-size: var(--fontSizeStat);
+    font-weight: 700;
+    line-height: 1.2;
+}
+
 /* Bootstrap's grey only reaches 4.3:1 on the page background, this one is over 6:1. Big enough to tap on a phone. */
 .exportAllButton {
     --bs-btn-color: var(--colorTextSecondary);

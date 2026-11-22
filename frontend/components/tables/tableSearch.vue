@@ -1,7 +1,10 @@
 <!-- Search box above a table, sits in the toolbar next to the filter dropdowns and looks like them -->
 <template>
     <div class="tableSearch">
-        <label :for="id" class="form-label tableFilterLabel">{{ label }}</label>
+        <!-- hideLabel keeps it for screen readers but not on screen, i.e. when the box lines up with tabs -->
+        <label :for="id" class="form-label tableFilterLabel" :class="{ 'visually-hidden': hideLabel }">{{
+            label
+        }}</label>
         <div class="tableSearchField">
             <i class="bi bi-search tableSearchIcon" aria-hidden="true"></i>
             <input
@@ -32,6 +35,11 @@ defineProps({
     placeholder: {
         type: String,
         default: '',
+    },
+    // the placeholder then has to say what the box is for, as sighted users won't see the label
+    hideLabel: {
+        type: Boolean,
+        default: false,
     },
 });
 </script>
