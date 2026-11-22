@@ -190,6 +190,7 @@ class LoginCodeController extends AuthController
         // that was the 3rd wrong try, so the code they have stops working as well
         if ($user->isLocked()) {
             $this->authentication->clearPendingLogin();
+            $this->sendLockedAlert($user);
             $this->jsonResponse(['error' => $this->lockedMessage($user)], 429);
         }
 

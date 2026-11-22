@@ -76,6 +76,7 @@ class AuthController extends Controller
                 // so someone locking a student out on purpose can only cost them 15 minutes
                 // it would also deny learning for too long a period if admins were away
                 if ($user->isLocked()) {
+                    $this->sendLockedAlert($user);
                     $this->jsonResponse(['error' => $this->lockedMessage($user)], 429);
                 }
                 $this->jsonResponse(['error' => self::WRONG_DETAILS], 401);
@@ -264,6 +265,15 @@ class AuthController extends Controller
         $codeHash = LoginCode::hashCode($code);
         $this->authentication->savePendingLogin(new LoginCode($user->getUserID(), $codeHash, time(), $startedAt));
         return true;
+    }
+
+    /**
+     * Emails the owner when 3 wrong tries lock their account, so they know if someone's guessing their password
+     * only a warning, the lock and the 429 still happen if the email fails (sendEmail logs that)
+     */
+    protected function sendLockedAlert(User $user): void
+    {
+        Mailer::sendAccountLockedEmail($user->findEmail());
     }
 
     /**
