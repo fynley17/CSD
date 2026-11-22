@@ -1388,8 +1388,11 @@ main.appMainFullScreen {
     white-space: nowrap;
 }
 
+/* a long cohort name wraps and the row gets taller, instead of the table scrolling sideways */
 .cohortTable .cohortNameCell {
     font-weight: 700;
+    white-space: normal;
+    overflow-wrap: anywhere;
 }
 
 .cohortTable .cohortDetailsTable tbody th {
