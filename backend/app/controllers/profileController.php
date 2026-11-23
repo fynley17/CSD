@@ -8,7 +8,7 @@ use App\Models\EmailVerification;
 use App\Models\User;
 
 /**
- * Profile controller (CTS-203), answers the My profile page for every account type
+ * Profile controller, answers the My profile page for every account type
  * every request works on whoever is logged in, read from the session on the server,
  * no user ID is taken from the request, so nobody can see or change someone else's account
  */
