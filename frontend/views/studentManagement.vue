@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref, onMounted, onUnmounted } from 'vue';
+import { computed, ref, onMounted, onUnmounted, nextTick } from 'vue';
 import { getCurrentUser } from '../services/authService';
 import StudentManagementTable from '../components/tables/studentManagementTable.vue';
 import TableFilter from '../components/tables/tableFilter.vue';
@@ -26,7 +26,11 @@ const statusFilter = ref('');
 
 // Store the warning displayed when student login emails fail.
 const warningMessage = ref('');
+const successMessage = ref('');
+const errorMessage = ref('');
+const errorToast = ref(null);
 let messageTimeout = null;
+let notificationTimeout = null;
 
 // Retrieve the available cohort options from the student table component.
 const cohorts = computed(() => studentManagementTable.value?.cohorts ?? []);
@@ -46,11 +50,47 @@ function showWarning(message) {
     }, 10000);
 }
 
+// Display a success toast after a completed action.
+async function showSuccess(message) {
+    successMessage.value = message;
+    if (notificationTimeout) clearTimeout(notificationTimeout);
+    notificationTimeout = setTimeout(() => {
+        successMessage.value = '';
+        notificationTimeout = null;
+    }, 5000);
+}
+
+// Display errors in the browser top layer so they remain visible above native dialogs.
+async function showError(message) {
+    errorMessage.value = message;
+    if (notificationTimeout) clearTimeout(notificationTimeout);
+    await nextTick();
+    if (errorToast.value && !errorToast.value.matches(':popover-open')) {
+        errorToast.value.showPopover();
+    }
+    notificationTimeout = setTimeout(() => {
+        errorToast.value?.hidePopover();
+        errorMessage.value = '';
+        notificationTimeout = null;
+    }, 8000);
+}
+
+// Handle successful student form saves.
+const handleStudentSaved = (response) => {
+    studentManagementTable.value?.refreshStudents();
+    showSuccess(selectedStudent.value ? 'Student updated successfully.' : 'Student created successfully.');
+
+    if (response?.emailSent === false) {
+        showWarning(
+            'Student created, but the login email failed. The student will need their account access email resent.',
+        );
+    }
+};
+
 // Clear the notification timeout when leaving the page.
 onUnmounted(() => {
-    if (messageTimeout) {
-        clearTimeout(messageTimeout);
-    }
+    if (messageTimeout) clearTimeout(messageTimeout);
+    if (notificationTimeout) clearTimeout(notificationTimeout);
 });
 
 // Show only students whose applications are awaiting approval.
@@ -90,24 +130,20 @@ const closeStudentForm = () => {
 // Control the student form and store the student being edited.
 const showStudentForm = ref(false);
 const selectedStudent = ref(null);
-
-// Refresh the table and warn the lecturer if the login email failed.
-const handleStudentSaved = (response) => {
-    studentManagementTable.value?.refreshStudents();
-
-    if (response?.emailSent === false) {
-        showWarning(
-            'Student created, but the login email failed. The student will need their account access email resent.',
-        );
-    }
-};
 </script>
 
 <template>
     <!-- laid out like lecturer and subject management so every table page matches -->
     <section class="container py-4 adminPage">
+        <div v-if="successMessage" class="toastMessage successMessage" role="status" aria-live="polite">
+            {{ successMessage }}
+        </div>
+        <div ref="errorToast" popover="manual" class="toastMessage errorMessage" role="alert" aria-live="assertive">
+            {{ errorMessage }}
+        </div>
+
         <!-- Warn the lecturer when student login details could not be emailed. -->
-        <div v-if="warningMessage" class="studentManagementToast" role="alert" aria-live="assertive">
+        <div v-if="warningMessage" class="toastMessage warningMessage" role="status" aria-live="polite">
             <span aria-hidden="true">!</span>
             {{ warningMessage }}
         </div>
@@ -145,7 +181,13 @@ const handleStudentSaved = (response) => {
             </div>
         </div>
 
-        <StudentManagementTable ref="studentManagementTable" :search="searchText" @edit="openEditStudentForm" />
+        <StudentManagementTable
+            ref="studentManagementTable"
+            :search="searchText"
+            @edit="openEditStudentForm"
+            @success="showSuccess"
+            @error="showError"
+        />
 
         <!-- Display the student form in Add or Edit mode. -->
         <StudentForm
@@ -153,14 +195,15 @@ const handleStudentSaved = (response) => {
             :key="selectedStudent?.userID ?? 'new'"
             :student="selectedStudent"
             @saved="handleStudentSaved"
+            @error="showError"
             @close="closeStudentForm"
         />
     </section>
 </template>
 
 <style scoped>
-/* Display the temporary email failure warning. */
-.studentManagementToast {
+/* Match the notification styling used on the Questions management page. */
+.toastMessage {
     position: fixed;
     z-index: 1100;
     top: var(--spaceLg);
@@ -171,10 +214,41 @@ const handleStudentSaved = (response) => {
     width: max-content;
     max-width: min(450px, calc(100vw - 2 * var(--spaceLg)));
     padding: var(--spaceMd) var(--spaceLg);
-    border: 2px solid var(--colorError);
+    border: 2px solid var(--colorPrimary);
     border-radius: var(--radiusSm);
     background: var(--colorSurface);
-    color: var(--colorError);
+    color: var(--colorText);
     font-weight: 600;
+}
+
+.successMessage {
+    border-color: var(--colorPrimary);
+}
+
+.errorMessage {
+    border-color: var(--colorError);
+    color: var(--colorError);
+    margin: 0;
+}
+
+.errorMessage:popover-open {
+    position: fixed;
+    inset: var(--spaceLg) var(--spaceLg) auto auto;
+}
+
+/* Keep the email-delivery notice visible below the success notification. */
+.warningMessage {
+    top: calc(var(--spaceLg) + 64px);
+}
+
+@media (max-width: 639px) {
+    .toastMessage {
+        top: var(--spaceMd);
+        right: var(--spaceMd);
+    }
+
+    .warningMessage {
+        top: calc(var(--spaceMd) + 64px);
+    }
 }
 </style>

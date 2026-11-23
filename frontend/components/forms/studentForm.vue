@@ -11,7 +11,7 @@ const props = defineProps({
     },
 });
 
-const emit = defineEmits(['saved', 'close']);
+const emit = defineEmits(['saved', 'close', 'error']);
 
 const isEditing = computed(() => Boolean(props.student?.userID));
 
@@ -53,6 +53,7 @@ async function loadCohorts() {
         cohorts.value = availableCohorts;
     } catch {
         errorMessage.value = 'Unable to load cohorts. Please try again.';
+        emit('error', errorMessage.value);
     } finally {
         loadingCohorts.value = false;
     }
@@ -93,6 +94,7 @@ async function submitStudent() {
     errorMessage.value = '';
 
     if (!validateForm()) {
+        emit('error', errorMessage.value);
         return;
     }
 
@@ -124,6 +126,7 @@ async function submitStudent() {
             error.response?.data?.error ??
             error.response?.data?.message ??
             `Unable to ${action} the student account. Please try again.`;
+        emit('error', errorMessage.value);
     } finally {
         submitting.value = false;
     }

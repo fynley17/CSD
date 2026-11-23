@@ -20,7 +20,6 @@ DataTable.use(DataTablesCore);
 const students = ref([]);
 const loading = ref(true);
 const errorMessage = ref('');
-const actionError = ref('');
 
 const deletePopup = ref(null);
 const declinePopup = ref(null);
@@ -34,7 +33,7 @@ const decliningStudent = ref(false);
 // Count the student applications that are awaiting approval.
 const pendingCount = computed(() => students.value.filter((student) => student.status === 'Pending').length);
 
-const emit = defineEmits(['edit']);
+const emit = defineEmits(['edit', 'success', 'error']);
 
 const dataTable = ref(null);
 
@@ -159,8 +158,6 @@ const toggleText = (student) => (student.status === 'Disabled' ? 'Enable' : 'Dis
 
 // Handle the action buttons in the #actions slot.
 const handleAction = async (action, student, event) => {
-    actionError.value = '';
-
     if (action === 'edit') {
         emit('edit', student);
         return;
@@ -206,10 +203,20 @@ const handleAction = async (action, student, event) => {
                 return;
         }
 
-        // Refresh the table after a successful action.
+        const messages = {
+            enable: 'Student enabled successfully.',
+            disable: 'Student disabled successfully.',
+            approve: 'Student application approved successfully.',
+        };
+        emit('success', messages[action]);
         await refreshStudents();
     } catch (error) {
-        actionError.value = error.response?.data?.error || 'Unable to complete this action. Please try again.';
+        emit(
+            'error',
+            error.response?.data?.error ||
+                error.response?.data?.message ||
+                'Unable to complete this action. Please try again.',
+        );
     } finally {
         if (button) {
             button.disabled = false;
@@ -224,16 +231,19 @@ const confirmDeclineStudent = async () => {
     }
 
     decliningStudent.value = true;
-    actionError.value = '';
 
     try {
         await declineStudent(studentToDecline.value.userID);
-
         declinePopup.value?.close();
+        emit('success', 'Student application declined successfully.');
         await refreshStudents();
     } catch (error) {
-        actionError.value =
-            error.response?.data?.error || 'Unable to decline the student application. Please try again.';
+        emit(
+            'error',
+            error.response?.data?.error ||
+                error.response?.data?.message ||
+                'Unable to decline the student application. Please try again.',
+        );
     } finally {
         decliningStudent.value = false;
     }
@@ -246,15 +256,19 @@ const confirmDeleteStudent = async () => {
     }
 
     deletingStudent.value = true;
-    actionError.value = '';
 
     try {
         await deleteStudent(studentToDelete.value.userID);
-
         deletePopup.value?.close();
+        emit('success', 'Student deleted successfully.');
         await refreshStudents();
     } catch (error) {
-        actionError.value = error.response?.data?.error || 'Unable to delete the student account. Please try again.';
+        emit(
+            'error',
+            error.response?.data?.error ||
+                error.response?.data?.message ||
+                'Unable to delete the student account. Please try again.',
+        );
     } finally {
         deletingStudent.value = false;
     }
@@ -304,11 +318,6 @@ onMounted(async () => {
     <!-- same white card as the lecturer and subject tables -->
     <div class="card border-0 rounded-0 h-100">
         <div class="px-3 px-md-4 pb-4">
-            <!-- Show errors returned by student account actions. -->
-            <div v-if="actionError" class="alert alert-danger mt-3" role="alert">
-                {{ actionError }}
-            </div>
-
             <!-- Show a loading message while student records are being retrieved. -->
             <p v-if="loading" class="text-center py-4 mb-0" role="status">Loading students...</p>
 
