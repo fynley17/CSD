@@ -1,4 +1,4 @@
-// Profile service (CTS-203), every call the My profile page makes goes through here
+// Profile service, every call the My profile page makes goes through here
 // PHP works out whose profile it is from the login cookie, so no user ID is ever sent
 import api from './api';
 
