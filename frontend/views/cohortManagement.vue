@@ -174,7 +174,6 @@ const assigningCohort = ref(null);
 const removing = ref(null);
 const deletingCohort = ref(null);
 const disablingCohort = ref(null);
-const successMessage = ref('');
 // the cohort that was just disabled, so Undo knows what to turn back on
 const undoCohort = ref(null);
 const isUndoing = ref(false);
