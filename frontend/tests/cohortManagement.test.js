@@ -791,6 +791,17 @@ describe('CohortManagement', () => {
         // Assert
         expect(problem).toContain('Unable to update DTS 2026');
         expect(page.find('[role="alert"]').exists()).toBe(false);
+        expect(page.get('.toastMessage').text()).toContain('Cohort disabled successfully.');
+    });
+
+    it('shows a success toast when enabling a cohort', async () => {
+        const page = await openPage();
+
+        await findButton(page, 'Enable Software Engineering 2024').trigger('click');
+        await flushPromises();
+
+        expect(setCohortActive).toHaveBeenCalledWith('cohort-4', true);
+        expect(page.get('.toastMessage').text()).toContain('Cohort enabled successfully.');
     });
 
     /**
@@ -827,6 +838,7 @@ describe('CohortManagement', () => {
         expect(page.find('.popupDialog').exists()).toBe(false);
         expect(cohortNames(page, 0)).not.toContain('Data Science 2026');
         expect(cohortNames(page, 1)).not.toContain('Data Science 2026');
+        expect(page.get('.toastMessage').text()).toContain('Cohort deleted successfully.');
     });
 
     /**
@@ -1023,6 +1035,7 @@ describe('CohortManagement', () => {
         expect(createCohort).toHaveBeenCalledWith('New Cohort', true);
         expect(page.find('.popupDialog').exists()).toBe(false);
         expect(cohortNames(page, 0)[0]).toBe('New Cohort');
+        expect(page.get('.toastMessage').text()).toContain('Cohort created successfully.');
     });
 
     /**
@@ -1100,6 +1113,7 @@ describe('CohortManagement', () => {
         expect(page.find('.popupDialog').exists()).toBe(false);
         expect(cohortNames(page, 0)).toContain('DTS 2027');
         expect(cohortNames(page, 1)).toContain('DTS 2027');
+        expect(page.get('.toastMessage').text()).toContain('Cohort updated successfully.');
     });
 
     /**
@@ -1223,6 +1237,7 @@ describe('CohortManagement', () => {
         // Assert
         expect(updateCohort).toHaveBeenCalledWith('cohort-1', 'DTS 2026', false);
         expect(findButton(page, 'Enable DTS 2026').text()).toBe('Enable');
+        expect(page.get('.toastMessage').text()).toContain('Cohort updated successfully.');
     });
 
     /**

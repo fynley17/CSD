@@ -24,6 +24,10 @@
             </div>
         </div>
 
+        <div v-if="successMessage" class="toastMessage successMessage" role="status" aria-live="polite">
+            {{ successMessage }}
+        </div>
+
         <div v-if="saveError" class="alert alert-danger mt-3 mb-0" role="alert">
             <strong>There is a problem:</strong> {{ saveError }}
         </div>
@@ -104,7 +108,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import AddStudentsDialog from '../components/common/addStudentsDialog.vue';
 import AssignSubjectsDialog from '../components/common/assignSubjectsDialog.vue';
 import CohortFormDialog from '../components/common/cohortFormDialog.vue';
@@ -118,6 +122,8 @@ import { cohortStatusOptions } from '../utils/filterOptions';
 import CohortSubjectsTable from '../components/tables/cohortSubjectsTable.vue';
 import { getCohorts, setCohortActive } from '../services/cohortService';
 
+const successMessage = ref('');
+let messageTimeout = null;
 const allCohorts = ref([]);
 const isLoading = ref(true);
 const loadError = ref('');
@@ -162,6 +168,24 @@ const visibleCohorts = computed(() => {
     return sortBy.value ? cohorts.sort(sorters[sortBy.value]) : cohorts;
 });
 
+function showSuccess(message) {
+    successMessage.value = message;
+
+    if (messageTimeout) {
+        clearTimeout(messageTimeout);
+    }
+
+    messageTimeout = setTimeout(() => {
+        successMessage.value = '';
+        messageTimeout = null;
+    }, 5000);
+}
+
+onBeforeUnmount(() => {
+    if (messageTimeout) {
+        clearTimeout(messageTimeout);
+    }
+});
 onMounted(async () => {
     try {
         allCohorts.value = await getCohorts();
@@ -196,23 +220,30 @@ function openCohortForm(cohort) {
 
 // a new cohort goes at the top of the list so it can be seen straight away
 function saveCohort(savedCohort) {
-    if (editingCohort.value) {
+    const wasEditing = Boolean(editingCohort.value);
+
+    if (wasEditing) {
         updateCohort(editingCohort.value, savedCohort);
     } else {
         allCohorts.value = [savedCohort, ...allCohorts.value];
     }
+
+    showSuccess(wasEditing ? 'Cohort updated successfully.' : 'Cohort created successfully.');
 }
 
 function removeCohort(deletedCohort) {
     allCohorts.value = allCohorts.value.filter((cohort) => cohort.cohortID !== deletedCohort.cohortID);
+    showSuccess('Cohort deleted successfully.');
 }
 
 // the screen only changes once PHP confirms it's saved, so it never shows a status the database doesn't have
 async function toggleStatus(cohort) {
     saveError.value = '';
+    const isActive = !cohort.isActive;
 
     try {
-        Object.assign(cohort, await setCohortActive(cohort.cohortID, !cohort.isActive));
+        Object.assign(cohort, await setCohortActive(cohort.cohortID, isActive));
+        showSuccess(`Cohort ${isActive ? 'enabled' : 'disabled'} successfully.`);
     } catch (error) {
         saveError.value = error.response?.data?.error || `Unable to update ${cohort.cohortName}`;
     }
@@ -246,9 +277,38 @@ async function toggleStatus(cohort) {
     color: var(--colorTextSecondary);
 }
 
+.toastMessage {
+    position: fixed;
+    z-index: 1100;
+    top: var(--spaceLg);
+    right: var(--spaceLg);
+    display: flex;
+    align-items: center;
+    gap: var(--spaceSm);
+    width: max-content;
+    max-width: min(450px, calc(100vw - 2 * var(--spaceLg)));
+    padding: var(--spaceMd) var(--spaceLg);
+    border: 2px solid var(--colorPrimary);
+    border-radius: var(--radiusSm);
+    background: var(--colorSurface);
+    color: var(--colorText);
+    font-weight: 600;
+}
+
+.successMessage {
+    border-color: var(--colorPrimary);
+}
+
 @media (min-width: 768px) {
     .cohortManagement {
         padding: var(--space2xl) var(--spaceLg);
+    }
+}
+
+@media (max-width: 639px) {
+    .toastMessage {
+        top: var(--spaceMd);
+        right: var(--spaceMd);
     }
 }
 </style>
