@@ -247,17 +247,20 @@ export default {
                 <p v-else class="mb-0">They'll be able to log in again</p>
             </div>
             <template #buttons>
-                <button type="button" class="btn btn-outline-primary flex-fill" @click="$refs.confirmDialog.close()">
-                    Cancel
-                </button>
-                <button
-                    type="button"
-                    class="btn flex-fill"
-                    :class="confirmAction === 'delete' ? 'btn-danger' : 'btn-primary'"
-                    @click="confirmChange"
-                >
-                    {{ confirmButtonText }}
-                </button>
+                <!-- same width side by side like the cohort pop-ups, stacked on a phone -->
+                <div class="d-grid d-sm-flex gap-2 w-100">
+                    <button type="button" class="btn btn-outline-primary w-100" @click="$refs.confirmDialog.close()">
+                        Cancel
+                    </button>
+                    <button
+                        type="button"
+                        class="btn w-100"
+                        :class="confirmAction === 'delete' ? 'btn-danger' : 'btn-primary'"
+                        @click="confirmChange"
+                    >
+                        {{ confirmButtonText }}
+                    </button>
+                </div>
             </template>
         </PopupDialog>
         <LecturerForm ref="form" @saved="saved" />

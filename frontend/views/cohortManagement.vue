@@ -2,7 +2,10 @@
 <template>
     <section class="cohortManagement">
         <h1>Cohort Management</h1>
-        <p class="cohortManagementIntro">Create and manage cohorts, the students in them and the subjects they study</p>
+        <p class="cohortManagementIntro">
+            Create and manage cohorts, the students in them and the subjects they study. Every student has to be in a
+            cohort, so taking a student out of one means moving them to another
+        </p>
 
         <!-- one search for both tables, as they list the same cohorts -->
         <div class="tableToolbar">
@@ -24,8 +27,23 @@
             </div>
         </div>
 
-        <div v-if="successMessage" class="toastMessage successMessage" role="status" aria-live="polite">
-            {{ successMessage }}
+        <div
+            v-if="successMessage"
+            class="alert alert-success d-flex flex-wrap align-items-center justify-content-between gap-2 mt-3 mb-0"
+            role="status"
+        >
+            <span><strong>Success:</strong> {{ successMessage }}</span>
+            <button
+                v-if="undoCohort"
+                type="button"
+                class="btn btn-sm btn-outline-primary"
+                :aria-label="'Undo for ' + undoCohort.cohortName"
+                :disabled="isUndoing"
+                @click="undo"
+            >
+                <span v-if="isUndoing" class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>
+                {{ isUndoing ? 'Undoing' : 'Undo' }}
+            </button>
         </div>
 
         <div v-if="saveError" class="alert alert-danger mt-3 mb-0" role="alert">
@@ -40,17 +58,24 @@
 
         <template v-else>
             <h2>Students in each cohort</h2>
+            <p class="cohortManagementIntro">
+                Press the arrow next to a cohort to show its details, where you can add students or move a student to
+                another cohort
+            </p>
             <CohortStudentsTable
                 :cohorts="visibleCohorts"
                 :toolbarSort="sortBy"
                 @edit="openCohortForm"
-                @toggleStatus="toggleStatus"
+                @toggleStatus="startToggle"
                 @delete="deletingCohort = $event"
                 @addStudents="addingToCohort = $event"
                 @moveStudent="(cohort, student) => (moving = { cohort, student })"
             />
 
             <h2>Subjects for each cohort</h2>
+            <p class="cohortManagementIntro">
+                Press the arrow next to a cohort to show its details, where you can assign or remove subjects
+            </p>
             <CohortSubjectsTable
                 :cohorts="visibleCohorts"
                 :toolbarSort="sortBy"
@@ -97,6 +122,15 @@
             @close="removing = null"
         />
 
+        <!-- house style wants a pop-up before any disable, enable goes straight through -->
+        <DeleteCohortDialog
+            v-if="disablingCohort"
+            :cohort="disablingCohort"
+            isDisabling
+            @disabled="cohortDisabled"
+            @close="disablingCohort = null"
+        />
+
         <DeleteCohortDialog
             v-if="deletingCohort"
             :cohort="deletingCohort"
@@ -139,6 +173,12 @@ const editingCohort = ref(null);
 const assigningCohort = ref(null);
 const removing = ref(null);
 const deletingCohort = ref(null);
+const disablingCohort = ref(null);
+const successMessage = ref('');
+// the cohort that was just disabled, so Undo knows what to turn back on
+const undoCohort = ref(null);
+const isUndoing = ref(false);
+let undoTimer = null;
 
 const sortOptions = [
     { value: '', label: 'Default order' },
@@ -234,6 +274,38 @@ function saveCohort(savedCohort) {
 function removeCohort(deletedCohort) {
     allCohorts.value = allCohorts.value.filter((cohort) => cohort.cohortID !== deletedCohort.cohortID);
     showSuccess('Cohort deleted successfully.');
+}
+
+// disable asks first, enable goes straight through, either way the old message and Undo go
+function startToggle(cohort) {
+    successMessage.value = '';
+    undoCohort.value = null;
+    if (cohort.isActive) {
+        disablingCohort.value = cohort;
+    } else {
+        toggleStatus(cohort);
+    }
+}
+
+// Undo shows for 30 secs after a disable, the message itself stays
+function cohortDisabled(savedCohort) {
+    updateCohort(disablingCohort.value, savedCohort);
+    successMessage.value = `${disablingCohort.value.cohortName} disabled`;
+    undoCohort.value = disablingCohort.value;
+    clearTimeout(undoTimer);
+    undoTimer = setTimeout(() => {
+        undoCohort.value = null;
+    }, 30000);
+}
+
+// turns it back on, spinner till php answers, no undo for the undo
+async function undo() {
+    const cohort = undoCohort.value;
+    isUndoing.value = true;
+    await toggleStatus(cohort);
+    isUndoing.value = false;
+    undoCohort.value = null;
+    successMessage.value = saveError.value ? '' : `${cohort.cohortName} enabled`;
 }
 
 // the screen only changes once PHP confirms it's saved, so it never shows a status the database doesn't have

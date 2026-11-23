@@ -12,3 +12,48 @@
         </div>
     </footer>
 </template>
+
+<style scoped>
+/* moved from main.css, only this component uses these styles */
+
+/* Shared footer */
+.siteFooter {
+    width: 100%;
+    margin-top: auto;
+    padding: var(--spaceMd) var(--spaceXl);
+    border-top: 1px solid var(--colorPrimary);
+    background-color: var(--colorBrand);
+    color: var(--colorSurface);
+    font-size: var(--fontSizeSmall);
+}
+
+.footerCopyright,
+.footerPrivacyLink {
+    color: var(--colorSurface);
+}
+
+.footerPrivacyLink {
+    background-color: var(--colorBrand);
+    border-top: 1px solid var(--colorPrimary);
+    color: var(--colorSurface);
+    font-size: var(--fontSizeFooter);
+    padding: var(--spaceFooterBlock);
+    text-decoration: none;
+}
+
+@media (min-width: 768px) {
+    .siteFooter {
+        padding: var(--spaceFooterBlock) var(--spaceFooterInline);
+    }
+}
+
+.footerPrivacyLink:hover {
+    text-decoration: underline;
+}
+
+@media (max-width: 767.98px) {
+    .siteFooter {
+        padding: var(--spaceFooterMobile);
+    }
+}
+</style>
