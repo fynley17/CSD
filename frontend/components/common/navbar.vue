@@ -587,7 +587,7 @@ async function signOut() {
     height: 36px;
     flex: 0 0 36px;
     border: 1px solid var(--colorDivider);
-    border-radius: 50%;
+    border-radius: var(--radiusPill);
     background-color: var(--colorSurface);
     object-fit: cover;
 }
