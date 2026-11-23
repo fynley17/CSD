@@ -147,6 +147,7 @@ class AuthController extends Controller
             // Never include the user's password or password hash.
             $this->jsonResponse([
                 'loggedIn' => true,
+                'userID' => $user->getUserID(),
                 'username' => $user->getUsername(),
                 'displayName' => $displayName,
                 'accountType' => $user->getAccountType(),

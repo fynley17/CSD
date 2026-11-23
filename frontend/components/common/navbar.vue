@@ -24,9 +24,26 @@
                     <p v-if="authError" class="navbarError" role="alert">{{ authError }}</p>
                     <!-- admins see the lecturer pages too, so this shows which account is logged in -->
                     <p v-if="isAdmin" class="accountBadge">
-                        <i class="bi bi-person-circle" aria-hidden="true"></i>
+                        <img
+                            v-if="currentUser?.userID"
+                            class="userAvatar"
+                            :src="`https://proficon.appserver.uk/api/identicon/${currentUser.userID}.svg`"
+                            alt="User avatar"
+                            width="36"
+                            height="36"
+                            referrerpolicy="no-referrer"
+                        />
                         Administrator
                     </p>
+                    <img
+                        v-if="currentUser?.userID && !isAdmin"
+                        class="userAvatar"
+                        :src="`https://proficon.appserver.uk/api/identicon/${currentUser.userID}.svg`"
+                        alt="User avatar"
+                        width="36"
+                        height="36"
+                        referrerpolicy="no-referrer"
+                    />
                     <button
                         v-if="currentUser"
                         type="button"
@@ -58,10 +75,7 @@
 
                 <!-- Mobile dropdown -->
                 <div id="mobileNavigation" class="mobileNavigation" :class="{ isOpen: menuOpen }" :hidden="!menuOpen">
-                    <p v-if="isAdmin" class="accountBadge">
-                        <i class="bi bi-person-circle" aria-hidden="true"></i>
-                        Administrator
-                    </p>
+                    <p v-if="isAdmin" class="accountBadge">Administrator</p>
                     <nav v-if="navigation" :class="navigation.mobileClass" :aria-label="navigation.label">
                         <RouterLink
                             v-for="link in navigation.links"
@@ -566,6 +580,16 @@ async function signOut() {
 
 .siteHeader .headerButton {
     white-space: nowrap;
+}
+
+.userAvatar {
+    width: 36px;
+    height: 36px;
+    flex: 0 0 36px;
+    border: 1px solid var(--colorDivider);
+    border-radius: 50%;
+    background-color: var(--colorSurface);
+    object-fit: cover;
 }
 
 /* Accessible skip link, helping keyboard users for example */

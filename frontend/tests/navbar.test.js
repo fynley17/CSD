@@ -58,6 +58,11 @@ describe('Navbar', () => {
         // Arrange
         // mockResolvedValue sets what the pretend getCurrentUser() hands back - here an admin account
         vi.mocked(getCurrentUser).mockResolvedValue({ username: 'adm01', accountType: 'admin' });
+        vi.mocked(getCurrentUser).mockResolvedValue({
+            userID: 'admin-123',
+            username: 'adm01',
+            accountType: 'admin',
+        });
 
         // Act
         const header = await loadHeader();
@@ -73,6 +78,13 @@ describe('Navbar', () => {
             'Questions',
         ]);
         expect(header.get('.desktopActions .accountBadge').text()).toBe('Administrator');
+        expect(header.get('.desktopActions .accountBadge .userAvatar').attributes('src')).toBe(
+            'https://proficon.appserver.uk/api/identicon/admin-123.svg',
+        );
+        expect(header.get('.mobileNavigation .accountBadge').text()).toBe('Administrator');
+        expect(header.find('.mobileNavigation .userAvatar').exists()).toBe(false);
+        expect(header.find('.bi-person-circle').exists()).toBe(false);
+        expect(header.find('.desktopActions > .userAvatar').exists()).toBe(false);
         expect(header.get('.navbar-brand').attributes('href')).toBe('/admin-dashboard');
     });
 
@@ -105,6 +117,24 @@ describe('Navbar', () => {
         // Assert
         expect(desktopLinkNames(header)).toEqual(['Tests', 'Leaderboard', 'Results']);
         expect(header.find('.accountBadge').exists()).toBe(false);
+    });
+
+    it('shows the account identicon beside Sign out on desktop but not in the mobile menu', async () => {
+        vi.mocked(getCurrentUser).mockResolvedValue({
+            userID: 'user-123',
+            username: 'ws000001',
+            displayName: 'Jamie Wilson',
+            accountType: 'student',
+        });
+
+        const header = await loadHeader();
+        const avatarUrl = 'https://proficon.appserver.uk/api/identicon/user-123.svg';
+        const desktopAvatar = header.get('.desktopActions .userAvatar');
+
+        expect(desktopAvatar.attributes('src')).toBe(avatarUrl);
+        expect(desktopAvatar.attributes('alt')).toBe('User avatar');
+        expect(desktopAvatar.element.nextElementSibling.classList).toContain('loginButton');
+        expect(header.find('.mobileNavigation .userAvatar').exists()).toBe(false);
     });
 
     /**
