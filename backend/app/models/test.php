@@ -766,7 +766,8 @@ class Test extends Model
         $statement = self::getDB()->prepare(
             "SELECT
             sa.questionID,
-            COUNT(*) AS answeredCount,
+            COUNT(*) AS attemptCount,
+            COUNT(sa.selectedAnswerID) AS answeredCount,
             SUM(
                 CASE
                     WHEN a.isCorrect = 1 THEN 1
@@ -776,11 +777,10 @@ class Test extends Model
         FROM CompletedTests ct
         INNER JOIN StudentAnswers sa
             ON sa.completedID = ct.completedID
-        INNER JOIN Answers a
+        LEFT JOIN Answers a
             ON a.answerID = sa.selectedAnswerID
         WHERE ct.testID = ?
             AND ct.userID = ?
-            AND sa.selectedAnswerID IS NOT NULL
         GROUP BY sa.questionID"
         );
 
@@ -790,6 +790,7 @@ class Test extends Model
 
         foreach ($statement->fetchAll(\PDO::FETCH_ASSOC) as $row) {
             $history[$row['questionID']] = [
+                'attemptCount' => (int) $row['attemptCount'],
                 'answeredCount' => (int) $row['answeredCount'],
                 'correctCount' => (int) $row['correctCount'],
             ];
@@ -799,6 +800,7 @@ class Test extends Model
     }
 
 
+
     /**
      * Gets the selection weight for a question based on a student's history.
      */
@@ -806,28 +808,44 @@ class Test extends Model
         string $questionID,
         array $history
     ): int {
-        // Never-answered questions receive high priority.
+        // Never-attempted questions receive high priority.
         if (!isset($history[$questionID])) {
             return 4;
         }
 
+        $attemptCount = $history[$questionID]['attemptCount'];
         $answeredCount = $history[$questionID]['answeredCount'];
         $correctCount = $history[$questionID]['correctCount'];
 
+        // Increase priority for repeated unanswered attempts.
+        $unansweredCount = $attemptCount - $answeredCount;
+
+        $unansweredWeight = match (true) {
+            $unansweredCount >= 4 => 6,
+            $unansweredCount >= 2 => 5,
+            $unansweredCount >= 1 => 4,
+            default => 1,
+        };
+
+        // If there are no answered attempts, use the unanswered weight.
         if ($answeredCount === 0) {
-            return 4;
+            return $unansweredWeight;
         }
 
         $percentageCorrect = ($correctCount / $answeredCount) * 100;
 
-        return match (true) {
+        $correctnessWeight = match (true) {
             $percentageCorrect <= 20 => 5,
             $percentageCorrect <= 40 => 4,
             $percentageCorrect <= 60 => 3,
             $percentageCorrect <= 80 => 2,
             default => 1,
         };
+
+        // Use whichever weighting gives the question higher priority.
+        return max($correctnessWeight, $unansweredWeight);
     }
+
 
 
     /**

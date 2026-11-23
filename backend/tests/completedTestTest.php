@@ -323,7 +323,7 @@ final class CompletedTestTest extends TestCase
         // Act
         $drawn = [];
 
-        for ($i = 0; $i < 200; $i++) {
+        for ($i = 0; $i < 1000; $i++) {
             $test = Test::getForStudent('test-1', 'student-1');
 
             $questionID = $test['questions'][0]['questionID'];
@@ -378,7 +378,7 @@ final class CompletedTestTest extends TestCase
         // Act
         $drawn = [];
 
-        for ($i = 0; $i < 200; $i++) {
+        for ($i = 0; $i < 1000; $i++) {
             $test = Test::getForStudent('test-1', 'student-1');
 
             $questionID = $test['questions'][0]['questionID'];
@@ -442,7 +442,7 @@ final class CompletedTestTest extends TestCase
         // Act
         $drawn = [];
 
-        for ($i = 0; $i < 200; $i++) {
+        for ($i = 0; $i < 1000; $i++) {
             $test = Test::getForStudent('test-1', 'student-2');
 
             $questionID = $test['questions'][0]['questionID'];
@@ -500,7 +500,7 @@ final class CompletedTestTest extends TestCase
         // Act
         $drawn = [];
 
-        for ($i = 0; $i < 200; $i++) {
+        for ($i = 0; $i < 1000; $i++) {
             $test = Test::getForStudent('test-1', 'student-1');
 
             $questionID = $test['questions'][0]['questionID'];
