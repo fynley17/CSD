@@ -7,6 +7,9 @@ class Test extends Model
     // Matches the Tests.questionCount default.
     private const DEFAULT_QUESTIONS_PER_ATTEMPT = 10;
 
+    // Personalised selection starts after three completed attempts.
+    private const PERSONALISATION_ATTEMPT_THRESHOLD = 3;
+
     // Number of questions in a test's subject pool.
     private const POOL_SIZE = "(
         SELECT COUNT(*)
@@ -187,10 +190,10 @@ class Test extends Model
     }
 
     /**
-     * Creates a test.
-     * createdBy remains a lecturer ID because the existing
-     * Tests foreign key references Lecturer.userID.
-     */
+ * Creates a test.
+ * createdBy remains a lecturer ID because the existing
+ * Tests foreign key references Lecturer.userID.
+ */
     public static function create(
         string $testName,
         string $subjectID,
@@ -213,8 +216,17 @@ class Test extends Model
 
         $stmt = self::getDB()->prepare(
             "INSERT INTO Tests
-                (testID, testName, subjectID, testDescription, timeLimit, dueDate, questionCount, createdBy)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+            (
+                testID,
+                testName,
+                subjectID,
+                testDescription,
+                timeLimit,
+                dueDate,
+                questionCount,
+                createdBy
+            )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
         );
 
         $stmt->execute([
@@ -234,10 +246,10 @@ class Test extends Model
     }
 
     /**
-     * Updates a test.
-     * Its subject cannot be changed after attempts exist,
-     * because that would change the question pool represented by old results.
-     */
+ * Updates a test.
+ * Its subject cannot be changed after attempts exist,
+ * because that would change the question pool represented by old results.
+ */
     public static function update(
         string $testID,
         string $testName,
@@ -276,8 +288,8 @@ class Test extends Model
         if ((string) $currentTest['subjectID'] !== $subjectID) {
             $subject = $db->prepare(
                 "SELECT subjectID
-            FROM Subjects
-            WHERE subjectID = ? AND isActive = 1"
+             FROM Subjects
+             WHERE subjectID = ? AND isActive = 1"
             );
 
             $subject->execute([$subjectID]);
@@ -303,9 +315,9 @@ class Test extends Model
 
         $stmt = $db->prepare(
             "UPDATE Tests
-        SET testName = ?, subjectID = ?, testDescription = ?,
-            timeLimit = ?, dueDate = ?, questionCount = ?
-        WHERE testID = ?"
+         SET testName = ?, subjectID = ?, testDescription = ?,
+             timeLimit = ?, dueDate = ?, questionCount = ?
+         WHERE testID = ?"
         );
 
         $stmt->execute([
@@ -389,6 +401,7 @@ class Test extends Model
     /**
      * Validates test details before they are inserted or updated.
      */
+
     private static function validateTestData(
         string $testName,
         string $subjectID,
@@ -470,9 +483,9 @@ class Test extends Model
         );
     }
 
+
     /**
-     * Starts an attempt: returns the test with questions drawn at random
-     * from its pool, each with its answer options.
+     * Starts an attempt by selecting questions from the test's subject pool.
      *
      * Correct answers are never sent to the browser while the test is running.
      */
@@ -497,17 +510,27 @@ class Test extends Model
             return null;
         }
 
-        // Shuffle the pool so each question has an equal chance.
-        shuffle($pool);
-
-        $questions = array_slice(
-            $pool,
-            0,
-            self::attemptSize(
-                $test['questionsPerAttempt'],
-                count($pool)
-            )
+        $questionCount = self::attemptSize(
+            $test['questionsPerAttempt'],
+            count($pool)
         );
+
+        $completedAttempts = self::getCompletedAttemptCount(
+            $testID,
+            $userID
+        );
+
+        if ($completedAttempts >= self::PERSONALISATION_ATTEMPT_THRESHOLD) {
+            $questions = self::selectFrequentlyIncorrectQuestions(
+                $pool,
+                $testID,
+                $userID,
+                $questionCount
+            );
+        } else {
+            shuffle($pool);
+            $questions = array_slice($pool, 0, $questionCount);
+        }
 
         unset(
             $test['questionsPerAttempt'],
@@ -553,8 +576,9 @@ class Test extends Model
         return self::findTest($testID, $userID, false, $startedOn ?? self::today());
     }
 
+
     /**
-     * The shared query behind findForStudent() and findStartedByStudent()
+     * The shared query behind findForStudent() and findStartedByStudent().
      */
     private static function findTest(string $testID, string $userID, bool $checkCohort, string $onDate): ?array
     {
@@ -709,4 +733,169 @@ class Test extends Model
 
         return $chosen;
     }
+
+
+    /**
+     * Gets the number of completed attempts a student has made at a test.
+     */
+    private static function getCompletedAttemptCount(
+        string $testID,
+        string $userID
+    ): int {
+        $statement = self::getDB()->prepare(
+            "SELECT COUNT(*)
+        FROM CompletedTests
+        WHERE testID = ? AND userID = ?"
+        );
+
+        $statement->execute([$testID, $userID]);
+
+        return (int) $statement->fetchColumn();
+    }
+
+
+    /**
+     * Gets a student's answer history for each question in a test.
+     *
+     * Unanswered questions are excluded from the correctness calculation.
+     */
+    private static function getStudentQuestionHistory(
+        string $testID,
+        string $userID
+    ): array {
+        $statement = self::getDB()->prepare(
+            "SELECT
+            sa.questionID,
+            COUNT(*) AS attemptCount,
+            COUNT(sa.selectedAnswerID) AS answeredCount,
+            SUM(
+                CASE
+                    WHEN a.isCorrect = 1 THEN 1
+                    ELSE 0
+                END
+            ) AS correctCount
+        FROM CompletedTests ct
+        INNER JOIN StudentAnswers sa
+            ON sa.completedID = ct.completedID
+        LEFT JOIN Answers a
+            ON a.answerID = sa.selectedAnswerID
+        WHERE ct.testID = ?
+            AND ct.userID = ?
+        GROUP BY sa.questionID"
+        );
+
+        $statement->execute([$testID, $userID]);
+
+        $history = [];
+
+        foreach ($statement->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+            $history[$row['questionID']] = [
+                'attemptCount' => (int) $row['attemptCount'],
+                'answeredCount' => (int) $row['answeredCount'],
+                'correctCount' => (int) $row['correctCount'],
+            ];
+        }
+
+        return $history;
+    }
+
+
+
+    /**
+     * Gets the selection weight for a question based on a student's history.
+     */
+    private static function getQuestionSelectionWeight(
+        string $questionID,
+        array $history
+    ): int {
+        // Never-attempted questions receive high priority.
+        if (!isset($history[$questionID])) {
+            return 4;
+        }
+
+        $attemptCount = $history[$questionID]['attemptCount'];
+        $answeredCount = $history[$questionID]['answeredCount'];
+        $correctCount = $history[$questionID]['correctCount'];
+
+        // Increase priority for repeated unanswered attempts.
+        $unansweredCount = $attemptCount - $answeredCount;
+
+        $unansweredWeight = match (true) {
+            $unansweredCount >= 4 => 6,
+            $unansweredCount >= 2 => 5,
+            $unansweredCount >= 1 => 4,
+            default => 1,
+        };
+
+        // If there are no answered attempts, use the unanswered weight.
+        if ($answeredCount === 0) {
+            return $unansweredWeight;
+        }
+
+        $percentageCorrect = ($correctCount / $answeredCount) * 100;
+
+        $correctnessWeight = match (true) {
+            $percentageCorrect <= 20 => 5,
+            $percentageCorrect <= 40 => 4,
+            $percentageCorrect <= 60 => 3,
+            $percentageCorrect <= 80 => 2,
+            default => 1,
+        };
+
+        // Use whichever weighting gives the question higher priority.
+        return max($correctnessWeight, $unansweredWeight);
+    }
+
+
+
+    /**
+     * Selects questions using weighted random selection without replacement.
+     */
+    private static function selectFrequentlyIncorrectQuestions(
+        array $pool,
+        string $testID,
+        string $userID,
+        int $questionCount
+    ): array {
+        $history = self::getStudentQuestionHistory($testID, $userID);
+        $selectedQuestions = [];
+
+        while (
+            count($selectedQuestions) < $questionCount
+            && count($pool) > 0
+        ) {
+            $totalWeight = 0;
+            $weights = [];
+
+            foreach ($pool as $index => $question) {
+                $weight = self::getQuestionSelectionWeight(
+                    $question['questionID'],
+                    $history
+                );
+
+                $weights[$index] = $weight;
+                $totalWeight += $weight;
+            }
+
+            $randomWeight = random_int(1, $totalWeight);
+            $cumulativeWeight = 0;
+
+            foreach ($pool as $index => $question) {
+                $cumulativeWeight += $weights[$index];
+
+                if ($randomWeight <= $cumulativeWeight) {
+                    $selectedQuestions[] = $question;
+                    unset($pool[$index]);
+                    break;
+                }
+            }
+
+            // Re-index the remaining pool after removing a question.
+            $pool = array_values($pool);
+        }
+
+        return $selectedQuestions;
+    }
+
+
 }

@@ -168,6 +168,7 @@ final class TestManagementModelTest extends TestCase
         self::assertSame(1, (int) $test['isActive']);
     }
 
+
     public function testRejectsAnEmptyTestName(): void
     {
         $this->expectException(\InvalidArgumentException::class);
