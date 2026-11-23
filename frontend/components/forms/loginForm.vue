@@ -40,6 +40,8 @@ export default {
             step: 'details',
             // where PHP sent the security code, most of it hidden
             maskedEmail: '',
+            // true when the email didn't send, the code card asks for a backup code instead
+            emailFailed: false,
             // a new set from PHP, only kept here until the backup codes card is done with
             backupCodes: [],
             accountType: '',
@@ -76,6 +78,7 @@ export default {
                 // MFA is on, so PHP has emailed a code and they aren't logged in yet
                 if (user.mfaRequired) {
                     this.maskedEmail = user.maskedEmail;
+                    this.emailFailed = user.emailFailed === true;
                     this.step = 'code';
                     return;
                 }
@@ -301,6 +304,7 @@ export default {
     <LoginCodeForm
         v-else-if="step === 'code'"
         :maskedEmail="maskedEmail"
+        :emailFailed="emailFailed"
         @loggedIn="finishLogin"
         @locked="showLocked"
         @back="backToDetails"

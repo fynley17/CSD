@@ -11,6 +11,11 @@ export default {
             type: String,
             required: true,
         },
+        // true when PHP couldn't send the email, so only a backup code or Resend code will work
+        emailFailed: {
+            type: Boolean,
+            default: false,
+        },
     },
     emits: ['loggedIn', 'locked', 'back'],
     data() {
@@ -19,7 +24,9 @@ export default {
             // filled in when the box is left empty, '' means it's ok
             fieldError: '',
             // PHP's reply when it turns something down, i.e. a wrong code or asking again too quickly
-            serverError: '',
+            serverError: this.emailFailed
+                ? 'We could not send the email. Enter one of your backup codes, or press Resend code to try again'
+                : '',
             successMessage: '',
             isSubmitting: false,
             isSending: false,
@@ -94,7 +101,10 @@ export default {
         <div class="card-body p-4 p-md-5">
             <h1 class="mb-3">Check your email</h1>
 
-            <p id="codeSentTo">
+            <p v-if="emailFailed" id="codeSentTo">
+                Your security code email to <strong class="verificationEmail">{{ maskedEmail }}</strong> did not send.
+            </p>
+            <p v-else id="codeSentTo">
                 We have sent a 6 digit security code to <strong class="verificationEmail">{{ maskedEmail }}</strong
                 >. The code expires in 10 minutes.
             </p>

@@ -5,6 +5,7 @@ namespace App\Controllers;
 use App\Helpers\Authentication;
 use App\Helpers\LoginCode;
 use App\Helpers\Mailer;
+use App\Models\BackupCode;
 use App\Models\User;
 use App\Models\Lecturer;
 
@@ -108,11 +109,23 @@ class AuthController extends Controller
 
             // MFA on, so the password isn't enough yet, LoginCodeController logs them in once the code is right
             if (LoginCode::isRequired()) {
-                // fails closed, no email means no login
-                if (!$this->emailNewCode($user, time())) {
-                    $this->jsonResponse(['error' => self::CODE_NOT_SENT], 500);
+                $maskedEmail = LoginCode::maskEmail($user->findEmail());
+                if ($this->emailNewCode($user, time())) {
+                    $this->jsonResponse(['mfaRequired' => true, 'maskedEmail' => $maskedEmail]);
                 }
-                $this->jsonResponse(['mfaRequired' => true, 'maskedEmail' => LoginCode::maskEmail($user->findEmail())]);
+
+                // email didn't send, a backup code still proves it's them so they can get to the code box
+                // the code saved here was never sent, so only a backup code (or Resend code) gets them in
+                if (BackupCode::countLeft($user->getUserID()) > 0) {
+                    $unsentHash = LoginCode::hashCode(LoginCode::makeCode());
+                    $this->authentication->savePendingLogin(
+                        new LoginCode($user->getUserID(), $unsentHash, time(), time())
+                    );
+                    $this->jsonResponse(['mfaRequired' => true, 'maskedEmail' => $maskedEmail, 'emailFailed' => true]);
+                }
+
+                // no backup codes yet either, so fails closed, MFA is never skipped
+                $this->jsonResponse(['error' => self::CODE_NOT_SENT], 500);
             }
 
             $this->finishLogin($user);

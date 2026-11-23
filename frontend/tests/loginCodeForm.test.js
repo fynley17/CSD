@@ -60,6 +60,18 @@ describe('LoginCodeForm', () => {
     });
 
     /**
+     * When the email didn't send the card says so straight away and asks for a backup code (error)
+     */
+    it('asks for a backup code when the email did not send', () => {
+        // Arrange and Act
+        const wrapper = mount(LoginCodeForm, { props: { maskedEmail: 'w***@example.com', emailFailed: true } });
+
+        // Assert
+        expect(wrapper.get('[role="alert"]').text()).toContain('Enter one of your backup codes');
+        expect(wrapper.text()).not.toContain('We have sent');
+    });
+
+    /**
      * The 3rd wrong code locks the account, so loginForm is told to show the locked pop-up (boundary)
      */
     it('tells loginForm when the account gets locked', async () => {
