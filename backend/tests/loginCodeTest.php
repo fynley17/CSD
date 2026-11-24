@@ -1,6 +1,8 @@
 <?php
 
+use App\Helpers\Authentication;
 use App\Helpers\LoginCode;
+use PHPUnit\Framework\Attributes\RunInSeparateProcess;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -88,5 +90,25 @@ final class LoginCodeTest extends TestCase
 
         // Assert
         self::assertSame('w***@example.com', $masked);
+    }
+
+    /**
+     * Only getting the password right (MFA on) isn't a login, so protected endpoints still turn them away (error)
+     * requireRole() stops any request with no userID in the session, which is what getLoggedInUserID() reads
+     * in its own process, as starting a session sends headers
+     */
+    #[RunInSeparateProcess]
+    public function testPendingLoginCannotReachProtectedEndpoints(): void
+    {
+        // Arrange
+        $authentication = new Authentication();
+        $pending = new LoginCode(self::USER_ID, LoginCode::hashCode('123456'), self::SENT_AT, self::SENT_AT);
+
+        // Act
+        $authentication->savePendingLogin($pending);
+
+        // Assert
+        self::assertNotNull($authentication->getPendingLogin());
+        self::assertNull(Authentication::getLoggedInUserID());
     }
 }
