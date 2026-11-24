@@ -76,6 +76,9 @@ final class LoginCodeControllerTest extends TestCase
             }
         };
 
+        // verifyCode() logs our pretend reply as a server error, this keeps it out of the test output
+        ini_set('error_log', sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'login-code-test.log');
+
         try {
             $controller->verifyCode();
         } catch (\RuntimeException $e) {
@@ -127,11 +130,13 @@ final class LoginCodeControllerTest extends TestCase
     {
         // Arrange: a second program that saves a pending login, then asks requireRole() to let it in
         $autoload = __DIR__ . '/../vendor/autoload.php';
+        // only single quotes inside, windows swaps double quotes for spaces when it runs the command
         $script = 'require ' . var_export($autoload, true) . ';'
-            . '$code = new App\Helpers\LoginCode("user-1", App\Helpers\LoginCode::hashCode("123456"), time(), time());'
+            . '$hash = App\Helpers\LoginCode::hashCode(\'123456\');'
+            . '$code = new App\Helpers\LoginCode(\'user-1\', $hash, time(), time());'
             . '(new App\Helpers\Authentication())->savePendingLogin($code);'
-            . 'App\Helpers\Authentication::requireRole(["student", "lecturer", "admin"]);'
-            . 'echo "GOT IN";';
+            . 'App\Helpers\Authentication::requireRole([\'student\', \'lecturer\', \'admin\']);'
+            . 'echo \'GOT IN\';';
 
         // Act
         $output = shell_exec(escapeshellarg(PHP_BINARY) . ' -r ' . escapeshellarg($script) . ' 2>&1');
