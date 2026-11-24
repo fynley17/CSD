@@ -1,10 +1,10 @@
 <script>
 import { changePassword, getProfile, updateProfile } from '../services/profileService';
+import { PASSWORD_RULES, meetsPasswordRules } from '../utils/passwordRules';
 
 // the same rules PHP checks, so most mistakes are caught before anything is sent
 const NAME_PATTERN = /^[a-zA-Z\s'-]{2,50}$/;
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const PASSWORD_RULES = 'Use at least 8 characters, with an uppercase letter, a lowercase letter, a number and a symbol';
 const NAME_RULES = 'between 2 and 50 characters, using only letters, spaces, hyphens or apostrophes';
 
 // what each account type is called on the page, and what its username is called
@@ -13,16 +13,6 @@ const ACCOUNT_TYPES = {
     lecturer: { label: 'Lecturer', usernameLabel: 'Staff ID' },
     admin: { label: 'Administrator', usernameLabel: 'Staff ID' },
 };
-
-function meetsPasswordRules(password) {
-    return (
-        password.length >= 8 &&
-        /[A-Z]/.test(password) &&
-        /[a-z]/.test(password) &&
-        /\d/.test(password) &&
-        /[^A-Za-z0-9\s]/.test(password)
-    );
-}
 
 // My profile page, any signed in user can see their account and change their own names, email and password
 // PHP only ever works on whoever is logged in, so the page never sends a user ID

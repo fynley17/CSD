@@ -1,5 +1,6 @@
 <script>
 import api from '../../services/api';
+import { PASSWORD_RULES, meetsPasswordRules } from '../../utils/passwordRules';
 
 export default {
     data() {
@@ -38,6 +39,11 @@ export default {
             this.cohortsLoading = false;
         }
     },
+    computed: {
+        passwordRules() {
+            return PASSWORD_RULES;
+        },
+    },
     methods: {
         async submitRegistration() {
             this.formError = '';
@@ -57,6 +63,11 @@ export default {
                 !this.form.cohortID
             ) {
                 this.formError = 'Please complete all required fields.';
+                return;
+            }
+
+            if (!meetsPasswordRules(this.form.password)) {
+                this.formError = `${PASSWORD_RULES}.`;
                 return;
             }
 
@@ -228,7 +239,7 @@ export default {
                                     autocomplete="new-password"
                                     minlength="8"
                                     pattern="(?=.*[A-Z])(?=.*[a-z])(?=.*[0-9])(?=.*[^A-Za-z0-9\s]).{8,}"
-                                    title="Use 8+ characters with uppercase, lowercase, a number, and a symbol."
+                                    :title="passwordRules"
                                     required
                                 />
                                 <!-- the icon has no words, so aria-label tells screen readers what the button does -->
@@ -281,9 +292,7 @@ export default {
                             </div>
                         </div>
                         <div class="col-12">
-                            <small class="registrationHelpText">
-                                Use at least 8 characters, including uppercase, lowercase, a number, and a symbol.
-                            </small>
+                            <small class="registrationHelpText"> {{ passwordRules }}. </small>
                         </div>
                     </div>
                 </section>
