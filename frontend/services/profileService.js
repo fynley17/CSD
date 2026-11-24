@@ -13,10 +13,11 @@ export async function getProfile() {
 
 /**
  * Saves the names, and asks for a confirm link if the email is different, PUT /api/profile
+ * staffID is only passed for an admin, left out it isn't sent at all
  * @returns {Promise<object>} PHP's message and the updated details, i.e. { message: '...', profile: {...} }
  */
-export async function updateProfile(firstName, lastName, email) {
-    const response = await api.put('/profile', { firstName, lastName, email });
+export async function updateProfile(firstName, lastName, email, staffID) {
+    const response = await api.put('/profile', { firstName, lastName, email, staffID });
     return response.data;
 }
 

@@ -321,6 +321,18 @@ abstract class User extends Model
     }
 
     /**
+     * Reads the My profile form for this kind of account. Every account has names and an email,
+     * Administrator adds its staff ID on top, so the controller doesn't need to know which kind it has.
+     *
+     * @return array<string, string> the checked details, ready for updateProfile()
+     * @throws \InvalidArgumentException with the message to show if something is missing or wrong
+     */
+    public function readProfileDetails(mixed $data): array
+    {
+        return self::checkProfileDetails($data);
+    }
+
+    /**
      * Saves this account's own names, and starts a change of email if the address is different.
      * Only ever changes the account this object was made for, there's no user ID to pass in.
      *
@@ -443,6 +455,17 @@ abstract class User extends Model
     public function getUserID(): string
     {
         return $this->userID;
+    }
+
+    /**
+     * Saves a new username for this account, only Administrator uses it, for its own staff ID.
+     * The session only holds the user ID, so whoever is logged in stays logged in.
+     */
+    protected function saveUsername(string $username): void
+    {
+        $stmt = self::getDB()->prepare('UPDATE Users SET username = ? WHERE userID = ?');
+        $stmt->execute([$username, $this->userID]);
+        $this->username = $username;
     }
 
     /**

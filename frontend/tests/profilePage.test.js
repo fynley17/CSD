@@ -23,6 +23,8 @@ const STUDENT = {
     cohortName: 'Computing 2026',
 };
 
+const ADMIN = { ...STUDENT, username: 'A1001', accountType: 'admin', cohortName: undefined };
+
 /**
  * Opens the page and waits for the pretend profile to load
  */
@@ -99,17 +101,63 @@ describe('ProfilePage', () => {
      */
     it('shows an administrator no one to contact', async () => {
         // Act
-        const wrapper = await loadPage({
-            ...STUDENT,
-            username: 'A1001',
-            accountType: 'admin',
-            cohortName: undefined,
-        });
+        const wrapper = await loadPage(ADMIN);
 
         // Assert
         expect(accountDetails(wrapper)).toEqual({ 'Staff ID': 'A1001', 'Account type': 'Administrator' });
         expect(wrapper.find('.accountChangeHint').exists()).toBe(false);
         expect(wrapper.text()).not.toContain('contact');
+    });
+
+    /**
+     * An admin can change their own staff ID, it's sent with their names and email (normal)
+     */
+    it('lets an administrator change their staff ID', async () => {
+        // Arrange
+        const wrapper = await loadPage(ADMIN);
+        vi.mocked(updateProfile).mockResolvedValue({
+            message: 'Your details have been saved',
+            profile: { ...ADMIN, username: 'A2002' },
+        });
+
+        // Act
+        await wrapper.get('#profileStaffId').setValue(' A2002 ');
+        await wrapper.findAll('form')[0].trigger('submit');
+        await flushPromises();
+
+        // Assert
+        expect(updateProfile).toHaveBeenCalledWith('Sam', 'Smith', 'sam@example.com', 'A2002');
+        expect(accountDetails(wrapper)['Staff ID']).toBe('A2002');
+        expect(wrapper.get('#profileStaffId').element.value).toBe('A2002');
+    });
+
+    /**
+     * A staff ID that breaks the rules is caught before anything is sent (error)
+     */
+    it.each(['A1', 'A123456789', 'A-1001', ''])('turns away the staff ID "%s"', async (staffID) => {
+        // Arrange
+        const wrapper = await loadPage(ADMIN);
+
+        // Act
+        await wrapper.get('#profileStaffId').setValue(staffID);
+        await wrapper.findAll('form')[0].trigger('submit');
+        await flushPromises();
+
+        // Assert
+        expect(updateProfile).not.toHaveBeenCalled();
+        expect(wrapper.findAll('.messageList a').map((link) => link.attributes('href'))).toEqual(['#profileStaffId']);
+        expect(wrapper.get('#profileStaffId').attributes('aria-invalid')).toBe('true');
+    });
+
+    /**
+     * Students and lecturers have no staff ID box, their username is only shown (normal)
+     */
+    it.each(['student', 'lecturer'])('gives a %s no box to change their username', async (accountType) => {
+        // Act
+        const wrapper = await loadPage({ ...STUDENT, accountType });
+
+        // Assert
+        expect(wrapper.find('#profileStaffId').exists()).toBe(false);
     });
 
     /**

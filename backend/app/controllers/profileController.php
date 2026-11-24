@@ -39,7 +39,8 @@ class ProfileController extends Controller
     }
 
     /**
-     * PUT /api/profile, saves the logged in user's names and starts a change of email if it's different
+     * PUT /api/profile, saves the logged in user's names (and an admin's staff ID),
+     * and starts a change of email if it's different
      * the new address only replaces the old one once the link sent to it is opened
      */
     public function updateProfile(): void
@@ -47,7 +48,8 @@ class ProfileController extends Controller
         $user = $this->loggedInUser();
 
         try {
-            $details = User::checkProfileDetails($this->readBody());
+            // each kind of account reads its own form, an admin's also has their staff ID
+            $details = $user->readProfileDetails($this->readBody());
             $currentEmail = strtolower($user->getProfile()['email']);
 
             // the wait is checked before anything is saved, so the names don't save while the email gets refused

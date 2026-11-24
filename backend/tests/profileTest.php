@@ -249,6 +249,107 @@ final class ProfileTest extends TestCase
     }
 
     /**
+     * An admin's form is read with their staff ID, trimmed, while a lecturer's leaves it out (normal)
+     */
+    public function testOnlyAnAdminsFormHasAStaffId(): void
+    {
+        // Arrange
+        $form = ['firstName' => 'Ada', 'lastName' => 'Admin', 'email' => 'admin@example.com', 'staffID' => ' A2002 '];
+
+        // Act
+        $adminDetails = $this->account('admin-1')->readProfileDetails($form);
+        $lecturerDetails = $this->account('lecturer-1')->readProfileDetails($form);
+
+        // Assert
+        self::assertSame('A2002', $adminDetails['staffID']);
+        self::assertArrayNotHasKey('staffID', $lecturerDetails);
+    }
+
+    /**
+     * A staff ID that's missing or breaks the rules is turned away before anything is saved (error)
+     */
+    #[DataProvider('badStaffIds')]
+    public function testAdminStaffIdMustFollowTheRules(mixed $staffID): void
+    {
+        // Assert
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Staff ID must be 3 to 8 letters or numbers, like L1001');
+
+        // Act
+        $this->account('admin-1')->readProfileDetails(
+            ['firstName' => 'Ada', 'lastName' => 'Admin', 'email' => 'admin@example.com', 'staffID' => $staffID]
+        );
+    }
+
+    public static function badStaffIds(): array
+    {
+        return [
+            'missing' => [null],
+            'too short' => ['A1'],
+            'too long' => ['A12345678'],
+            'has a symbol' => ['A-1001'],
+            'not text' => [['A1001']],
+        ];
+    }
+
+    /**
+     * An admin's new staff ID is saved to their Users row and shown on their profile straight away (normal)
+     */
+    public function testAdminCanChangeTheirOwnStaffId(): void
+    {
+        // Arrange
+        $admin = $this->account('admin-1');
+        $details = $admin->readProfileDetails(
+            ['firstName' => 'Ada', 'lastName' => 'Admin', 'email' => 'admin@example.com', 'staffID' => 'A2002']
+        );
+
+        // Act
+        $admin->updateProfile($details);
+
+        // Assert
+        self::assertSame('A2002', $this->usersColumn('username', 'admin-1'));
+        self::assertSame('A2002', $admin->getProfile()['username']);
+        self::assertSame('L1001', $this->usersColumn('username', 'lecturer-1'));
+    }
+
+    /**
+     * A staff ID another account already has is refused and nothing about the admin changes (error)
+     */
+    public function testAdminCannotTakeAnotherAccountsStaffId(): void
+    {
+        // Arrange
+        $admin = $this->account('admin-1');
+
+        // Act
+        try {
+            $admin->updateProfile(
+                ['firstName' => 'Changed', 'lastName' => 'Admin', 'email' => 'admin@example.com', 'staffID' => 'L1001']
+            );
+            self::fail('A staff ID in use should be refused');
+        } catch (InvalidArgumentException $e) {
+            // Assert
+            self::assertSame('Another account is already using this staff ID', $e->getMessage());
+        }
+        self::assertSame('A1001', $this->usersColumn('username', 'admin-1'));
+        self::assertSame('Ada Admin', $this->account('admin-1')->getFullName());
+    }
+
+    /**
+     * Saving without changing the staff ID works, their own ID doesn't count as taken (normal)
+     */
+    public function testAdminKeepingTheirStaffIdStillSaves(): void
+    {
+        // Act
+        $this->account('admin-1')->updateProfile(
+            ['firstName' => 'Adele', 'lastName' => 'Admin', 'email' => 'admin@example.com', 'staffID' => 'A1001']
+        );
+
+        // Assert
+        self::assertSame('A1001', $this->usersColumn('username', 'admin-1'));
+        self::assertSame('Adele Admin', $this->account('admin-1')->getFullName());
+    }
+
+    /**
      * A new email keeps the old one on the account until the link is opened (normal)
      */
     public function testNewEmailWaitsForTheLink(): void

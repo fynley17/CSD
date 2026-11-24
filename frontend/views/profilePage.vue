@@ -6,9 +6,11 @@ import { PASSWORD_RULES, meetsPasswordRules } from '../utils/passwordRules';
 const NAME_PATTERN = /^[a-zA-Z\s'-]{2,50}$/;
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const NAME_RULES = 'between 2 and 50 characters, using only letters, spaces, hyphens or apostrophes';
+// the same staff ID rule as the lecturer management form
+const STAFF_ID_PATTERN = /^[A-Za-z0-9]{3,8}$/;
 
 // what each account type is called on the page, what its username is called, and who can change those details
-// admins have nobody above them in the app to ask, so they get no line at all
+// admins have nobody above them in the app to ask, so they get no line and change their own staff ID instead
 const ACCOUNT_TYPES = {
     student: {
         label: 'Student',
@@ -20,7 +22,7 @@ const ACCOUNT_TYPES = {
         usernameLabel: 'Staff ID',
         changeHint: 'To change these, contact an administrator.',
     },
-    admin: { label: 'Administrator', usernameLabel: 'Staff ID', changeHint: '' },
+    admin: { label: 'Administrator', usernameLabel: 'Staff ID', changeHint: '', canChangeUsername: true },
 };
 
 // My profile page, any signed in user can see their account and change their own names, email and password
@@ -31,8 +33,8 @@ export default {
             isLoading: true,
             loadError: '',
             profile: null,
-            details: { firstName: '', lastName: '', email: '' },
-            detailErrors: { firstName: '', lastName: '', email: '' },
+            details: { staffID: '', firstName: '', lastName: '', email: '' },
+            detailErrors: { staffID: '', firstName: '', lastName: '', email: '' },
             detailsServerError: '',
             detailsSuccess: '',
             isSavingDetails: false,
@@ -71,7 +73,12 @@ export default {
         // fills the read only details and the form with what PHP has saved
         showProfile(profile) {
             this.profile = profile;
-            this.details = { firstName: profile.firstName, lastName: profile.lastName, email: profile.email };
+            this.details = {
+                staffID: profile.username,
+                firstName: profile.firstName,
+                lastName: profile.lastName,
+                email: profile.email,
+            };
         },
 
         async saveDetails() {
@@ -81,10 +88,13 @@ export default {
             if (this.checkDetails()) {
                 this.isSavingDetails = true;
                 try {
+                    // only an admin's form has a staff ID box, PHP ignores one from anyone else
+                    const staffID = this.accountType.canChangeUsername ? [this.details.staffID.trim()] : [];
                     const result = await updateProfile(
                         this.details.firstName,
                         this.details.lastName,
                         this.details.email,
+                        ...staffID,
                     );
                     this.showProfile(result.profile);
                     this.detailsSuccess = result.message;
@@ -109,6 +119,10 @@ export default {
             const lastName = this.details.lastName.trim();
             const email = this.details.email.trim();
 
+            this.detailErrors.staffID =
+                !this.accountType.canChangeUsername || STAFF_ID_PATTERN.test(this.details.staffID.trim())
+                    ? ''
+                    : 'Staff ID must be 3 to 8 letters or numbers, like L1001';
             this.detailErrors.firstName = NAME_PATTERN.test(firstName) ? '' : `Enter a first name ${NAME_RULES}`;
             this.detailErrors.lastName = NAME_PATTERN.test(lastName) ? '' : `Enter a last name ${NAME_RULES}`;
 
@@ -260,6 +274,9 @@ export default {
                                 <div v-if="hasDetailErrors">
                                     <h3 class="messageTitle">There is a problem</h3>
                                     <ul class="messageList mb-0">
+                                        <li v-if="detailErrors.staffID">
+                                            <a href="#profileStaffId">{{ detailErrors.staffID }}</a>
+                                        </li>
                                         <li v-if="detailErrors.firstName">
                                             <a href="#profileFirstName">{{ detailErrors.firstName }}</a>
                                         </li>
@@ -276,6 +293,33 @@ export default {
 
                             <!-- novalidate turns off the browser's own pop-ups so only the house style errors show -->
                             <form novalidate @submit.prevent="saveDetails">
+                                <!-- only admins, everyone else asks someone above them to change it -->
+                                <div v-if="accountType.canChangeUsername" class="mb-3">
+                                    <label for="profileStaffId" class="form-label">Staff ID</label>
+                                    <p id="profileStaffIdHint" class="form-text">
+                                        You log in with this, so use the new one next time if you change it.
+                                    </p>
+                                    <p v-if="detailErrors.staffID" id="profileStaffIdError" class="fieldError">
+                                        Error: {{ detailErrors.staffID }}
+                                    </p>
+                                    <input
+                                        id="profileStaffId"
+                                        v-model="details.staffID"
+                                        type="text"
+                                        class="form-control"
+                                        :class="{ inputError: detailErrors.staffID }"
+                                        autocomplete="username"
+                                        maxlength="8"
+                                        :aria-invalid="detailErrors.staffID ? 'true' : 'false'"
+                                        :aria-describedby="
+                                            describedBy(
+                                                'profileStaffIdHint',
+                                                detailErrors.staffID && 'profileStaffIdError',
+                                            )
+                                        "
+                                    />
+                                </div>
+
                                 <div class="row g-3 mb-3">
                                     <div class="col-12 col-sm-6">
                                         <label for="profileFirstName" class="form-label">First name</label>
