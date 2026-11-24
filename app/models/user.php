@@ -252,6 +252,17 @@ abstract class User extends Model
     }
 
     /**
+     * gets the email, only the code and locked emails need it so its not in COLUMNS
+     */
+    public function findEmail(): string
+    {
+        $stmt = self::getDB()->prepare('SELECT email FROM Users WHERE userID = ?');
+        $stmt->execute([$this->userID]);
+
+        return (string) $stmt->fetchColumn();
+    }
+
+    /**
      * Returns the account type (student, lecturer or admin).
      */
     public function getAccountType(): string
