@@ -135,7 +135,7 @@ class PasswordSetup extends Model
             return false;
         }
 
-        if (!Student::validPassword($password)) {
+        if (!User::validPassword($password)) {
             throw new \InvalidArgumentException(
                 'Please use at least 8 characters, including an uppercase letter, '
                 . 'a lowercase letter, a number, and a symbol.'

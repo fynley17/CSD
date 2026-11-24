@@ -273,6 +273,22 @@ abstract class User extends Model
     }
 
     /**
+     * The password rules every account follows, used by registration, setup and reset links and My profile.
+     * Lives here so Student, Lecturer and Administrator all inherit it.
+     * The frontend copy is utils/passwordRules.js.
+     * A space doesn't count as the symbol.
+     */
+    public static function validPassword(mixed $password): bool
+    {
+        return is_string($password)
+            && strlen($password) >= 8
+            && preg_match('/[A-Z]/', $password) === 1
+            && preg_match('/[a-z]/', $password) === 1
+            && preg_match('/[0-9]/', $password) === 1
+            && preg_match('/[^a-zA-Z0-9\s]/', $password) === 1;
+    }
+
+    /**
      * Checks the names and email from the My profile form, before anything is saved.
      * public static so the unit tests can pass in made up input.
      *
@@ -376,7 +392,7 @@ abstract class User extends Model
     public function changePassword(string $currentPassword, string $newPassword, string $confirmPassword): bool
     {
         // the new password is checked first, these mistakes don't need to count towards a lock
-        if (!Student::validPassword($newPassword)) {
+        if (!self::validPassword($newPassword)) {
             throw new \InvalidArgumentException(
                 'Use at least 8 characters, with an uppercase letter, a lowercase letter, a number and a symbol'
             );

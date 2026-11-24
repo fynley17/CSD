@@ -704,16 +704,6 @@ class Student extends User
             && preg_match('/^ws[0-9]{6}$/D', $studentNumber) === 1;
     }
 
-    public static function validPassword($password)
-    {
-        return is_string($password)
-            && strlen($password) >= 8
-            && preg_match('/[A-Z]/', $password) === 1
-            && preg_match('/[a-z]/', $password) === 1
-            && preg_match('/[0-9]/', $password) === 1
-            && preg_match('/[^a-zA-Z0-9\s]/', $password) === 1;
-    }
-
     public static function getRecentActivity(): array
     {
         $sql = "
