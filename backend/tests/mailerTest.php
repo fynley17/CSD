@@ -228,4 +228,20 @@ final class MailerTest extends TestCase
         self::assertStringContainsString('locked it for 15 minutes', $email['text']);
         self::assertStringContainsString('/forgot-password', $email['text']);
     }
+
+    // Code email has the code, the 10 min expiry and a reset link (normal)
+    public function testLoginCodeEmailHasCodeExpiryAndResetLink(): void
+    {
+        // Arrange
+        $code = '004211';
+
+        // Act
+        $email = Mailer::buildLoginCodeEmail($code);
+
+        // Assert
+        self::assertStringContainsString('security code', $email['subject']);
+        self::assertStringContainsString($code, $email['text']);
+        self::assertStringContainsString('expires in 10 minutes', $email['text']);
+        self::assertStringContainsString('/forgot-password', $email['text']);
+    }
 }
