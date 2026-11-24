@@ -43,6 +43,8 @@ services:
             MAIL_FROM_NAME: ${MAIL_FROM_NAME:-RevisionHub}
             # the address the links in emails open, i.e. the verify email link
             APP_URL: ${APP_URL:-http://localhost:5173}
+            # true emails a security code at every login (MFA), off unless set as it needs SMTP working
+            MFA_ENABLED: ${MFA_ENABLED:-false}
         ports:
             - "127.0.0.1:${BACKEND_PORT:-8000}:8000"
         volumes:

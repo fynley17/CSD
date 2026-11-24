@@ -3,12 +3,15 @@
 namespace App\Controllers;
 
 use App\Helpers\Authentication;
+use App\Helpers\LoginCode;
+use App\Helpers\Mailer;
+use App\Models\BackupCode;
 use App\Models\User;
 use App\Models\Lecturer;
 
 /**
  * Auth controller, answers the login page's login, logout and "who's logged in" requests
- * goes in the same order as the login flowchart
+ * goes in the same order as the login flowchart, the code step is in LoginCodeController
  * the session itself is looked after by the Authentication object this controller keeps
  */
 class AuthController extends Controller
@@ -19,10 +22,12 @@ class AuthController extends Controller
     private const EMAIL_NOT_VERIFIED = 'You need to verify your email address before you can login';
     private const ACCOUNT_PENDING = 'Your account is waiting for lecturer approval. '
         . 'You will get an email when it is ready';
-    private const ACCOUNT_DISABLED = 'Your account has been disabled. Contact your lecturer or an administrator';
+    // protected so LoginCodeController can use these too
+    protected const ACCOUNT_DISABLED = 'Your account has been disabled. Contact your lecturer or an administrator';
+    protected const CODE_NOT_SENT = 'We could not send the security code. Try again later';
 
     // the login session helper, made once and shared by every method below
-    private Authentication $authentication;
+    protected Authentication $authentication;
 
     /**
      * Sets up the session helper as soon as the controller is made
@@ -37,6 +42,9 @@ class AuthController extends Controller
      */
     public function login(): void
     {
+        // wipe any half done login first, could be someone else's on a shared pc
+        $this->authentication->clearPendingLogin();
+
         $details = $this->readLoginDetails();
 
         if ($details === null) {
@@ -69,14 +77,18 @@ class AuthController extends Controller
                 // so someone locking a student out on purpose can only cost them 15 minutes
                 // it would also deny learning for too long a period if admins were away
                 if ($user->isLocked()) {
+                    $this->sendLockedAlert($user);
                     $this->jsonResponse(['error' => $this->lockedMessage($user)], 429);
                 }
                 $this->jsonResponse(['error' => self::WRONG_DETAILS], 401);
             }
 
             // right password, so earlier wrong ones don't count towards a lock any more
-            $user->clearFailedAttempts();
-            $user->saveLoginAttempts();
+            // MFA on = dont reset the wrong tries till the code's right too, or logging in again gives 3 more guesses
+            if (!LoginCode::isRequired()) {
+                $user->clearFailedAttempts();
+                $user->saveLoginAttempts();
+            }
 
             // these only get checked once the password is right, a stranger never sees them
             // disabled comes first, so a disabled account can't get to the check your email page
@@ -95,11 +107,30 @@ class AuthController extends Controller
                 $this->jsonResponse(['error' => self::ACCOUNT_DISABLED], 403);
             }
 
-            $user->recordLogin();
-            $this->authentication->saveLogin($user);
+            // password alone isn't enough with MFA on, they get logged in once the code's right
+            if (LoginCode::isRequired()) {
+                $maskedEmail = LoginCode::maskEmail($user->findEmail());
+                if ($this->emailNewCode($user, time())) {
+                    $this->jsonResponse(['mfaRequired' => true, 'maskedEmail' => $maskedEmail]);
+                }
 
-            // page uses accountType to pick which dashboard to go to
-            $this->jsonResponse(['accountType' => $user->getAccountType()]);
+                // email failed but a backup code still proves its them, let them through to the code box
+                // this code never gets sent, only a backup code or a resent one will work
+                if (BackupCode::countLeft($user->getUserID()) > 0) {
+                    $unsentHash = LoginCode::hashCode(LoginCode::makeCode());
+                    // sent time set a minute back so Resend code works straight away
+                    $sentAt = time() - LoginCode::RESEND_WAIT_SECONDS;
+                    $this->authentication->savePendingLogin(
+                        new LoginCode($user->getUserID(), $unsentHash, $sentAt, time())
+                    );
+                    $this->jsonResponse(['mfaRequired' => true, 'maskedEmail' => $maskedEmail, 'emailFailed' => true]);
+                }
+
+                // no backup codes either so they cant get in, MFA doesnt get skipped
+                $this->jsonResponse(['error' => self::CODE_NOT_SENT], 500);
+            }
+
+            $this->finishLogin($user);
         } catch (\Throwable $e) {
             $this->serverError('Login', $e);
         }
@@ -217,10 +248,54 @@ class AuthController extends Controller
     }
 
     /**
+     * Last bit of logging in, with or without MFA
+     *
+     * @param array $reply extra stuff for the page e.g. new backup codes
+     */
+    protected function finishLogin(User $user, array $reply = []): void
+    {
+        $user->recordLogin();
+        $this->authentication->saveLogin($user);
+
+        // page uses accountType to pick which dashboard to go to
+        $reply['accountType'] = $user->getAccountType();
+        $this->jsonResponse($reply);
+    }
+
+    /**
+     * Emails a new code and saves the hash in the session, replaces any old one
+     *
+     * @param int $startedAt when the password was typed, resends keep the original time
+     * @return bool false if the email didn't send
+     */
+    protected function emailNewCode(User $user, int $startedAt): bool
+    {
+        $code = LoginCode::makeCode();
+
+        if (!Mailer::sendLoginCodeEmail($user->findEmail(), $code)) {
+            return false;
+        }
+
+        // save after sending, if the email fails their old code still works
+        $codeHash = LoginCode::hashCode($code);
+        $this->authentication->savePendingLogin(new LoginCode($user->getUserID(), $codeHash, time(), $startedAt));
+        return true;
+    }
+
+    /**
+     * Emails the owner when their account gets locked, someone might be guessing the password
+     * the lock happens anyway, sendEmail() logs it if the email fails
+     */
+    protected function sendLockedAlert(User $user): void
+    {
+        Mailer::sendAccountLockedEmail($user->findEmail());
+    }
+
+    /**
      * The locked message, with the real time left so it's still right if they come back after 10 minutes
      * built from User's numbers so it can't say something different to what the code does
      */
-    private function lockedMessage(User $user): string
+    protected function lockedMessage(User $user): string
     {
         $minutes = $user->getMinutesUntilUnlock();
 
@@ -238,7 +313,7 @@ class AuthController extends Controller
     /**
      * Puts the real error in the server log and gives the user a plain message
      */
-    private function serverError(string $action, \Throwable $e): void
+    protected function serverError(string $action, \Throwable $e): void
     {
         // doesn't send the real error to the browser, it can show how the system works
         error_log($action . ' failed: ' . $e->getMessage());

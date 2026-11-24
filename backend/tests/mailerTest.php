@@ -214,4 +214,34 @@ final class MailerTest extends TestCase
         self::assertStringContainsString('If it was not you', $email['text']);
         self::assertStringContainsString('cid:revisionhub-logo', $email['html']);
     }
+
+    // Locked email has the lock time and a reset link (normal)
+    public function testAccountLockedEmailGivesLockTimeAndResetLink(): void
+    {
+        // Arrange: nothing to set up
+
+        // Act
+        $email = Mailer::buildAccountLockedEmail();
+
+        // Assert
+        self::assertStringContainsString('has been locked', $email['subject']);
+        self::assertStringContainsString('locked it for 15 minutes', $email['text']);
+        self::assertStringContainsString('/forgot-password', $email['text']);
+    }
+
+    // Code email has the code, the 10 min expiry and a reset link (normal)
+    public function testLoginCodeEmailHasCodeExpiryAndResetLink(): void
+    {
+        // Arrange
+        $code = '004211';
+
+        // Act
+        $email = Mailer::buildLoginCodeEmail($code);
+
+        // Assert
+        self::assertStringContainsString('security code', $email['subject']);
+        self::assertStringContainsString($code, $email['text']);
+        self::assertStringContainsString('expires in 10 minutes', $email['text']);
+        self::assertStringContainsString('/forgot-password', $email['text']);
+    }
 }
