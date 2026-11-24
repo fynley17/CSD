@@ -13,7 +13,7 @@ use PHPUnit\Framework\Attributes\RunInSeparateProcess;
 use PHPUnit\Framework\TestCase;
 
 /**
- * Tests for the My profile page (CTS-203), the User model methods and the checks ProfileController uses
+ * Tests for the My profile page, the User model methods and the checks ProfileController uses
  * jsonResponse() stops the script so the endpoints can't be called here, these call what they use instead
  * each test is laid out Arrange, Act, Assert
  */

@@ -1,4 +1,4 @@
-// This file is the rule book for checking the Vue and JavaScript code in the CSD website (CTS-155).
+// This file is the rule book for checking the Vue and JavaScript code in the CSD website.
 // Every rule comes from the RevisionHub house style. On each pull request, MegaLinter reads this
 // file and highlights lines of code breaking a rule, before the code is merged into main project.
 // file name ends in .cjs, since that format is readable by MegaLinter and other computers.

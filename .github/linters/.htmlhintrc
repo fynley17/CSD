@@ -1,4 +1,4 @@
-// HTMLHint settings (CTS-155), checks our .html files follow the house style and WCAG 2.2 AA
+// HTMLHint settings, checks our .html files follow the house style and WCAG 2.2 AA
 // rule list: https://htmlhint.com/rules/
 {
     // page must start with <!doctype html> so browsers use modern HTML

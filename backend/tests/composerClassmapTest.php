@@ -3,7 +3,7 @@
 use PHPUnit\Framework\TestCase;
 
 /**
- * Checks every backend class is listed in composer.json's classmap (CTS-204)
+ * Checks every backend class is listed in composer.json's classmap
  *
  * The files are camelCase, i.e. app/controllers/passwordResetController.php, but the classes are PascalCase,
  * so Composer's PSR-4 fallback looks for app/Controllers/PasswordResetController.php instead.

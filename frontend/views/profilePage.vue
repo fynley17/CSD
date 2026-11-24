@@ -24,7 +24,7 @@ function meetsPasswordRules(password) {
     );
 }
 
-// My profile page (CTS-203), any signed in user can see their account and change their own names, email and password
+// My profile page, any signed in user can see their account and change their own names, email and password
 // PHP only ever works on whoever is logged in, so the page never sends a user ID
 export default {
     data() {

@@ -1,4 +1,4 @@
-# PHPStan settings (CTS-155), finds PHP mistakes before the code runs, like using a class that doesn't exist
+# PHPStan settings, finds PHP mistakes before the code runs, like using a class that doesn't exist
 # pre-commit and megalinter both read this file so they always run the same check
 # docs: https://phpstan.org/config-reference
 

@@ -1,4 +1,4 @@
-# Stylelint settings (CTS-155), checks our CSS follows the house style before it gets merged
+# Stylelint settings, checks our CSS follows the house style before it gets merged
 # looks at .css files and the <style> part of .vue files
 # rule list used: https://stylelint.io/user-guide/rules
 

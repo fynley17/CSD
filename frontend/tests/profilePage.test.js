@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-// Tests for the My profile page (CTS-203), the profile service is pretend so no PHP or database is needed
+// Tests for the My profile page, the profile service is pretend so no PHP or database is needed
 // each test is laid out Arrange, Act, Assert
 import { flushPromises, mount } from '@vue/test-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';

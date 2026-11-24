@@ -1,4 +1,4 @@
--- CTS-203 user profile: a new email address typed on the profile page waits here until its link is used,
+-- User profile: a new email address typed on the profile page waits here until its link is used,
 -- so the account keeps its old address (and can still log in and get emails) until the new one is confirmed.
 -- NULL = the link verifies the address already on the account, i.e. after registering.
 ALTER TABLE `EmailVerifications`
