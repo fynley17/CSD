@@ -9,31 +9,34 @@ use PHPUnit\Framework\Attributes\RunInSeparateProcess;
 use PHPUnit\Framework\TestCase;
 
 /**
- * Tests for the MFA code step going through the real controller, not just the models
- * jsonResponse() and requireRole() both end the PHP program, so:
- * - the controller tests use a copy of LoginCodeController that throws the reply back instead of sending it
- * - the requireRole() test runs in a second PHP program and reads what it printed
- * each one runs in its own process, as starting a session sends headers
+ * Tests the MFA code step through the actual controller
+ * jsonResponse() and requireRole() both exit PHP which would kill the test
+ * so the controller test uses a copy of the controller that throws the reply back
+ * and the requireRole() test runs it as a separate php program and reads the output
+ * own process each because sessions send headers
  */
 final class LoginCodeControllerTest extends TestCase
 {
     private const USER_ID = 'user-1';
 
     /**
-     * Pretend Users and MfaBackupCodes tables with one student, same way userTest.php does it
+     * In memory Users and MfaBackupCodes tables with one student, like userTest.php
      */
     protected function setUp(): void
     {
         $db = new \Pdo\Sqlite('sqlite::memory:');
-        $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        $db->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
         // sqlite hasn't got NOW(), recordLogin() needs it
-        $db->createFunction('NOW', static fn (): string => date('Y-m-d H:i:s'));
+        $db->createFunction('NOW', function () {
+            return date('Y-m-d H:i:s');
+        });
 
         $db->exec('CREATE TABLE Users (userID TEXT, username TEXT, email TEXT, password TEXT, accountType TEXT,
             approvalStatus TEXT, isEnabled INTEGER, isEmailVerified INTEGER, failedAttempts INTEGER,
             lockedUntil TEXT, lastFailedAt TEXT, lastLogin TEXT)');
-        $db->exec("INSERT INTO Users VALUES ('" . self::USER_ID . "', 'ws000001', 'ws000001@example.com', 'hash',
+        $insert = $db->prepare("INSERT INTO Users VALUES (?, 'ws000001', 'ws000001@example.com', 'hash',
             'student', 'approved', 1, 1, 0, NULL, NULL, NULL)");
+        $insert->execute([self::USER_ID]);
         $db->exec('CREATE TABLE MfaBackupCodes (backupCodeID INTEGER PRIMARY KEY, userID TEXT, codeHash TEXT)');
 
         $dbProperty = new \ReflectionProperty(Model::class, 'db');
@@ -54,13 +57,15 @@ final class LoginCodeControllerTest extends TestCase
      */
     private function sendCode(string $code): array
     {
-        // a copy of the controller that hands the reply back instead of sending it and stopping
+        // controller copy that hands the reply back without exiting
         $controller = new class ($code) extends LoginCodeController {
             public ?array $reply = null;
+            private string $typedCode;
 
-            public function __construct(private string $typedCode)
+            public function __construct(string $typedCode)
             {
                 parent::__construct();
+                $this->typedCode = $typedCode;
             }
 
             protected function readBody(): array
@@ -70,26 +75,28 @@ final class LoginCodeControllerTest extends TestCase
 
             public function jsonResponse($data, $status = 200): void
             {
-                // only keep the first reply, the catch in verifyCode() would send a second one
-                $this->reply ??= [$status, $data];
+                // keep the first reply only, verifyCode()'s catch sends a 2nd
+                if ($this->reply === null) {
+                    $this->reply = [$status, $data];
+                }
                 throw new \RuntimeException('reply sent');
             }
         };
 
-        // verifyCode() logs our pretend reply as a server error, this keeps it out of the test output
+        // verifyCode() logs the fake reply as an error, send that to a temp file not the test output
         ini_set('error_log', sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'login-code-test.log');
 
         try {
             $controller->verifyCode();
         } catch (\RuntimeException $e) {
-            // the reply was "sent", carry on and check it
+            // reply sent, carry on
         }
 
         return $controller->reply;
     }
 
     /**
-     * Puts this browser at the code step, like the password step does
+     * Gets the session to the code step like the password step would
      */
     private function startPendingLogin(): void
     {
@@ -99,7 +106,7 @@ final class LoginCodeControllerTest extends TestCase
     }
 
     /**
-     * A backup code logs in once through the real login, then the same code is turned away
+     * Backup code logs in once through the real controller, the same code again gets 401
      * and counts as a wrong try (error)
      */
     #[RunInSeparateProcess]
@@ -123,12 +130,12 @@ final class LoginCodeControllerTest extends TestCase
     }
 
     /**
-     * Only the password right (MFA on) means the real requireRole() still says 401 (error)
-     * requireRole() ends the program, so it runs in a second PHP program and this checks what it printed
+     * Password right but no code yet, the real requireRole() still says no (error)
+     * requireRole() exits, so it runs as a separate php program and the output gets checked
      */
     public function testProtectedEndpointsRefusePendingLogin(): void
     {
-        // Arrange: a second program that saves a pending login, then asks requireRole() to let it in
+        // Arrange: small php program, saves a pending login then calls requireRole()
         $autoload = __DIR__ . '/../vendor/autoload.php';
         // only single quotes inside, windows swaps double quotes for spaces when it runs the command
         $script = 'require ' . var_export($autoload, true) . ';'

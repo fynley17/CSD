@@ -3,28 +3,28 @@
 namespace App\Helpers;
 
 /**
- * Login code helper, the 6 digit security code emailed after the right password (MFA)
- * one of these lives in the PHP session between the password and the code being typed in,
- * it only keeps a hash of the code so the real code is only ever in the email
+ * Login code helper, the 6 digit code emailed after the password (MFA)
+ * one of these sits in the session between typing the password and typing the code
+ * only the hash is kept, the actual code is only in the email
  */
 class LoginCode
 {
-    // 6 digits like most sites use, short enough to type from a phone
+    // 6 digits, same as most sites
     public const CODE_LENGTH = 6;
     // how long the code works for after it's sent
     public const LIFETIME_MINUTES = 10;
-    // same wait as the verification email, stops someone flooding the inbox
+    // same wait as the verify email, stops inbox spam
     public const RESEND_WAIT_SECONDS = 60;
 
     private string $userID;
     private string $codeHash;
-    // unix time the email went, the expiry and resend wait both count from this
+    // unix time the email was sent, expiry and resend wait count from here
     private int $sentAt;
-    // unix time the password was right, resending doesn't move it
+    // when the password was typed, resending doesnt change it
     private int $startedAt;
 
     /**
-     * Makes the pending login for one account, after their password was right
+     * Pending login for one account once their password was right
      */
     public function __construct(string $userID, string $codeHash, int $sentAt, int $startedAt)
     {
@@ -35,7 +35,7 @@ class LoginCode
     }
 
     /**
-     * True when MFA_ENABLED is set to true in the .env, anything else means password only
+     * True if MFA_ENABLED=true in .env, anything else is password only
      */
     public static function isRequired(): bool
     {
@@ -44,16 +44,16 @@ class LoginCode
 
     /**
      * Makes a random 6 digit code
-     * random_int is PHP's secure one so the next code can't be guessed from the last
+     * random_int not rand() as rand can be predicted
      */
     public static function makeCode(): string
     {
-        // str_pad puts the 0s back on the front, i.e. 4211 becomes 004211
+        // pads the front with 0s e.g. 4211 to 004211
         return str_pad((string) random_int(0, 999999), self::CODE_LENGTH, '0', STR_PAD_LEFT);
     }
 
     /**
-     * Hashes a code before it goes in the session, like the email verification links
+     * Hash for the session, same as the verify email links
      */
     public static function hashCode(string $code): string
     {
@@ -61,22 +61,22 @@ class LoginCode
     }
 
     /**
-     * True if what was typed is shaped like an email code (6 digits), not a backup code
+     * True for 6 digits (email code), false for anything else e.g. a backup code
      */
     public static function isEmailCode(string $typed): bool
     {
-        return preg_match('/^[0-9]{6}$/D', $typed) === 1;
+        return preg_match('/^[0-9]{' . self::CODE_LENGTH . '}$/D', $typed) === 1;
     }
 
     /**
-     * Hides most of the email address so the page can show where the code went
-     * i.e. ws123456@example.com becomes w***@example.com
+     * Hides most of the email for the page
+     * ws123456@example.com becomes w***@example.com
      */
     public static function maskEmail(string $email): string
     {
         $atPosition = strrpos($email, '@');
 
-        // not a normal address, so don't show any of it
+        // weird address, just hide it all
         if ($atPosition === false || $atPosition === 0) {
             return '***';
         }
@@ -85,7 +85,7 @@ class LoginCode
     }
 
     /**
-     * Rebuilds the pending login from what saveForSession() put in the session
+     * Builds it back from what saveForSession() stored
      *
      * @return LoginCode|null null if there isn't one or it's not the right shape
      */
@@ -105,7 +105,7 @@ class LoginCode
     }
 
     /**
-     * Turns this into a plain array for $_SESSION, the session can't hold the object itself safely
+     * plain array for $_SESSION, fromSession() checks each bit on the way back
      */
     public function saveForSession(): array
     {
@@ -118,8 +118,8 @@ class LoginCode
     }
 
     /**
-     * True once 10 minutes have passed since the email was sent
-     * the time is passed in so the tests don't have to wait 10 minutes
+     * True once 10 mins have passed since the email
+     * time gets passed in so tests dont actually wait
      */
     public function isExpired(int $now): bool
     {
@@ -127,8 +127,8 @@ class LoginCode
     }
 
     /**
-     * True once the whole half finished login is older than the 30 minute idle logout
-     * stops someone keeping it going for ever by pressing Resend code
+     * True once the half done login is older than 30 mins (same as idle logout)
+     * otherwise pressing Resend could keep it going forever
      */
     public function hasRunOut(int $now): bool
     {
@@ -136,7 +136,7 @@ class LoginCode
     }
 
     /**
-     * True if a minute has passed since the last email, so another one can go
+     * True if its been a minute since the last email
      */
     public function canResend(int $now): bool
     {
@@ -144,7 +144,7 @@ class LoginCode
     }
 
     /**
-     * True if the typed code is this one and it hasn't run out
+     * True if the typed code matches and hasnt expired
      */
     public function matches(string $typed, int $now): bool
     {
@@ -152,7 +152,7 @@ class LoginCode
             return false;
         }
 
-        // hash_equals so the check takes the same time however much of the code is right
+        // hash_equals takes the same time if its nearly right or way off (timing attacks)
         return hash_equals($this->codeHash, self::hashCode($typed));
     }
 
@@ -165,7 +165,7 @@ class LoginCode
     }
 
     /**
-     * Returns when the password was right, so a resent code keeps the same 30 minute limit
+     * When the password was typed, resent codes keep the same 30 min limit
      */
     public function getStartedAt(): int
     {

@@ -52,7 +52,7 @@ class Authentication
         unset($_SESSION['csrfToken']);
         // handing in only checks the session has the attempt, so one account's attempts can't carry over to the next
         unset($_SESSION['testAttempts']);
-        // the security code has done its job, so it can't be used again
+        // logged in properly now so any half done login can go
         unset($_SESSION['pendingLogin']);
     }
 
@@ -90,19 +90,19 @@ class Authentication
     }
 
     /**
-     * Remembers whose password was right while they get the security code from their email (MFA).
-     * They aren't logged in yet, so nothing that needs userID in the session will let them in.
+     * Remembers who got their password right while they go get the code (MFA)
+     * not logged in yet, theres no userID so requireRole() still says no
      */
     public function savePendingLogin(LoginCode $loginCode): void
     {
         $this->startSession();
-        // new session ID for the same reason as saveLogin(), stops session fixation
+        // fresh session ID here too, stops session fixation
         session_regenerate_id(true);
         $_SESSION['pendingLogin'] = $loginCode->saveForSession();
     }
 
     /**
-     * Returns the login waiting for its security code, read from the session on the server.
+     * Returns the login waiting on a code, from the session
      *
      * @return LoginCode|null null if this browser hasn't got the password right yet
      */
@@ -114,8 +114,8 @@ class Authentication
     }
 
     /**
-     * Keeps the hashes of a new set of backup codes until the user has copied or downloaded the codes
-     * so if they refresh or close the page first nothing is saved and they get a new set next login
+     * Holds the new backup code hashes until the codes get copied or downloaded
+     * only saved once they've copied or downloaded them
      */
     public function saveNewBackupCodes(array $hashes): void
     {
@@ -124,7 +124,7 @@ class Authentication
     }
 
     /**
-     * Hands back the waiting backup code hashes and forgets them, so they can only be saved once
+     * Gives back the waiting hashes and removes them so they only save once
      *
      * @return array|null null if there aren't any waiting
      */
@@ -138,7 +138,7 @@ class Authentication
     }
 
     /**
-     * Forgets the login waiting for a code, used when it's locked or a new login starts
+     * Wipes the waiting login, on lockout or when a new login starts
      */
     public function clearPendingLogin(): void
     {

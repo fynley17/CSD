@@ -399,7 +399,7 @@ class Mailer
     }
 
     /**
-     * Sends the 6 digit security code someone needs to finish logging in when MFA is on.
+     * Sends the 6 digit login code (MFA)
      */
     public static function sendLoginCodeEmail(string $toEmail, string $code): bool
     {
@@ -409,7 +409,7 @@ class Mailer
     }
 
     /**
-     * Builds the security code email, the last bit tells them what to do if it wasn't them.
+     * Builds the code email, ends with what to do if it wasnt them
      *
      * @return array{subject: string, html: string, text: string}
      */
@@ -465,7 +465,7 @@ class Mailer
     }
 
     /**
-     * Tells the owner their account was locked by 3 wrong passwords or security codes, someone may be guessing.
+     * Tells the owner their account got locked after 3 wrong tries
      */
     public static function sendAccountLockedEmail(string $toEmail): bool
     {
@@ -475,7 +475,7 @@ class Mailer
     }
 
     /**
-     * Builds the account locked email, the numbers come from User so it says what the code actually does.
+     * Builds the locked email, numbers come from User so they match the real lock
      *
      * @return array{subject: string, html: string, text: string}
      */
@@ -529,7 +529,7 @@ class Mailer
     }
 
     /**
-     * Builds the link to the forgot password page, used in the security code email.
+     * Link to the forgot password page for the code and locked emails
      */
     public static function forgotPasswordLink(): string
     {

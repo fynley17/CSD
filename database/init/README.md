@@ -30,7 +30,7 @@ cohort migration lets `Subjects.cohortID` be NULL, for a subject not in a cohort
 name migration stops two cohorts having the same name; rename any duplicates first. The password reset
 tokens migration adds the `PasswordResetTokens` table used by the forgot password link. The MFA backup
 codes migration adds the `MfaBackupCodes` table, the one-use codes for logging in when the security code
-email can't be reached. Do not run migrations through the init directory; init scripts run only
+email doesn't arrive. Do not run migrations through the init directory; init scripts run only
 for a new volume.
 
 ## Sample data

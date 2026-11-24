@@ -186,7 +186,7 @@ $router->addRoute(
     [new AuthController(), 'login']
 );
 
-// Security code after the password, only used when MFA_ENABLED is true.
+// MFA code step, only used when MFA_ENABLED is true
 $router->addRoute(
     'POST',
     '/^\/api\/login\/code$/',

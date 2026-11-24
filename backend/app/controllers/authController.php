@@ -11,7 +11,7 @@ use App\Models\Lecturer;
 
 /**
  * Auth controller, answers the login page's login, logout and "who's logged in" requests
- * goes in the same order as the login flowchart, LoginCodeController carries on from here when MFA is on
+ * goes in the same order as the login flowchart, the code step is in LoginCodeController
  * the session itself is looked after by the Authentication object this controller keeps
  */
 class AuthController extends Controller
@@ -22,7 +22,7 @@ class AuthController extends Controller
     private const EMAIL_NOT_VERIFIED = 'You need to verify your email address before you can login';
     private const ACCOUNT_PENDING = 'Your account is waiting for lecturer approval. '
         . 'You will get an email when it is ready';
-    // protected so LoginCodeController can use the same wording
+    // protected so LoginCodeController can use these too
     protected const ACCOUNT_DISABLED = 'Your account has been disabled. Contact your lecturer or an administrator';
     protected const CODE_NOT_SENT = 'We could not send the security code. Try again later';
 
@@ -42,7 +42,7 @@ class AuthController extends Controller
      */
     public function login(): void
     {
-        // a new login throws away any half finished one in this browser, i.e. someone else's on a shared computer
+        // wipe any half done login first, could be someone else's on a shared pc
         $this->authentication->clearPendingLogin();
 
         $details = $this->readLoginDetails();
@@ -84,7 +84,7 @@ class AuthController extends Controller
             }
 
             // right password, so earlier wrong ones don't count towards a lock any more
-            // with MFA on they stay until the code is right too, otherwise logging in again would give 3 more guesses
+            // MFA on = dont reset the wrong tries till the code's right too, or logging in again gives 3 more guesses
             if (!LoginCode::isRequired()) {
                 $user->clearFailedAttempts();
                 $user->saveLoginAttempts();
@@ -107,24 +107,26 @@ class AuthController extends Controller
                 $this->jsonResponse(['error' => self::ACCOUNT_DISABLED], 403);
             }
 
-            // MFA on, so the password isn't enough yet, LoginCodeController logs them in once the code is right
+            // password alone isn't enough with MFA on, they get logged in once the code's right
             if (LoginCode::isRequired()) {
                 $maskedEmail = LoginCode::maskEmail($user->findEmail());
                 if ($this->emailNewCode($user, time())) {
                     $this->jsonResponse(['mfaRequired' => true, 'maskedEmail' => $maskedEmail]);
                 }
 
-                // email didn't send, a backup code still proves it's them so they can get to the code box
-                // the code saved here was never sent, so only a backup code (or Resend code) gets them in
+                // email failed but a backup code still proves its them, let them through to the code box
+                // this code never gets sent, only a backup code or a resent one will work
                 if (BackupCode::countLeft($user->getUserID()) > 0) {
                     $unsentHash = LoginCode::hashCode(LoginCode::makeCode());
+                    // sent time set a minute back so Resend code works straight away
+                    $sentAt = time() - LoginCode::RESEND_WAIT_SECONDS;
                     $this->authentication->savePendingLogin(
-                        new LoginCode($user->getUserID(), $unsentHash, time(), time())
+                        new LoginCode($user->getUserID(), $unsentHash, $sentAt, time())
                     );
                     $this->jsonResponse(['mfaRequired' => true, 'maskedEmail' => $maskedEmail, 'emailFailed' => true]);
                 }
 
-                // no backup codes yet either, so fails closed, MFA is never skipped
+                // no backup codes either so they cant get in, MFA doesnt get skipped
                 $this->jsonResponse(['error' => self::CODE_NOT_SENT], 500);
             }
 
@@ -246,9 +248,9 @@ class AuthController extends Controller
     }
 
     /**
-     * Logs them in and tells the page which dashboard to go to, the last step with or without MFA
+     * Last bit of logging in, with or without MFA
      *
-     * @param array $reply anything else the page needs, i.e. a new set of backup codes
+     * @param array $reply extra stuff for the page e.g. new backup codes
      */
     protected function finishLogin(User $user, array $reply = []): void
     {
@@ -261,9 +263,9 @@ class AuthController extends Controller
     }
 
     /**
-     * Emails a new security code and keeps its hash in the session, any older code stops working
+     * Emails a new code and saves the hash in the session, replaces any old one
      *
-     * @param int $startedAt when the password was right, a resend keeps the first time
+     * @param int $startedAt when the password was typed, resends keep the original time
      * @return bool false if the email didn't send
      */
     protected function emailNewCode(User $user, int $startedAt): bool
@@ -274,15 +276,15 @@ class AuthController extends Controller
             return false;
         }
 
-        // only saved once the email's gone, so a failed send doesn't replace a code they already have
+        // save after sending, if the email fails their old code still works
         $codeHash = LoginCode::hashCode($code);
         $this->authentication->savePendingLogin(new LoginCode($user->getUserID(), $codeHash, time(), $startedAt));
         return true;
     }
 
     /**
-     * Emails the owner when 3 wrong tries lock their account, so they know if someone's guessing their password
-     * only a warning, the lock and the 429 still happen if the email fails (sendEmail logs that)
+     * Emails the owner when their account gets locked, someone might be guessing the password
+     * the lock happens anyway, sendEmail() logs it if the email fails
      */
     protected function sendLockedAlert(User $user): void
     {

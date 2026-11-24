@@ -252,7 +252,7 @@ abstract class User extends Model
     }
 
     /**
-     * Looks up the account's email address, only the MFA login needs it so it isn't loaded with the rest
+     * gets the email, only the code and locked emails need it so its not in COLUMNS
      */
     public function findEmail(): string
     {

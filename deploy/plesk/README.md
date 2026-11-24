@@ -97,8 +97,9 @@ Gmail app password are never committed.
    # the live address, used for the links in emails
    APP_URL=https://your-domain.example
 
-   # emails a security code at every login, see "Security codes (MFA)" below
-   MFA_ENABLED=true
+   # true emails a security code at every login, only once the MfaBackupCodes
+   # migration has run, see "Security codes (MFA)" below
+   MFA_ENABLED=false
    ```
 
 ## 5. Check it works
@@ -132,13 +133,13 @@ code from an email as well as the password. Only turn it on once
 `database/migrations/20261122-mfa-backup-codes.sql` has been run and the SMTP
 settings work.
 
-- **Email not working for everyone:** set `MFA_ENABLED=false`. Logins go back
+- If email stops working for everyone, set `MFA_ENABLED=false`. Logins go back
   to password only straight away and nothing is deleted.
-- **Someone lost access to their email:** an administrator changes their email
+- If someone can't get into their email, an administrator changes their
   address with Edit on the student or lecturer management page.
-- **Break glass, lost their email and their backup codes:** in phpMyAdmin,
-  run this on the SQL tab with their username. They get a new set of backup
-  codes at their next login.
+- If they've lost their email and their backup codes (the break glass route),
+  run this on the phpMyAdmin SQL tab with their username. They get a new set
+  of backup codes at their next login.
 
   ```sql
   DELETE b FROM MfaBackupCodes b JOIN Users u ON u.userID = b.userID WHERE u.username = 'ws123456';

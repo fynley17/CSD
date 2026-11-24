@@ -8,14 +8,14 @@ use App\Models\BackupCode;
 use App\Models\User;
 
 /**
- * Login code controller, the second half of logging in when MFA is switched on
- * the password was already checked by AuthController, this checks the emailed code or a backup code
- * extends AuthController so it reuses the same session helper, locked message and finishLogin()
+ * Login code controller, 2nd half of logging in when MFA is on
+ * AuthController already checked the password, this does the emailed code or a backup code
+ * extends AuthController to reuse the session helper, lockedMessage() and finishLogin()
  */
 class LoginCodeController extends AuthController
 {
-    // messages the user sees, the page adds "There is a problem:" or "Success:" in front
-    // the resend wait is worded the same as the verification email one
+    // messages shown on the page, the page puts "There is a problem:" in front itself
+    // resend wait message is the same one VerificationController uses
     private const MISSING_CODE = 'Enter the security code';
     private const CODE_FORMAT = 'Enter the 6 digit code from the email, or one of your backup codes';
     private const WRONG_CODE = 'Security code is incorrect';
@@ -26,21 +26,21 @@ class LoginCodeController extends AuthController
     private const NO_NEW_CODES = 'There are no new backup codes to save. Login again to get a new set';
 
     /**
-     * POST /api/login/code, checks the emailed security code or a backup code then logs them in
+     * POST /api/login/code, checks the email code or a backup code then logs in
      */
     public function verifyCode(): void
     {
         $code = $this->readBody()['code'] ?? '';
 
-        // checked here as well as on the page, anyone can call /api/login/code directly
+        // page checks this too but anyone can hit the API directly
         if (!is_string($code) || trim($code) === '') {
             $this->jsonResponse(['error' => self::MISSING_CODE], 400);
         }
 
-        // takes out spaces and dashes so 123 456 or k7qm-2xpa still work, the same tidy up suits both kinds
+        // strip spaces and dashes so 123 456 and k7qm-2xpa still work
         $code = BackupCode::normalise($code);
 
-        // the wrong shape can't be either kind of code, so it's turned away without using up a try
+        // not 6 digits or a backup code = 400, doesnt count as a try
         if (!LoginCode::isEmailCode($code) && !BackupCode::isBackupCode($code)) {
             $this->jsonResponse(['error' => self::CODE_FORMAT], 400);
         }
@@ -50,30 +50,30 @@ class LoginCodeController extends AuthController
         try {
             $user = $this->findPendingUser($pending);
 
-            // locked by wrong codes or from another browser, they start again once it's over
+            // locked (wrong codes or another browser), they start over after the 15 mins
             if ($user->isLocked()) {
                 $this->authentication->clearPendingLogin();
                 $this->jsonResponse(['error' => $this->lockedMessage($user)], 429);
             }
 
-            // only the emailed code runs out after 10 minutes, a backup code still works
+            // backup codes dont expire, only the email one does
             if (LoginCode::isEmailCode($code) && $pending->isExpired(time())) {
                 $this->jsonResponse(['error' => self::EXPIRED_CODE], 401);
             }
 
-            // email code first then backup codes, a backup code only gets used up if it's actually right
+            // try the email code first, a backup code only gets used up if it matches
             $isRightCode = $pending->matches($code, time()) || BackupCode::useCode($user->getUserID(), $code);
 
             if (!$isRightCode) {
                 $this->wrongCode($user);
             }
 
-            // both steps are right now, so the earlier wrong tries can go
+            // password and code both right, reset the wrong tries
             $user->clearFailedAttempts();
             $user->saveLoginAttempts();
 
-            // first MFA login, or they just used their last backup code, so they get a new set to save
-            // only the hashes wait in the session, saveBackupCodes() puts them in the database once they're saved
+            // no codes left (first MFA login or just used the last one) so make a new set
+            // hashes sit in the session till saveBackupCodes() puts them in the db
             $reply = [];
             if (BackupCode::countLeft($user->getUserID()) === 0) {
                 $reply['backupCodes'] = BackupCode::makeSet();
@@ -87,7 +87,7 @@ class LoginCodeController extends AuthController
     }
 
     /**
-     * POST /api/login/code/resend, emails a new security code and the old one stops working
+     * POST /api/login/code/resend, new code email, old code stops working
      */
     public function resendCode(): void
     {
@@ -101,8 +101,8 @@ class LoginCodeController extends AuthController
         try {
             $user = $this->findPendingUser($pending);
 
-            // locked since the password was typed, so they go back to login and get the locked pop up there
-            // not a 429, the page already reads a 429 here as "wait a minute"
+            // got locked meanwhile, wipe it so they have to login again (that shows the locked pop up)
+            // 401 not 429, a 429 from resend means wait a minute
             if ($user->isLocked()) {
                 $this->authentication->clearPendingLogin();
                 $this->jsonResponse(['error' => self::NO_PENDING_LOGIN], 401);
@@ -119,12 +119,12 @@ class LoginCodeController extends AuthController
     }
 
     /**
-     * POST /api/login/backup-codes, saves the new backup codes once the page says they've been copied or downloaded
-     * nothing is saved before this, so refreshing the codes page means a new set shows at the next login
+     * POST /api/login/backup-codes, saves the new codes after they've been copied or downloaded
+     * if they refresh before this nothing's saved and they get a new set next login
      */
     public function saveBackupCodes(): void
     {
-        // they're logged in by now, any account type can have backup codes
+        // logged in by now, all 3 account types can have codes
         Authentication::requireRole(['student', 'lecturer', 'admin']);
 
         $hashes = $this->authentication->takeNewBackupCodes();
@@ -141,8 +141,8 @@ class LoginCodeController extends AuthController
     }
 
     /**
-     * Gets this browser's half finished login, and stops if there isn't one or it's over 30 minutes old
-     * only a browser that got the password right has one
+     * Gets the half done login for this browser, stops if theres none or its over 30 mins old
+     * only there if the password was right
      */
     private function findPendingLogin(): LoginCode
     {
@@ -157,20 +157,20 @@ class LoginCodeController extends AuthController
     }
 
     /**
-     * Gets the account the code is for, and stops if it was deleted, disabled or unapproved
-     * since the password was typed
+     * Gets the account the code is for
+     * stops if it got deleted, disabled or unapproved since the password step
      */
     private function findPendingUser(LoginCode $pending): User
     {
         $user = User::findById($pending->getUserID());
 
-        // deleted, so there's nothing to log in to, they have to start again
+        // account deleted, nothing to log in to
         if ($user === null) {
             $this->authentication->clearPendingLogin();
             $this->jsonResponse(['error' => self::NO_PENDING_LOGIN], 401);
         }
 
-        // same message login gives a disabled account, 401 not 403 as api.js sends a 403 twice
+        // same message as login, 401 not 403 because api.js retries 403s
         if (!$user->isActive()) {
             $this->authentication->clearPendingLogin();
             $this->jsonResponse(['error' => self::ACCOUNT_DISABLED], 401);
@@ -181,13 +181,13 @@ class LoginCodeController extends AuthController
 
     /**
      * Counts a wrong code and stops the request
-     * wrong codes and wrong passwords share the same 3 tries and 15 minute lock
+     * wrong codes and wrong passwords use the same 3 tries
      */
     private function wrongCode(User $user): void
     {
         $user->addFailedAttempt();
 
-        // that was the 3rd wrong try, so the code they have stops working as well
+        // 3rd wrong try, kill their code too
         if ($user->isLocked()) {
             $this->authentication->clearPendingLogin();
             $this->sendLockedAlert($user);

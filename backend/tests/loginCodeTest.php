@@ -6,8 +6,8 @@ use PHPUnit\Framework\Attributes\RunInSeparateProcess;
 use PHPUnit\Framework\TestCase;
 
 /**
- * Tests for the 6 digit security code emailed at login when MFA is on
- * the times are passed in, so nothing has to wait 10 minutes
+ * Tests for the 6 digit email code (MFA)
+ * times are passed in so nothing waits 10 mins
  */
 final class LoginCodeTest extends TestCase
 {
@@ -24,7 +24,7 @@ final class LoginCodeTest extends TestCase
     }
 
     /**
-     * A made code is 6 digits and the right code logs in, even one starting with 0 (normal)
+     * Codes are 6 digits and the right one matches, even with a leading 0 (normal)
      */
     public function testRightCodeMatches(): void
     {
@@ -41,7 +41,7 @@ final class LoginCodeTest extends TestCase
     }
 
     /**
-     * The code works up to 10 minutes then stops at exactly 10, and the whole login runs out at 30 (boundary)
+     * Works up to 10 mins, stops at exactly 10, whole login runs out at 30 (boundary)
      */
     public function testCodeStopsWorkingAfterTenMinutes(): void
     {
@@ -61,7 +61,7 @@ final class LoginCodeTest extends TestCase
     }
 
     /**
-     * A wrong code, or junk saved in the session, never logs anyone in (error)
+     * Wrong code or junk in the session doesnt match (error)
      */
     public function testWrongCodeAndBadSessionAreTurnedAway(): void
     {
@@ -79,7 +79,7 @@ final class LoginCodeTest extends TestCase
     }
 
     /**
-     * Only the first letter and the domain of the email show on the page (normal)
+     * Only the first letter and domain show (normal)
      */
     public function testEmailIsMasked(): void
     {
@@ -93,9 +93,9 @@ final class LoginCodeTest extends TestCase
     }
 
     /**
-     * Only getting the password right (MFA on) isn't a login, so protected endpoints still turn them away (error)
-     * requireRole() stops any request with no userID in the session, which is what getLoggedInUserID() reads
-     * in its own process, as starting a session sends headers
+     * Password right but no code isnt a login, no userID in the session (error)
+     * requireRole() refuses anything without a userID, getLoggedInUserID() reads the same thing
+     * own process, sessions send headers
      */
     #[RunInSeparateProcess]
     public function testPendingLoginCannotReachProtectedEndpoints(): void

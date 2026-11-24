@@ -1,5 +1,5 @@
 -- MFA backup codes, up to 8 one-use codes per account for logging in when the security code email
--- can't be reached. Only password_hash() hashes are stored, never the codes themselves.
+-- doesn't arrive. Only password_hash() hashes are stored, not the codes.
 -- Deleting someone's rows here makes the site show them a new set at their next login.
 CREATE TABLE `MfaBackupCodes` (
   `backupCodeID` uuid NOT NULL DEFAULT uuid(),

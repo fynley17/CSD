@@ -11,7 +11,7 @@ vi.mock('../services/authService', () => ({
 }));
 
 /**
- * Tests for the security code card shown after the password when MFA is on
+ * Tests for the code card (MFA)
  * every test is laid out Arrange, Act, Assert
  */
 
@@ -28,7 +28,7 @@ describe('LoginCodeForm', () => {
     });
 
     /**
-     * The right code hands PHP's reply up to loginForm so it can go to the dashboard (normal)
+     * Right code passes PHP's reply up to loginForm (normal)
      */
     it('passes the reply on when the code is right', async () => {
         // Arrange
@@ -44,7 +44,7 @@ describe('LoginCodeForm', () => {
     });
 
     /**
-     * A wrong code shows PHP's message in the red box and doesn't log in (error)
+     * Wrong code shows PHP's message, no login (error)
      */
     it('shows the problem when the code is wrong', async () => {
         // Arrange
@@ -60,7 +60,7 @@ describe('LoginCodeForm', () => {
     });
 
     /**
-     * When the email didn't send the card says so straight away and asks for a backup code (error)
+     * Email failed, card says so and asks for a backup code (error)
      */
     it('asks for a backup code when the email did not send', () => {
         // Arrange and Act
@@ -72,7 +72,7 @@ describe('LoginCodeForm', () => {
     });
 
     /**
-     * The 3rd wrong code locks the account, so loginForm is told to show the locked pop-up (boundary)
+     * 3rd wrong code locks it, loginForm gets told (boundary)
      */
     it('tells loginForm when the account gets locked', async () => {
         // Arrange

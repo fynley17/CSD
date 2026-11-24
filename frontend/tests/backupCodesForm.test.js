@@ -9,7 +9,7 @@ vi.mock('../services/authService', () => ({
     saveBackupCodes: vi.fn(),
 }));
 
-// jsdom can't make files, so the download just pretends to
+// jsdom cant make files, fake it
 URL.createObjectURL = vi.fn(() => 'blob:codes');
 URL.revokeObjectURL = vi.fn();
 
@@ -30,7 +30,7 @@ async function downloadCodes(wrapper) {
 
 describe('BackupCodesForm', () => {
     /**
-     * Continue without copying or downloading, then without ticking, stays on the codes (error)
+     * Continue without copy/download, then without the tick, stays put (error)
      */
     it('needs the codes copying or downloading and the box ticking', async () => {
         // Arrange
@@ -53,7 +53,7 @@ describe('BackupCodesForm', () => {
     });
 
     /**
-     * Downloaded and ticked, so PHP saves the codes and they go to their dashboard (normal)
+     * Downloaded and ticked, codes get saved and they carry on (normal)
      */
     it('saves the codes and carries on once both are done', async () => {
         // Arrange

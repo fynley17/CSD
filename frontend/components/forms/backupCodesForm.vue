@@ -1,13 +1,13 @@
 <script>
 import { saveBackupCodes } from '../../services/authService';
 
-// Backup codes card, shown once after an MFA login when the account has no backup codes left
-// each code logs in once without the email, PHP only keeps hashes so this is the only time they're shown
-// a step in the login card and not a pop-up, so Esc or the X can't skip it
-// PHP only saves the codes once Continue works, so a refresh before then means a new set next login
+// Backup codes card, shown once after an MFA login if there's no codes left
+// PHP only stores hashes so this is the only time they're shown
+// part of the login card not a pop-up, Esc or X can't skip it
+// codes only get saved when Continue works, refresh before that = new set next login
 export default {
     props: {
-        // the 8 new codes from PHP, i.e. K7QM-2XPA
+        // 8 new codes from PHP like K7QM-2XPA
         codes: {
             type: Array,
             required: true,
@@ -17,18 +17,18 @@ export default {
     data() {
         return {
             hasSaved: false,
-            // true once Copy codes or Download codes has worked, Continue needs one of them
+            // Continue needs Copy or Download to have worked first
             hasCopiedOrDownloaded: false,
-            // filled in when Continue is pressed without ticking the box
+            // set if Continue is pressed without the tick
             fieldError: '',
-            // set when copying fails or PHP couldn't save the codes
+            // copy failed, Continue pressed too soon or php couldnt save
             serverError: '',
             successMessage: '',
             isSaving: false,
         };
     },
     computed: {
-        // the same text goes on the clipboard and in the downloaded file
+        // same text for the clipboard and the .txt
         codesText() {
             return (
                 'RevisionHub backup codes\nEach code works once. Keep them somewhere safe.\n\n' + this.codes.join('\n')
@@ -36,11 +36,11 @@ export default {
         },
     },
     mounted() {
-        // the heading takes focus so a screen reader starts at the top of the new card
+        // focus on the heading so screen readers start at the top
         this.$refs.heading.focus();
     },
     methods: {
-        // Copy codes button, puts all 8 on the clipboard to paste into a password manager
+        // Copy codes button, all 8 to the clipboard
         async copyCodes() {
             this.clearMessages();
 
@@ -49,13 +49,13 @@ export default {
                 this.hasCopiedOrDownloaded = true;
                 this.successMessage = 'Backup codes copied';
             } catch {
-                // i.e. the browser has clipboard access turned off
+                // browser blocked the clipboard
                 this.serverError = 'Your browser did not let the codes be copied. Use Download codes instead';
             }
             await this.focusMessage();
         },
 
-        // Download codes button, makes a .txt file in the browser so nothing else gets sent to the server
+        // Download codes button, the .txt is made in the browser, nothing sent to the server
         async downloadCodes() {
             this.clearMessages();
 
@@ -64,7 +64,7 @@ export default {
             link.href = URL.createObjectURL(file);
             link.download = 'revisionhub-backup-codes.txt';
             link.click();
-            // frees the file from memory once the download has started
+            // free up the memory once its downloading
             URL.revokeObjectURL(link.href);
 
             this.hasCopiedOrDownloaded = true;
@@ -72,7 +72,7 @@ export default {
             await this.focusMessage();
         },
 
-        // Continue needs the codes copied or downloaded and the box ticked, they can't be shown again after this
+        // Continue needs copy/download and the tick, codes can't be shown again after
         async finish() {
             this.clearMessages();
 
@@ -105,7 +105,7 @@ export default {
             this.successMessage = '';
         },
 
-        // moving focus to the message means a screen reader reads it out straight away
+        // focus the message so a screen reader reads it out
         async focusMessage() {
             await this.$nextTick();
             this.$refs.messageBox?.focus();
@@ -140,7 +140,7 @@ export default {
                 <li v-for="code in codes" :key="code" class="col">{{ code }}</li>
             </ul>
 
-            <!-- one message box for every reply, it stays until the next button press -->
+            <!-- one message box, stays until the next button press -->
             <div
                 v-if="fieldError || serverError"
                 ref="messageBox"
@@ -178,10 +178,20 @@ export default {
             </div>
 
             <div class="d-flex flex-column flex-sm-row gap-2 mb-4">
-                <button type="button" class="headerButton registerButton flex-fill" @click="copyCodes">
+                <button
+                    type="button"
+                    class="headerButton registerButton flex-fill"
+                    :disabled="isSaving"
+                    @click="copyCodes"
+                >
                     Copy codes
                 </button>
-                <button type="button" class="headerButton registerButton flex-fill" @click="downloadCodes">
+                <button
+                    type="button"
+                    class="headerButton registerButton flex-fill"
+                    :disabled="isSaving"
+                    @click="downloadCodes"
+                >
                     Download codes
                 </button>
             </div>

@@ -3,21 +3,23 @@
 namespace App\Models;
 
 /**
- * Backup code model, the code that talks to the MfaBackupCodes table.
- * Each account gets 8 codes that work once each, for when the security code email can't be reached.
- * Only hashes are saved, same as passwords, so a leaked database doesn't give the codes away.
+ * Backup code model, talks to the MfaBackupCodes table
+ * 8 one use codes per account for when the email isn't getting through
+ * only hashes get saved like passwords, a leaked db doesnt give the codes away
  */
 class BackupCode extends Model
 {
     // how many codes are in a set
     public const SET_SIZE = 8;
-    // no 0, O, 1, I or L so a code copied off paper can't be misread
+    // characters in one code, not counting the dash
+    public const CODE_LENGTH = 8;
+    // no 0 O 1 I or L, too easy to mix up copying off paper
     private const LETTERS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 
     /**
-     * Makes a new set of 8 codes, nothing gets saved here.
+     * Makes 8 new codes, doesnt save them
      *
-     * @return string[] the codes to show the user, this is the only time they're ever shown
+     * @return string[] the codes for the page, only time they're shown
      */
     public static function makeSet(): array
     {
@@ -30,7 +32,7 @@ class BackupCode extends Model
     }
 
     /**
-     * Hashes a set of codes, the hashes wait in the session until the user has copied or downloaded the codes.
+     * Hashes each code, these wait in the session till the codes are copied or downloaded
      *
      * @return string[] password_hash of each code, without the dash
      */
@@ -38,7 +40,7 @@ class BackupCode extends Model
     {
         $hashes = [];
         foreach ($codes as $code) {
-            // hashed without the dash, normalise() takes it off what they type as well
+            // no dash, normalise() strips it from what they type too
             $hashes[] = password_hash(self::normalise($code), PASSWORD_DEFAULT);
         }
 
@@ -46,13 +48,13 @@ class BackupCode extends Model
     }
 
     /**
-     * Throws away the account's old codes and saves the new hashes.
+     * Deletes their old codes and saves the new hashes
      */
     public static function saveSet(string $userID, array $hashes): void
     {
         $db = self::getDB();
 
-        // delete and save together, so a crash halfway can't leave them with no codes
+        // one transaction so a crash halfway doesnt leave them with no codes
         $db->beginTransaction();
         try {
             $stmt = $db->prepare('DELETE FROM MfaBackupCodes WHERE userID = ?');
@@ -73,7 +75,7 @@ class BackupCode extends Model
     }
 
     /**
-     * How many unused codes the account has left, 0 means a new set gets shown at login
+     * Unused codes left, 0 = new set at next login
      */
     public static function countLeft(string $userID): int
     {
@@ -84,7 +86,7 @@ class BackupCode extends Model
     }
 
     /**
-     * Checks a typed code against the account's codes and deletes it if it matches, so it only works once
+     * Checks the typed code and deletes it on a match so it only works once
      */
     public static function useCode(string $userID, string $typed): bool
     {
@@ -101,7 +103,7 @@ class BackupCode extends Model
                 $delete = self::getDB()->prepare('DELETE FROM MfaBackupCodes WHERE backupCodeID = ?');
                 $delete->execute([$row['backupCodeID']]);
 
-                // if two logins sent the same code at once only one of them gets to delete the row
+                // two logins with the same code at once, only one gets to delete the row
                 return $delete->rowCount() === 1;
             }
         }
@@ -110,16 +112,16 @@ class BackupCode extends Model
     }
 
     /**
-     * Makes one code like K7QM-2XPA, random_int is the secure random maker
+     * Makes one code like K7QM-2XPA using random_int
      */
     public static function makeCode(): string
     {
         $code = '';
-        for ($i = 0; $i < 8; $i++) {
+        for ($i = 0; $i < self::CODE_LENGTH; $i++) {
             $code .= self::LETTERS[random_int(0, strlen(self::LETTERS) - 1)];
         }
 
-        // the dash just makes it easier to read and copy down
+        // dash is just for reading
         return substr($code, 0, 4) . '-' . substr($code, 4);
     }
 
@@ -132,10 +134,10 @@ class BackupCode extends Model
     }
 
     /**
-     * True if a tidied up code is 8 of the allowed letters and numbers, checked before the database is touched
+     * True if its 8 allowed characters, checked before hitting the db
      */
     public static function isBackupCode(string $code): bool
     {
-        return preg_match('/^[' . self::LETTERS . ']{8}$/D', $code) === 1;
+        return preg_match('/^[' . self::LETTERS . ']{' . self::CODE_LENGTH . '}$/D', $code) === 1;
     }
 }

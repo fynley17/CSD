@@ -131,7 +131,7 @@ describe('LoginForm after logging in', () => {
     });
 
     /**
-     * With MFA on the security code card shows instead of going to the dashboard (normal)
+     * MFA on shows the code card instead of the dashboard (normal)
      */
     it('shows the security code card when PHP asks for a code', async () => {
         // Arrange

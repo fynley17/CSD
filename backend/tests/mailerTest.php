@@ -215,9 +215,11 @@ final class MailerTest extends TestCase
         self::assertStringContainsString('cid:revisionhub-logo', $email['html']);
     }
 
-    // The locked email gives the real lock time and the reset link in case it wasn't them.
+    // Locked email has the lock time and a reset link (normal)
     public function testAccountLockedEmailGivesLockTimeAndResetLink(): void
     {
+        // Arrange: nothing to set up
+
         // Act
         $email = Mailer::buildAccountLockedEmail();
 

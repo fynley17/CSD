@@ -6,7 +6,7 @@ use PHPUnit\Framework\TestCase;
 
 /**
  * Tests for the MFA backup codes
- * uses a pretend MfaBackupCodes table in memory, same way userTest.php does, the real database is never touched
+ * uses an in memory sqlite table like userTest.php, real db isnt touched
  */
 final class BackupCodeTest extends TestCase
 {
@@ -36,11 +36,11 @@ final class BackupCodeTest extends TestCase
     }
 
     /**
-     * A new set is 8 different codes like K7QM-2XPA, all saved once saveSet() runs (normal)
+     * 8 different codes like K7QM-2XPA, all saved (normal)
      */
     public function testNewSetHasEightDifferentCodes(): void
     {
-        // Arrange: nothing to set up, the account has no codes yet
+        // Arrange: nothing, no codes yet
 
         // Act
         $codes = BackupCode::makeSet();
@@ -53,7 +53,7 @@ final class BackupCodeTest extends TestCase
     }
 
     /**
-     * A code works typed in lower case without the dash, but only the once (boundary)
+     * Works in lower case with a space instead of the dash, but only once (boundary)
      */
     public function testCodeOnlyWorksOnce(): void
     {
@@ -73,7 +73,7 @@ final class BackupCodeTest extends TestCase
     }
 
     /**
-     * A made up code, or something the wrong shape, is turned away (error)
+     * Made up or wrong shaped code gets refused (error)
      */
     public function testWrongCodeIsTurnedAway(): void
     {

@@ -1,17 +1,17 @@
 <script>
 import { resendLoginCode, verifyLoginCode } from '../../services/authService';
 
-// Security code card, the second step of logging in when MFA is switched on
-// loginForm.vue swaps it in once the password is right, by then PHP has already emailed the code
-// a backup code goes in the same box for when the email can't be reached
+// Security code card, step 2 of logging in when MFA is on
+// loginForm.vue shows it once the password's right, the email has already gone by then
+// backup codes go in the same box
 export default {
     props: {
-        // where the code went with most of the address hidden, i.e. w***@example.com
+        // masked email e.g. w***@example.com
         maskedEmail: {
             type: String,
             required: true,
         },
-        // true when PHP couldn't send the email, so only a backup code or Resend code will work
+        // email failed to send, only a backup code or Resend code will work
         emailFailed: {
             type: Boolean,
             default: false,
@@ -21,9 +21,9 @@ export default {
     data() {
         return {
             code: '',
-            // filled in when the box is left empty, '' means it's ok
+            // set when the box is empty, '' = fine
             fieldError: '',
-            // PHP's reply when it turns something down, i.e. a wrong code or asking again too quickly
+            // error from PHP e.g. wrong code or resending too soon
             serverError: this.emailFailed
                 ? 'We could not send the email. Enter one of your backup codes, or press Resend code to try again'
                 : '',
@@ -33,12 +33,12 @@ export default {
         };
     },
     mounted() {
-        // straight into the box so the code can be pasted without hunting for it
-        // the box's description includes where the code went, so a screen reader still hears that
+        // focus the box so they can paste straight away
+        // aria-describedby still reads out where the code went
         this.$refs.codeInput.focus();
     },
     methods: {
-        // runs when Continue is pressed, a quick empty box check first, then PHP checks the code
+        // Continue button, empty check here then PHP does the real check
         async submitCode() {
             this.serverError = '';
             this.successMessage = '';
@@ -55,12 +55,12 @@ export default {
                 const result = await verifyLoginCode(this.code.trim());
                 this.$emit('loggedIn', result);
             } catch (error) {
-                // 3 wrong tries locks the account, loginForm shows the same locked pop-up as for passwords
+                // 3 wrong tries = locked, loginForm shows the normal locked pop-up
                 if (error.response?.status === 429) {
                     this.$emit('locked', error.response.data.error);
                     return;
                 }
-                // PHP's messages already use the house style wording, so they're shown as they come
+                // PHP messages are already in house style wording
                 this.serverError = error.response?.data?.error || 'Something went wrong. Try again later';
                 await this.focusMessage();
             } finally {
@@ -68,7 +68,7 @@ export default {
             }
         },
 
-        // runs when Resend code is pressed, PHP makes them wait a minute between emails
+        // Resend code button, PHP does the 1 min wait
         async sendAgain() {
             this.serverError = '';
             this.successMessage = '';
@@ -86,9 +86,9 @@ export default {
             }
         },
 
-        // moving focus to the message means a screen reader reads it out straight away
+        // focus the message so a screen reader reads it out
         async focusMessage() {
-            // the message box needs a moment to appear before it can take focus
+            // wait for the box to render first
             await this.$nextTick();
             this.$refs.messageBox?.focus();
         },
@@ -109,7 +109,7 @@ export default {
                 >. The code expires in 10 minutes.
             </p>
 
-            <!-- one message box for every reply, it stays until the next button press,
+            <!-- one message box, stays until the next button press,
                  house style messages never hide themselves -->
             <div
                 v-if="fieldError || serverError"
@@ -155,7 +155,7 @@ export default {
                         The 6 digit code from the email, or one of your backup codes
                     </p>
                     <p v-if="fieldError" id="securityCodeError" class="fieldError">Error: {{ fieldError }}</p>
-                    <!-- one-time-code lets phones offer the code from the email, and paste works (WCAG 3.3.8) -->
+                    <!-- one-time-code lets phones autofill from the email, paste allowed for WCAG 3.3.8 -->
                     <input
                         id="securityCode"
                         ref="codeInput"
@@ -172,7 +172,7 @@ export default {
                     />
                 </div>
 
-                <!-- every button waits while one request is going, so Continue and Resend can't cross over -->
+                <!-- all 3 buttons off during a request so Continue and Resend can't overlap -->
                 <button type="submit" class="headerButton loginButton w-100" :disabled="isSubmitting || isSending">
                     Continue
                 </button>
@@ -187,7 +187,7 @@ export default {
                 >
                     Resend code
                 </button>
-                <!-- the password has to be typed again, that sends a new code -->
+                <!-- they retype the password which sends a fresh code -->
                 <button
                     type="button"
                     class="headerButton registerButton flex-fill"

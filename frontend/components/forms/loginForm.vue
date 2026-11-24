@@ -15,7 +15,7 @@ const DASHBOARD_PATHS = {
 // Login form for every account type, sits inside loginPage.vue
 // sends the details off in the background so the page never reloads (AJAX)
 // and shows any problems in a house style message box above the boxes
-// with MFA on it also swaps in the security code card, then the backup codes card if there's a new set
+// with MFA on it swaps to the code card, then the backup codes card if theres a new set
 export default {
     components: {
         BackupCodesForm,
@@ -36,13 +36,13 @@ export default {
             lockedMessage: '',
             // true when the password was right but the email isn't verified yet, shows the check your email link
             needsVerification: false,
-            // which card is showing, 'details' for username and password, then 'code' and 'backupCodes' with MFA
+            // which card shows, 'details' (username/password), 'code' or 'backupCodes'
             step: 'details',
-            // where PHP sent the security code, most of it hidden
+            // masked email from PHP
             maskedEmail: '',
-            // true when the email didn't send, the code card asks for a backup code instead
+            // email failed, code card asks for a backup code
             emailFailed: false,
-            // a new set from PHP, only kept here until the backup codes card is done with
+            // new codes from PHP, only held till the codes card is done
             backupCodes: [],
             accountType: '',
         };
@@ -75,7 +75,7 @@ export default {
             try {
                 const user = await login(this.username.trim(), this.password);
 
-                // MFA is on, so PHP has emailed a code and they aren't logged in yet
+                // MFA on, not logged in yet, emailFailed means the code didnt send
                 if (user.mfaRequired) {
                     this.maskedEmail = user.maskedEmail;
                     this.emailFailed = user.emailFailed === true;
@@ -99,7 +99,7 @@ export default {
             }
         },
 
-        // the security code was right, new backup codes get shown before the dashboard if PHP made some
+        // code was right, show any new backup codes before the dashboard
         finishLogin(result) {
             if (result.backupCodes) {
                 this.backupCodes = result.backupCodes;
@@ -116,7 +116,7 @@ export default {
             this.$router.push(safeRedirect(this.$route.query.redirect) || DASHBOARD_PATHS[accountType] || '/');
         },
 
-        // Back to login on the code card, the password goes in again and that sends a new code
+        // Back to login button, password goes in again for a new code
         async backToDetails() {
             this.step = 'details';
             this.password = '';
@@ -124,12 +124,12 @@ export default {
             this.$refs.passwordInput.focus();
         },
 
-        // 3 wrong codes, so back to the login card with the same locked pop-up wrong passwords get
+        // 3 wrong codes, back to the login card and show the locked pop-up
         async showLocked(message) {
             this.step = 'details';
             this.password = '';
             this.lockedMessage = message;
-            // the pop-up is inside the login card, so it has to be back on the page before it can open
+            // pop-up lives in the login card so wait for that to render
             await this.$nextTick();
             this.$refs.lockedPopup.open();
         },
@@ -300,7 +300,7 @@ export default {
         </div>
     </div>
 
-    <!-- the MFA cards take the login card's place once the password is right -->
+    <!-- MFA cards replace the login card after the password -->
     <LoginCodeForm
         v-else-if="step === 'code'"
         :maskedEmail="maskedEmail"
