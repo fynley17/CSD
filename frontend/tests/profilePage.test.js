@@ -71,6 +71,9 @@ describe('ProfilePage', () => {
         expect(wrapper.get('#profileEmail').element.value).toBe('sam@example.com');
         // the username, type and cohort can only be read, there are no boxes for them
         expect(wrapper.findAll('input[type="text"], input[type="email"]')).toHaveLength(3);
+        expect(wrapper.get('.accountChangeHint').text()).toBe(
+            'To change these, contact your lecturer or an administrator.',
+        );
     });
 
     /**
@@ -87,6 +90,26 @@ describe('ProfilePage', () => {
 
         // Assert
         expect(accountDetails(wrapper)).toEqual({ 'Staff ID': 'L1001', 'Account type': 'Lecturer' });
+        // only an administrator can change a lecturer's details
+        expect(wrapper.get('.accountChangeHint').text()).toBe('To change these, contact an administrator.');
+    });
+
+    /**
+     * An administrator has nobody in the app to ask, so there's no line telling them who to contact (normal)
+     */
+    it('shows an administrator no one to contact', async () => {
+        // Act
+        const wrapper = await loadPage({
+            ...STUDENT,
+            username: 'A1001',
+            accountType: 'admin',
+            cohortName: undefined,
+        });
+
+        // Assert
+        expect(accountDetails(wrapper)).toEqual({ 'Staff ID': 'A1001', 'Account type': 'Administrator' });
+        expect(wrapper.find('.accountChangeHint').exists()).toBe(false);
+        expect(wrapper.text()).not.toContain('contact');
     });
 
     /**

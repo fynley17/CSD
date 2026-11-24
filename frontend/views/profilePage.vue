@@ -7,11 +7,20 @@ const NAME_PATTERN = /^[a-zA-Z\s'-]{2,50}$/;
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const NAME_RULES = 'between 2 and 50 characters, using only letters, spaces, hyphens or apostrophes';
 
-// what each account type is called on the page, and what its username is called
+// what each account type is called on the page, what its username is called, and who can change those details
+// admins have nobody above them in the app to ask, so they get no line at all
 const ACCOUNT_TYPES = {
-    student: { label: 'Student', usernameLabel: 'Student number' },
-    lecturer: { label: 'Lecturer', usernameLabel: 'Staff ID' },
-    admin: { label: 'Administrator', usernameLabel: 'Staff ID' },
+    student: {
+        label: 'Student',
+        usernameLabel: 'Student number',
+        changeHint: 'To change these, contact your lecturer or an administrator.',
+    },
+    lecturer: {
+        label: 'Lecturer',
+        usernameLabel: 'Staff ID',
+        changeHint: 'To change these, contact an administrator.',
+    },
+    admin: { label: 'Administrator', usernameLabel: 'Staff ID', changeHint: '' },
 };
 
 // My profile page, any signed in user can see their account and change their own names, email and password
@@ -198,7 +207,7 @@ export default {
                     <section class="card surfaceCard loginForm mb-4" aria-labelledby="accountHeading">
                         <div class="card-body p-4">
                             <h2 id="accountHeading" class="h4 mb-3">Account</h2>
-                            <dl class="accountDetails mb-2">
+                            <dl class="accountDetails" :class="accountType.changeHint ? 'mb-2' : 'mb-0'">
                                 <div>
                                     <dt>{{ accountType.usernameLabel }}</dt>
                                     <dd>{{ profile.username }}</dd>
@@ -212,8 +221,8 @@ export default {
                                     <dd>{{ profile.cohortName || 'Not in a cohort' }}</dd>
                                 </div>
                             </dl>
-                            <p class="secondaryText mb-0">
-                                To change these, contact your lecturer or an administrator.
+                            <p v-if="accountType.changeHint" class="secondaryText accountChangeHint mb-0">
+                                {{ accountType.changeHint }}
                             </p>
                         </div>
                     </section>
