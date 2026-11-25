@@ -27,27 +27,23 @@
             </div>
         </div>
 
-        <div
-            v-if="successMessage"
-            class="alert alert-success d-flex flex-wrap align-items-center justify-content-between gap-2 mt-3 mb-0"
-            role="status"
-        >
-            <span><strong>Success:</strong> {{ successMessage }}</span>
-            <button
-                v-if="undoCohort"
-                type="button"
-                class="btn btn-sm btn-outline-primary"
-                :aria-label="'Undo for ' + undoCohort.cohortName"
-                :disabled="isUndoing"
-                @click="undo"
-            >
-                <span v-if="isUndoing" class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>
-                {{ isUndoing ? 'Undoing' : 'Undo' }}
-            </button>
+        <div v-if="successMessage" class="toastMessage successMessage" role="status" aria-live="polite">
+            <span aria-hidden="true">✓</span>
+            <span>{{ successMessage }}</span>
+            <button type="button" class="toastClose" aria-label="Close notification" @click="closeSuccess">×</button>
         </div>
 
-        <div v-if="saveError" class="alert alert-danger mt-3 mb-0" role="alert">
-            <strong>There is a problem:</strong> {{ saveError }}
+        <div
+            v-if="errorMessage"
+            ref="errorToast"
+            popover="manual"
+            class="toastMessage errorMessage"
+            role="alert"
+            aria-live="assertive"
+        >
+            <span aria-hidden="true">!</span>
+            <span>{{ errorMessage }}</span>
+            <button type="button" class="toastClose" aria-label="Close notification" @click="closeError">×</button>
         </div>
 
         <p v-if="isLoading" class="text-center py-4 mb-0" role="status">Loading cohorts</p>
@@ -87,7 +83,8 @@
         <AddStudentsDialog
             v-if="addingToCohort"
             :cohort="addingToCohort"
-            @saved="updateCohorts"
+            @saved="handleStudentsAdded"
+            @error="showError"
             @close="addingToCohort = null"
         />
 
@@ -96,7 +93,8 @@
             :cohort="moving.cohort"
             :student="moving.student"
             :cohorts="allCohorts"
-            @saved="updateCohorts"
+            @saved="handleStudentMoved"
+            @error="showError"
             @close="moving = null"
         />
 
@@ -104,13 +102,15 @@
             v-if="isCohortFormOpen"
             :cohort="editingCohort"
             @saved="saveCohort"
+            @error="showError"
             @close="isCohortFormOpen = false"
         />
 
         <AssignSubjectsDialog
             v-if="assigningCohort"
             :cohort="assigningCohort"
-            @saved="updateCohort(assigningCohort, $event)"
+            @saved="handleSubjectsAssigned"
+            @error="showError"
             @close="assigningCohort = null"
         />
 
@@ -118,7 +118,8 @@
             v-if="removing"
             :cohort="removing.cohort"
             :subject="removing.subject"
-            @saved="updateCohort(removing.cohort, $event)"
+            @saved="handleSubjectRemoved"
+            @error="showError"
             @close="removing = null"
         />
 
@@ -128,6 +129,7 @@
             :cohort="disablingCohort"
             isDisabling
             @disabled="cohortDisabled"
+            @error="showError"
             @close="disablingCohort = null"
         />
 
@@ -136,13 +138,14 @@
             :cohort="deletingCohort"
             @deleted="removeCohort"
             @disabled="updateCohort(deletingCohort, $event)"
+            @error="showError"
             @close="deletingCohort = null"
         />
     </section>
 </template>
 
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
 import AddStudentsDialog from '../components/common/addStudentsDialog.vue';
 import AssignSubjectsDialog from '../components/common/assignSubjectsDialog.vue';
 import CohortFormDialog from '../components/common/cohortFormDialog.vue';
@@ -157,11 +160,13 @@ import CohortSubjectsTable from '../components/tables/cohortSubjectsTable.vue';
 import { getCohorts, setCohortActive } from '../services/cohortService';
 
 const successMessage = ref('');
+const errorMessage = ref('');
+const errorToast = ref(null);
 let messageTimeout = null;
 const allCohorts = ref([]);
 const isLoading = ref(true);
 const loadError = ref('');
-const saveError = ref('');
+
 const searchText = ref('');
 const statusFilter = ref('');
 const sortBy = ref('');
@@ -174,10 +179,6 @@ const assigningCohort = ref(null);
 const removing = ref(null);
 const deletingCohort = ref(null);
 const disablingCohort = ref(null);
-// the cohort that was just disabled, so Undo knows what to turn back on
-const undoCohort = ref(null);
-const isUndoing = ref(false);
-let undoTimer = null;
 
 const sortOptions = [
     { value: '', label: 'Default order' },
@@ -208,6 +209,10 @@ const visibleCohorts = computed(() => {
 });
 
 function showSuccess(message) {
+    errorMessage.value = '';
+    if (typeof errorToast.value?.hidePopover === 'function') {
+        errorToast.value.hidePopover();
+    }
     successMessage.value = message;
 
     if (messageTimeout) {
@@ -217,7 +222,45 @@ function showSuccess(message) {
     messageTimeout = setTimeout(() => {
         successMessage.value = '';
         messageTimeout = null;
-    }, 5000);
+    }, 15000);
+}
+
+async function showError(message) {
+    successMessage.value = '';
+    errorMessage.value = message;
+    if (messageTimeout) clearTimeout(messageTimeout);
+
+    await nextTick();
+    if (typeof errorToast.value?.showPopover === 'function' && !errorToast.value.matches(':popover-open')) {
+        errorToast.value.showPopover();
+    }
+
+    messageTimeout = setTimeout(() => {
+        if (typeof errorToast.value?.hidePopover === 'function') {
+            errorToast.value.hidePopover();
+        }
+        errorMessage.value = '';
+        messageTimeout = null;
+    }, 15000);
+}
+
+function closeSuccess() {
+    successMessage.value = '';
+    if (messageTimeout) {
+        clearTimeout(messageTimeout);
+        messageTimeout = null;
+    }
+}
+
+function closeError() {
+    errorMessage.value = '';
+    if (messageTimeout) {
+        clearTimeout(messageTimeout);
+        messageTimeout = null;
+    }
+    if (typeof errorToast.value?.hidePopover === 'function') {
+        errorToast.value.hidePopover();
+    }
 }
 
 onBeforeUnmount(() => {
@@ -270,15 +313,34 @@ function saveCohort(savedCohort) {
     showSuccess(wasEditing ? 'Cohort updated successfully.' : 'Cohort created successfully.');
 }
 
+function handleStudentsAdded(savedCohorts) {
+    updateCohorts(savedCohorts);
+    showSuccess('Students added successfully.');
+}
+
+function handleStudentMoved(savedCohorts) {
+    updateCohorts(savedCohorts);
+    showSuccess('Student moved successfully.');
+}
+
+function handleSubjectsAssigned(savedCohort) {
+    updateCohort(assigningCohort.value, savedCohort);
+    showSuccess('Subjects assigned successfully.');
+}
+
+function handleSubjectRemoved(savedCohort) {
+    updateCohort(removing.value.cohort, savedCohort);
+    showSuccess('Subject removed successfully.');
+}
+
 function removeCohort(deletedCohort) {
     allCohorts.value = allCohorts.value.filter((cohort) => cohort.cohortID !== deletedCohort.cohortID);
     showSuccess('Cohort deleted successfully.');
 }
 
-// disable asks first, enable goes straight through, either way the old message and Undo go
+// disable asks first, enable goes straight through
 function startToggle(cohort) {
-    successMessage.value = '';
-    undoCohort.value = null;
+    closeError();
     if (cohort.isActive) {
         disablingCohort.value = cohort;
     } else {
@@ -286,37 +348,21 @@ function startToggle(cohort) {
     }
 }
 
-// Undo shows for 30 secs after a disable, the message itself stays
 function cohortDisabled(savedCohort) {
     updateCohort(disablingCohort.value, savedCohort);
-    successMessage.value = `${disablingCohort.value.cohortName} disabled`;
-    undoCohort.value = disablingCohort.value;
-    clearTimeout(undoTimer);
-    undoTimer = setTimeout(() => {
-        undoCohort.value = null;
-    }, 30000);
-}
-
-// turns it back on, spinner till php answers, no undo for the undo
-async function undo() {
-    const cohort = undoCohort.value;
-    isUndoing.value = true;
-    await toggleStatus(cohort);
-    isUndoing.value = false;
-    undoCohort.value = null;
-    successMessage.value = saveError.value ? '' : `${cohort.cohortName} enabled`;
+    showSuccess('Cohort disabled successfully.');
 }
 
 // the screen only changes once PHP confirms it's saved, so it never shows a status the database doesn't have
 async function toggleStatus(cohort) {
-    saveError.value = '';
+    closeError();
     const isActive = !cohort.isActive;
 
     try {
         Object.assign(cohort, await setCohortActive(cohort.cohortID, isActive));
         showSuccess(`Cohort ${isActive ? 'enabled' : 'disabled'} successfully.`);
     } catch (error) {
-        saveError.value = error.response?.data?.error || `Unable to update ${cohort.cohortName}`;
+        showError(error.response?.data?.error || `Unable to ${isActive ? 'enable' : 'disable'} ${cohort.cohortName}`);
     }
 }
 </script>
@@ -351,7 +397,7 @@ async function toggleStatus(cohort) {
 .toastMessage {
     position: fixed;
     z-index: 1100;
-    top: var(--spaceLg);
+    top: calc(var(--navHeight) + var(--spaceLg));
     right: var(--spaceLg);
     display: flex;
     align-items: center;
@@ -366,6 +412,16 @@ async function toggleStatus(cohort) {
     font-weight: 600;
 }
 
+.toastClose {
+    margin-left: auto;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font-size: var(--fontSizeH3);
+    line-height: 1;
+    cursor: pointer;
+}
+
 .successMessage {
     border-color: var(--colorPrimary);
 }
@@ -376,9 +432,23 @@ async function toggleStatus(cohort) {
     }
 }
 
+.errorMessage {
+    border-color: var(--colorError);
+    color: var(--colorError);
+    margin: 0;
+}
+
+.errorMessage:popover-open {
+    position: fixed;
+    inset: calc(var(--navHeight) + var(--spaceLg)) var(--spaceLg) auto auto;
+}
+
 @media (max-width: 639px) {
+    .errorMessage:popover-open {
+        inset: calc(var(--navHeight) + var(--spaceMd)) var(--spaceMd) auto auto;
+    }
     .toastMessage {
-        top: var(--spaceMd);
+        top: calc(var(--navHeight) + var(--spaceMd));
         right: var(--spaceMd);
     }
 }

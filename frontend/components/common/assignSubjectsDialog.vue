@@ -43,18 +43,19 @@
 
         <p v-else-if="!errorMessage" class="mb-0">There are no unassigned subjects to add</p>
 
-        <div v-if="errorMessage" class="alert alert-danger mt-3 mb-0" role="alert">
-            <strong>There is a problem:</strong> {{ errorMessage }}
-        </div>
-
         <template #buttons>
             <div class="cohortDialogButtons">
-                <button type="button" class="btn btn-outline-primary" :disabled="isSaving" @click="dialog.close()">
+                <button
+                    type="button"
+                    class="cohortSecondaryButton btn btn-outline-primary"
+                    :disabled="isSaving"
+                    @click="dialog.close()"
+                >
                     Cancel
                 </button>
                 <button
                     type="button"
-                    class="cohortPrimaryButton"
+                    class="cohortPrimaryButton btn btn-primary"
                     :disabled="selectedIDs.length === 0 || isSaving"
                     @click="assign"
                 >
@@ -77,7 +78,7 @@ const props = defineProps({
     },
 });
 
-const emit = defineEmits(['close', 'saved']);
+const emit = defineEmits(['close', 'saved', 'error']);
 
 const dialog = ref(null);
 const subjects = ref([]);
@@ -106,6 +107,7 @@ onMounted(async () => {
         subjects.value = await getUnassignedSubjects();
     } catch (error) {
         errorMessage.value = error.response?.data?.error || 'Unable to load the subjects';
+        emit('error', errorMessage.value);
     } finally {
         isLoading.value = false;
     }
@@ -120,6 +122,7 @@ async function assign() {
         dialog.value.close();
     } catch (error) {
         errorMessage.value = error.response?.data?.error || 'Unable to assign the subjects';
+        emit('error', errorMessage.value);
     } finally {
         isSaving.value = false;
     }

@@ -11,16 +11,17 @@
             <p class="mb-0">Are you sure you want to remove this subject from the cohort?</p>
         </div>
 
-        <div v-if="errorMessage" class="alert alert-danger mt-3 mb-0" role="alert">
-            <strong>There is a problem:</strong> {{ errorMessage }}
-        </div>
-
         <template #buttons>
             <div class="cohortDialogButtons">
-                <button type="button" class="btn btn-outline-primary" :disabled="isSaving" @click="dialog.close()">
+                <button
+                    type="button"
+                    class="cohortSecondaryButton btn btn-outline-primary"
+                    :disabled="isSaving"
+                    @click="dialog.close()"
+                >
                     Cancel
                 </button>
-                <button type="button" class="cohortPrimaryButton" :disabled="isSaving" @click="remove">
+                <button type="button" class="cohortPrimaryButton btn btn-primary" :disabled="isSaving" @click="remove">
                     Remove Subject
                 </button>
             </div>
@@ -44,7 +45,7 @@ const props = defineProps({
     },
 });
 
-const emit = defineEmits(['close', 'saved']);
+const emit = defineEmits(['close', 'saved', 'error']);
 
 const dialog = ref(null);
 const isSaving = ref(false);
@@ -65,6 +66,7 @@ async function remove() {
         dialog.value.close();
     } catch (error) {
         errorMessage.value = error.response?.data?.error || `Unable to remove ${props.subject.subjectName}`;
+        emit('error', errorMessage.value);
     } finally {
         isSaving.value = false;
     }

@@ -563,7 +563,7 @@ describe('CohortManagement', () => {
         await flushPromises();
 
         // Assert
-        expect(page.get('.popupDialog [role="alert"]').text()).toContain('No longer available');
+        expect(page.get('.toastMessage.errorMessage').text()).toContain('No longer available');
     });
 
     /**
@@ -733,7 +733,7 @@ describe('CohortManagement', () => {
         const page = await openAssignDialog();
 
         // Assert
-        expect(page.get('.popupDialog [role="alert"]').text()).toContain('Unable to load the subjects');
+        expect(page.get('.toastMessage.errorMessage').text()).toContain('Unable to load the subjects');
         expect(page.get('.popupBody').text()).not.toContain('There are no unassigned subjects');
     });
 
@@ -766,7 +766,7 @@ describe('CohortManagement', () => {
         await flushPromises();
 
         // Assert
-        expect(page.get('.popupDialog [role="alert"]').text()).toContain('That subject is not in this cohort');
+        expect(page.get('.toastMessage.errorMessage').text()).toContain('That subject is not in this cohort');
         expect(page.get('.cohortDetailsTable tbody th').text()).toBe('Web Applications');
     });
 
@@ -800,7 +800,7 @@ describe('CohortManagement', () => {
         // Assert
         expect(problem).toContain('Unable to disable DTS 2026');
         expect(page.find('[role="alert"]').exists()).toBe(false);
-        expect(page.get('[role="status"]').text()).toContain('DTS 2026 disabled');
+        expect(page.get('[role="status"]').text()).toContain('Cohort disabled successfully.');
     });
 
     it('shows a success toast when enabling a cohort', async () => {
@@ -881,7 +881,7 @@ describe('CohortManagement', () => {
         await flushPromises();
 
         // Assert
-        expect(page.get('.popupDialog [role="alert"]').text()).toContain('This cohort still has students');
+        expect(page.get('.toastMessage.errorMessage').text()).toContain('This cohort still has students');
         expect(cohortNames(page, 0)).toContain('Data Science 2026');
     });
 
@@ -987,7 +987,7 @@ describe('CohortManagement', () => {
         await flushPromises();
 
         // Assert
-        expect(page.get('.popupDialog [role="alert"]').text()).toContain('Unable to disable DTS 2026');
+        expect(page.get('.toastMessage.errorMessage').text()).toContain('Unable to disable DTS 2026');
         expect(findButton(page, 'Disable DTS 2026').text()).toBe('Disable');
     });
 
@@ -1076,7 +1076,7 @@ describe('CohortManagement', () => {
 
         // Assert
         expect(createCohort).not.toHaveBeenCalled();
-        expect(page.get('.popupDialog [role="alert"]').text()).toContain('Enter a cohort name');
+        expect(page.get('.toastMessage.errorMessage').text()).toContain('Enter a cohort name');
         expect(cohortForm(page).name.attributes('aria-invalid')).toBe('true');
     });
 
@@ -1097,7 +1097,7 @@ describe('CohortManagement', () => {
         await flushPromises();
 
         // Assert
-        expect(page.get('.popupDialog [role="alert"]').text()).toContain('A cohort with this name already exists');
+        expect(page.get('.toastMessage.errorMessage').text()).toContain('A cohort with this name already exists');
         expect(cohortNames(page, 0)).toHaveLength(4);
     });
 
@@ -1279,7 +1279,7 @@ describe('CohortManagement', () => {
         await flushPromises();
 
         // Assert
-        expect(page.get('.popupDialog [role="alert"]').text()).toContain('A cohort with this name already exists');
+        expect(page.get('.toastMessage.errorMessage').text()).toContain('A cohort with this name already exists');
         expect(cohortNames(page, 0)).toContain('DTS 2026');
         expect(findButton(page, 'Disable DTS 2026').text()).toBe('Disable');
     });
@@ -1299,7 +1299,7 @@ describe('CohortManagement', () => {
         await flushPromises();
 
         // Assert
-        expect(page.get('.popupDialog [role="alert"]').text()).toContain('Unable to save the cohort');
+        expect(page.get('.toastMessage.errorMessage').text()).toContain('Unable to save the cohort');
     });
 
     /**
@@ -1420,7 +1420,6 @@ describe('CohortManagement', () => {
 
         // Assert
         expect(cohortForm(page).name.attributes('aria-invalid')).toBe('true');
-        expect(cohortForm(page).name.attributes('aria-describedby')).toBe('cohortNameError');
     });
 
     /**
@@ -1438,7 +1437,7 @@ describe('CohortManagement', () => {
         await flushPromises();
 
         // Assert
-        expect(page.get('.popupDialog [role="alert"]').text()).toContain('Unable to save the cohort');
+        expect(page.get('.toastMessage.errorMessage').text()).toContain('Unable to save the cohort');
         expect(cohortForm(page).name.attributes('aria-invalid')).toBeUndefined();
         expect(cohortForm(page).name.attributes('aria-describedby')).toBeUndefined();
     });
@@ -1457,7 +1456,7 @@ describe('CohortManagement', () => {
         await flushPromises();
 
         // Assert
-        expect(page.get('.popupDialog [role="alert"]').text()).toContain('Unable to update the cohort');
+        expect(page.get('.toastMessage.errorMessage').text()).toContain('Unable to update the cohort');
         expect(cohortForm(page).name.attributes('aria-invalid')).toBeUndefined();
     });
 
@@ -1658,7 +1657,7 @@ describe('CohortManagement', () => {
         await flushPromises();
 
         // Assert
-        expect(page.get('.popupDialog [role="alert"]').text()).toContain('Reload the page and try again');
+        expect(page.get('.toastMessage.errorMessage').text()).toContain('Reload the page and try again');
     });
 
     /**
@@ -1675,7 +1674,7 @@ describe('CohortManagement', () => {
         await flushPromises();
 
         // Assert
-        expect(page.get('.popupDialog [role="alert"]').text()).toContain('Unable to load the students');
+        expect(page.get('.toastMessage.errorMessage').text()).toContain('Unable to load the students');
     });
 
     /**
@@ -1748,7 +1747,7 @@ describe('CohortManagement', () => {
 
         // Assert
         expect(moveStudents).not.toHaveBeenCalled();
-        expect(page.get('.popupDialog [role="alert"]').text()).toContain('Select a cohort to move this student to');
+        expect(page.get('.toastMessage.errorMessage').text()).toContain('Select a cohort to move this student to');
     });
 
     /**
@@ -1829,7 +1828,7 @@ describe('CohortManagement', () => {
         await flushPromises();
 
         // Assert
-        expect(page.get('.popupDialog [role="alert"]').text()).toContain('Unable to move Joe Bloggs');
+        expect(page.get('.toastMessage.errorMessage').text()).toContain('Unable to move Joe Bloggs');
         expect(page.get('.cohortDetailsTable').text()).toContain('Joe Bloggs');
     });
 
@@ -1990,8 +1989,6 @@ describe('CohortManagement', () => {
 
         // Assert
         expect(page.get('#newCohort').attributes('aria-invalid')).toBe('true');
-        expect(page.get('#newCohort').attributes('aria-describedby')).toBe('moveStudentError');
-        expect(page.find('#moveStudentError').exists()).toBe(true);
     });
 
     /**
@@ -2069,7 +2066,7 @@ describe('CohortManagement', () => {
         await flushPromises();
 
         // Assert
-        expect(page.get('.popupDialog [role="alert"]').text()).toContain('Unable to move Joe Bloggs');
+        expect(page.get('.toastMessage.errorMessage').text()).toContain('Unable to move Joe Bloggs');
         expect(page.get('#newCohort').attributes('aria-invalid')).toBeUndefined();
         expect(page.get('#newCohort').attributes('aria-describedby')).toBeUndefined();
     });
@@ -2090,7 +2087,7 @@ describe('CohortManagement', () => {
         await flushPromises();
 
         // Assert
-        expect(page.get('.popupDialog [role="alert"]').text()).toContain('can no longer be moved here');
+        expect(page.get('.toastMessage.errorMessage').text()).toContain('can no longer be moved here');
         expect(page.get('#newCohort').attributes('aria-invalid')).toBeUndefined();
     });
 
@@ -2111,7 +2108,6 @@ describe('CohortManagement', () => {
 
         // Assert
         expect(page.get('#newCohort').attributes('aria-invalid')).toBe('true');
-        expect(page.get('#newCohort').attributes('aria-describedby')).toBe('moveStudentError');
     });
 
     /**
