@@ -75,7 +75,7 @@ describe('LecturerManagement', () => {
 
         // Assert
         expect(setLecturerEnabled).toHaveBeenCalledWith('lecturer-1', false);
-        expect(page.get('.toastMessage.successMessage').text()).toContain('✓Status updated');
+        expect(page.get('.toastMessage.successMessage').text()).toContain('Lecturer disabled successfully.');
         expect(page.find('[aria-label="Undo for Test Lecturer"]').exists()).toBe(false);
     });
 
@@ -116,7 +116,9 @@ describe('LecturerManagement', () => {
 
         // Assert
         expect(resendSetupLink).toHaveBeenCalledWith('lecturer-2');
-        expect(page.get('[role="status"]').text()).toContain('A new link has been sent to New Lecturer');
+        expect(page.get('.toastMessage.successMessage').text()).toContain(
+            'Setup link sent to New Lecturer successfully.',
+        );
     });
 
     /**

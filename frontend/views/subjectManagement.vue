@@ -97,12 +97,13 @@ export default {
 
             try {
                 await setSubjectActive(subject.subjectID, makeActive);
-                this.showSuccess(`Subject "${subject.subjectName}" ${makeActive ? 'restored' : 'archived'}`);
+                this.showSuccess(makeActive ? 'Subject restored successfully.' : 'Subject archived successfully.');
                 this.$refs.table.loadSubjects();
             } catch (error) {
                 // green box goes so it doesnt look like it worked
                 this.successMessage = '';
-                this.showError(error.response?.data?.error || 'Unable to update the subject');
+                const message = `Unable to ${makeActive ? 'restore' : 'archive'} the subject.`;
+                this.showError(error.response?.data?.error || message);
             }
         },
     },

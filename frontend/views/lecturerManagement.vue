@@ -92,10 +92,10 @@ export default {
 
             try {
                 await resendSetupLink(lecturer.userID);
-                this.showSuccess('A new link has been sent to ' + lecturer.name);
+                this.showSuccess(`Setup link sent to ${lecturer.name} successfully.`);
             } catch (error) {
                 this.successMessage = '';
-                this.showError(error.response?.data?.error || 'Unable to send a new link');
+                this.showError(error.response?.data?.error || 'Unable to resend the setup link.');
             }
         },
 
@@ -150,11 +150,12 @@ export default {
 
             try {
                 await setLecturerEnabled(lecturer.userID, isEnabled);
-                this.showSuccess('Status updated');
+                this.showSuccess(isEnabled ? 'Lecturer enabled successfully.' : 'Lecturer disabled successfully.');
                 this.$refs.table.loadLecturers();
             } catch (error) {
                 this.successMessage = '';
-                this.showError(error.response?.data?.error || 'Unable to update the lecturer');
+                const message = `Unable to ${isEnabled ? 'enable' : 'disable'} the lecturer.`;
+                this.showError(error.response?.data?.error || message);
             }
         },
 
@@ -166,11 +167,11 @@ export default {
 
             try {
                 await deleteLecturer(lecturer.userID);
-                this.showSuccess('Lecturer deleted');
+                this.showSuccess('Lecturer deleted successfully.');
                 this.$refs.table.loadLecturers();
             } catch (error) {
                 this.successMessage = '';
-                this.showError(error.response?.data?.error || 'Unable to delete the lecturer');
+                this.showError(error.response?.data?.error || 'Unable to delete the lecturer.');
             }
         },
     },

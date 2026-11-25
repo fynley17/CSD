@@ -87,13 +87,16 @@ export default {
                     this.$refs.dialog.close();
                     // php says whether the email went, the page needs that to pick a green or red box
                     // the staff ID goes too so the page can find the new row for the admin
-                    this.$emit('saved', result.message, this.form.staffID.trim(), result.emailSent);
+                    const message = result.emailSent
+                        ? 'Lecturer created successfully.'
+                        : 'Lecturer created, but the login email failed.';
+                    this.$emit('saved', message, this.form.staffID.trim(), result.emailSent);
                 } else {
                     // edit doesn't change the role, so only the four boxes go
                     const { firstName, lastName, staffID, email } = this.form;
                     await updateLecturer(this.userID, { firstName, lastName, staffID, email });
                     this.$refs.dialog.close();
-                    this.$emit('saved', 'Changes saved');
+                    this.$emit('saved', 'Lecturer updated successfully.');
                 }
             } catch (error) {
                 // PHP's message if it sent one i.e. staff ID taken, otherwise a plain one
