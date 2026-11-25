@@ -197,7 +197,7 @@ export default {
         <!-- buttons sit on the right with Cancel first, like the student and cohort pop-ups -->
         <!-- form="lecturerForm" links the footer button back up to the form -->
         <template #buttons>
-            <div class="d-flex justify-content-end gap-2 w-100">
+            <div class="twoActionGrid">
                 <button type="button" class="btn btn-outline-primary" @click="$refs.dialog.close()">Cancel</button>
                 <button type="submit" form="lecturerForm" class="btn btn-primary" :disabled="isSaving">
                     {{ saveText }}
@@ -206,3 +206,16 @@ export default {
         </template>
     </PopupDialog>
 </template>
+
+<style scoped>
+.twoActionGrid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--spaceSm);
+    width: 100%;
+}
+
+.twoActionGrid > button {
+    width: 100%;
+}
+</style>

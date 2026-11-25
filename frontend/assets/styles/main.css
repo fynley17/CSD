@@ -1595,10 +1595,14 @@ main.appMainFullScreen {
 }
 
 .cohortDialogButtons {
-    display: flex;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     width: 100%;
-    justify-content: flex-end;
     gap: var(--spaceSm);
+}
+
+.cohortDialogButtons > button:only-child {
+    grid-column: 1 / -1;
 }
 
 /* grey behind the opened details, and the row doesn't pick up the hover shade */

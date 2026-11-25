@@ -301,8 +301,8 @@ onMounted(async () => {
 
 /* Align the form actions neatly at the bottom of the dialog. */
 .studentFormActions {
-    display: flex;
-    justify-content: flex-end;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     align-items: center;
     gap: var(--spaceSm);
     width: 100%;

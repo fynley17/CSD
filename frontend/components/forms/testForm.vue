@@ -383,8 +383,8 @@ onMounted(async () => {
 
 /* Align the form actions at the bottom right of the dialog. */
 .testFormActions {
-    display: flex;
-    justify-content: flex-end;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     align-items: center;
     gap: var(--spaceSm);
     width: 100%;

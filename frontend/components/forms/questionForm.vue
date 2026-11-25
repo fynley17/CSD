@@ -383,9 +383,10 @@ const cancelForm = () => {
 
 /* Align the Cancel and Save buttons. */
 .formActions {
-    display: flex;
-    justify-content: flex-end;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: var(--spaceSm);
+    width: 100%;
     margin-top: var(--spaceMd);
 }
 
