@@ -9,13 +9,23 @@ import StudentManagement from '../views/studentManagement.vue';
 
 vi.mock('../services/authService', () => ({ getCurrentUser: vi.fn() }));
 
+const StudentManagementTableStub = {
+    name: 'StudentManagementTable',
+    emits: ['edit', 'success', 'error'],
+    setup(_props, { expose }) {
+        expose({ cohorts: [], pendingCount: 0, refreshStudents: vi.fn() });
+        return {};
+    },
+    template: '<div />',
+};
+
 /**
  * Opens the page as the given account type, the table and form are stubbed as they load from PHP
  */
 async function openPageAs(accountType) {
     getCurrentUser.mockResolvedValue({ accountType });
     const page = mount(StudentManagement, {
-        global: { stubs: { StudentManagementTable: true, StudentForm: true } },
+        global: { stubs: { StudentManagementTable: StudentManagementTableStub, StudentForm: true } },
     });
     await flushPromises();
 
