@@ -28,6 +28,8 @@ export default {
             notificationTimeout: null,
             // the row the confirm box is asking about
             confirmSubject: null,
+            // the subject just archived or restored, Undo shows in the green box while this is set
+            undoSubject: null,
         };
     },
 
@@ -37,8 +39,9 @@ export default {
     },
 
     methods: {
-        showSuccess(message) {
+        showSuccess(message, undoSubject = null) {
             this.errorMessage = '';
+            this.undoSubject = undoSubject;
             if (typeof this.$refs.errorToast?.hidePopover === 'function') {
                 this.$refs.errorToast.hidePopover();
             }
@@ -116,12 +119,15 @@ export default {
         /**
          * Does the actual archive or restore for both buttons above
          */
-        async setStatus(subject, makeActive) {
+        async setStatus(subject, makeActive, canUndo = false) {
             this.errorMessage = '';
 
             try {
                 await setSubjectActive(subject.subjectID, makeActive);
-                this.showSuccess(makeActive ? 'Subject restored successfully.' : 'Subject archived successfully.');
+                this.showSuccess(
+                    makeActive ? 'Subject restored successfully.' : 'Subject archived successfully.',
+                    canUndo ? subject : null,
+                );
                 this.$refs.table.loadSubjects();
             } catch (error) {
                 // green box goes so it doesnt look like it worked
@@ -129,6 +135,13 @@ export default {
                 const message = `Unable to ${makeActive ? 'restore' : 'archive'} the subject.`;
                 this.showError(error.response?.data?.error || message);
             }
+        },
+
+        // Undo in the green box, false at the end so the undo doesnt get its own Undo
+        undo() {
+            const subject = this.undoSubject;
+            this.undoSubject = null;
+            this.setStatus(subject, subject.isActive, false);
         },
     },
 };
@@ -139,13 +152,18 @@ export default {
         <h1>Subject Management</h1>
         <p>Create, edit and archive subjects. Subjects are never deleted</p>
 
-        <div
-            v-if="successMessage"
-            class="toastMessage successMessage d-flex flex-wrap align-items-center gap-2"
-            role="status"
-        >
+        <div v-if="successMessage" class="toastMessage successMessage d-flex align-items-center gap-2" role="status">
             <span aria-hidden="true">✓</span>
             <span>{{ successMessage }}</span>
+            <button
+                v-if="undoSubject"
+                type="button"
+                class="btn btn-sm btn-outline-primary toastUndo"
+                :aria-label="'Undo for ' + undoSubject.subjectName"
+                @click="undo"
+            >
+                Undo
+            </button>
             <button type="button" class="toastClose" aria-label="Close notification" @click="successMessage = ''">
                 ×
             </button>

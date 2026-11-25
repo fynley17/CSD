@@ -30,6 +30,15 @@
         <div v-if="successMessage" class="toastMessage successMessage" role="status" aria-live="polite">
             <span aria-hidden="true">✓</span>
             <span>{{ successMessage }}</span>
+            <button
+                v-if="undoCohort"
+                type="button"
+                class="btn btn-sm btn-outline-primary toastUndo"
+                :aria-label="'Undo for ' + undoCohort.cohortName"
+                @click="undo"
+            >
+                Undo
+            </button>
             <button type="button" class="toastClose" aria-label="Close notification" @click="closeSuccess">×</button>
         </div>
 
@@ -160,6 +169,8 @@ import CohortSubjectsTable from '../components/tables/cohortSubjectsTable.vue';
 import { getCohorts, setCohortActive } from '../services/cohortService';
 
 const successMessage = ref('');
+// the cohort that was just disabled, Undo shows in the green box while this is set
+const undoCohort = ref(null);
 const errorMessage = ref('');
 const errorToast = ref(null);
 let messageTimeout = null;
@@ -208,8 +219,9 @@ const visibleCohorts = computed(() => {
     return sortBy.value ? cohorts.sort(sorters[sortBy.value]) : cohorts;
 });
 
-function showSuccess(message) {
+function showSuccess(message, cohort = null) {
     errorMessage.value = '';
+    undoCohort.value = cohort;
     if (typeof errorToast.value?.hidePopover === 'function') {
         errorToast.value.hidePopover();
     }
@@ -350,7 +362,14 @@ function startToggle(cohort) {
 
 function cohortDisabled(savedCohort) {
     updateCohort(disablingCohort.value, savedCohort);
-    showSuccess('Cohort disabled successfully.');
+    showSuccess('Cohort disabled successfully.', disablingCohort.value);
+}
+
+// turns it back on, toggleStatus shows its own message with no Undo so you cant undo the undo
+function undo() {
+    const cohort = undoCohort.value;
+    undoCohort.value = null;
+    toggleStatus(cohort);
 }
 
 // the screen only changes once PHP confirms it's saved, so it never shows a status the database doesn't have

@@ -65,7 +65,7 @@ describe('LecturerManagement', () => {
     /**
      * Disable asks first, then turns the account off and the green box has Undo (normal)
      */
-    it('disables after the confirm box and shows a success toast', async () => {
+    it('disables after the confirm box and offers undo', async () => {
         // Arrange
         vi.mocked(setLecturerEnabled).mockResolvedValue({ message: 'Status updated' });
         const page = await openPage();
@@ -76,6 +76,25 @@ describe('LecturerManagement', () => {
         // Assert
         expect(setLecturerEnabled).toHaveBeenCalledWith('lecturer-1', false);
         expect(page.get('.toastMessage.successMessage').text()).toContain('Lecturer disabled successfully.');
+        expect(page.find('[aria-label="Undo for Test Lecturer"]').exists()).toBe(true);
+    });
+
+    /**
+     * Undo turns the account back on and the new message has no Undo of its own (normal)
+     */
+    it('turns the account back on when Undo is pressed', async () => {
+        // Arrange
+        vi.mocked(setLecturerEnabled).mockResolvedValue({ message: 'Status updated' });
+        const page = await openPage();
+        await pressAndConfirm(page, 'Disable Test Lecturer');
+
+        // Act
+        await page.get('[aria-label="Undo for Test Lecturer"]').trigger('click');
+        await flushPromises();
+
+        // Assert
+        expect(setLecturerEnabled).toHaveBeenLastCalledWith('lecturer-1', true);
+        expect(page.get('.toastMessage.successMessage').text()).toContain('Lecturer enabled successfully.');
         expect(page.find('[aria-label="Undo for Test Lecturer"]').exists()).toBe(false);
     });
 

@@ -107,3 +107,10 @@
     --bs-btn-disabled-color: var(--colorTextSecondary);
     --bs-btn-disabled-opacity: 1;
 }
+
+/* Undo in the green toast on lecturers, subjects and cohorts, table button size so the toast stays slim */
+.toastUndo[class~='btn'] {
+    min-height: 36px;
+    border-radius: var(--radiusSm);
+    font-weight: 600;
+}

@@ -29,6 +29,8 @@ export default {
             // who the confirm box is asking about, and whether its a toggle or a delete
             confirmLecturer: null,
             confirmAction: '',
+            // the lecturer just disabled or enabled, Undo shows in the green box while this is set
+            undoLecturer: null,
         };
     },
 
@@ -57,8 +59,9 @@ export default {
     },
 
     methods: {
-        showSuccess(message) {
+        showSuccess(message, undoLecturer = null) {
             this.errorMessage = '';
+            this.undoLecturer = undoLecturer;
             if (typeof this.$refs.errorToast?.hidePopover === 'function') {
                 this.$refs.errorToast.hidePopover();
             }
@@ -167,20 +170,30 @@ export default {
         },
 
         /**
-         * Turns the account off or on.
+         * Turns the account off or on. canUndo is false for an undo so you cant undo the undo
          */
-        async setStatus(lecturer, isEnabled) {
+        async setStatus(lecturer, isEnabled, canUndo = true) {
             this.errorMessage = '';
 
             try {
                 await setLecturerEnabled(lecturer.userID, isEnabled);
-                this.showSuccess(isEnabled ? 'Lecturer enabled successfully.' : 'Lecturer disabled successfully.');
+                this.showSuccess(
+                    isEnabled ? 'Lecturer enabled successfully.' : 'Lecturer disabled successfully.',
+                    canUndo ? lecturer : null,
+                );
                 this.$refs.table.loadLecturers();
             } catch (error) {
                 this.successMessage = '';
                 const message = `Unable to ${isEnabled ? 'enable' : 'disable'} the lecturer.`;
                 this.showError(error.response?.data?.error || message);
             }
+        },
+
+        // Undo in the green box, puts the account back how it was
+        undo() {
+            const lecturer = this.undoLecturer;
+            this.undoLecturer = null;
+            this.setStatus(lecturer, lecturer.isEnabled, false);
         },
 
         /**
@@ -207,13 +220,18 @@ export default {
         <h1>Lecturer Management</h1>
         <p>Add, edit, disable and delete lecturer accounts</p>
 
-        <div
-            v-if="successMessage"
-            class="toastMessage successMessage d-flex flex-wrap align-items-center gap-2"
-            role="status"
-        >
+        <div v-if="successMessage" class="toastMessage successMessage d-flex align-items-center gap-2" role="status">
             <span aria-hidden="true">✓</span>
             <span>{{ successMessage }}</span>
+            <button
+                v-if="undoLecturer"
+                type="button"
+                class="btn btn-sm btn-outline-primary toastUndo"
+                :aria-label="'Undo for ' + undoLecturer.name"
+                @click="undo"
+            >
+                Undo
+            </button>
             <button type="button" class="toastClose" aria-label="Close notification" @click="successMessage = ''">
                 ×
             </button>

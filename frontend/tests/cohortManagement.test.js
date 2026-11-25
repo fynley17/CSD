@@ -364,6 +364,25 @@ describe('CohortManagement', () => {
     });
 
     /**
+     * Undo in the green box turns the cohort back on, then Undo goes (normal)
+     */
+    it('turns the cohort back on when Undo is pressed', async () => {
+        // Arrange
+        const page = await openPage();
+        await disableCohort(page, 'DTS 2026');
+        await flushPromises();
+
+        // Act
+        await page.get('[aria-label="Undo for DTS 2026"]').trigger('click');
+        await flushPromises();
+
+        // Assert
+        expect(setCohortActive).toHaveBeenLastCalledWith('cohort-1', true);
+        expect(page.get('[role="status"]').text()).toContain('Cohort enabled successfully.');
+        expect(page.find('[aria-label="Undo for DTS 2026"]').exists()).toBe(false);
+    });
+
+    /**
      * Changing a status doesn't send the user back to the first page (boundary)
      */
     it('stays on the same page after disabling a cohort', async () => {
