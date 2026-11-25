@@ -279,65 +279,12 @@ const selectedStudent = ref(null);
 </template>
 
 <style scoped>
-/* Match the notification styling used on the Questions management page. */
-.toastMessage {
-    position: fixed;
-    z-index: 1100;
-    top: calc(var(--navHeight) + var(--spaceLg));
-    right: var(--spaceLg);
-    display: flex;
-    align-items: center;
-    gap: var(--spaceSm);
-    width: max-content;
-    max-width: min(450px, calc(100vw - 2 * var(--spaceLg)));
-    padding: var(--spaceMd) var(--spaceLg);
-    border: 2px solid var(--colorPrimary);
-    border-radius: var(--radiusSm);
-    background: var(--colorSurface);
-    color: var(--colorText);
-    font-weight: 600;
-}
-
-.toastClose {
-    margin-left: auto;
-    border: 0;
-    background: transparent;
-    color: inherit;
-    font-size: var(--fontSizeH3);
-    line-height: 1;
-    cursor: pointer;
-}
-
-.successMessage {
-    border-color: var(--colorPrimary);
-}
-
-.errorMessage {
-    border-color: var(--colorError);
-    color: var(--colorError);
-    margin: 0;
-}
-
-.errorMessage:popover-open {
-    position: fixed;
-    inset: calc(var(--navHeight) + var(--spaceLg)) var(--spaceLg) auto auto;
-}
-
 /* Keep the email-delivery notice visible below the success notification. */
 .warningMessage {
     top: calc(var(--spaceLg) + 64px);
 }
 
 @media (max-width: 639px) {
-    .toastMessage {
-        top: calc(var(--navHeight) + var(--spaceMd));
-        right: var(--spaceMd);
-    }
-
-    .errorMessage:popover-open {
-        inset: calc(var(--navHeight) + var(--spaceMd)) var(--spaceMd) auto auto;
-    }
-
     .warningMessage {
         top: calc(var(--spaceMd) + 64px);
     }
