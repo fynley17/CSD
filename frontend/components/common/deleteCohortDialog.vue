@@ -1,11 +1,15 @@
-<!-- Pop-up for deleting a cohort. Only an empty cohort can go, one with students is offered disabling instead -->
+<!-- Pop-up for deleting or disabling a cohort, one with students can only be disabled -->
 <template>
-    <PopupDialog ref="dialog" :title="canDelete ? 'Delete Cohort?' : 'Cannot Delete Cohort'" @close="emit('close')">
+    <PopupDialog ref="dialog" :title="dialogTitle" @close="emit('close')">
         <div class="cohortDialogConfirm">
             <i class="bi bi-exclamation-circle cohortDialogIcon" aria-hidden="true"></i>
             <h3>{{ cohort.cohortName }}</h3>
 
-            <template v-if="canDelete">
+            <p v-if="isDisabling" class="mb-0">
+                Its students won't be able to log in and its subjects will be archived
+            </p>
+
+            <template v-else-if="canDelete">
                 <p>This cohort has no students or subjects. Deleting it can't be undone.</p>
                 <p class="mb-0">Are you sure you want to delete this cohort?</p>
             </template>
@@ -38,7 +42,7 @@
                 <button
                     v-if="canDelete"
                     type="button"
-                    class="cohortPrimaryButton"
+                    class="cohortPrimaryButton cohortDangerButton"
                     :disabled="isSaving"
                     @click="deleteTheCohort"
                 >
@@ -68,6 +72,11 @@ const props = defineProps({
         type: Object,
         required: true,
     },
+    // the table's Disable button opens this pop-up too, only offering Disable
+    isDisabling: {
+        type: Boolean,
+        default: false,
+    },
 });
 
 const emit = defineEmits(['close', 'deleted', 'disabled']);
@@ -78,8 +87,14 @@ const errorMessage = ref('');
 
 const studentCount = computed(() => props.cohort.students.length);
 const subjectCount = computed(() => props.cohort.subjects.length);
-const canDelete = computed(() => studentCount.value === 0 && subjectCount.value === 0);
-const canDisable = computed(() => studentCount.value > 0 && props.cohort.isActive);
+const canDelete = computed(() => !props.isDisabling && studentCount.value === 0 && subjectCount.value === 0);
+const canDisable = computed(() => props.isDisabling || (studentCount.value > 0 && props.cohort.isActive));
+const dialogTitle = computed(() => {
+    if (props.isDisabling) {
+        return 'Disable Cohort?';
+    }
+    return canDelete.value ? 'Delete Cohort?' : 'Cannot Delete Cohort';
+});
 
 const subjectsText = computed(() => `${subjectCount.value} ${subjectCount.value === 1 ? 'subject' : 'subjects'}`);
 const contentsText = computed(() => {

@@ -4,6 +4,7 @@ use App\Router;
 use App\Controllers\StudentController;
 use App\Controllers\CohortController;
 use App\Controllers\AuthController;
+use App\Controllers\LoginCodeController;
 use App\Controllers\LeaderboardController;
 use App\Controllers\LecturerController;
 use App\Controllers\ResultController;
@@ -14,6 +15,7 @@ use App\Controllers\QuestionController;
 use App\Controllers\SubjectController;
 use App\Controllers\PasswordSetupController;
 use App\Controllers\PasswordResetController;
+use App\Controllers\ProfileController;
 
 $router = new Router();
 
@@ -185,6 +187,25 @@ $router->addRoute(
     [new AuthController(), 'login']
 );
 
+// MFA code step, only used when MFA_ENABLED is true
+$router->addRoute(
+    'POST',
+    '/^\/api\/login\/code$/',
+    [new LoginCodeController(), 'verifyCode']
+);
+
+$router->addRoute(
+    'POST',
+    '/^\/api\/login\/code\/resend$/',
+    [new LoginCodeController(), 'resendCode']
+);
+
+$router->addRoute(
+    'POST',
+    '/^\/api\/login\/backup-codes$/',
+    [new LoginCodeController(), 'saveBackupCodes']
+);
+
 $router->addRoute(
     'POST',
     '/^\/api\/logout$/',
@@ -201,6 +222,25 @@ $router->addRoute(
     'GET',
     '/^\/api\/csrf-token$/',
     [new AuthController(), 'csrfToken']
+);
+
+// My profile, every account type, only ever the logged in user's own account.
+$router->addRoute(
+    'GET',
+    '/^\/api\/profile$/',
+    [new ProfileController(), 'getProfile']
+);
+
+$router->addRoute(
+    'PUT',
+    '/^\/api\/profile$/',
+    [new ProfileController(), 'updateProfile']
+);
+
+$router->addRoute(
+    'PUT',
+    '/^\/api\/profile\/password$/',
+    [new ProfileController(), 'changePassword']
 );
 
 // Lecturer dashboard.

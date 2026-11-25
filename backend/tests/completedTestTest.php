@@ -208,6 +208,313 @@ final class CompletedTestTest extends TestCase
         );
     }
 
+
+    public function testPersonalisedSelectionStartsAfterThreeCompletedAttempts(): void
+    {
+        // Arrange
+        $this->db->exec(
+            "UPDATE Tests
+            SET questionCount = 1
+            WHERE testID = 'test-1'"
+        );
+
+        // Create two completed attempts with different answer histories.
+        for ($i = 1; $i <= 2; $i++) {
+            $completedID = "threshold-$i";
+
+            $this->db->prepare(
+                "INSERT INTO CompletedTests (
+                    completedID, userID, testID, questionCount
+                ) VALUES (?, 'student-1', 'test-1', 2)"
+            )->execute([$completedID]);
+
+            $this->db->prepare(
+                "INSERT INTO StudentAnswers (
+                    completedID, questionID, selectedAnswerID
+                ) VALUES (?, 'question-1', 'a2')"
+            )->execute([$completedID]);
+
+            $this->db->prepare(
+                "INSERT INTO StudentAnswers (
+                    completedID, questionID, selectedAnswerID
+                ) VALUES (?, 'question-2', 'b1')"
+            )->execute([$completedID]);
+        }
+
+        // Act
+        // The third attempt should still use ordinary random selection.
+        $thirdAttempt = Test::getForStudent('test-1', 'student-1');
+
+        // Assert
+        self::assertCount(1, $thirdAttempt['questions']);
+
+        // Arrange
+        // A third completed attempt brings the student to the threshold.
+        $this->db->exec(
+            "INSERT INTO CompletedTests (
+                completedID, userID, testID, questionCount
+            ) VALUES ('threshold-3', 'student-1', 'test-1', 2)"
+        );
+
+        $this->db->prepare(
+            "INSERT INTO StudentAnswers (
+                completedID, questionID, selectedAnswerID
+            ) VALUES ('threshold-3', 'question-1', 'a2')"
+        )->execute();
+
+        $this->db->prepare(
+            "INSERT INTO StudentAnswers (
+                completedID, questionID, selectedAnswerID
+            ) VALUES ('threshold-3', 'question-2', 'b1')"
+        )->execute();
+
+        // Act
+        // The fourth attempt should use weighted random selection.
+        $drawn = [];
+
+        for ($i = 0; $i < 500; $i++) {
+            $test = Test::getForStudent('test-1', 'student-1');
+            $questionID = $test['questions'][0]['questionID'];
+
+            $drawn[$questionID] = ($drawn[$questionID] ?? 0) + 1;
+        }
+
+        // Assert
+        self::assertGreaterThan(
+            $drawn['question-2'] ?? 0,
+            $drawn['question-1'] ?? 0
+        );
+    }
+
+
+    public function testFrequentlyIncorrectSelectionUsesIndividualAnswerHistory(): void
+    {
+        // Arrange
+        $this->db->exec(
+            "UPDATE Tests
+            SET questionCount = 1
+            WHERE testID = 'test-1'"
+        );
+
+        for ($i = 1; $i <= 3; $i++) {
+            $completedID = "completed-$i";
+
+            $this->db->prepare(
+                "INSERT INTO CompletedTests (
+                    completedID, userID, testID, questionCount
+                ) VALUES (?, 'student-1', 'test-1', 3)"
+            )->execute([$completedID]);
+
+            // Question 1 was answered incorrectly.
+            $this->db->prepare(
+                "INSERT INTO StudentAnswers (
+                    completedID, questionID, selectedAnswerID
+                ) VALUES (?, 'question-1', 'a2')"
+            )->execute([$completedID]);
+
+            // Question 2 was answered correctly.
+            $this->db->prepare(
+                "INSERT INTO StudentAnswers (
+                    completedID, questionID, selectedAnswerID
+                ) VALUES (?, 'question-2', 'b1')"
+            )->execute([$completedID]);
+        }
+
+        // Act
+        $drawn = [];
+
+        for ($i = 0; $i < 1000; $i++) {
+            $test = Test::getForStudent('test-1', 'student-1');
+
+            $questionID = $test['questions'][0]['questionID'];
+
+            $drawn[$questionID] = ($drawn[$questionID] ?? 0) + 1;
+        }
+
+        // Assert
+        self::assertGreaterThan(
+            $drawn['question-2'] ?? 0,
+            $drawn['question-1'] ?? 0,
+            'Incorrectly answered questions should be selected more frequently.'
+        );
+    }
+
+
+    public function testNeverAnsweredQuestionsReceiveHigherPriorityThanCorrectlyAnsweredQuestions(): void
+    {
+        // Arrange
+        $this->db->exec(
+            "UPDATE Tests
+         SET questionCount = 1
+         WHERE testID = 'test-1'"
+        );
+
+        for ($i = 1; $i <= 3; $i++) {
+            $completedID = "never-answered-$i";
+
+            $this->db->prepare(
+                "INSERT INTO CompletedTests (
+                completedID, userID, testID, questionCount
+            ) VALUES (?, 'student-1', 'test-1', 3)"
+            )->execute([$completedID]);
+
+            // Question 1 was answered incorrectly.
+            $this->db->prepare(
+                "INSERT INTO StudentAnswers (
+                completedID, questionID, selectedAnswerID
+            ) VALUES (?, 'question-1', 'a2')"
+            )->execute([$completedID]);
+
+            // Question 2 was answered correctly.
+            $this->db->prepare(
+                "INSERT INTO StudentAnswers (
+                completedID, questionID, selectedAnswerID
+            ) VALUES (?, 'question-2', 'b1')"
+            )->execute([$completedID]);
+        }
+
+        // Question 3 is deliberately never answered.
+
+        // Act
+        $drawn = [];
+
+        for ($i = 0; $i < 1000; $i++) {
+            $test = Test::getForStudent('test-1', 'student-1');
+
+            $questionID = $test['questions'][0]['questionID'];
+
+            $drawn[$questionID] = ($drawn[$questionID] ?? 0) + 1;
+        }
+
+        // Assert
+        self::assertGreaterThan(
+            $drawn['question-2'] ?? 0,
+            $drawn['question-3'] ?? 0,
+            'Never-answered questions should be selected more frequently than correctly answered questions.'
+        );
+    }
+
+
+
+    public function testQuestionSelectionHistoryIsIsolatedBetweenStudents(): void
+    {
+        // Arrange
+        $this->db->exec(
+            "UPDATE Tests
+         SET questionCount = 1
+         WHERE testID = 'test-1'"
+        );
+
+        // Make sure both students can access the same question pool.
+        $this->db->exec(
+            "UPDATE Students
+         SET cohortID = 'cohort-1'
+         WHERE userID = 'student-2'"
+        );
+
+        // Give student 1 three completed attempts with recorded answers.
+        for ($i = 1; $i <= 3; $i++) {
+            $completedID = "student-isolation-$i";
+
+            $this->db->prepare(
+                "INSERT INTO CompletedTests (
+                completedID, userID, testID, questionCount
+            ) VALUES (?, 'student-1', 'test-1', 2)"
+            )->execute([$completedID]);
+
+            // Student 1 answered question 1 incorrectly.
+            $this->db->prepare(
+                "INSERT INTO StudentAnswers (
+                completedID, questionID, selectedAnswerID
+            ) VALUES (?, 'question-1', 'a2')"
+            )->execute([$completedID]);
+
+            // Student 1 answered question 2 correctly.
+            $this->db->prepare(
+                "INSERT INTO StudentAnswers (
+                completedID, questionID, selectedAnswerID
+            ) VALUES (?, 'question-2', 'b1')"
+            )->execute([$completedID]);
+        }
+
+        // Student 2 has no completed attempts or answer history.
+
+        // Act
+        $drawn = [];
+
+        for ($i = 0; $i < 1000; $i++) {
+            $test = Test::getForStudent('test-1', 'student-2');
+
+            $questionID = $test['questions'][0]['questionID'];
+
+            $drawn[$questionID] = ($drawn[$questionID] ?? 0) + 1;
+        }
+
+        // Assert
+        self::assertGreaterThan(0, $drawn['question-1'] ?? 0);
+        self::assertGreaterThan(0, $drawn['question-2'] ?? 0);
+        self::assertGreaterThan(0, $drawn['question-3'] ?? 0);
+    }
+
+
+
+
+
+    public function testQuestionSelectionHistoryIsIsolatedBetweenTests(): void
+    {
+        // Arrange
+        $this->db->exec(
+            "UPDATE Tests
+         SET questionCount = 1
+         WHERE testID = 'test-1'"
+        );
+
+        // Create a second test using a different subject.
+        $this->db->exec(
+            "INSERT INTO Tests (
+            testID, testName, questionCount, subjectID
+        ) VALUES (
+            'test-2', 'Databases Test', 1, 'subject-2'
+        )"
+        );
+
+        // Record three completed attempts for test 2.
+        for ($i = 1; $i <= 3; $i++) {
+            $completedID = "test-isolation-$i";
+
+            $this->db->prepare(
+                "INSERT INTO CompletedTests (
+                completedID, userID, testID, questionCount
+            ) VALUES (?, 'student-1', 'test-2', 1)"
+            )->execute([$completedID]);
+
+            $this->db->prepare(
+                "INSERT INTO StudentAnswers (
+                completedID, questionID, selectedAnswerID
+            ) VALUES (?, 'question-4', NULL)"
+            )->execute([$completedID]);
+        }
+
+        // Test 1 has no completed attempts or answer history.
+
+        // Act
+        $drawn = [];
+
+        for ($i = 0; $i < 1000; $i++) {
+            $test = Test::getForStudent('test-1', 'student-1');
+
+            $questionID = $test['questions'][0]['questionID'];
+
+            $drawn[$questionID] = ($drawn[$questionID] ?? 0) + 1;
+        }
+
+        // Assert
+        self::assertGreaterThan(0, $drawn['question-1'] ?? 0);
+        self::assertGreaterThan(0, $drawn['question-2'] ?? 0);
+        self::assertGreaterThan(0, $drawn['question-3'] ?? 0);
+    }
+
+
     public function testNeverDrawsMoreQuestionsThanThePoolHolds(): void
     {
         // Arrange

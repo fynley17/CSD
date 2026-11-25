@@ -46,12 +46,21 @@ const props = defineProps({
         type: String,
         default: '',
     },
+    status: {
+        type: String,
+        default: '',
+    },
 });
 
 watch(
     () => props.search,
     (text) => searchTable(dataTable.value, text),
 );
+watch([() => props.status, loading], ([status]) => {
+    if (!loading.value) {
+        filterByStatus(status);
+    }
+});
 const cohorts = ref([]);
 
 // house style pill for each status, the word is shown too so it isn't colour alone
@@ -151,7 +160,6 @@ defineExpose({
     cohorts,
     pendingCount,
     filterByCohort,
-    filterByStatus,
     refreshStudents,
 });
 
@@ -253,6 +261,15 @@ const confirmDisableStudent = async () => {
                 error.response?.data?.message ||
                 'Unable to disable the student account. Please try again.',
         );
+    actionError.value = '';
+
+    try {
+        await updateStudentStatus(studentToDisable.value.userID, false);
+
+        disablePopup.value?.close();
+        await refreshStudents();
+    } catch (error) {
+        actionError.value = error.response?.data?.error || 'Unable to disable the student account. Please try again.';
     } finally {
         disablingStudent.value = false;
     }
@@ -341,6 +358,12 @@ const handleDisablePopupClose = () => {
 const handleDeclinePopupClose = () => {
     if (!decliningStudent.value) {
         studentToDecline.value = null;
+    }
+};
+
+const handleDisablePopupClose = () => {
+    if (!disablingStudent.value) {
+        studentToDisable.value = null;
     }
 };
 
@@ -454,17 +477,22 @@ onMounted(async () => {
                 <p>They will no longer be able to log in until their account is enabled again.</p>
 
                 <p class="studentDeleteName">{{ studentToDisable?.name }}</p>
+                <p class="studentDeleteName">
+                    {{ studentToDisable?.name }}
+                </p>
 
                 <template #buttons>
                     <div class="studentFormActions">
                         <button
                             type="button"
                             class="btn btn-outline-primary"
+                            class="studentCancelButton"
                             :disabled="disablingStudent"
                             @click="closeDisableModal"
                         >
                             Cancel
                         </button>
+
                         <button
                             type="button"
                             class="studentCreateButton"
@@ -546,6 +574,8 @@ onMounted(async () => {
 .studentFormActions {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
+    display: flex;
+    justify-content: flex-end;
     align-items: center;
     gap: var(--spaceSm);
     width: 100%;

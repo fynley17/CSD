@@ -1,5 +1,6 @@
 <script>
 import api from '../../services/api';
+import { PASSWORD_RULES, meetsPasswordRules } from '../../utils/passwordRules';
 
 export default {
     data() {
@@ -38,6 +39,11 @@ export default {
             this.cohortsLoading = false;
         }
     },
+    computed: {
+        passwordRules() {
+            return PASSWORD_RULES;
+        },
+    },
     methods: {
         async submitRegistration() {
             this.formError = '';
@@ -57,6 +63,11 @@ export default {
                 !this.form.cohortID
             ) {
                 this.formError = 'Please complete all required fields.';
+                return;
+            }
+
+            if (!meetsPasswordRules(this.form.password)) {
+                this.formError = `${PASSWORD_RULES}.`;
                 return;
             }
 
@@ -228,7 +239,7 @@ export default {
                                     autocomplete="new-password"
                                     minlength="8"
                                     pattern="(?=.*[A-Z])(?=.*[a-z])(?=.*[0-9])(?=.*[^A-Za-z0-9\s]).{8,}"
-                                    title="Use 8+ characters with uppercase, lowercase, a number, and a symbol."
+                                    :title="passwordRules"
                                     required
                                 />
                                 <!-- the icon has no words, so aria-label tells screen readers what the button does -->
@@ -281,9 +292,7 @@ export default {
                             </div>
                         </div>
                         <div class="col-12">
-                            <small class="registrationHelpText">
-                                Use at least 8 characters, including uppercase, lowercase, a number, and a symbol.
-                            </small>
+                            <small class="registrationHelpText"> {{ passwordRules }}. </small>
                         </div>
                     </div>
                 </section>
@@ -310,9 +319,81 @@ export default {
 </template>
 
 <style scoped>
-/* main.css rounds every registration box, inside a group only the outer corners should be round.
-   [class~=...] matches Bootstrap's hyphenated class names, the same way main.css does */
-[class~='input-group'] > [class~='form-control'] {
+/* moved from main.css, only this component uses these styles */
+.registrationFormTitle {
+    color: var(--colorBrand);
+    font-family: var(--fontHeading);
+    font-size: var(--fontSizeH3);
+    font-weight: 700;
+    line-height: 1.4;
+}
+
+.registrationFormDescription,
+.registrationHelpText,
+.registrationError,
+.registrationTermsText {
+    color: var(--colorTextSecondary);
+}
+
+.registrationError {
+    color: var(--colorError);
+}
+
+.registrationForm [class~='form-control'],
+.registrationForm [class~='form-select'] {
+    background-color: var(--colorSurface);
+    border-color: var(--colorDivider);
+    border-radius: var(--radiusSm);
+    color: var(--colorText);
+    font-family: var(--fontBody);
+}
+
+.registrationForm [class~='form-control']::placeholder {
+    color: var(--colorTextSecondary);
+    opacity: 0.7;
+}
+
+.registrationForm [class~='form-control']:disabled,
+.registrationForm [class~='form-select']:disabled {
+    background-color: var(--colorDisabled);
+}
+
+.registrationForm [class~='form-check-input'] {
+    border-color: var(--colorBorderInput);
+}
+
+.registrationForm [class~='form-control']:focus,
+.registrationForm [class~='form-select']:focus,
+.registrationForm [class~='form-check-input']:focus {
+    border-color: var(--colorHighlight);
+    box-shadow: var(--shadowFocus);
+}
+
+.registrationForm [class~='form-check-input']:checked {
+    background-color: var(--colorPrimary);
+    border-color: var(--colorPrimary);
+}
+
+.registrationForm [class~='form-label'] {
+    color: var(--colorText);
+    font-weight: 600;
+}
+
+.registrationForm [class~='alert-danger'] {
+    background-color: var(--colorErrorLight);
+    border-color: var(--colorError);
+    color: var(--colorError);
+}
+
+.registrationForm [class~='alert-success'] {
+    background-color: var(--colorSuccessLight);
+    border-color: var(--colorSuccess);
+    color: var(--colorSuccess);
+}
+
+/* .registrationForm [class~='form-control'] rounds every box, inside a group only the outer corners should be round.
+   Starting with .registrationForm makes this more specific than that rule, so it wins wherever it sits */
+.registrationForm [class~='input-group'] > [class~='form-control'] {
     border-top-right-radius: 0;
     border-bottom-right-radius: 0;
 }

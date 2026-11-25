@@ -145,4 +145,48 @@ describe('SubjectForm', () => {
         expect(wrapper.get('#subjectCohort').element.value).toBe('');
         expect(wrapper.findAll('#subjectCohort option')).toHaveLength(2);
     });
+
+    /**
+     * typing part of a name leaves only the lecturers that match, capitals and spaces dont matter (normal)
+     */
+    it('narrows the lecturer list to the names that match the search', async () => {
+        // Arrange
+        vi.mocked(getLecturerOptions).mockResolvedValue([
+            { lecturerID: 'lecturer-1', name: 'Alice Test' },
+            { lecturerID: 'lecturer-2', name: 'Bob Test' },
+            { lecturerID: 'lecturer-3', name: 'Alan Test' },
+        ]);
+        const wrapper = await openForm();
+
+        // Act
+        await wrapper.get('#lecturerSearch').setValue(' AL ');
+
+        // Assert
+        expect(wrapper.findAll('input[type="checkbox"]')).toHaveLength(2);
+        expect(wrapper.text()).not.toContain('Bob Test');
+    });
+
+    /**
+     * a ticked lecturer hidden by the search still gets saved with the subject (boundary)
+     */
+    it('keeps a ticked lecturer that the search hides', async () => {
+        // Arrange
+        const wrapper = await openForm();
+        await wrapper.get('#subjectName').setValue('Test Databases');
+        await wrapper.get('#subjectCohort').setValue('cohort-1');
+        await wrapper.get('#lecturer-lecturer-1').setValue(true);
+        await wrapper.get('#lecturerSearch').setValue('zzz');
+
+        // Act
+        await wrapper.get('form').trigger('submit');
+        await flushPromises();
+
+        // Assert
+        expect(wrapper.text()).toContain('No lecturers match your search');
+        expect(createSubject).toHaveBeenCalledWith({
+            subjectName: 'Test Databases',
+            cohortID: 'cohort-1',
+            lecturerIDs: ['lecturer-1'],
+        });
+    });
 });

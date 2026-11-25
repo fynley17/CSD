@@ -2,7 +2,11 @@
 <template>
     <PopupDialog ref="dialog" :title="cohort ? 'Edit Cohort' : 'Create Cohort'" @close="emit('close')">
         <form id="cohortForm" novalidate @submit.prevent="save">
-            <label class="cohortDialogLabel" for="cohortName">Cohort name</label>
+            <!-- the limit is in the label so screen readers hear it too, the box stops typing at 50 -->
+            <label class="cohortDialogLabel" for="cohortName">
+                Cohort name
+                <span class="form-text d-block fw-normal">Up to 50 characters</span>
+            </label>
             <input
                 id="cohortName"
                 ref="nameInput"

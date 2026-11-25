@@ -1,0 +1,47 @@
+/* Active, Pending, Disabled and Archived pills in the admin and lecturer tables */
+
+/* status pill for the admin tables, a dot then the word Active or Disabled */
+.statusPill {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spaceXs);
+    padding: var(--spaceXs) var(--spaceSm);
+    border-radius: var(--radiusPill);
+    font-size: var(--fontSizeSmall);
+    font-weight: 600;
+}
+
+/* the dot is drawn in the same colour as the word */
+.statusPill::before {
+    width: var(--spaceSm);
+    height: var(--spaceSm);
+    border-radius: var(--radiusPill);
+    background-color: currentColor;
+    content: '';
+}
+
+.statusActive {
+    background-color: var(--colorSuccessLight);
+    color: var(--colorText);
+}
+
+/* the dot stays green, the word is dark */
+.statusActive::before {
+    background-color: var(--colorSuccess);
+}
+
+.statusDisabled,
+.statusArchived {
+    background-color: var(--colorDisabled);
+    color: var(--colorText);
+}
+
+.statusPending {
+    background-color: var(--colorWarningLight);
+    color: var(--colorText);
+}
+
+/* the dot is amber, the word stays dark */
+.statusPending::before {
+    background-color: var(--colorWarning);
+}

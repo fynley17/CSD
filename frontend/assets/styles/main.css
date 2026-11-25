@@ -2020,3 +2020,23 @@ table.dataTable thead > tr > th.dt-type-date div.dt-column-header {
     border-radius: var(--radiusSm);
     font-weight: 600;
 }
+/* RevisionHub's global styles, imported once in main.js after Bootstrap.
+
+   Only styles shared by more than one component live in assets/styles. A component's own styles
+   go in its \3c style scoped> block, as the Vue style guide recommends, so they can't leak onto other pages.
+
+   The files load in order from general to specific, so later ones win when two rules are equally specific:
+   tokens, then the plain HTML elements, then shared components, then utilities.
+   The fonts are linked in index.html, so they start downloading before this file is read. */
+
+@import url('./tokens.css');
+@import url('./base.css');
+@import url('./components/cards.css');
+@import url('./components/authForms.css');
+@import url('./components/popupDialog.css');
+@import url('./components/dashboards.css');
+@import url('./components/statusPills.css');
+@import url('./components/cohorts.css');
+@import url('./components/tables.css');
+@import url('./components/buttons.css');
+@import url('./utilities.css');

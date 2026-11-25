@@ -5,6 +5,11 @@ import { mount, flushPromises } from '@vue/test-utils';
 import StudentManagementTable from '../components/tables/studentManagementTable.vue';
 import { getLecturerStudents, updateStudentStatus } from '../services/studentService';
 
+const { tableSearch, tableDraw } = vi.hoisted(() => ({
+    tableSearch: vi.fn(),
+    tableDraw: vi.fn(),
+}));
+
 vi.mock('../services/studentService', () => ({
     getLecturerStudents: vi.fn(),
     updateStudentStatus: vi.fn(),
@@ -19,6 +24,20 @@ vi.mock('datatables.net-vue3', async () => {
             defineComponent({
                 name: 'DataTable',
                 props: ['data', 'columns', 'options'],
+                setup(_props, { expose }) {
+                    expose({
+                        dt: {
+                            column(index) {
+                                return {
+                                    search(value, regex, smart) {
+                                        tableSearch(index, value, regex, smart);
+                                        return { draw: tableDraw };
+                                    },
+                                };
+                            },
+                        },
+                    });
+                },
                 template: `
                     <div>
                         <div
@@ -56,6 +75,27 @@ describe('studentManagementTable.vue', () => {
             this.removeAttribute('open');
             this.dispatchEvent(new Event('close'));
         });
+    });
+
+    it('applies and clears the status search when the status prop changes', async () => {
+        getLecturerStudents.mockResolvedValue([]);
+        const wrapper = mount(StudentManagementTable);
+        await flushPromises();
+        tableSearch.mockClear();
+        tableDraw.mockClear();
+
+        await wrapper.setProps({ status: 'Pending' });
+        await flushPromises();
+        await wrapper.setProps({ status: '' });
+        await flushPromises();
+
+        expect(tableSearch.mock.calls).toEqual([
+            [3, '^Pending$', true, false],
+            [3, '', true, false],
+        ]);
+        expect(tableDraw).toHaveBeenCalledTimes(2);
+
+        wrapper.unmount();
     });
 
     it('loads and displays students successfully', async () => {
@@ -216,6 +256,7 @@ describe('studentManagementTable.vue', () => {
         expect(updateStudentStatus).not.toHaveBeenCalled();
 
         await dialog.get('.btn.btn-outline-primary').trigger('click');
+        await dialog.get('.studentCancelButton').trigger('click');
         await flushPromises();
 
         expect(dialog.attributes('open')).toBeUndefined();

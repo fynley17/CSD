@@ -1,0 +1,64 @@
+/* Base: the plain HTML elements, before any classes, so every page starts from the same look */
+
+/* Global styles */
+* {
+    box-sizing: border-box;
+}
+
+html {
+    scroll-padding-top: 80px;
+}
+
+body {
+    margin: 0;
+    background-color: var(--colorPageBackground);
+    color: var(--colorText);
+    font-family: var(--fontBody);
+    font-size: var(--fontSizeBody);
+    line-height: 1.5;
+}
+
+#app {
+    min-height: 100%;
+    margin: 0;
+}
+
+h1,
+h2 {
+    color: var(--colorBrand);
+    font-family: var(--fontHeading);
+    font-weight: 700;
+}
+
+h1 {
+    font-size: var(--fontSizeH1);
+    line-height: 1.25;
+}
+
+h2 {
+    font-size: var(--fontSizeH2);
+    line-height: 1.33;
+}
+
+h3 {
+    font-family: var(--fontBody);
+    font-size: var(--fontSizeH3);
+    font-weight: 600;
+    line-height: 1.4;
+}
+
+a {
+    color: var(--colorPrimary);
+}
+
+/* .btn is listed because Bootstrap's .btn:focus-visible removes the outline otherwise */
+a:focus-visible,
+button:focus-visible,
+.btn:focus-visible {
+    outline: 3px solid var(--colorFocus);
+    outline-offset: 2px;
+}
+
+main {
+    padding-top: var(--navHeight);
+}

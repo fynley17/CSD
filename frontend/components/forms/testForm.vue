@@ -235,7 +235,6 @@ onMounted(async () => {
             <div v-if="form.subjectID && selectedSubject" class="formGroup cohortDisplay">
                 <label for="cohortName">Cohort</label>
                 <input id="cohortName" :value="selectedCohortName" type="text" readonly aria-readonly="true" />
-                <small>The cohort is determined automatically by the selected subject.</small>
             </div>
 
             <!-- Optional description with a maximum length of 100 characters. -->
@@ -254,7 +253,7 @@ onMounted(async () => {
             <!-- Configure how many questions are included and the optional time limit. -->
             <div class="formRow">
                 <div class="formGroup">
-                    <label for="questionCount"> Questions per attempt <span aria-hidden="true">*</span> </label>
+                    <label for="questionCount">Questions per attempt <span aria-hidden="true">*</span></label>
                     <input
                         id="questionCount"
                         v-model="form.questionCount"
@@ -291,6 +290,7 @@ onMounted(async () => {
         <template #buttons>
             <div class="testFormActions">
                 <button type="button" class="btn btn-outline-primary" :disabled="submitting" @click="dialog?.close()">
+                <button type="button" class="secondaryButton" :disabled="submitting" @click="dialog?.close()">
                     Cancel
                 </button>
 
@@ -384,6 +384,8 @@ onMounted(async () => {
 .testFormActions {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
+    display: flex;
+    justify-content: flex-end;
     align-items: center;
     gap: var(--spaceSm);
     width: 100%;

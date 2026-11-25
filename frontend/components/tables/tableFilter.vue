@@ -1,7 +1,10 @@
 <!-- A labelled dropdown that filters a table, every table uses this so the filters all look the same -->
 <template>
     <div class="tableFilter">
-        <label :for="id" class="form-label tableFilterLabel">{{ label }}</label>
+        <!-- hideLabel keeps it for screen readers but not on screen, i.e. when the dropdown lines up with tabs -->
+        <label :for="id" class="form-label tableFilterLabel" :class="{ 'visually-hidden': hideLabel }">{{
+            label
+        }}</label>
         <select :id="id" v-model="selected" class="form-select tableFilterSelect" @change="emit('change', selected)">
             <option v-for="option in options" :key="option.value" :value="option.value">
                 {{ option.label }}
@@ -28,6 +31,11 @@ defineProps({
     options: {
         type: Array,
         required: true,
+    },
+    // the first option then has to say what it filters, i.e. "All subjects"
+    hideLabel: {
+        type: Boolean,
+        default: false,
     },
 });
 

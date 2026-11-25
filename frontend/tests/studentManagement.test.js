@@ -17,6 +17,12 @@ const StudentManagementTableStub = {
         return {};
     },
     template: '<div />',
+const studentManagementTableStub = {
+    setup(_props, { expose }) {
+        expose({ cohorts: [], pendingCount: 0 });
+
+        return () => null;
+    },
 };
 
 /**
@@ -26,6 +32,7 @@ async function openPageAs(accountType) {
     getCurrentUser.mockResolvedValue({ accountType });
     const page = mount(StudentManagement, {
         global: { stubs: { StudentManagementTable: StudentManagementTableStub, StudentForm: true } },
+        global: { stubs: { StudentManagementTable: studentManagementTableStub, StudentForm: true } },
     });
     await flushPromises();
 
@@ -68,5 +75,22 @@ describe('StudentManagement', () => {
 
         // Assert
         expect(addButton(page)).toBeUndefined();
+    });
+
+    it('toggles the student applications filter on and off', async () => {
+        const page = await openPageAs('admin');
+        const applicationsButton = page
+            .findAll('button')
+            .find((button) => button.text().includes('Student Applications'));
+
+        await applicationsButton.trigger('click');
+
+        expect(page.get('#studentStatusFilter').element.value).toBe('Pending');
+        expect(applicationsButton.attributes('aria-pressed')).toBe('true');
+
+        await applicationsButton.trigger('click');
+
+        expect(page.get('#studentStatusFilter').element.value).toBe('');
+        expect(applicationsButton.attributes('aria-pressed')).toBe('false');
     });
 });

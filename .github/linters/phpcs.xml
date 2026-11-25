@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- PHP_CodeSniffer settings (CTS-155), checks PHP names follow the house style (section 8) -->
+<!-- PHP_CodeSniffer settings, checks PHP names follow the house style (section 8) -->
 <!-- only names are checked here, PHP CS Fixer already checks the layout (PSR-12) -->
 <!-- rule list: https://github.com/PHPCSStandards/PHP_CodeSniffer/wiki -->
 <ruleset name="RevisionHub naming">

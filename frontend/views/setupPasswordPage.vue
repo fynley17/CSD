@@ -1,5 +1,6 @@
 <script>
 import { setPassword } from '../services/passwordSetupService';
+import { PASSWORD_RULES, meetsPasswordRules } from '../utils/passwordRules';
 
 export default {
     name: 'SetupPasswordPage',
@@ -22,13 +23,11 @@ export default {
         },
 
         passwordIsValid() {
-            return (
-                this.password.length >= 8 &&
-                /[A-Z]/.test(this.password) &&
-                /[a-z]/.test(this.password) &&
-                /\d/.test(this.password) &&
-                /[^A-Za-z0-9]/.test(this.password)
-            );
+            return meetsPasswordRules(this.password);
+        },
+
+        passwordRules() {
+            return PASSWORD_RULES;
         },
     },
 
@@ -49,10 +48,7 @@ export default {
             this.successMessage = '';
 
             if (!this.passwordIsValid) {
-                this.errorMessage = [
-                    'Please use at least 8 characters, including an uppercase letter,',
-                    'a lowercase letter, a number and a symbol.',
-                ].join(' ');
+                this.errorMessage = `${PASSWORD_RULES}.`;
                 return;
             }
 
@@ -117,9 +113,7 @@ export default {
                                     :disabled="loading || !token"
                                 />
 
-                                <small class="form-text text-muted">
-                                    At least 8 characters, with uppercase, lowercase, number and symbol.
-                                </small>
+                                <small class="form-text text-muted">{{ passwordRules }}.</small>
                             </div>
 
                             <div class="mb-4">

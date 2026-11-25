@@ -329,4 +329,33 @@ describe('router guard for student only pages', () => {
         // Assert
         expect(router.currentRoute.value.name).toBe('resetPassword');
     });
+
+    /**
+     * Every account type can open their own profile page (normal)
+     */
+    it.each(['student', 'lecturer', 'admin'])('lets a %s open My profile', async (accountType) => {
+        // Arrange
+        vi.mocked(getCurrentUser).mockResolvedValue({ username: 'user01', accountType });
+
+        // Act
+        await router.push('/profile');
+
+        // Assert
+        expect(router.currentRoute.value.name).toBe('profile');
+    });
+
+    /**
+     * Signed out visitors are sent to login, and come back to the profile page after (error)
+     */
+    it('sends a signed-out visitor from My profile to login', async () => {
+        // Arrange
+        vi.mocked(getCurrentUser).mockResolvedValue(null);
+
+        // Act
+        await router.push('/profile');
+
+        // Assert
+        expect(router.currentRoute.value.name).toBe('login');
+        expect(router.currentRoute.value.query.redirect).toBe('/profile');
+    });
 });

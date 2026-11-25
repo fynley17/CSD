@@ -1,0 +1,139 @@
+/* Design tokens: every colour, font size, space, radius and shadow the site uses.
+   Everything else uses these var(--...) names rather than raw values (house style section 9) */
+
+/* Design tokens */
+:root {
+    /* Colours */
+    --colorBrand: #1e3a8a;
+    --colorPrimary: #4f46e5;
+    --colorPrimaryHover: #4338ca;
+    --colorPrimaryLight: #eef2ff;
+    --colorHighlight: #93c5fd;
+    --colorDecorative: #60a5fa;
+    --colorPageBackground: #f3f4f6;
+    --colorSurface: #ffffff;
+    --colorSurfaceAlt: #f9fafb;
+    --colorText: #111827;
+    --colorTextSecondary: #4b5563;
+    --colorBorderInput: #6b7280;
+    --colorDivider: #d1d5db;
+    --colorDisabled: #e5e7eb;
+    --colorFocus: #1e3a8a;
+    --colorSuccess: #15803d;
+    --colorSuccessLight: #dcfce7;
+    --colorError: #b91c1c;
+    --colorErrorHover: #991b1b;
+    --colorErrorLight: #fee2e2;
+    --colorWarning: #b45309;
+    --colorWarningLight: #fef3c7;
+    --colorInfoLight: #dbeafe;
+    --colorSuccessHover: #166534;
+
+    /* Leaderboard trophies for the top three, all at least 3:1 against white */
+    --colorRankGold: #a16207;
+    --colorRankSilver: #6b7280;
+    --colorRankBronze: #9a3412;
+
+    /* Typography */
+    --fontHeading: 'Merriweather', Georgia, serif;
+    --fontBody: 'Open Sans', Arial, sans-serif;
+    --fontSizeH1: 2rem;
+    --fontSizeH2: 1.5rem;
+    --fontSizeH3: 1.25rem;
+
+    /* Slightly larger title size helps the card stand out in a list. */
+    --fontSizeTestCardTitle: 1.25rem;
+    --fontSizeStat: 1.75rem;
+    --fontSizeBody: 1rem;
+    --fontSizeSmall: 0.875rem;
+    --fontSizeButton: 0.9375rem;
+    --fontSizeHeroText: 1.1rem;
+    --fontSizeSectionMobile: 1.7rem;
+    --fontSizeHeroTitle: clamp(2.5rem, 4vw, 4.25rem);
+    --fontSizeHeroTitleMobile: clamp(2rem, 7vw, 3rem);
+    --fontSizeFooter: 0.6875rem;
+
+    /* My profile icon next to Sign out, big enough to spot without words, smaller in the phone menu next to text */
+    --fontSizeAccountIcon: 1.75rem;
+    --fontSizeAccountIconMenu: 1.25rem;
+
+    /* Spacing */
+    --spaceXs: 0.25rem;
+    --spaceSm: 0.5rem;
+    --spaceMd: 1rem;
+    --spaceLg: 1.5rem;
+    --spaceXl: 2rem;
+    --space2xl: 3rem;
+    --space3xl: 4rem;
+    --spaceSectionWhyTop: 28px;
+    --spaceSectionWhyBottom: 32px;
+    --spaceWhyCardVertical: 24px;
+    --spaceWhyCardHorizontal: 20px;
+    --spaceSectionCallToAction: 36px;
+    --spaceCallToActionTextBottom: 22px;
+    --spaceSectionContact: 32px;
+    --spaceGridTablet: 18px;
+    --spaceGridMobile: 32px;
+    --spaceContactTitleBottom: 24px;
+    --spaceButtonVertical: 12px;
+    --spaceButtonHorizontal: 24px;
+    --spaceButtonWideHorizontal: 28px;
+    --spaceIconBottom: 10px;
+    --spaceTiny: 3px;
+    --spaceHeadingBottom: 6px;
+    --spaceSectionTop: 20px;
+    --spaceSectionBottom: 35px;
+    --spaceFooterMobile: 20px;
+    --spaceHeroMobile: 40px;
+    --spaceHeroMobileTitle: 20px;
+    --spaceMobileActions: 12px;
+    --spaceMobileSection: 24px;
+    --spaceMobileCallToAction: 28px;
+    --spaceMobileHeading: 20px;
+    --spaceContactHeading: 4px;
+    --spaceContactGap: 15px;
+    --spaceMobileButton: 10px;
+    --spaceMobileButtonHorizontal: 12px;
+    --spaceFooterBlock: 1.25rem;
+    --spaceFooterInline: 1.875rem;
+
+    /* Keep action buttons comfortably tappable across devices. */
+    --minTouchTarget: 44px;
+
+    /* Shape and layout */
+    --radiusSm: 6px;
+    --radiusMd: 8px;
+    --radiusPill: 999px;
+    --shadowCard: 0 1px 3px rgba(17, 24, 39, 0.12);
+    --shadowModal: 0 12px 32px rgba(17, 24, 39, 0.24);
+    --contentMaxWidth: 1200px;
+    --navHeight: 64px;
+    --colorHeroBackground: #dce9ff;
+    --contentMaxWidthLarge: 1600px;
+    --contentPadding: 5%;
+    --spaceHeroVertical: 55px;
+    --colorHowRevisionWorksBackground: #f5f7ff;
+    --colorWhyRevisionHubBackground: #eef3fb;
+    --colorContactRevisionHubBackground: #f5f7ff;
+    --fontSizeContactText: 0.95rem;
+
+    /* Testing page answer box colours */
+    --colorAnswerRed: #d13340;
+    --colorAnswerBlue: #3066c9;
+    --colorAnswerYellow: #a16207;
+    --colorAnswerGreen: #46892a;
+
+    /* Testing page start, results and review screens */
+    --testingPanelMaxWidth: 40rem;
+    --fontSizeResultsMark: clamp(2rem, 7vw, 3rem);
+    --reviewAccentWidth: 6px;
+}
+
+/* Global layout and typography */
+*,
+*::before,
+*::after {
+    --shadowFocus: 0 0 0 0.2rem var(--colorPrimaryLight);
+    --contentMaxWidth: 1200px;
+    --navHeight: 64px;
+}
