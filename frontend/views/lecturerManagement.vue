@@ -48,9 +48,9 @@ export default {
         // text on the button that goes ahead, the title without the question mark
         confirmButtonText() {
             if (this.confirmAction === 'delete') {
-                return 'Delete';
+                return 'Confirm Delete';
             }
-            return this.confirmLecturer?.isEnabled ? 'Disable account' : 'Enable account';
+            return this.confirmLecturer?.isEnabled ? 'Confirm Disable' : 'Enable account';
         },
     },
 

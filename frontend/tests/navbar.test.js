@@ -7,7 +7,7 @@ import { flushPromises, mount } from '@vue/test-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createMemoryHistory, createRouter } from 'vue-router';
 import Navbar from '../components/common/navbar.vue';
-import { getCurrentUser } from '../services/authService';
+import { getCurrentUser, logout } from '../services/authService';
 
 // swaps the real getCurrentUser() for a pretend one, so no PHP or database is needed
 // each test then picks which account the pretend one hands back
@@ -49,6 +49,12 @@ describe('Navbar', () => {
     // clears the pretend answer before each test, so one test can't change the next one
     beforeEach(() => {
         vi.mocked(getCurrentUser).mockReset();
+        HTMLDialogElement.prototype.showModal = vi.fn(function showModal() {
+            this.setAttribute('open', '');
+        });
+        HTMLDialogElement.prototype.close = vi.fn(function close() {
+            this.removeAttribute('open');
+        });
     });
 
     /**
@@ -110,6 +116,30 @@ describe('Navbar', () => {
     /**
      * Nobody logged in, so no page links, no Sign out button and the logo goes to the landing page (boundary)
      */
+    it('opens confirmation instead of signing out immediately', async () => {
+        vi.mocked(getCurrentUser).mockResolvedValue({ username: 'ws000001', accountType: 'student' });
+        vi.mocked(logout).mockReset();
+
+        const header = await loadHeader();
+
+        const signOutButton = header
+            .findAll('.desktopActions button')
+            .find((button) => button.text().includes('Sign out'));
+
+        await signOutButton.trigger('click');
+        await flushPromises();
+
+        expect(header.find('dialog[aria-label="Confirm Sign Out"]').exists()).toBe(true);
+        expect(header.find('dialog[aria-label="Confirm Sign Out"]').text()).toContain('Sign out of RevisionHub?');
+        expect(logout).not.toHaveBeenCalled();
+
+        await header.get('dialog[aria-label="Confirm Sign Out"] .signOutCancelButton').trigger('click');
+        await flushPromises();
+
+        expect(header.find('dialog[aria-label="Confirm Sign Out"]').exists()).toBe(false);
+        expect(logout).not.toHaveBeenCalled();
+    });
+
     it('shows no page links to a visitor', async () => {
         // Arrange
         // null is what getCurrentUser() gives back when nobody's logged in

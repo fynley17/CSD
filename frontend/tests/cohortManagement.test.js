@@ -815,6 +815,7 @@ describe('CohortManagement', () => {
         // Assert
         expect(page.get('.popupTitle').text()).toBe('Delete Cohort?');
         expect(page.get('.cohortDialogConfirm h3').text()).toBe('Data Science 2026');
+        expect(page.get('.cohortDialogButtons .cohortDangerButton').text()).toBe('Confirm Delete');
         expect(deleteCohort).not.toHaveBeenCalled();
     });
 
@@ -886,7 +887,7 @@ describe('CohortManagement', () => {
         // Assert
         expect(page.get('.popupTitle').text()).toBe('Cannot Delete Cohort');
         expect(page.get('.cohortDialogConfirm').text()).toContain('24 students and 4 subjects');
-        expect(page.get('.cohortDialogButtons .cohortPrimaryButton').text()).toBe('Disable Cohort');
+        expect(page.get('.cohortDialogButtons .cohortPrimaryButton').text()).toBe('Confirm Disable');
     });
 
     /**

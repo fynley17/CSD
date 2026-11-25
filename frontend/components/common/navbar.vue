@@ -40,7 +40,7 @@
                         type="button"
                         class="headerButton loginButton"
                         :disabled="isSigningOut"
-                        @click="signOut"
+                        @click="openSignOutDialog"
                     >
                         {{ isSigningOut ? 'Signing out...' : 'Sign out' }}
                     </button>
@@ -94,7 +94,7 @@
                         type="button"
                         class="headerButton loginButton"
                         :disabled="isSigningOut"
-                        @click="signOut"
+                        @click="openSignOutDialog"
                     >
                         {{ isSigningOut ? 'Signing out...' : 'Sign out' }}
                     </button>
@@ -110,11 +110,32 @@
             </div>
         </nav>
     </header>
+
+    <PopupDialog
+        v-if="isSignOutDialogOpen"
+        ref="signOutDialog"
+        title="Confirm Sign Out"
+        @close="isSignOutDialogOpen = false"
+    >
+        <h3 class="text-center">Sign out of RevisionHub?</h3>
+        <p class="text-center mb-0">You will need to sign in again to access your account.</p>
+        <template #buttons>
+            <div class="signOutDialogActions">
+                <button type="button" class="signOutCancelButton" :disabled="isSigningOut" @click="closeSignOutDialog">
+                    Cancel
+                </button>
+                <button type="button" class="signOutConfirmButton" :disabled="isSigningOut" @click="confirmSignOut">
+                    {{ isSigningOut ? 'Signing out...' : 'Sign out' }}
+                </button>
+            </div>
+        </template>
+    </PopupDialog>
 </template>
 
 <script setup>
-import { computed, ref, watch } from 'vue';
+import { computed, nextTick, ref, watch } from 'vue';
 import { RouterLink, useRoute, useRouter } from 'vue-router';
+import PopupDialog from './popupDialog.vue';
 import { getCurrentUser, logout } from '../../services/authService';
 
 const menuOpen = ref(false);
@@ -122,6 +143,8 @@ const currentUser = ref(null);
 const authChecked = ref(false);
 const authError = ref('');
 const isSigningOut = ref(false);
+const isSignOutDialogOpen = ref(false);
+const signOutDialog = ref(null);
 const route = useRoute();
 const router = useRouter();
 const isStudent = computed(() => currentUser.value?.accountType === 'student');
@@ -214,6 +237,17 @@ watch(
     { immediate: true },
 );
 
+async function openSignOutDialog() {
+    isSignOutDialogOpen.value = true;
+    await nextTick();
+    signOutDialog.value?.open();
+}
+
+function closeSignOutDialog() {
+    signOutDialog.value?.close();
+    isSignOutDialogOpen.value = false;
+}
+
 async function signOut() {
     if (isSigningOut.value) {
         return;
@@ -232,6 +266,11 @@ async function signOut() {
     } finally {
         isSigningOut.value = false;
     }
+}
+
+async function confirmSignOut() {
+    signOutDialog.value?.close();
+    await signOut();
 }
 </script>
 
@@ -563,6 +602,53 @@ async function signOut() {
     .adminHeader .mobileLecturerNavigation a.routerLinkExactActive {
         padding-left: var(--spaceSm);
     }
+}
+
+/* Sign out popup actions, equal halves like every create/edit confirmation. */
+.signOutDialogActions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--spaceSm);
+    width: 100%;
+}
+
+.signOutCancelButton,
+.signOutConfirmButton {
+    min-height: 42px;
+    padding: var(--spaceSm) var(--spaceLg);
+    border: 1px solid transparent;
+    border-radius: var(--radiusSm);
+    font: inherit;
+    font-weight: 600;
+}
+
+.signOutCancelButton {
+    border-color: var(--colorBorderInput);
+    background: var(--colorSurface);
+    color: var(--colorText);
+}
+
+.signOutConfirmButton {
+    border-color: var(--colorPrimary);
+    background: var(--colorPrimary);
+    color: var(--colorSurface);
+}
+
+.signOutCancelButton:disabled,
+.signOutConfirmButton:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.signOutCancelButton:hover:not(:disabled) {
+    border-color: var(--colorPrimary);
+    background: var(--colorPrimary);
+    color: var(--colorSurface);
+}
+
+.signOutConfirmButton:hover:not(:disabled) {
+    border-color: var(--colorPrimaryHover);
+    background: var(--colorPrimaryHover);
 }
 
 /* account icon and type next to Sign out, Royal Blue which matches nav links */

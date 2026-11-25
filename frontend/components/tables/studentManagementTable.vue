@@ -468,7 +468,7 @@ onMounted(async () => {
                             :disabled="disablingStudent"
                             @click="confirmDisableStudent"
                         >
-                            {{ disablingStudent ? 'Disabling...' : 'Disable Student' }}
+                            {{ disablingStudent ? 'Disabling...' : 'Confirm Disable' }}
                         </button>
                     </div>
                 </template>
