@@ -66,7 +66,7 @@ const showSuccess = (message) => {
     messageTimeout = setTimeout(() => {
         successMessage.value = '';
         messageTimeout = null;
-    }, 15000);
+    }, 20000);
 };
 
 // Display a temporary error notification.
@@ -81,7 +81,7 @@ const showError = async (message) => {
         errorToast.value?.hidePopover();
         errorMessage.value = '';
         messageTimeout = null;
-    }, 15000);
+    }, 20000);
 };
 
 const closeSuccess = () => {

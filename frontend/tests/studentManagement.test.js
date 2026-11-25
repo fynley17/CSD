@@ -5,9 +5,11 @@
 import { flushPromises, mount } from '@vue/test-utils';
 import { describe, expect, it, vi } from 'vitest';
 import { getCurrentUser } from '../services/authService';
+import { updateStudentStatus } from '../services/studentService';
 import StudentManagement from '../views/studentManagement.vue';
 
 vi.mock('../services/authService', () => ({ getCurrentUser: vi.fn() }));
+vi.mock('../services/studentService', () => ({ updateStudentStatus: vi.fn() }));
 
 const StudentManagementTableStub = {
     name: 'StudentManagementTable',
@@ -85,5 +87,30 @@ describe('StudentManagement', () => {
 
         expect(page.get('#studentStatusFilter').element.value).toBe('');
         expect(applicationsButton.attributes('aria-pressed')).toBe('false');
+    });
+
+    /**
+     * Disabling a student offers Undo, pressing it turns them back on and Undo goes (normal)
+     */
+    it('turns the student back on when Undo is pressed', async () => {
+        // Arrange
+        vi.mocked(updateStudentStatus).mockResolvedValue({});
+        const page = await openPageAs('lecturer');
+        const student = { userID: 'student-1', name: 'Joe Bloggs', status: 'Active' };
+        page.getComponent({ name: 'StudentManagementTable' }).vm.$emit(
+            'success',
+            'Student disabled successfully.',
+            student,
+        );
+        await flushPromises();
+
+        // Act
+        await page.get('[aria-label="Undo for Joe Bloggs"]').trigger('click');
+        await flushPromises();
+
+        // Assert
+        expect(updateStudentStatus).toHaveBeenCalledWith('student-1', true);
+        expect(page.get('.toastMessage.successMessage').text()).toContain('Student enabled successfully.');
+        expect(page.find('[aria-label="Undo for Joe Bloggs"]').exists()).toBe(false);
     });
 });

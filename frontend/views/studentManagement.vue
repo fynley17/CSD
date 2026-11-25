@@ -1,6 +1,7 @@
 <script setup>
 import { computed, ref, onMounted, onUnmounted, nextTick } from 'vue';
 import { getCurrentUser } from '../services/authService';
+import { updateStudentStatus } from '../services/studentService';
 import StudentManagementTable from '../components/tables/studentManagementTable.vue';
 import TableFilter from '../components/tables/tableFilter.vue';
 import TableSearch from '../components/tables/tableSearch.vue';
@@ -27,6 +28,8 @@ const statusFilter = ref('');
 // Store the warning displayed when student login emails fail.
 const warningMessage = ref('');
 const successMessage = ref('');
+// the student just disabled or enabled, Undo shows in the green box while this is set
+const undoStudent = ref(null);
 const errorMessage = ref('');
 const errorToast = ref(null);
 let messageTimeout = null;
@@ -47,12 +50,13 @@ function showWarning(message) {
     messageTimeout = setTimeout(() => {
         warningMessage.value = '';
         messageTimeout = null;
-    }, 15000);
+    }, 20000);
 }
 
 // Display a success toast after a completed action.
-async function showSuccess(message) {
+async function showSuccess(message, student = null) {
     errorMessage.value = '';
+    undoStudent.value = student;
     if (typeof errorToast.value?.hidePopover === 'function') {
         errorToast.value.hidePopover();
     }
@@ -61,7 +65,7 @@ async function showSuccess(message) {
     notificationTimeout = setTimeout(() => {
         successMessage.value = '';
         notificationTimeout = null;
-    }, 15000);
+    }, 20000);
 }
 
 function closeSuccess() {
@@ -109,7 +113,22 @@ async function showError(message) {
         }
         errorMessage.value = '';
         notificationTimeout = null;
-    }, 15000);
+    }, 20000);
+}
+
+// Undo in the green box, the row still has the old status so put that back
+async function undo() {
+    const student = undoStudent.value;
+    const turnOn = student.status !== 'Disabled';
+    undoStudent.value = null;
+
+    try {
+        await updateStudentStatus(student.userID, turnOn);
+        showSuccess(turnOn ? 'Student enabled successfully.' : 'Student disabled successfully.');
+        studentManagementTable.value?.refreshStudents();
+    } catch (error) {
+        showError(error.response?.data?.error || 'Unable to undo that change. Please try again.');
+    }
 }
 
 // Handle successful student form saves.
@@ -169,6 +188,15 @@ const selectedStudent = ref(null);
         <div v-if="successMessage" class="toastMessage successMessage" role="status" aria-live="polite">
             <span aria-hidden="true">✓</span>
             <span>{{ successMessage }}</span>
+            <button
+                v-if="undoStudent"
+                type="button"
+                class="btn btn-sm btn-outline-primary toastUndo"
+                :aria-label="'Undo for ' + undoStudent.name"
+                @click="undo"
+            >
+                Undo
+            </button>
             <button type="button" class="toastClose" aria-label="Close notification" @click="closeSuccess">×</button>
         </div>
         <div ref="errorToast" popover="manual" class="toastMessage errorMessage" role="alert" aria-live="assertive">

@@ -68,7 +68,7 @@ function showSuccess(message) {
     messageTimeout = setTimeout(() => {
         successMessage.value = '';
         messageTimeout = null;
-    }, 15000);
+    }, 20000);
 }
 
 // Display a temporary error notification.
@@ -87,7 +87,7 @@ async function showError(message) {
         }
         errorMessage.value = '';
         messageTimeout = null;
-    }, 15000);
+    }, 20000);
 }
 
 function closeSuccess() {

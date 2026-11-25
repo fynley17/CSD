@@ -234,7 +234,7 @@ function showSuccess(message, cohort = null) {
     messageTimeout = setTimeout(() => {
         successMessage.value = '';
         messageTimeout = null;
-    }, 15000);
+    }, 20000);
 }
 
 async function showError(message) {
@@ -253,7 +253,7 @@ async function showError(message) {
         }
         errorMessage.value = '';
         messageTimeout = null;
-    }, 15000);
+    }, 20000);
 }
 
 function closeSuccess() {

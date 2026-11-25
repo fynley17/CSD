@@ -70,7 +70,7 @@ export default {
             this.notificationTimeout = setTimeout(() => {
                 this.successMessage = '';
                 this.notificationTimeout = null;
-            }, 15000);
+            }, 20000);
         },
 
         async showError(message) {
@@ -89,7 +89,7 @@ export default {
                 }
                 this.errorMessage = '';
                 this.notificationTimeout = null;
-            }, 15000);
+            }, 20000);
         },
 
         closeError() {

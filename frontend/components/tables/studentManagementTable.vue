@@ -226,7 +226,8 @@ const handleAction = async (action, student, event) => {
             disable: 'Student disabled successfully.',
             approve: 'Student application approved successfully.',
         };
-        emit('success', messages[action]);
+        // enable and disable send the student too so the page can offer Undo
+        emit('success', messages[action], action === 'approve' ? null : student);
         await refreshStudents();
     } catch (error) {
         emit(
@@ -252,7 +253,7 @@ const confirmDisableStudent = async () => {
     try {
         await updateStudentStatus(studentToDisable.value.userID, false);
         disablePopup.value?.close();
-        emit('success', 'Student disabled successfully.');
+        emit('success', 'Student disabled successfully.', studentToDisable.value);
         await refreshStudents();
     } catch (error) {
         emit(
