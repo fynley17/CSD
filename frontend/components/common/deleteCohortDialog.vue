@@ -43,7 +43,7 @@
                 <button
                     v-if="canDelete"
                     type="button"
-                    class="cohortPrimaryButton cohortDangerButton btn btn-danger"
+                    class="cohortDeleteButton"
                     :disabled="isSaving"
                     @click="deleteTheCohort"
                 >

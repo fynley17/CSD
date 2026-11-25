@@ -447,6 +447,7 @@ async function toggleStatus(cohort) {
     .errorMessage:popover-open {
         inset: calc(var(--navHeight) + var(--spaceMd)) var(--spaceMd) auto auto;
     }
+
     .toastMessage {
         top: calc(var(--navHeight) + var(--spaceMd));
         right: var(--spaceMd);

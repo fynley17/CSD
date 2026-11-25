@@ -826,6 +826,8 @@ describe('CohortManagement', () => {
         // Assert
         expect(page.get('.popupTitle').text()).toBe('Delete Cohort?');
         expect(page.get('.cohortDialogConfirm h3').text()).toBe('Data Science 2026');
+        expect(page.get('.cohortDialogButtons .cohortDeleteButton').exists()).toBe(true);
+        expect(page.find('.cohortDialogButtons .cohortPrimaryButton').exists()).toBe(false);
         expect(deleteCohort).not.toHaveBeenCalled();
     });
 
@@ -839,7 +841,7 @@ describe('CohortManagement', () => {
         await findButton(page, 'Delete Data Science 2026').trigger('click');
 
         // Act
-        await page.get('.cohortDialogButtons .cohortPrimaryButton').trigger('click');
+        await page.get('.cohortDialogButtons .cohortDeleteButton').trigger('click');
         await flushPromises();
 
         // Assert
@@ -877,7 +879,7 @@ describe('CohortManagement', () => {
         await findButton(page, 'Delete Data Science 2026').trigger('click');
 
         // Act
-        await page.get('.cohortDialogButtons .cohortPrimaryButton').trigger('click');
+        await page.get('.cohortDialogButtons .cohortDeleteButton').trigger('click');
         await flushPromises();
 
         // Assert
