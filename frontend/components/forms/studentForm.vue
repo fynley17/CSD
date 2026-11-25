@@ -227,7 +227,7 @@ onMounted(async () => {
 
         <template #buttons>
             <div class="studentFormActions">
-                <button type="button" class="studentCancelButton" :disabled="submitting" @click="dialog?.close()">
+                <button type="button" class="btn btn-outline-primary" :disabled="submitting" @click="dialog?.close()">
                     Cancel
                 </button>
 

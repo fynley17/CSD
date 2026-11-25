@@ -246,7 +246,9 @@ const cancelForm = () => {
 
             <!-- Form action buttons. -->
             <div class="formActions">
-                <button type="button" class="cancelButton" :disabled="loading" @click="cancelForm">Cancel</button>
+                <button type="button" class="btn btn-outline-primary" :disabled="loading" @click="cancelForm">
+                    Cancel
+                </button>
 
                 <button type="submit" class="submitButton" :disabled="loading">
                     {{ loading ? 'Saving...' : isEditing ? 'Save Changes' : 'Create Question' }}

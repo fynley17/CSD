@@ -595,7 +595,7 @@ describe('CohortManagement', () => {
         const page = await openRemoveDialog();
 
         // Act
-        await page.get('.cohortDialogButtons .cohortSecondaryButton').trigger('click');
+        await page.get('.cohortDialogButtons button:first-child').trigger('click');
 
         // Assert
         expect(removeSubject).not.toHaveBeenCalled();
@@ -838,7 +838,7 @@ describe('CohortManagement', () => {
         await findButton(page, 'Delete Data Science 2026').trigger('click');
 
         // Act
-        await page.get('.cohortDialogButtons .cohortSecondaryButton').trigger('click');
+        await page.get('.cohortDialogButtons button:first-child').trigger('click');
 
         // Assert
         expect(deleteCohort).not.toHaveBeenCalled();
@@ -913,7 +913,7 @@ describe('CohortManagement', () => {
         // Assert
         expect(page.get('.cohortDialogConfirm').text()).toContain('already disabled');
         expect(page.find('.cohortDialogButtons .cohortPrimaryButton').exists()).toBe(false);
-        expect(page.get('.cohortDialogButtons .cohortSecondaryButton').text()).toBe('Close');
+        expect(page.get('.cohortDialogButtons button:first-child').text()).toBe('Close');
     });
 
     /**
@@ -1112,7 +1112,7 @@ describe('CohortManagement', () => {
         await cohortForm(page).name.setValue('Something Else');
 
         // Act
-        await page.get('.cohortDialogButtons .cohortSecondaryButton').trigger('click');
+        await page.get('.cohortDialogButtons button:first-child').trigger('click');
 
         // Assert
         expect(updateCohort).not.toHaveBeenCalled();
@@ -1127,7 +1127,7 @@ describe('CohortManagement', () => {
         // Arrange
         const page = await openPage();
         await findButton(page, 'Edit DTS 2026').trigger('click');
-        await page.get('.cohortDialogButtons .cohortSecondaryButton').trigger('click');
+        await page.get('.cohortDialogButtons button:first-child').trigger('click');
 
         // Act
         await page.get('.cohortCreateButton').trigger('click');
@@ -1346,7 +1346,7 @@ describe('CohortManagement', () => {
 
         // Assert
         expect(cohortForm(page).saveButton.attributes('disabled')).toBeDefined();
-        expect(page.get('.cohortDialogButtons .cohortSecondaryButton').attributes('disabled')).toBeDefined();
+        expect(page.get('.cohortDialogButtons button:first-child').attributes('disabled')).toBeDefined();
     });
 
     /**
@@ -1740,7 +1740,7 @@ describe('CohortManagement', () => {
         const page = await openMoveDialog();
 
         // Act
-        await page.get('.cohortDialogButtons .cohortSecondaryButton').trigger('click');
+        await page.get('.cohortDialogButtons button:first-child').trigger('click');
 
         // Assert
         expect(moveStudents).not.toHaveBeenCalled();
@@ -1886,7 +1886,7 @@ describe('CohortManagement', () => {
         await page.findAll('.cohortDialogOption input')[0].setValue(true);
 
         // Act
-        await page.get('.cohortDialogButtons .cohortSecondaryButton').trigger('click');
+        await page.get('.cohortDialogButtons button:first-child').trigger('click');
 
         // Assert
         expect(moveStudents).not.toHaveBeenCalled();
@@ -1919,7 +1919,7 @@ describe('CohortManagement', () => {
 
         // Assert
         expect(page.get('.cohortDialogButtons .cohortPrimaryButton').attributes('disabled')).toBeDefined();
-        expect(page.get('.cohortDialogButtons .cohortSecondaryButton').attributes('disabled')).toBeDefined();
+        expect(page.get('.cohortDialogButtons button:first-child').attributes('disabled')).toBeDefined();
     });
 
     /**

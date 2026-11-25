@@ -215,7 +215,7 @@ describe('studentManagementTable.vue', () => {
         expect(dialog.text()).toContain('Alex Morgan');
         expect(updateStudentStatus).not.toHaveBeenCalled();
 
-        await dialog.get('.studentCancelButton').trigger('click');
+        await dialog.get('.btn.btn-outline-primary').trigger('click');
         await flushPromises();
 
         expect(dialog.attributes('open')).toBeUndefined();

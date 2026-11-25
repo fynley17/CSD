@@ -459,7 +459,7 @@ onMounted(async () => {
                     <div class="studentFormActions">
                         <button
                             type="button"
-                            class="studentCancelButton"
+                            class="btn btn-outline-primary"
                             :disabled="disablingStudent"
                             @click="closeDisableModal"
                         >
