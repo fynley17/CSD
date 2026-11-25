@@ -64,7 +64,7 @@ const showSuccess = (message) => {
     messageTimeout = setTimeout(() => {
         successMessage.value = '';
         messageTimeout = null;
-    }, 10000);
+    }, 15000);
 };
 
 // Display a temporary error notification.
@@ -79,7 +79,20 @@ const showError = async (message) => {
         errorToast.value?.hidePopover();
         errorMessage.value = '';
         messageTimeout = null;
-    }, 10000);
+    }, 15000);
+};
+
+const closeSuccess = () => {
+    clearTimeout(messageTimeout);
+    messageTimeout = null;
+    successMessage.value = '';
+};
+
+const closeError = () => {
+    clearTimeout(messageTimeout);
+    messageTimeout = null;
+    errorToast.value?.hidePopover();
+    errorMessage.value = '';
 };
 
 // Apply the selected subject filter.
@@ -214,7 +227,8 @@ onBeforeUnmount(() => {
         <!-- Temporary success notification. -->
         <div v-if="successMessage" class="toastMessage successMessage" role="status" aria-live="polite">
             <span aria-hidden="true">✓</span>
-            {{ successMessage }}
+            <span>{{ successMessage }}</span>
+            <button type="button" class="toastClose" aria-label="Close notification" @click="closeSuccess">×</button>
         </div>
 
         <!-- Temporary error notification. -->
@@ -227,7 +241,8 @@ onBeforeUnmount(() => {
             aria-live="assertive"
         >
             <span aria-hidden="true">!</span>
-            {{ errorMessage }}
+            <span>{{ errorMessage }}</span>
+            <button type="button" class="toastClose" aria-label="Close notification" @click="closeError">×</button>
         </div>
 
         <!-- search and subject filter on the left, create button on the right -->
@@ -321,6 +336,16 @@ onBeforeUnmount(() => {
     background: var(--colorSurface);
     color: var(--colorText);
     font-weight: 600;
+}
+
+.toastClose {
+    margin-left: auto;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font-size: 1.25rem;
+    line-height: 1;
+    cursor: pointer;
 }
 
 .successMessage {

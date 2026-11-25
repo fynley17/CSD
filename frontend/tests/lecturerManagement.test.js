@@ -65,7 +65,7 @@ describe('LecturerManagement', () => {
     /**
      * Disable asks first, then turns the account off and the green box has Undo (normal)
      */
-    it('disables after the confirm box and offers undo', async () => {
+    it('disables after the confirm box and shows a success toast', async () => {
         // Arrange
         vi.mocked(setLecturerEnabled).mockResolvedValue({ message: 'Status updated' });
         const page = await openPage();
@@ -75,8 +75,8 @@ describe('LecturerManagement', () => {
 
         // Assert
         expect(setLecturerEnabled).toHaveBeenCalledWith('lecturer-1', false);
-        expect(page.get('[role="status"]').text()).toContain('Success: Status updated');
-        expect(page.find('[aria-label="Undo for Test Lecturer"]').exists()).toBe(true);
+        expect(page.get('.toastMessage.successMessage').text()).toContain('✓Status updated');
+        expect(page.find('[aria-label="Undo for Test Lecturer"]').exists()).toBe(false);
     });
 
     /**
@@ -94,10 +94,10 @@ describe('LecturerManagement', () => {
 
         // Assert
         expect(deleteLecturer).toHaveBeenCalledWith('lecturer-1');
-        expect(page.get('[role="alert"]').text()).toBe(
-            "There is a problem: Administrator accounts can't be changed on this page",
+        expect(page.get('.toastMessage.errorMessage').text()).toBe(
+            "!Administrator accounts can't be changed on this page×",
         );
-        expect(page.find('.alert-success').exists()).toBe(false);
+        expect(page.find('.toastMessage.successMessage').exists()).toBe(false);
     });
 
     /**
@@ -133,7 +133,7 @@ describe('LecturerManagement', () => {
 
         // Assert
         expect(page.get('#lecturerSearch').element.value).toBe('L2001');
-        expect(page.get('.alert-success').text()).toContain('Lecturer added');
+        expect(page.get('.toastMessage.successMessage').text()).toContain('Lecturer added');
     });
 
     /**
@@ -150,8 +150,8 @@ describe('LecturerManagement', () => {
         await flushPromises();
 
         // Assert
-        expect(page.find('.alert-success').exists()).toBe(false);
-        expect(page.get('.alert-danger').text()).toContain('There is a problem:');
-        expect(page.get('.alert-danger').text()).toContain('Wait a minute then use Resend link');
+        expect(page.find('.toastMessage.successMessage').exists()).toBe(false);
+        expect(page.get('.toastMessage.errorMessage').text()).toContain('!');
+        expect(page.get('.toastMessage.errorMessage').text()).toContain('Wait a minute then use Resend link');
     });
 });

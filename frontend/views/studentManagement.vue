@@ -47,7 +47,7 @@ function showWarning(message) {
     messageTimeout = setTimeout(() => {
         warningMessage.value = '';
         messageTimeout = null;
-    }, 10000);
+    }, 15000);
 }
 
 // Display a success toast after a completed action.
@@ -57,7 +57,32 @@ async function showSuccess(message) {
     notificationTimeout = setTimeout(() => {
         successMessage.value = '';
         notificationTimeout = null;
-    }, 5000);
+    }, 15000);
+}
+
+function closeSuccess() {
+    successMessage.value = '';
+    if (notificationTimeout) {
+        clearTimeout(notificationTimeout);
+        notificationTimeout = null;
+    }
+}
+
+async function closeError() {
+    errorMessage.value = '';
+    if (notificationTimeout) {
+        clearTimeout(notificationTimeout);
+        notificationTimeout = null;
+    }
+    errorToast.value?.hidePopover();
+}
+
+function closeWarning() {
+    warningMessage.value = '';
+    if (messageTimeout) {
+        clearTimeout(messageTimeout);
+        messageTimeout = null;
+    }
 }
 
 // Display errors in the browser top layer so they remain visible above native dialogs.
@@ -72,7 +97,7 @@ async function showError(message) {
         errorToast.value?.hidePopover();
         errorMessage.value = '';
         notificationTimeout = null;
-    }, 8000);
+    }, 15000);
 }
 
 // Handle successful student form saves.
@@ -136,16 +161,21 @@ const selectedStudent = ref(null);
     <!-- laid out like lecturer and subject management so every table page matches -->
     <section class="container py-4 adminPage">
         <div v-if="successMessage" class="toastMessage successMessage" role="status" aria-live="polite">
-            {{ successMessage }}
+            <span aria-hidden="true">✓</span>
+            <span>{{ successMessage }}</span>
+            <button type="button" class="toastClose" aria-label="Close notification" @click="closeSuccess">×</button>
         </div>
         <div ref="errorToast" popover="manual" class="toastMessage errorMessage" role="alert" aria-live="assertive">
-            {{ errorMessage }}
+            <span aria-hidden="true">!</span>
+            <span>{{ errorMessage }}</span>
+            <button type="button" class="toastClose" aria-label="Close notification" @click="closeError">×</button>
         </div>
 
         <!-- Warn the lecturer when student login details could not be emailed. -->
         <div v-if="warningMessage" class="toastMessage warningMessage" role="status" aria-live="polite">
             <span aria-hidden="true">!</span>
-            {{ warningMessage }}
+            <span>{{ warningMessage }}</span>
+            <button type="button" class="toastClose" aria-label="Close notification" @click="closeWarning">×</button>
         </div>
 
         <h1>Student Management</h1>
@@ -219,6 +249,16 @@ const selectedStudent = ref(null);
     background: var(--colorSurface);
     color: var(--colorText);
     font-weight: 600;
+}
+
+.toastClose {
+    margin-left: auto;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font-size: 1.25rem;
+    line-height: 1;
+    cursor: pointer;
 }
 
 .successMessage {
