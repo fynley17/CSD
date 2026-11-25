@@ -1,0 +1,64 @@
+/* the pop up messages in the top right of the six management pages
+   tied to .toastMessage as the login and profile pages have their own successMessage boxes */
+
+.toastMessage {
+    position: fixed;
+    z-index: 1100;
+    top: calc(var(--navHeight) + var(--spaceLg));
+    right: var(--spaceLg);
+    display: flex;
+    align-items: center;
+    gap: var(--spaceSm);
+    width: max-content;
+    max-width: min(450px, calc(100vw - 2 * var(--spaceLg)));
+    padding: var(--spaceMd) var(--spaceLg);
+    border: 2px solid var(--colorPrimary);
+    border-radius: var(--radiusSm);
+    background: var(--colorSurface);
+    color: var(--colorText);
+    font-weight: 600;
+}
+
+.toastClose {
+    margin-left: auto;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font-size: var(--fontSizeH3);
+    line-height: 1;
+    cursor: pointer;
+}
+
+/* same height as the table buttons so the toast doesnt get too tall */
+.toastUndo[class~='btn'] {
+    min-height: 36px;
+    border-radius: var(--radiusSm);
+    font-weight: 600;
+}
+
+.toastMessage.successMessage {
+    border-color: var(--colorPrimary);
+}
+
+/* error ones are popovers so they show above an open dialog, margin 0 stops the browser centring it */
+.toastMessage.errorMessage {
+    margin: 0;
+    border-color: var(--colorError);
+    color: var(--colorError);
+}
+
+.toastMessage.errorMessage:popover-open {
+    position: fixed;
+    inset: calc(var(--navHeight) + var(--spaceLg)) var(--spaceLg) auto auto;
+}
+
+@media (max-width: 639px) {
+    .toastMessage {
+        top: calc(var(--navHeight) + var(--spaceMd));
+        right: var(--spaceMd);
+    }
+
+    .toastMessage.errorMessage:popover-open {
+        inset: calc(var(--navHeight) + var(--spaceMd)) var(--spaceMd) auto auto;
+    }
+}

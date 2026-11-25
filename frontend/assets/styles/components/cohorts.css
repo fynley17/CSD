@@ -174,9 +174,35 @@
 }
 
 /* delete is red like every other delete button, house style danger button */
+.cohortDeleteButton {
+    min-height: var(--minTouchTarget);
+    padding: var(--spaceSm) var(--spaceMd);
+    border: 1px solid var(--colorError);
+    border-radius: var(--radiusSm);
+    background: var(--colorError);
+    color: var(--colorSurface);
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.cohortDeleteButton:hover,
+.cohortDeleteButton:focus-visible {
+    border-color: var(--colorErrorHover);
+    background: var(--colorErrorHover);
+    color: var(--colorSurface);
+}
+
 .cohortDangerButton {
+    --bs-btn-bg: var(--colorError);
+    --bs-btn-border-color: var(--colorError);
+    --bs-btn-hover-bg: var(--colorErrorHover);
+    --bs-btn-hover-border-color: var(--colorErrorHover);
+    --bs-btn-active-bg: var(--colorErrorHover);
+    --bs-btn-active-border-color: var(--colorErrorHover);
+
     border-color: var(--colorError);
     background: var(--colorError);
+    color: var(--colorSurface);
 }
 
 .cohortDangerButton:hover,

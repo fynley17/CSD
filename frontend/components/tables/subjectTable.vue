@@ -97,9 +97,9 @@ DataTable.use(DataTablesCore);
 // render.text() = names show as plain text (stops HTML typed into a name from running)
 // defaultContent shows when a subject has no cohort or lecturer
 const columns = [
-    // text-break lets a very long name wrap onto more lines instead of the table scrolling sideways
-    { data: 'subjectName', title: 'Subject', className: 'text-break', render: DataTablesCore.render.text() },
-    // Cohort and Tests hidden under 576px so it fits on a phone
+    // no text-break here, it squashed this column to one letter wide on phones so the table scrolls sideways instead
+    { data: 'subjectName', title: 'Subject', render: DataTablesCore.render.text() },
+    // all columns show on a phone, you swipe the table sideways to see the rest
     { data: 'cohortName', title: 'Cohort', render: DataTablesCore.render.text(), defaultContent: 'Not assigned' },
 
     { data: 'testCount', title: 'Tests' },

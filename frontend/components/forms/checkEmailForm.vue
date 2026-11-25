@@ -197,7 +197,7 @@ export default {
                         </button>
                         <button
                             type="button"
-                            class="headerButton registerButton flex-fill"
+                            class="btn btn-outline-primary flex-fill"
                             :disabled="isSending"
                             @click="closeChangeEmail"
                         >

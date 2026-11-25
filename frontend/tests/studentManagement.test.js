@@ -5,16 +5,20 @@
 import { flushPromises, mount } from '@vue/test-utils';
 import { describe, expect, it, vi } from 'vitest';
 import { getCurrentUser } from '../services/authService';
+import { updateStudentStatus } from '../services/studentService';
 import StudentManagement from '../views/studentManagement.vue';
 
 vi.mock('../services/authService', () => ({ getCurrentUser: vi.fn() }));
+vi.mock('../services/studentService', () => ({ updateStudentStatus: vi.fn() }));
 
-const studentManagementTableStub = {
+const StudentManagementTableStub = {
+    name: 'StudentManagementTable',
+    emits: ['edit', 'success', 'error'],
     setup(_props, { expose }) {
-        expose({ cohorts: [], pendingCount: 0 });
-
-        return () => null;
+        expose({ cohorts: [], pendingCount: 0, refreshStudents: vi.fn() });
+        return {};
     },
+    template: '<div />',
 };
 
 /**
@@ -23,7 +27,7 @@ const studentManagementTableStub = {
 async function openPageAs(accountType) {
     getCurrentUser.mockResolvedValue({ accountType });
     const page = mount(StudentManagement, {
-        global: { stubs: { StudentManagementTable: studentManagementTableStub, StudentForm: true } },
+        global: { stubs: { StudentManagementTable: StudentManagementTableStub, StudentForm: true } },
     });
     await flushPromises();
 
@@ -83,5 +87,30 @@ describe('StudentManagement', () => {
 
         expect(page.get('#studentStatusFilter').element.value).toBe('');
         expect(applicationsButton.attributes('aria-pressed')).toBe('false');
+    });
+
+    /**
+     * undo on a disabled student enables them again and the button goes (normal)
+     */
+    it('turns the student back on when Undo is pressed', async () => {
+        // Arrange
+        vi.mocked(updateStudentStatus).mockResolvedValue({});
+        const page = await openPageAs('lecturer');
+        const student = { userID: 'student-1', name: 'Joe Bloggs', status: 'Active' };
+        page.getComponent({ name: 'StudentManagementTable' }).vm.$emit(
+            'success',
+            'Student disabled successfully.',
+            student,
+        );
+        await flushPromises();
+
+        // Act
+        await page.get('[aria-label="Undo for Joe Bloggs"]').trigger('click');
+        await flushPromises();
+
+        // Assert
+        expect(updateStudentStatus).toHaveBeenCalledWith('student-1', true);
+        expect(page.get('.toastMessage.successMessage').text()).toContain('Student enabled successfully.');
+        expect(page.find('[aria-label="Undo for Joe Bloggs"]').exists()).toBe(false);
     });
 });

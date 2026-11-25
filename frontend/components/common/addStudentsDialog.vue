@@ -53,18 +53,19 @@
 
         <p v-else-if="!errorMessage" class="mb-0">There are no students in other cohorts to add</p>
 
-        <div v-if="errorMessage" class="alert alert-danger mt-3 mb-0" role="alert">
-            <strong>There is a problem:</strong> {{ errorMessage }}
-        </div>
-
         <template #buttons>
             <div class="cohortDialogButtons">
-                <button type="button" class="cohortSecondaryButton" :disabled="isSaving" @click="dialog.close()">
+                <button
+                    type="button"
+                    class="cohortSecondaryButton btn btn-outline-primary"
+                    :disabled="isSaving"
+                    @click="dialog.close()"
+                >
                     Cancel
                 </button>
                 <button
                     type="button"
-                    class="cohortPrimaryButton"
+                    class="cohortPrimaryButton btn btn-primary"
                     :disabled="selectedNumbers.length === 0 || isSaving"
                     @click="add"
                 >
@@ -90,7 +91,7 @@ const props = defineProps({
     },
 });
 
-const emit = defineEmits(['close', 'saved']);
+const emit = defineEmits(['close', 'saved', 'error']);
 
 const dialog = ref(null);
 const students = ref([]);
@@ -134,6 +135,7 @@ onMounted(async () => {
         students.value = await getStudentsOutsideCohort(props.cohort.cohortID);
     } catch (error) {
         errorMessage.value = error.response?.data?.error || 'Unable to load the students';
+        emit('error', errorMessage.value);
     } finally {
         isLoading.value = false;
     }
@@ -148,6 +150,7 @@ async function add() {
         dialog.value.close();
     } catch (error) {
         errorMessage.value = error.response?.data?.error || 'Unable to add the students';
+        emit('error', errorMessage.value);
     } finally {
         isSaving.value = false;
     }

@@ -27,27 +27,32 @@
             </div>
         </div>
 
-        <div
-            v-if="successMessage"
-            class="alert alert-success d-flex flex-wrap align-items-center justify-content-between gap-2 mt-3 mb-0"
-            role="status"
-        >
-            <span><strong>Success:</strong> {{ successMessage }}</span>
+        <div v-if="successMessage" class="toastMessage successMessage" role="status" aria-live="polite">
+            <span aria-hidden="true">✓</span>
+            <span>{{ successMessage }}</span>
             <button
                 v-if="undoCohort"
                 type="button"
-                class="btn btn-sm btn-outline-primary"
+                class="btn btn-sm btn-outline-primary toastUndo"
                 :aria-label="'Undo for ' + undoCohort.cohortName"
-                :disabled="isUndoing"
                 @click="undo"
             >
-                <span v-if="isUndoing" class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>
-                {{ isUndoing ? 'Undoing' : 'Undo' }}
+                Undo
             </button>
+            <button type="button" class="toastClose" aria-label="Close notification" @click="closeSuccess">×</button>
         </div>
 
-        <div v-if="saveError" class="alert alert-danger mt-3 mb-0" role="alert">
-            <strong>There is a problem:</strong> {{ saveError }}
+        <div
+            v-if="errorMessage"
+            ref="errorToast"
+            popover="manual"
+            class="toastMessage errorMessage"
+            role="alert"
+            aria-live="assertive"
+        >
+            <i class="bi bi-exclamation-triangle-fill" aria-hidden="true"></i>
+            <span>{{ errorMessage }}</span>
+            <button type="button" class="toastClose" aria-label="Close notification" @click="closeError">×</button>
         </div>
 
         <p v-if="isLoading" class="text-center py-4 mb-0" role="status">Loading cohorts</p>
@@ -87,7 +92,8 @@
         <AddStudentsDialog
             v-if="addingToCohort"
             :cohort="addingToCohort"
-            @saved="updateCohorts"
+            @saved="handleStudentsAdded"
+            @error="showError"
             @close="addingToCohort = null"
         />
 
@@ -96,7 +102,8 @@
             :cohort="moving.cohort"
             :student="moving.student"
             :cohorts="allCohorts"
-            @saved="updateCohorts"
+            @saved="handleStudentMoved"
+            @error="showError"
             @close="moving = null"
         />
 
@@ -104,13 +111,15 @@
             v-if="isCohortFormOpen"
             :cohort="editingCohort"
             @saved="saveCohort"
+            @error="showError"
             @close="isCohortFormOpen = false"
         />
 
         <AssignSubjectsDialog
             v-if="assigningCohort"
             :cohort="assigningCohort"
-            @saved="updateCohort(assigningCohort, $event)"
+            @saved="handleSubjectsAssigned"
+            @error="showError"
             @close="assigningCohort = null"
         />
 
@@ -118,7 +127,8 @@
             v-if="removing"
             :cohort="removing.cohort"
             :subject="removing.subject"
-            @saved="updateCohort(removing.cohort, $event)"
+            @saved="handleSubjectRemoved"
+            @error="showError"
             @close="removing = null"
         />
 
@@ -128,6 +138,7 @@
             :cohort="disablingCohort"
             isDisabling
             @disabled="cohortDisabled"
+            @error="showError"
             @close="disablingCohort = null"
         />
 
@@ -136,13 +147,14 @@
             :cohort="deletingCohort"
             @deleted="removeCohort"
             @disabled="updateCohort(deletingCohort, $event)"
+            @error="showError"
             @close="deletingCohort = null"
         />
     </section>
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
 import AddStudentsDialog from '../components/common/addStudentsDialog.vue';
 import AssignSubjectsDialog from '../components/common/assignSubjectsDialog.vue';
 import CohortFormDialog from '../components/common/cohortFormDialog.vue';
@@ -156,10 +168,16 @@ import { cohortStatusOptions } from '../utils/filterOptions';
 import CohortSubjectsTable from '../components/tables/cohortSubjectsTable.vue';
 import { getCohorts, setCohortActive } from '../services/cohortService';
 
+const successMessage = ref('');
+// cohort just disabled, kept so Undo can turn it back on
+const undoCohort = ref(null);
+const errorMessage = ref('');
+const errorToast = ref(null);
+let messageTimeout = null;
 const allCohorts = ref([]);
 const isLoading = ref(true);
 const loadError = ref('');
-const saveError = ref('');
+
 const searchText = ref('');
 const statusFilter = ref('');
 const sortBy = ref('');
@@ -172,11 +190,6 @@ const assigningCohort = ref(null);
 const removing = ref(null);
 const deletingCohort = ref(null);
 const disablingCohort = ref(null);
-const successMessage = ref('');
-// the cohort that was just disabled, so Undo knows what to turn back on
-const undoCohort = ref(null);
-const isUndoing = ref(false);
-let undoTimer = null;
 
 const sortOptions = [
     { value: '', label: 'Default order' },
@@ -206,6 +219,67 @@ const visibleCohorts = computed(() => {
     return sortBy.value ? cohorts.sort(sorters[sortBy.value]) : cohorts;
 });
 
+function showSuccess(message, cohort = null) {
+    errorMessage.value = '';
+    undoCohort.value = cohort;
+    if (typeof errorToast.value?.hidePopover === 'function') {
+        errorToast.value.hidePopover();
+    }
+    successMessage.value = message;
+
+    if (messageTimeout) {
+        clearTimeout(messageTimeout);
+    }
+
+    messageTimeout = setTimeout(() => {
+        successMessage.value = '';
+        messageTimeout = null;
+    }, 20000);
+}
+
+async function showError(message) {
+    successMessage.value = '';
+    errorMessage.value = message;
+    if (messageTimeout) clearTimeout(messageTimeout);
+
+    await nextTick();
+    if (typeof errorToast.value?.showPopover === 'function' && !errorToast.value.matches(':popover-open')) {
+        errorToast.value.showPopover();
+    }
+
+    messageTimeout = setTimeout(() => {
+        if (typeof errorToast.value?.hidePopover === 'function') {
+            errorToast.value.hidePopover();
+        }
+        errorMessage.value = '';
+        messageTimeout = null;
+    }, 20000);
+}
+
+function closeSuccess() {
+    successMessage.value = '';
+    if (messageTimeout) {
+        clearTimeout(messageTimeout);
+        messageTimeout = null;
+    }
+}
+
+function closeError() {
+    errorMessage.value = '';
+    if (messageTimeout) {
+        clearTimeout(messageTimeout);
+        messageTimeout = null;
+    }
+    if (typeof errorToast.value?.hidePopover === 'function') {
+        errorToast.value.hidePopover();
+    }
+}
+
+onBeforeUnmount(() => {
+    if (messageTimeout) {
+        clearTimeout(messageTimeout);
+    }
+});
 onMounted(async () => {
     try {
         allCohorts.value = await getCohorts();
@@ -240,21 +314,45 @@ function openCohortForm(cohort) {
 
 // a new cohort goes at the top of the list so it can be seen straight away
 function saveCohort(savedCohort) {
-    if (editingCohort.value) {
+    const wasEditing = Boolean(editingCohort.value);
+
+    if (wasEditing) {
         updateCohort(editingCohort.value, savedCohort);
     } else {
         allCohorts.value = [savedCohort, ...allCohorts.value];
     }
+
+    showSuccess(wasEditing ? 'Cohort updated successfully.' : 'Cohort created successfully.');
+}
+
+function handleStudentsAdded(savedCohorts) {
+    updateCohorts(savedCohorts);
+    showSuccess('Students added successfully.');
+}
+
+function handleStudentMoved(savedCohorts) {
+    updateCohorts(savedCohorts);
+    showSuccess('Student moved successfully.');
+}
+
+function handleSubjectsAssigned(savedCohort) {
+    updateCohort(assigningCohort.value, savedCohort);
+    showSuccess('Subjects assigned successfully.');
+}
+
+function handleSubjectRemoved(savedCohort) {
+    updateCohort(removing.value.cohort, savedCohort);
+    showSuccess('Subject removed successfully.');
 }
 
 function removeCohort(deletedCohort) {
     allCohorts.value = allCohorts.value.filter((cohort) => cohort.cohortID !== deletedCohort.cohortID);
+    showSuccess('Cohort deleted successfully.');
 }
 
-// disable asks first, enable goes straight through, either way the old message and Undo go
+// disable asks first, enable goes straight through
 function startToggle(cohort) {
-    successMessage.value = '';
-    undoCohort.value = null;
+    closeError();
     if (cohort.isActive) {
         disablingCohort.value = cohort;
     } else {
@@ -262,35 +360,28 @@ function startToggle(cohort) {
     }
 }
 
-// Undo shows for 30 secs after a disable, the message itself stays
 function cohortDisabled(savedCohort) {
     updateCohort(disablingCohort.value, savedCohort);
-    successMessage.value = `${disablingCohort.value.cohortName} disabled`;
-    undoCohort.value = disablingCohort.value;
-    clearTimeout(undoTimer);
-    undoTimer = setTimeout(() => {
-        undoCohort.value = null;
-    }, 30000);
+    showSuccess('Cohort disabled successfully.', disablingCohort.value);
 }
 
-// turns it back on, spinner till php answers, no undo for the undo
-async function undo() {
+// Undo button, toggleStatus does the enable and shows its own message
+function undo() {
     const cohort = undoCohort.value;
-    isUndoing.value = true;
-    await toggleStatus(cohort);
-    isUndoing.value = false;
     undoCohort.value = null;
-    successMessage.value = saveError.value ? '' : `${cohort.cohortName} enabled`;
+    toggleStatus(cohort);
 }
 
 // the screen only changes once PHP confirms it's saved, so it never shows a status the database doesn't have
 async function toggleStatus(cohort) {
-    saveError.value = '';
+    closeError();
+    const isActive = !cohort.isActive;
 
     try {
-        Object.assign(cohort, await setCohortActive(cohort.cohortID, !cohort.isActive));
+        Object.assign(cohort, await setCohortActive(cohort.cohortID, isActive));
+        showSuccess(`Cohort ${isActive ? 'enabled' : 'disabled'} successfully.`);
     } catch (error) {
-        saveError.value = error.response?.data?.error || `Unable to update ${cohort.cohortName}`;
+        showError(error.response?.data?.error || `Unable to ${isActive ? 'enable' : 'disable'} ${cohort.cohortName}`);
     }
 }
 </script>

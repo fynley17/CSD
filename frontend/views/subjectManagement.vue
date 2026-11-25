@@ -22,25 +22,65 @@ export default {
             searchText: '',
             statusFilter: 'all',
             statusOptions: subjectStatusOptions,
-            message: '',
+            successMessage: '',
             errorMessage: '',
-            // the row that was just archived or restored, so Undo knows what to put back
-            undoSubject: null,
-            // true while undo is waiting on php, shows the spinner
-            isUndoing: false,
-            // timer that hides the undo button after a while
-            undoTimer: null,
+            errorToast: null,
+            notificationTimeout: null,
             // the row the confirm box is asking about
             confirmSubject: null,
+            // subject that was just archived or restored so Undo knows which one
+            undoSubject: null,
         };
     },
 
     // stop the timer if you leave the page before it finishes
     beforeUnmount() {
-        clearTimeout(this.undoTimer);
+        clearTimeout(this.notificationTimeout);
     },
 
     methods: {
+        showSuccess(message, undoSubject = null) {
+            this.errorMessage = '';
+            this.undoSubject = undoSubject;
+            if (typeof this.$refs.errorToast?.hidePopover === 'function') {
+                this.$refs.errorToast.hidePopover();
+            }
+            this.successMessage = message;
+            if (this.notificationTimeout) clearTimeout(this.notificationTimeout);
+            this.notificationTimeout = setTimeout(() => {
+                this.successMessage = '';
+                this.notificationTimeout = null;
+            }, 20000);
+        },
+
+        async showError(message) {
+            this.errorMessage = message;
+            if (this.notificationTimeout) clearTimeout(this.notificationTimeout);
+            await this.$nextTick();
+            if (
+                typeof this.$refs.errorToast?.showPopover === 'function' &&
+                !this.$refs.errorToast.matches(':popover-open')
+            ) {
+                this.$refs.errorToast.showPopover();
+            }
+            this.notificationTimeout = setTimeout(() => {
+                if (typeof this.$refs.errorToast?.hidePopover === 'function') {
+                    this.$refs.errorToast.hidePopover();
+                }
+                this.errorMessage = '';
+                this.notificationTimeout = null;
+            }, 20000);
+        },
+
+        closeError() {
+            this.errorMessage = '';
+            if (this.notificationTimeout) clearTimeout(this.notificationTimeout);
+            this.notificationTimeout = null;
+            if (typeof this.$refs.errorToast?.hidePopover === 'function') {
+                this.$refs.errorToast.hidePopover();
+            }
+        },
+
         /**
          * Add button, form opens blank
          */
@@ -58,8 +98,7 @@ export default {
          */
         saved(message) {
             this.errorMessage = '';
-            this.undoSubject = null;
-            this.message = message;
+            this.showSuccess(message);
             this.$refs.table.loadSubjects();
         },
 
@@ -78,40 +117,31 @@ export default {
         },
 
         /**
-         * Undo in the green box. Button greys out with a spinner till php answers
-         */
-        async undo() {
-            this.isUndoing = true;
-            await this.setStatus(this.undoSubject, this.undoSubject.isActive, false);
-            this.isUndoing = false;
-        },
-
-        /**
          * Does the actual archive or restore for both buttons above
-         * canUndo is false when it was an undo, otherwise you could undo the undo forever
          */
-        async setStatus(subject, makeActive, canUndo) {
+        async setStatus(subject, makeActive, canUndo = false) {
             this.errorMessage = '';
 
             try {
                 await setSubjectActive(subject.subjectID, makeActive);
-                this.message = `Subject "${subject.subjectName}" ${makeActive ? 'restored' : 'archived'}`;
-                this.undoSubject = canUndo ? subject : null;
+                this.showSuccess(
+                    makeActive ? 'Subject restored successfully.' : 'Subject archived successfully.',
+                    canUndo ? subject : null,
+                );
                 this.$refs.table.loadSubjects();
-
-                // undo only stays for 30 seconds, a new click restarts the clock
-                clearTimeout(this.undoTimer);
-                if (canUndo) {
-                    this.undoTimer = setTimeout(() => {
-                        this.undoSubject = null;
-                    }, 30000);
-                }
             } catch (error) {
                 // green box goes so it doesnt look like it worked
-                this.message = '';
-                this.undoSubject = null;
-                this.errorMessage = error.response?.data?.error || 'Unable to update the subject';
+                this.successMessage = '';
+                const message = `Unable to ${makeActive ? 'restore' : 'archive'} the subject.`;
+                this.showError(error.response?.data?.error || message);
             }
+        },
+
+        // puts it back, false so theres no Undo on the undo
+        undo() {
+            const subject = this.undoSubject;
+            this.undoSubject = null;
+            this.setStatus(subject, subject.isActive, false);
         },
     },
 };
@@ -122,27 +152,33 @@ export default {
         <h1>Subject Management</h1>
         <p>Create, edit and archive subjects. Subjects are never deleted</p>
 
-        <div
-            v-if="message"
-            class="alert alert-success d-flex flex-wrap align-items-center justify-content-between gap-2"
-            role="status"
-        >
-            <span><strong>Success:</strong> {{ message }}</span>
-            <!-- aria-label has the name so a screen reader knows which subject its undoing -->
+        <div v-if="successMessage" class="toastMessage successMessage d-flex align-items-center gap-2" role="status">
+            <span aria-hidden="true">✓</span>
+            <span>{{ successMessage }}</span>
             <button
                 v-if="undoSubject"
                 type="button"
-                class="btn btn-sm btn-outline-primary"
-                :aria-label="isUndoing ? 'Undoing' : 'Undo for ' + undoSubject.subjectName"
-                :disabled="isUndoing"
+                class="btn btn-sm btn-outline-primary toastUndo"
+                :aria-label="'Undo for ' + undoSubject.subjectName"
                 @click="undo"
             >
-                <span v-if="isUndoing" class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>
-                {{ isUndoing ? 'Undoing' : 'Undo' }}
+                Undo
+            </button>
+            <button type="button" class="toastClose" aria-label="Close notification" @click="successMessage = ''">
+                ×
             </button>
         </div>
-        <div v-if="errorMessage" class="alert alert-danger" role="alert">
-            <strong>There is a problem:</strong> {{ errorMessage }}
+        <div
+            v-if="errorMessage"
+            ref="errorToast"
+            popover="manual"
+            class="toastMessage errorMessage"
+            role="alert"
+            aria-live="assertive"
+        >
+            <i class="bi bi-exclamation-triangle-fill" aria-hidden="true"></i>
+            <span>{{ errorMessage }}</span>
+            <button type="button" class="toastClose" aria-label="Close notification" @click="closeError">×</button>
         </div>
 
         <div class="tableToolbar">
@@ -183,6 +219,6 @@ export default {
                 </button>
             </template>
         </PopupDialog>
-        <SubjectForm ref="form" @saved="saved" />
+        <SubjectForm ref="form" @saved="saved" @error="showError" />
     </section>
 </template>
