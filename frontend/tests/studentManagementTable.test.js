@@ -255,7 +255,7 @@ describe('studentManagementTable.vue', () => {
         expect(dialog.text()).toContain('Alex Morgan');
         expect(updateStudentStatus).not.toHaveBeenCalled();
 
-        await dialog.get('.btn-outline-primary').trigger('click');
+        await dialog.get('.studentCancelButton').trigger('click');
         await flushPromises();
 
         expect(dialog.attributes('open')).toBeUndefined();
@@ -273,7 +273,7 @@ describe('studentManagementTable.vue', () => {
 
         await wrapper.get('[aria-label="Disable Alex Morgan"]').trigger('click');
         await flushPromises();
-        await wrapper.get('dialog[aria-label="Confirm Disable"] .btn-danger').trigger('click');
+        await wrapper.get('dialog[aria-label="Confirm Disable"] .studentCreateButton').trigger('click');
         await flushPromises();
 
         expect(updateStudentStatus).toHaveBeenCalledWith(1, false);

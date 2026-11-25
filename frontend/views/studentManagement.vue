@@ -63,7 +63,6 @@ const filterByCohort = () => {
     studentManagementTable.value?.filterByCohort(cohortFilter.value);
 };
 
-// Pass the selected account status to the student table filter.
 // Open the form in Add mode.
 const openStudentForm = () => {
     selectedStudent.value = null;

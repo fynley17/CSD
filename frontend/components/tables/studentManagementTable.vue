@@ -452,23 +452,25 @@ onMounted(async () => {
                 </p>
 
                 <template #buttons>
-                    <button
-                        type="button"
-                        class="btn btn-outline-primary flex-fill"
-                        :disabled="disablingStudent"
-                        @click="closeDisableModal"
-                    >
-                        Cancel
-                    </button>
+                    <div class="studentFormActions">
+                        <button
+                            type="button"
+                            class="studentCancelButton"
+                            :disabled="disablingStudent"
+                            @click="closeDisableModal"
+                        >
+                            Cancel
+                        </button>
 
-                    <button
-                        type="button"
-                        class="btn btn-danger flex-fill"
-                        :disabled="disablingStudent"
-                        @click="confirmDisableStudent"
-                    >
-                        {{ disablingStudent ? 'Disabling...' : 'Disable Student' }}
-                    </button>
+                        <button
+                            type="button"
+                            class="studentCreateButton"
+                            :disabled="disablingStudent"
+                            @click="confirmDisableStudent"
+                        >
+                            {{ disablingStudent ? 'Disabling...' : 'Disable Student' }}
+                        </button>
+                    </div>
                 </template>
             </Popup>
 
@@ -538,6 +540,52 @@ onMounted(async () => {
 </template>
 
 <style>
+.studentFormActions {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: var(--spaceSm);
+    width: 100%;
+}
+
+.studentFormActions button {
+    flex: 1 1 0;
+    min-height: 42px;
+    padding: var(--spaceSm) var(--spaceLg);
+    border: 1px solid transparent;
+    border-radius: var(--radiusSm);
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.studentCancelButton {
+    color: var(--colorText);
+    background: var(--colorSurface);
+    border-color: var(--colorBorderInput);
+}
+
+.studentCancelButton:hover:not(:disabled) {
+    color: var(--colorPrimary);
+    border-color: var(--colorPrimary);
+}
+
+.studentCreateButton {
+    color: var(--colorSurface);
+    background: var(--colorPrimary);
+    border-color: var(--colorPrimary);
+}
+
+.studentCreateButton:hover:not(:disabled) {
+    background: var(--colorPrimaryHover);
+    border-color: var(--colorPrimaryHover);
+}
+
+.studentFormActions button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
 /* Centre the selected student's name in the confirmation popup. */
 .studentDeleteName {
     margin: var(--spaceXl) 0;
