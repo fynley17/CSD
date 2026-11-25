@@ -172,7 +172,7 @@ describe('LecturerManagement', () => {
 
         // Assert
         expect(page.find('.toastMessage.successMessage').exists()).toBe(false);
-        // icon instead of a ! so the message text doesnt start with one
+        // the red toast should have the warning triangle
         expect(page.find('.toastMessage.errorMessage .bi-exclamation-triangle-fill').exists()).toBe(true);
         expect(page.get('.toastMessage.errorMessage').text()).toContain('Wait a minute then use Resend link');
     });
