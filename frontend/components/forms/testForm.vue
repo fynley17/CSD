@@ -290,7 +290,6 @@ onMounted(async () => {
         <template #buttons>
             <div class="testFormActions">
                 <button type="button" class="btn btn-outline-primary" :disabled="submitting" @click="dialog?.close()">
-                <button type="button" class="secondaryButton" :disabled="submitting" @click="dialog?.close()">
                     Cancel
                 </button>
 

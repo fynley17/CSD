@@ -225,11 +225,10 @@ const selectedStudent = ref(null);
         <StudentManagementTable
             ref="studentManagementTable"
             :search="searchText"
+            :status="statusFilter"
             @edit="openEditStudentForm"
             @success="showSuccess"
             @error="showError"
-            :status="statusFilter"
-            @edit="openEditStudentForm"
         />
 
         <!-- Display the student form in Add or Edit mode. -->

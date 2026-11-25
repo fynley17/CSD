@@ -261,15 +261,6 @@ const confirmDisableStudent = async () => {
                 error.response?.data?.message ||
                 'Unable to disable the student account. Please try again.',
         );
-    actionError.value = '';
-
-    try {
-        await updateStudentStatus(studentToDisable.value.userID, false);
-
-        disablePopup.value?.close();
-        await refreshStudents();
-    } catch (error) {
-        actionError.value = error.response?.data?.error || 'Unable to disable the student account. Please try again.';
     } finally {
         disablingStudent.value = false;
     }
@@ -358,12 +349,6 @@ const handleDisablePopupClose = () => {
 const handleDeclinePopupClose = () => {
     if (!decliningStudent.value) {
         studentToDecline.value = null;
-    }
-};
-
-const handleDisablePopupClose = () => {
-    if (!disablingStudent.value) {
-        studentToDisable.value = null;
     }
 };
 
@@ -477,16 +462,12 @@ onMounted(async () => {
                 <p>They will no longer be able to log in until their account is enabled again.</p>
 
                 <p class="studentDeleteName">{{ studentToDisable?.name }}</p>
-                <p class="studentDeleteName">
-                    {{ studentToDisable?.name }}
-                </p>
 
                 <template #buttons>
                     <div class="studentFormActions">
                         <button
                             type="button"
                             class="btn btn-outline-primary"
-                            class="studentCancelButton"
                             :disabled="disablingStudent"
                             @click="closeDisableModal"
                         >

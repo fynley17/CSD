@@ -344,6 +344,8 @@ onBeforeUnmount(() => {
     position: fixed;
     inset: calc(var(--navHeight) + var(--spaceLg)) var(--spaceLg) auto auto;
 }
+
+@media (max-width: 639px) {
     .toastMessage {
         top: calc(var(--navHeight) + var(--spaceMd));
         right: var(--spaceMd);

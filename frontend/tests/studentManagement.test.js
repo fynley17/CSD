@@ -17,12 +17,6 @@ const StudentManagementTableStub = {
         return {};
     },
     template: '<div />',
-const studentManagementTableStub = {
-    setup(_props, { expose }) {
-        expose({ cohorts: [], pendingCount: 0 });
-
-        return () => null;
-    },
 };
 
 /**
@@ -32,7 +26,6 @@ async function openPageAs(accountType) {
     getCurrentUser.mockResolvedValue({ accountType });
     const page = mount(StudentManagement, {
         global: { stubs: { StudentManagementTable: StudentManagementTableStub, StudentForm: true } },
-        global: { stubs: { StudentManagementTable: studentManagementTableStub, StudentForm: true } },
     });
     await flushPromises();
 
