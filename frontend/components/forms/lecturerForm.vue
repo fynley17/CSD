@@ -7,7 +7,7 @@ export default {
     components: {
         PopupDialog,
     },
-    emits: ['saved'],
+    emits: ['saved', 'error'],
 
     data() {
         return {
@@ -98,6 +98,7 @@ export default {
             } catch (error) {
                 // PHP's message if it sent one i.e. staff ID taken, otherwise a plain one
                 this.errorMessage = error.response?.data?.error || 'Unable to save the lecturer';
+                this.$emit('error', this.errorMessage);
                 this.confirmingAdmin = false;
             } finally {
                 this.isSaving = false;
@@ -110,10 +111,6 @@ export default {
 <template>
     <PopupDialog ref="dialog" :title="title">
         <form id="lecturerForm" novalidate @submit.prevent="save">
-            <div v-if="errorMessage" class="alert alert-danger" role="alert">
-                <strong>There is a problem:</strong> {{ errorMessage }}
-            </div>
-
             <div class="mb-3">
                 <label for="lecturerFirstName" class="form-label">First name</label>
                 <input

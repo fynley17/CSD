@@ -7,7 +7,7 @@ export default {
     components: {
         PopupDialog,
     },
-    emits: ['saved'],
+    emits: ['saved', 'error'],
 
     data() {
         return {
@@ -61,6 +61,7 @@ export default {
                 }
             } catch (error) {
                 this.errorMessage = error.response?.data?.error || 'Unable to load the cohorts and lecturers';
+                this.$emit('error', this.errorMessage);
             }
         },
 
@@ -71,6 +72,7 @@ export default {
             this.errorMessage = '';
             if (this.form.cohortID === '') {
                 this.errorMessage = 'Choose a cohort';
+                this.$emit('error', this.errorMessage);
                 return;
             }
 
@@ -87,6 +89,7 @@ export default {
             } catch (error) {
                 // message from PHP if there is one (like name already used in that cohort) or a generic one
                 this.errorMessage = error.response?.data?.error || 'Unable to save the subject';
+                this.$emit('error', this.errorMessage);
             } finally {
                 this.isSaving = false;
             }
@@ -98,10 +101,6 @@ export default {
 <template>
     <PopupDialog ref="dialog" :title="title">
         <form id="subjectForm" novalidate @submit.prevent="save">
-            <div v-if="errorMessage" class="alert alert-danger" role="alert">
-                <strong>There is a problem:</strong> {{ errorMessage }}
-            </div>
-
             <div class="mb-3">
                 <label for="subjectName" class="form-label">Subject name</label>
                 <input id="subjectName" v-model="form.subjectName" type="text" class="form-control" maxlength="100" />

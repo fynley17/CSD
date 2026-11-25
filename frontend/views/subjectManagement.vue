@@ -171,7 +171,7 @@ export default {
                 </button>
             </template>
         </PopupDialog>
-        <SubjectForm ref="form" @saved="saved" />
+        <SubjectForm ref="form" @saved="saved" @error="showError" />
     </section>
 </template>
 

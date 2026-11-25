@@ -52,6 +52,10 @@ function showWarning(message) {
 
 // Display a success toast after a completed action.
 async function showSuccess(message) {
+    errorMessage.value = '';
+    if (typeof errorToast.value?.hidePopover === 'function') {
+        errorToast.value.hidePopover();
+    }
     successMessage.value = message;
     if (notificationTimeout) clearTimeout(notificationTimeout);
     notificationTimeout = setTimeout(() => {
@@ -74,7 +78,9 @@ async function closeError() {
         clearTimeout(notificationTimeout);
         notificationTimeout = null;
     }
-    errorToast.value?.hidePopover();
+    if (typeof errorToast.value?.hidePopover === 'function') {
+        errorToast.value.hidePopover();
+    }
 }
 
 function closeWarning() {
@@ -90,11 +96,17 @@ async function showError(message) {
     errorMessage.value = message;
     if (notificationTimeout) clearTimeout(notificationTimeout);
     await nextTick();
-    if (errorToast.value && !errorToast.value.matches(':popover-open')) {
+    if (
+        errorToast.value &&
+        typeof errorToast.value.showPopover === 'function' &&
+        !errorToast.value.matches(':popover-open')
+    ) {
         errorToast.value.showPopover();
     }
     notificationTimeout = setTimeout(() => {
-        errorToast.value?.hidePopover();
+        if (typeof errorToast.value?.hidePopover === 'function') {
+            errorToast.value.hidePopover();
+        }
         errorMessage.value = '';
         notificationTimeout = null;
     }, 15000);

@@ -59,6 +59,8 @@ const clearMessages = () => {
 // Display a temporary success notification.
 const showSuccess = (message) => {
     clearMessages();
+    errorToast.value?.hidePopover();
+    errorMessage.value = '';
     successMessage.value = message;
 
     messageTimeout = setTimeout(() => {
@@ -284,6 +286,7 @@ onBeforeUnmount(() => {
                 :loading="saving"
                 @save="saveQuestion"
                 @cancel="closeQuestionForm"
+                @error="showError"
             />
         </PopupDialog>
 

@@ -12,7 +12,7 @@ const props = defineProps({
 });
 
 // Notify the parent when a test has been saved or the dialog has been closed.
-const emit = defineEmits(['saved', 'close']);
+const emit = defineEmits(['saved', 'close', 'error']);
 
 // References and state used to control the dialog, subject loading and form submission.
 const dialog = ref(null);
@@ -90,6 +90,7 @@ async function loadSubjects() {
         }
     } catch {
         errorMessage.value = 'Unable to load subjects. Please try again.';
+        emit('error', errorMessage.value);
     } finally {
         loadingSubjects.value = false;
     }
@@ -141,6 +142,7 @@ async function submitTest() {
     errorMessage.value = '';
 
     if (!validateForm()) {
+        emit('error', errorMessage.value);
         return;
     }
 
@@ -172,6 +174,7 @@ async function submitTest() {
             error.response?.data?.error ??
             error.response?.data?.message ??
             'Unable to save the test. Please check your details and try again.';
+        emit('error', errorMessage.value);
     } finally {
         submitting.value = false;
     }
@@ -190,10 +193,6 @@ onMounted(async () => {
     <PopupDialog ref="dialog" :title="dialogTitle" @close="emit('close')">
         <form id="test-form" class="testForm" @submit.prevent="submitTest">
             <!-- Show validation and API errors to the user. -->
-            <div v-if="errorMessage" class="formError" role="alert">
-                {{ errorMessage }}
-            </div>
-
             <!-- Test name is required and limited to 30 characters. -->
             <div class="formGroup">
                 <label for="testName"> Test name <span aria-hidden="true">*</span> </label>

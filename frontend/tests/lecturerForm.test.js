@@ -75,7 +75,7 @@ describe('LecturerForm', () => {
     /**
      * php says no (staff ID already used), the red box shows why and the page isnt told it saved (error)
      */
-    it('shows the message from PHP when the save is refused', async () => {
+    it('emits the PHP message as a toast error when the save is refused', async () => {
         // Arrange
         vi.mocked(updateLecturer).mockRejectedValue({
             response: { status: 400, data: { error: 'An account with this staff ID already exists' } },
@@ -88,9 +88,8 @@ describe('LecturerForm', () => {
         await flushPromises();
 
         // Assert
-        expect(wrapper.get('[role="alert"]').text()).toBe(
-            'There is a problem: An account with this staff ID already exists',
-        );
+        expect(wrapper.find('[role="alert"]').exists()).toBe(false);
+        expect(wrapper.emitted('error')).toEqual([['An account with this staff ID already exists']]);
         expect(wrapper.emitted('saved')).toBeUndefined();
     });
 

@@ -61,6 +61,7 @@ function clearMessages() {
 // Display a temporary success notification.
 function showSuccess(message) {
     clearMessages();
+    errorMessage.value = '';
     successMessage.value = message;
 
     messageTimeout = setTimeout(() => {
@@ -237,7 +238,13 @@ onBeforeUnmount(() => {
         />
 
         <!-- Reuse the same form for creating and editing tests. -->
-        <TestForm v-if="showTestForm" :test="editingTest" @saved="handleTestSaved" @close="closeTestForm" />
+        <TestForm
+            v-if="showTestForm"
+            :test="editingTest"
+            @saved="handleTestSaved"
+            @error="showError"
+            @close="closeTestForm"
+        />
 
         <!-- Explain the archive and permanent deletion behaviour. -->
         <PopupDialog ref="deleteDialog" title="Archive / Delete Test" @close="closeDeleteDialog">

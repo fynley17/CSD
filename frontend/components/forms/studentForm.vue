@@ -143,10 +143,6 @@ onMounted(async () => {
 <template>
     <PopupDialog ref="dialog" :title="isEditing ? 'Edit Student' : 'Add New Student'" @close="emit('close')">
         <form id="student-form" class="studentForm" @submit.prevent="submitStudent">
-            <div v-if="errorMessage" class="formError" role="alert">
-                {{ errorMessage }}
-            </div>
-
             <div class="formGroup">
                 <label for="firstName">First name <span aria-hidden="true">*</span></label>
                 <input

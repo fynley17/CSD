@@ -249,7 +249,7 @@ export default {
                 </button>
             </template>
         </PopupDialog>
-        <LecturerForm ref="form" @saved="saved" />
+        <LecturerForm ref="form" @saved="saved" @error="showError" />
     </section>
 </template>
 
