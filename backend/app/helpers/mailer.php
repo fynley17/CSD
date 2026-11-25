@@ -5,6 +5,7 @@ namespace App\Helpers;
 use App\Models\EmailVerification;
 use App\Models\PasswordReset;
 use App\Models\PasswordSetup;
+use App\Models\User;
 use PHPMailer\PHPMailer\Exception;
 use PHPMailer\PHPMailer\PHPMailer;
 
@@ -481,6 +482,146 @@ class Mailer
             'html' => self::wrapLayout($subject, $content),
             'text' => $text,
         ];
+    }
+
+    /**
+     * Sends the 6 digit login code (MFA)
+     */
+    public static function sendLoginCodeEmail(string $toEmail, string $code): bool
+    {
+        $email = self::buildLoginCodeEmail($code);
+
+        return self::sendEmail($toEmail, '', $email['subject'], $email['html'], $email['text']);
+    }
+
+    /**
+     * Builds the code email, ends with what to do if it wasnt them
+     *
+     * @return array{subject: string, html: string, text: string}
+     */
+    public static function buildLoginCodeEmail(string $code): array
+    {
+        $subject = 'Your RevisionHub security code';
+        $safeCode = htmlspecialchars($code, ENT_QUOTES, 'UTF-8');
+        $minutes = LoginCode::LIFETIME_MINUTES;
+        $resetLink = htmlspecialchars(self::forgotPasswordLink(), ENT_QUOTES, 'UTF-8');
+
+        $content = <<<HTML
+            <h1 style="margin:0 0 16px;font-size:22px;color:#0f1b33;">
+                Your security code
+            </h1>
+
+            <p style="margin:0 0 16px;">
+                Enter this code on the login page to finish logging in to RevisionHub:
+            </p>
+
+            <p style="margin:0 0 16px;font-size:32px;font-weight:bold;letter-spacing:6px;">
+                {$safeCode}
+            </p>
+
+            <p style="margin:0 0 16px;">
+                The code expires in {$minutes} minutes and only works once.
+            </p>
+
+            <p style="margin:0 0 16px;">
+                If this was not you, someone may know your password.
+                <a href="{$resetLink}" style="color:#0a66c2;">Reset your password</a> straight away.
+            </p>
+
+            <p style="margin:24px 0 0;">
+                Kind regards,<br>
+                <strong>The RevisionHub Team</strong>
+            </p>
+        HTML;
+
+        $text = "Your security code\n\n"
+            . "Enter this code on the login page to finish logging in to RevisionHub:\n\n"
+            . $code . "\n\n"
+            . "The code expires in " . $minutes . " minutes and only works once.\n\n"
+            . "If this was not you, someone may know your password. Reset your password straight away:\n"
+            . self::forgotPasswordLink() . "\n\n"
+            . "Kind regards,\nThe RevisionHub Team\n\n"
+            . "This is an automated message, please do not reply to this email.";
+
+        return [
+            'subject' => $subject,
+            'html' => self::wrapLayout($subject, $content),
+            'text' => $text,
+        ];
+    }
+
+    /**
+     * Tells the owner their account got locked after 3 wrong tries
+     */
+    public static function sendAccountLockedEmail(string $toEmail): bool
+    {
+        $email = self::buildAccountLockedEmail();
+
+        return self::sendEmail($toEmail, '', $email['subject'], $email['html'], $email['text']);
+    }
+
+    /**
+     * Builds the locked email, numbers come from User so they match the real lock
+     *
+     * @return array{subject: string, html: string, text: string}
+     */
+    public static function buildAccountLockedEmail(): array
+    {
+        $subject = 'Your RevisionHub account has been locked';
+        $tries = User::MAX_FAILED_ATTEMPTS;
+        $minutes = User::LOCK_MINUTES;
+        $resetLink = htmlspecialchars(self::forgotPasswordLink(), ENT_QUOTES, 'UTF-8');
+
+        $content = <<<HTML
+            <h1 style="margin:0 0 16px;font-size:22px;color:#0f1b33;">
+                Your account has been locked
+            </h1>
+
+            <p style="margin:0 0 16px;">
+                Someone got the password or security code for your RevisionHub account wrong {$tries} times,
+                so we have locked it for {$minutes} minutes.
+            </p>
+
+            <p style="margin:0 0 16px;">
+                If this was you, wait {$minutes} minutes and try again.
+            </p>
+
+            <p style="margin:0 0 16px;">
+                If this was not you, someone may be trying to guess your password.
+                <a href="{$resetLink}" style="color:#0a66c2;">Reset your password</a> straight away.
+            </p>
+
+            <p style="margin:24px 0 0;">
+                Kind regards,<br>
+                <strong>The RevisionHub Team</strong>
+            </p>
+        HTML;
+
+        $text = "Your account has been locked\n\n"
+            . "Someone got the password or security code for your RevisionHub account wrong " . $tries
+            . " times, so we have locked it for " . $minutes . " minutes.\n\n"
+            . "If this was you, wait " . $minutes . " minutes and try again.\n\n"
+            . "If this was not you, someone may be trying to guess your password. "
+            . "Reset your password straight away:\n"
+            . self::forgotPasswordLink() . "\n\n"
+            . "Kind regards,\nThe RevisionHub Team\n\n"
+            . "This is an automated message, please do not reply to this email.";
+
+        return [
+            'subject' => $subject,
+            'html' => self::wrapLayout($subject, $content),
+            'text' => $text,
+        ];
+    }
+
+    /**
+     * Link to the forgot password page for the code and locked emails
+     */
+    public static function forgotPasswordLink(): string
+    {
+        $appUrl = rtrim(getenv('APP_URL') ?: self::DEFAULT_APP_URL, '/');
+
+        return $appUrl . '/forgot-password';
     }
 
     /**

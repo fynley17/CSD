@@ -236,7 +236,6 @@ onMounted(async () => {
             <div v-if="form.subjectID && selectedSubject" class="formGroup cohortDisplay">
                 <label for="cohortName">Cohort</label>
                 <input id="cohortName" :value="selectedCohortName" type="text" readonly aria-readonly="true" />
-                <small>The cohort is determined automatically by the selected subject.</small>
             </div>
 
             <!-- Optional description with a maximum length of 100 characters. -->
@@ -255,7 +254,7 @@ onMounted(async () => {
             <!-- Configure how many questions are included and the optional time limit. -->
             <div class="formRow">
                 <div class="formGroup">
-                    <label for="questionCount"> Questions per attempt <span aria-hidden="true">*</span> </label>
+                    <label for="questionCount">Questions per attempt <span aria-hidden="true">*</span></label>
                     <input
                         id="questionCount"
                         v-model="form.questionCount"
