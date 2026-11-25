@@ -226,7 +226,7 @@ export default {
     border: 0;
     background: transparent;
     color: inherit;
-    font-size: 1.25rem;
+    font-size: var(--fontSizeH3);
     line-height: 1;
     cursor: pointer;
 }
