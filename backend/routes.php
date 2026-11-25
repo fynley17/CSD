@@ -15,6 +15,7 @@ use App\Controllers\QuestionController;
 use App\Controllers\SubjectController;
 use App\Controllers\PasswordSetupController;
 use App\Controllers\PasswordResetController;
+use App\Controllers\ProfileController;
 
 $router = new Router();
 
@@ -221,6 +222,25 @@ $router->addRoute(
     'GET',
     '/^\/api\/csrf-token$/',
     [new AuthController(), 'csrfToken']
+);
+
+// My profile, every account type, only ever the logged in user's own account.
+$router->addRoute(
+    'GET',
+    '/^\/api\/profile$/',
+    [new ProfileController(), 'getProfile']
+);
+
+$router->addRoute(
+    'PUT',
+    '/^\/api\/profile$/',
+    [new ProfileController(), 'updateProfile']
+);
+
+$router->addRoute(
+    'PUT',
+    '/^\/api\/profile\/password$/',
+    [new ProfileController(), 'changePassword']
 );
 
 // Lecturer dashboard.

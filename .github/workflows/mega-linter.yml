@@ -1,4 +1,4 @@
-# Runs MegaLinter on every pull request into main (CTS-124, updated in CTS-155)
+# Runs MegaLinter on every pull request into main
 name: MegaLinter
 
 on:

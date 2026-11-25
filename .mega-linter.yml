@@ -1,4 +1,4 @@
-# MegaLinter settings (CTS-124, updated in CTS-155)
+# MegaLinter settings
 # Linter keys checked against the MegaLinter v10 documentation
 
 # Checks files changed in pull request only, not the entire project

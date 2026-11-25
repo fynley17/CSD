@@ -1,6 +1,7 @@
 <?php
 
 use App\Helpers\Mailer;
+use App\Models\EmailVerification;
 use PHPUnit\Framework\TestCase;
 
 final class MailerTest extends TestCase
@@ -213,6 +214,38 @@ final class MailerTest extends TestCase
         self::assertStringContainsString('password has been changed', $email['subject']);
         self::assertStringContainsString('If it was not you', $email['text']);
         self::assertStringContainsString('cid:revisionhub-logo', $email['html']);
+    }
+
+    // A password changed from the profile page says so, the forgot password one still says reset.
+    public function testPasswordChangedEmailSaysHowItChanged(): void
+    {
+        // Act
+        $fromProfile = Mailer::buildPasswordChangedEmail(true);
+        $fromReset = Mailer::buildPasswordChangedEmail();
+
+        // Assert
+        self::assertStringContainsString('My profile page', $fromProfile['text']);
+        self::assertStringContainsString('My profile page', $fromProfile['html']);
+        self::assertStringNotContainsString('forgot password link', $fromProfile['text']);
+        self::assertStringContainsString('forgot password link', $fromReset['text']);
+    }
+
+    // The confirm new email email has the link, its expiry, and says the old address stays until then.
+    public function testEmailChangeEmailHasTheLinkAndSaysTheOldAddressStays(): void
+    {
+        // Arrange
+        $link = 'https://revisionhub.example/verify-email?token=abc&x=1';
+
+        // Act
+        $email = Mailer::buildEmailChangeEmail($link);
+
+        // Assert
+        self::assertStringContainsString('Confirm your new email address', $email['subject']);
+        self::assertStringContainsString($link, $email['text']);
+        // the & is escaped in the HTML so the link can't break out of the attribute
+        self::assertStringContainsString('token=abc&amp;x=1', $email['html']);
+        self::assertStringContainsString('keep using your old email address', $email['text']);
+        self::assertStringContainsString(EmailVerification::LINK_LIFETIME_HOURS . ' hours', $email['text']);
     }
 
     // Locked email has the lock time and a reset link (normal)

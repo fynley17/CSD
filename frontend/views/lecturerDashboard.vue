@@ -12,7 +12,7 @@
                 {{ summaryError }}
             </p>
 
-            <!-- CTS-90: Display the four summary cards using data from the backend. -->
+            <!-- Display the four summary cards using data from the backend. -->
             <section class="row g-4 mb-4" aria-label="Dashboard summary">
                 <!-- Create one card for each item in the summaryCards array. -->
                 <div v-for="card in summaryCards" :key="card.title" class="col-12 col-sm-6 col-xl-3">
@@ -38,7 +38,7 @@
                 </div>
             </section>
 
-            <!-- CTS-91 and CTS-92: Display the student and recent test tables. -->
+            <!-- Display the student and recent test tables. -->
             <section class="row g-4">
                 <div class="col-12 col-xl-6">
                     <StudentTable />

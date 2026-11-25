@@ -6,6 +6,7 @@ use App\Helpers\Authentication;
 use App\Helpers\Mailer;
 use App\Models\EmailVerification;
 use App\Models\Student;
+use App\Models\User;
 
 /**
  * Verification controller, answers the requests from the check your email and verify email pages
@@ -24,6 +25,8 @@ class VerificationController extends Controller
     private const EMAIL_NOT_SENT = 'We could not send the email. Try again later';
     private const MISSING_EMAIL = 'Enter your email address';
     private const ACCOUNT_DISABLED = 'Your account has been disabled. Contact your lecturer or an administrator';
+    private const EMAIL_TAKEN = 'Another account is already using this email address. '
+        . 'Change your email address on your profile page to try a different one';
 
     /**
      * POST /api/verify-email, checks the code from the email link and verifies the account
@@ -44,6 +47,11 @@ class VerificationController extends Controller
             }
             if ($verification['isExpired']) {
                 $this->jsonResponse(['error' => self::EXPIRED_LINK], 400);
+            }
+
+            // a link sent from the profile page, the account is already verified and only its address changes
+            if ($verification['newEmail'] !== null) {
+                $this->confirmNewEmail($verification['userID']);
             }
 
             // a disabled account can't verify, the link stays usable until it expires if they're enabled again
@@ -137,6 +145,33 @@ class VerificationController extends Controller
         } catch (\Throwable $e) {
             $this->serverError('Changing an email address', $e);
         }
+    }
+
+    /**
+     * Swaps the account's address for the new one typed on the profile page, once its link has been used
+     * no welcome email this time, they already have an account
+     */
+    private function confirmNewEmail(string $userID): void
+    {
+        $user = User::findById($userID);
+
+        // a disabled or deleted account can't change its address
+        if ($user === null || !$user->isActive()) {
+            $this->jsonResponse(['error' => self::ACCOUNT_DISABLED], 403);
+        }
+
+        try {
+            $newEmail = EmailVerification::confirmEmailChange($userID);
+        } catch (\InvalidArgumentException $e) {
+            $this->jsonResponse(['error' => self::EMAIL_TAKEN], 400);
+            return;
+        }
+
+        // emailChanged lets the page show the right message, it isn't a new account waiting for approval
+        $this->jsonResponse([
+            'message' => 'Your new email address ' . $newEmail . ' has been confirmed',
+            'emailChanged' => true,
+        ]);
     }
 
     /**

@@ -1,4 +1,4 @@
-# ls-lint settings (CTS-155), checks file and folder names are camelCase (section 8)
+# ls-lint settings, checks file and folder names are camelCase (section 8)
 # i.e studentController.php and loginForm.vue
 # docs: https://ls-lint.org/2.3/configuration/the-rules.html
 

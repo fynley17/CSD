@@ -1,18 +1,7 @@
 <script>
 import { resetPassword } from '../services/passwordResetService';
-
 // the same rules PHP checks, so most mistakes are caught before anything is sent
-const PASSWORD_RULES = 'Use at least 8 characters, with an uppercase letter, a lowercase letter, a number and a symbol';
-
-function meetsPasswordRules(password) {
-    return (
-        password.length >= 8 &&
-        /[A-Z]/.test(password) &&
-        /[a-z]/.test(password) &&
-        /\d/.test(password) &&
-        /[^A-Za-z0-9\s]/.test(password)
-    );
-}
+import { PASSWORD_RULES, meetsPasswordRules } from '../utils/passwordRules';
 
 // Reset password page, opened from the link in the forgot password email
 // the code in the link is all PHP needs to know whose password to change, nothing else on the page can pick the account
