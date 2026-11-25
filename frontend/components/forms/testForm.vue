@@ -289,13 +289,15 @@ onMounted(async () => {
 
         <!-- Keep the dialog actions separate from the form fields. -->
         <template #buttons>
-            <button type="button" class="secondaryButton" :disabled="submitting" @click="dialog?.close()">
-                Cancel
-            </button>
+            <div class="testFormActions">
+                <button type="button" class="secondaryButton" :disabled="submitting" @click="dialog?.close()">
+                    Cancel
+                </button>
 
-            <button type="submit" form="test-form" class="primaryButton" :disabled="submitting || loadingSubjects">
-                {{ submitting ? 'Saving...' : isEditing ? 'Save Changes' : 'Create Test' }}
-            </button>
+                <button type="submit" form="test-form" class="primaryButton" :disabled="submitting || loadingSubjects">
+                    {{ submitting ? 'Saving...' : isEditing ? 'Save Changes' : 'Create Test' }}
+                </button>
+            </div>
         </template>
     </PopupDialog>
 </template>
@@ -376,6 +378,15 @@ onMounted(async () => {
     border-radius: var(--radiusSm);
     background-color: var(--colorWarningLight);
     color: var(--colorText);
+}
+
+/* Align the form actions at the bottom right of the dialog. */
+.testFormActions {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: var(--spaceSm);
+    width: 100%;
 }
 
 /* Shared styling for the dialog action buttons. */

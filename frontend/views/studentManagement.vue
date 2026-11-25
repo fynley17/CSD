@@ -55,18 +55,12 @@ onUnmounted(() => {
 
 // Show only students whose applications are awaiting approval.
 const showPendingApplications = () => {
-    statusFilter.value = 'Pending';
-    filterByStatus();
+    statusFilter.value = statusFilter.value === 'Pending' ? '' : 'Pending';
 };
 
 // Pass the selected cohort to the student table filter.
 const filterByCohort = () => {
     studentManagementTable.value?.filterByCohort(cohortFilter.value);
-};
-
-// Pass the selected account status to the student table filter.
-const filterByStatus = () => {
-    studentManagementTable.value?.filterByStatus(statusFilter.value);
 };
 
 // Open the form in Add mode.
@@ -131,12 +125,17 @@ const handleStudentSaved = (response) => {
                     v-model="statusFilter"
                     label="Status"
                     :options="studentStatusOptions"
-                    @change="filterByStatus"
                 />
             </div>
 
             <div class="tableToolbarActions">
-                <button type="button" class="btn btn-outline-primary" @click="showPendingApplications">
+                <button
+                    type="button"
+                    class="btn btn-outline-primary"
+                    :class="{ active: statusFilter === 'Pending' }"
+                    :aria-pressed="statusFilter === 'Pending'"
+                    @click="showPendingApplications"
+                >
                     Student Applications ({{ pendingCount }})
                 </button>
                 <button v-if="canCreateStudent" type="button" class="btn btn-primary" @click="openStudentForm">
@@ -145,7 +144,12 @@ const handleStudentSaved = (response) => {
             </div>
         </div>
 
-        <StudentManagementTable ref="studentManagementTable" :search="searchText" @edit="openEditStudentForm" />
+        <StudentManagementTable
+            ref="studentManagementTable"
+            :search="searchText"
+            :status="statusFilter"
+            @edit="openEditStudentForm"
+        />
 
         <!-- Display the student form in Add or Edit mode. -->
         <StudentForm
