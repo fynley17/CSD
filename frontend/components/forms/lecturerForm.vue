@@ -149,7 +149,7 @@ export default {
                     autocomplete="off"
                     aria-describedby="lecturerStaffIDHint"
                 />
-                <div id="lecturerStaffIDHint" class="form-text">They log in with this, for example L1001</div>
+                <div id="lecturerStaffIDHint" class="form-text">They log in with this, for example JKimmins</div>
             </div>
 
             <div class="mb-3">

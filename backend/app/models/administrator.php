@@ -10,7 +10,7 @@ use App\Helpers\Validation;
  */
 class Administrator extends Lecturer
 {
-    private const STAFF_ID_RULES = 'Staff ID must be 3 to 8 letters or numbers, like L1001';
+    private const STAFF_ID_RULES = 'Staff ID must be 3 to 8 letters or numbers, like JKimmins';
 
     /**
      * My profile, an admin can also change their own staff ID, nobody above them in the app could do it for them
