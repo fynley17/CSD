@@ -23,12 +23,15 @@ const errorMessage = ref('');
 
 const deletePopup = ref(null);
 const declinePopup = ref(null);
+const disablePopup = ref(null);
 
 const studentToDelete = ref(null);
 const studentToDecline = ref(null);
+const studentToDisable = ref(null);
 
 const deletingStudent = ref(false);
 const decliningStudent = ref(false);
+const disablingStudent = ref(false);
 
 // Count the student applications that are awaiting approval.
 const pendingCount = computed(() => students.value.filter((student) => student.status === 'Pending').length);
@@ -43,12 +46,21 @@ const props = defineProps({
         type: String,
         default: '',
     },
+    status: {
+        type: String,
+        default: '',
+    },
 });
 
 watch(
     () => props.search,
     (text) => searchTable(dataTable.value, text),
 );
+watch([() => props.status, loading], ([status]) => {
+    if (!loading.value) {
+        filterByStatus(status);
+    }
+});
 const cohorts = ref([]);
 
 // house style pill for each status, the word is shown too so it isn't colour alone
@@ -148,7 +160,6 @@ defineExpose({
     cohorts,
     pendingCount,
     filterByCohort,
-    filterByStatus,
     refreshStudents,
 });
 
@@ -160,6 +171,13 @@ const toggleText = (student) => (student.status === 'Disabled' ? 'Enable' : 'Dis
 const handleAction = async (action, student, event) => {
     if (action === 'edit') {
         emit('edit', student);
+        return;
+    }
+
+    if (action === 'disable') {
+        studentToDisable.value = student;
+        await nextTick();
+        disablePopup.value?.open();
         return;
     }
 
@@ -224,6 +242,30 @@ const handleAction = async (action, student, event) => {
     }
 };
 
+const confirmDisableStudent = async () => {
+    if (!studentToDisable.value || disablingStudent.value) {
+        return;
+    }
+
+    disablingStudent.value = true;
+
+    try {
+        await updateStudentStatus(studentToDisable.value.userID, false);
+        disablePopup.value?.close();
+        emit('success', 'Student disabled successfully.');
+        await refreshStudents();
+    } catch (error) {
+        emit(
+            'error',
+            error.response?.data?.error ||
+                error.response?.data?.message ||
+                'Unable to disable the student account. Please try again.',
+        );
+    } finally {
+        disablingStudent.value = false;
+    }
+};
+
 // Permanently decline the selected application after confirmation.
 const confirmDeclineStudent = async () => {
     if (!studentToDecline.value || decliningStudent.value) {
@@ -282,12 +324,26 @@ const closeDeclineModal = () => {
     declinePopup.value?.close();
 };
 
+const closeDisableModal = () => {
+    if (disablingStudent.value) {
+        return;
+    }
+
+    disablePopup.value?.close();
+};
+
 const closeDeleteModal = () => {
     if (deletingStudent.value) {
         return;
     }
 
     deletePopup.value?.close();
+};
+
+const handleDisablePopupClose = () => {
+    if (!disablingStudent.value) {
+        studentToDisable.value = null;
+    }
 };
 
 const handleDeclinePopupClose = () => {
@@ -399,6 +455,37 @@ onMounted(async () => {
                 </DataTable>
             </div>
 
+            <!-- Disable confirmation popup. -->
+            <Popup ref="disablePopup" title="Confirm Disable" @close="handleDisablePopupClose">
+                <h3>Disable this student?</h3>
+
+                <p>They will no longer be able to log in until their account is enabled again.</p>
+
+                <p class="studentDeleteName">{{ studentToDisable?.name }}</p>
+
+                <template #buttons>
+                    <div class="studentFormActions">
+                        <button
+                            type="button"
+                            class="btn btn-outline-primary"
+                            :disabled="disablingStudent"
+                            @click="closeDisableModal"
+                        >
+                            Cancel
+                        </button>
+
+                        <button
+                            type="button"
+                            class="studentCreateButton"
+                            :disabled="disablingStudent"
+                            @click="confirmDisableStudent"
+                        >
+                            {{ disablingStudent ? 'Disabling...' : 'Disable Student' }}
+                        </button>
+                    </div>
+                </template>
+            </Popup>
+
             <!-- Decline confirmation popup. -->
             <Popup ref="declinePopup" title="Confirm Decline" @close="handleDeclinePopupClose">
                 <h3>Decline this application?</h3>
@@ -465,6 +552,53 @@ onMounted(async () => {
 </template>
 
 <style>
+.studentFormActions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    justify-content: flex-end;
+    align-items: center;
+    gap: var(--spaceSm);
+    width: 100%;
+}
+
+.studentFormActions button {
+    flex: 1 1 0;
+    min-height: 42px;
+    padding: var(--spaceSm) var(--spaceLg);
+    border: 1px solid transparent;
+    border-radius: var(--radiusSm);
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.studentCancelButton {
+    color: var(--colorText);
+    background: var(--colorSurface);
+    border-color: var(--colorBorderInput);
+}
+
+.studentCancelButton:hover:not(:disabled) {
+    color: var(--colorPrimary);
+    border-color: var(--colorPrimary);
+}
+
+.studentCreateButton {
+    color: var(--colorSurface);
+    background: var(--colorPrimary);
+    border-color: var(--colorPrimary);
+}
+
+.studentCreateButton:hover:not(:disabled) {
+    background: var(--colorPrimaryHover);
+    border-color: var(--colorPrimaryHover);
+}
+
+.studentFormActions button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
 /* Centre the selected student's name in the confirmation popup. */
 .studentDeleteName {
     margin: var(--spaceXl) 0;

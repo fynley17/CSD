@@ -38,6 +38,8 @@ import QuestionManagement from '../views/questionManagement.vue';
 import LecturerManagement from '../views/lecturerManagement.vue';
 import SubjectManagement from '../views/subjectManagement.vue';
 import CohortManagement from '../views/cohortManagement.vue';
+// every signed in account type can see and change their own details here
+import ProfilePage from '../views/profilePage.vue';
 
 // Define the application routes
 const routes = [
@@ -189,6 +191,13 @@ const routes = [
         name: 'cohortManagement',
         component: CohortManagement,
         meta: { title: 'Cohort Management | RevisionHub', requiredRoles: ['admin'] },
+    },
+    {
+        // opened from the account icon next to Sign out, any signed in user, signed out visitors go to login
+        path: '/profile',
+        name: 'profile',
+        component: ProfilePage,
+        meta: { title: 'My profile | RevisionHub', requiredRoles: ['student', 'lecturer', 'admin'] },
     },
     // Send mistyped or retired URLs back to the public landing page.
     {

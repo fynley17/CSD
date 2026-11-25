@@ -40,6 +40,7 @@ const deletingTest = ref(false);
 // Store success and error messages displayed to the lecturer.
 const successMessage = ref('');
 const errorMessage = ref('');
+const errorToast = ref(null);
 
 // Store the notification timeout so it can be cleared when necessary.
 let messageTimeout = null;
@@ -61,23 +62,43 @@ function clearMessages() {
 // Display a temporary success notification.
 function showSuccess(message) {
     clearMessages();
+    errorMessage.value = '';
     successMessage.value = message;
 
     messageTimeout = setTimeout(() => {
         successMessage.value = '';
         messageTimeout = null;
-    }, 10000);
+    }, 15000);
 }
 
 // Display a temporary error notification.
-function showError(message) {
+async function showError(message) {
     clearMessages();
     errorMessage.value = message;
 
+    await nextTick();
+    if (typeof errorToast.value?.showPopover === 'function' && !errorToast.value.matches(':popover-open')) {
+        errorToast.value.showPopover();
+    }
+
     messageTimeout = setTimeout(() => {
+        if (typeof errorToast.value?.hidePopover === 'function') {
+            errorToast.value.hidePopover();
+        }
         errorMessage.value = '';
         messageTimeout = null;
-    }, 10000);
+    }, 15000);
+}
+
+function closeSuccess() {
+    clearMessages();
+}
+
+function closeError() {
+    clearMessages();
+    if (typeof errorToast.value?.hidePopover === 'function') {
+        errorToast.value.hidePopover();
+    }
 }
 
 // Pass the selected subject filter to the table component.
@@ -191,13 +212,22 @@ onBeforeUnmount(() => {
         <!-- Display a temporary success notification after an operation. -->
         <div v-if="successMessage" class="toastMessage successMessage" role="status" aria-live="polite">
             <span aria-hidden="true">✓</span>
-            {{ successMessage }}
+            <span>{{ successMessage }}</span>
+            <button type="button" class="toastClose" aria-label="Close notification" @click="closeSuccess">×</button>
         </div>
 
         <!-- Display a temporary error notification if an operation fails. -->
-        <div v-if="errorMessage" class="toastMessage errorMessage" role="alert" aria-live="assertive">
+        <div
+            v-if="errorMessage"
+            ref="errorToast"
+            popover="manual"
+            class="toastMessage errorMessage"
+            role="alert"
+            aria-live="assertive"
+        >
             <span aria-hidden="true">!</span>
-            {{ errorMessage }}
+            <span>{{ errorMessage }}</span>
+            <button type="button" class="toastClose" aria-label="Close notification" @click="closeError">×</button>
         </div>
 
         <!-- search and subject filter on the left, create button on the right -->
@@ -227,7 +257,13 @@ onBeforeUnmount(() => {
         />
 
         <!-- Reuse the same form for creating and editing tests. -->
-        <TestForm v-if="showTestForm" :test="editingTest" @saved="handleTestSaved" @close="closeTestForm" />
+        <TestForm
+            v-if="showTestForm"
+            :test="editingTest"
+            @saved="handleTestSaved"
+            @error="showError"
+            @close="closeTestForm"
+        />
 
         <!-- Explain the archive and permanent deletion behaviour. -->
         <PopupDialog ref="deleteDialog" title="Archive / Delete Test" @close="closeDeleteDialog">
@@ -270,7 +306,7 @@ onBeforeUnmount(() => {
 .toastMessage {
     position: fixed;
     z-index: 1100;
-    top: var(--spaceLg);
+    top: calc(var(--navHeight) + var(--spaceLg));
     right: var(--spaceLg);
     display: flex;
     align-items: center;
@@ -285,6 +321,16 @@ onBeforeUnmount(() => {
     font-weight: 600;
 }
 
+.toastClose {
+    margin-left: auto;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font-size: var(--fontSizeH3);
+    line-height: 1;
+    cursor: pointer;
+}
+
 .successMessage {
     border-color: var(--colorPrimary);
 }
@@ -294,10 +340,19 @@ onBeforeUnmount(() => {
     color: var(--colorError);
 }
 
+.errorMessage:popover-open {
+    position: fixed;
+    inset: calc(var(--navHeight) + var(--spaceLg)) var(--spaceLg) auto auto;
+}
+
 @media (max-width: 639px) {
     .toastMessage {
-        top: var(--spaceMd);
+        top: calc(var(--navHeight) + var(--spaceMd));
         right: var(--spaceMd);
+    }
+
+    .errorMessage:popover-open {
+        inset: calc(var(--navHeight) + var(--spaceMd)) var(--spaceMd) auto auto;
     }
 }
 </style>

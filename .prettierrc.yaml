@@ -1,4 +1,4 @@
-# Prettier settings (CTS-155), which tidy code layout like spaces and quote marks
+# Prettier settings, which tidy code layout like spaces and quote marks
 # following the same rules as precommit Prettier
 # Every setting based off section 8 of Revisionhub house style
 

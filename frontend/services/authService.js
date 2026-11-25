@@ -8,12 +8,45 @@ import { startIdleTimer, stopIdleTimer } from './idleTimer';
  * if they're right, PHP starts a session and the browser keeps the cookie by itself
  * if they're wrong - axios throws an error, the login form catches it and shows PHP's message
  * @returns {Promise<object>} the account type, i.e. { accountType: 'admin' }, used to pick their dashboard
+ * or { mfaRequired, maskedEmail, emailFailed } with MFA on, not logged in yet
  */
 export async function login(username, password) {
     // axios turns this object into JSON before sending it
     const response = await api.post('/login', { username, password });
     // logged in, so the 30 minute countdown starts
+    // not with MFA on though, that waits for verifyLoginCode()
+    if (response.data.accountType) {
+        startIdleTimer();
+    }
+    return response.data;
+}
+
+/**
+ * Sends the code (or a backup code) to POST /api/login/code
+ * @returns {Promise<object>} accountType, plus backupCodes if there's a new set
+ */
+export async function verifyLoginCode(code) {
+    const response = await api.post('/login/code', { code });
+    // logged in now, start the countdown
     startIdleTimer();
+    return response.data;
+}
+
+/**
+ * POST /api/login/code/resend, emails a new code
+ * @returns {Promise<object>} PHP's message e.g. { message: 'We have sent a new security code' }
+ */
+export async function resendLoginCode() {
+    const response = await api.post('/login/code/resend');
+    return response.data;
+}
+
+/**
+ * POST /api/login/backup-codes once the codes are copied or downloaded, PHP saves them then
+ * nothing's saved before this, refresh = new set next login
+ */
+export async function saveBackupCodes() {
+    const response = await api.post('/login/backup-codes');
     return response.data;
 }
 

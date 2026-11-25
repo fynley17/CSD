@@ -52,6 +52,8 @@ class Authentication
         unset($_SESSION['csrfToken']);
         // handing in only checks the session has the attempt, so one account's attempts can't carry over to the next
         unset($_SESSION['testAttempts']);
+        // logged in properly now so any half done login can go
+        unset($_SESSION['pendingLogin']);
     }
 
     /**
@@ -85,6 +87,63 @@ class Authentication
     {
         (new self())->startSession();
         unset($_SESSION['pendingVerificationUserID']);
+    }
+
+    /**
+     * Remembers who got their password right while they go get the code (MFA)
+     * not logged in yet, theres no userID so requireRole() still says no
+     */
+    public function savePendingLogin(LoginCode $loginCode): void
+    {
+        $this->startSession();
+        // fresh session ID here too, stops session fixation
+        session_regenerate_id(true);
+        $_SESSION['pendingLogin'] = $loginCode->saveForSession();
+    }
+
+    /**
+     * Returns the login waiting on a code, from the session
+     *
+     * @return LoginCode|null null if this browser hasn't got the password right yet
+     */
+    public function getPendingLogin(): ?LoginCode
+    {
+        $this->startSession();
+
+        return LoginCode::fromSession($_SESSION['pendingLogin'] ?? null);
+    }
+
+    /**
+     * Holds the new backup code hashes until the codes get copied or downloaded
+     * only saved once they've copied or downloaded them
+     */
+    public function saveNewBackupCodes(array $hashes): void
+    {
+        $this->startSession();
+        $_SESSION['newBackupCodes'] = $hashes;
+    }
+
+    /**
+     * Gives back the waiting hashes and removes them so they only save once
+     *
+     * @return array|null null if there aren't any waiting
+     */
+    public function takeNewBackupCodes(): ?array
+    {
+        $this->startSession();
+        $hashes = $_SESSION['newBackupCodes'] ?? null;
+        unset($_SESSION['newBackupCodes']);
+
+        return is_array($hashes) ? $hashes : null;
+    }
+
+    /**
+     * Wipes the waiting login, on lockout or when a new login starts
+     */
+    public function clearPendingLogin(): void
+    {
+        $this->startSession();
+        unset($_SESSION['pendingLogin']);
     }
 
     /**

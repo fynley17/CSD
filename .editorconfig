@@ -1,4 +1,4 @@
-# EditorConfig (CTS-155) tells code editors and megalinter how every file should be laid out (section 8)
+# EditorConfig tells code editors and megalinter how every file should be laid out (section 8)
 # VS Code follows it with the EditorConfig extension so new files start off correctly
 # docs: https://editorconfig.org
 

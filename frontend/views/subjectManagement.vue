@@ -22,14 +22,10 @@ export default {
             searchText: '',
             statusFilter: 'all',
             statusOptions: subjectStatusOptions,
-            message: '',
+            successMessage: '',
             errorMessage: '',
-            // the row that was just archived or restored, so Undo knows what to put back
-            undoSubject: null,
-            // true while undo is waiting on php, shows the spinner
-            isUndoing: false,
-            // timer that hides the undo button after a while
-            undoTimer: null,
+            errorToast: null,
+            notificationTimeout: null,
             // the row the confirm box is asking about
             confirmSubject: null,
         };
@@ -37,10 +33,51 @@ export default {
 
     // stop the timer if you leave the page before it finishes
     beforeUnmount() {
-        clearTimeout(this.undoTimer);
+        clearTimeout(this.notificationTimeout);
     },
 
     methods: {
+        showSuccess(message) {
+            this.errorMessage = '';
+            if (typeof this.$refs.errorToast?.hidePopover === 'function') {
+                this.$refs.errorToast.hidePopover();
+            }
+            this.successMessage = message;
+            if (this.notificationTimeout) clearTimeout(this.notificationTimeout);
+            this.notificationTimeout = setTimeout(() => {
+                this.successMessage = '';
+                this.notificationTimeout = null;
+            }, 15000);
+        },
+
+        async showError(message) {
+            this.errorMessage = message;
+            if (this.notificationTimeout) clearTimeout(this.notificationTimeout);
+            await this.$nextTick();
+            if (
+                typeof this.$refs.errorToast?.showPopover === 'function' &&
+                !this.$refs.errorToast.matches(':popover-open')
+            ) {
+                this.$refs.errorToast.showPopover();
+            }
+            this.notificationTimeout = setTimeout(() => {
+                if (typeof this.$refs.errorToast?.hidePopover === 'function') {
+                    this.$refs.errorToast.hidePopover();
+                }
+                this.errorMessage = '';
+                this.notificationTimeout = null;
+            }, 15000);
+        },
+
+        closeError() {
+            this.errorMessage = '';
+            if (this.notificationTimeout) clearTimeout(this.notificationTimeout);
+            this.notificationTimeout = null;
+            if (typeof this.$refs.errorToast?.hidePopover === 'function') {
+                this.$refs.errorToast.hidePopover();
+            }
+        },
+
         /**
          * Add button, form opens blank
          */
@@ -58,8 +95,7 @@ export default {
          */
         saved(message) {
             this.errorMessage = '';
-            this.undoSubject = null;
-            this.message = message;
+            this.showSuccess(message);
             this.$refs.table.loadSubjects();
         },
 
@@ -78,39 +114,20 @@ export default {
         },
 
         /**
-         * Undo in the green box. Button greys out with a spinner till php answers
-         */
-        async undo() {
-            this.isUndoing = true;
-            await this.setStatus(this.undoSubject, this.undoSubject.isActive, false);
-            this.isUndoing = false;
-        },
-
-        /**
          * Does the actual archive or restore for both buttons above
-         * canUndo is false when it was an undo, otherwise you could undo the undo forever
          */
-        async setStatus(subject, makeActive, canUndo) {
+        async setStatus(subject, makeActive) {
             this.errorMessage = '';
 
             try {
                 await setSubjectActive(subject.subjectID, makeActive);
-                this.message = `Subject "${subject.subjectName}" ${makeActive ? 'restored' : 'archived'}`;
-                this.undoSubject = canUndo ? subject : null;
+                this.showSuccess(makeActive ? 'Subject restored successfully.' : 'Subject archived successfully.');
                 this.$refs.table.loadSubjects();
-
-                // undo only stays for 30 seconds, a new click restarts the clock
-                clearTimeout(this.undoTimer);
-                if (canUndo) {
-                    this.undoTimer = setTimeout(() => {
-                        this.undoSubject = null;
-                    }, 30000);
-                }
             } catch (error) {
                 // green box goes so it doesnt look like it worked
-                this.message = '';
-                this.undoSubject = null;
-                this.errorMessage = error.response?.data?.error || 'Unable to update the subject';
+                this.successMessage = '';
+                const message = `Unable to ${makeActive ? 'restore' : 'archive'} the subject.`;
+                this.showError(error.response?.data?.error || message);
             }
         },
     },
@@ -123,26 +140,27 @@ export default {
         <p>Create, edit and archive subjects. Subjects are never deleted</p>
 
         <div
-            v-if="message"
-            class="alert alert-success d-flex flex-wrap align-items-center justify-content-between gap-2"
+            v-if="successMessage"
+            class="toastMessage successMessage d-flex flex-wrap align-items-center gap-2"
             role="status"
         >
-            <span><strong>Success:</strong> {{ message }}</span>
-            <!-- aria-label has the name so a screen reader knows which subject its undoing -->
-            <button
-                v-if="undoSubject"
-                type="button"
-                class="btn btn-sm btn-outline-primary"
-                :aria-label="isUndoing ? 'Undoing' : 'Undo for ' + undoSubject.subjectName"
-                :disabled="isUndoing"
-                @click="undo"
-            >
-                <span v-if="isUndoing" class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>
-                {{ isUndoing ? 'Undoing' : 'Undo' }}
+            <span aria-hidden="true">✓</span>
+            <span>{{ successMessage }}</span>
+            <button type="button" class="toastClose" aria-label="Close notification" @click="successMessage = ''">
+                ×
             </button>
         </div>
-        <div v-if="errorMessage" class="alert alert-danger" role="alert">
-            <strong>There is a problem:</strong> {{ errorMessage }}
+        <div
+            v-if="errorMessage"
+            ref="errorToast"
+            popover="manual"
+            class="toastMessage errorMessage"
+            role="alert"
+            aria-live="assertive"
+        >
+            <span aria-hidden="true">!</span>
+            <span>{{ errorMessage }}</span>
+            <button type="button" class="toastClose" aria-label="Close notification" @click="closeError">×</button>
         </div>
 
         <div class="tableToolbar">
@@ -183,6 +201,58 @@ export default {
                 </button>
             </template>
         </PopupDialog>
-        <SubjectForm ref="form" @saved="saved" />
+        <SubjectForm ref="form" @saved="saved" @error="showError" />
     </section>
 </template>
+
+<style scoped>
+.toastMessage {
+    position: fixed;
+    z-index: 1100;
+    top: calc(var(--navHeight) + var(--spaceLg));
+    right: var(--spaceLg);
+    width: max-content;
+    max-width: min(450px, calc(100vw - 2 * var(--spaceLg)));
+    padding: var(--spaceMd) var(--spaceLg);
+    border: 2px solid var(--colorPrimary);
+    border-radius: var(--radiusSm);
+    background: var(--colorSurface);
+    color: var(--colorText);
+    font-weight: 600;
+}
+
+.toastClose {
+    margin-left: auto;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font-size: var(--fontSizeH3);
+    line-height: 1;
+    cursor: pointer;
+}
+
+.successMessage {
+    border-color: var(--colorPrimary);
+}
+
+.errorMessage {
+    border-color: var(--colorError);
+    color: var(--colorError);
+}
+
+@media (max-width: 639px) {
+    .toastMessage {
+        top: calc(var(--navHeight) + var(--spaceMd));
+        right: var(--spaceMd);
+    }
+
+    .errorMessage:popover-open {
+        inset: calc(var(--navHeight) + var(--spaceMd)) var(--spaceMd) auto auto;
+    }
+}
+
+.errorMessage:popover-open {
+    position: fixed;
+    inset: calc(var(--navHeight) + var(--spaceLg)) var(--spaceLg) auto auto;
+}
+</style>

@@ -59,12 +59,14 @@ const clearMessages = () => {
 // Display a temporary success notification.
 const showSuccess = (message) => {
     clearMessages();
+    errorToast.value?.hidePopover();
+    errorMessage.value = '';
     successMessage.value = message;
 
     messageTimeout = setTimeout(() => {
         successMessage.value = '';
         messageTimeout = null;
-    }, 10000);
+    }, 15000);
 };
 
 // Display a temporary error notification.
@@ -79,7 +81,20 @@ const showError = async (message) => {
         errorToast.value?.hidePopover();
         errorMessage.value = '';
         messageTimeout = null;
-    }, 10000);
+    }, 15000);
+};
+
+const closeSuccess = () => {
+    clearTimeout(messageTimeout);
+    messageTimeout = null;
+    successMessage.value = '';
+};
+
+const closeError = () => {
+    clearTimeout(messageTimeout);
+    messageTimeout = null;
+    errorToast.value?.hidePopover();
+    errorMessage.value = '';
 };
 
 // Apply the selected subject filter.
@@ -214,7 +229,8 @@ onBeforeUnmount(() => {
         <!-- Temporary success notification. -->
         <div v-if="successMessage" class="toastMessage successMessage" role="status" aria-live="polite">
             <span aria-hidden="true">✓</span>
-            {{ successMessage }}
+            <span>{{ successMessage }}</span>
+            <button type="button" class="toastClose" aria-label="Close notification" @click="closeSuccess">×</button>
         </div>
 
         <!-- Temporary error notification. -->
@@ -227,7 +243,8 @@ onBeforeUnmount(() => {
             aria-live="assertive"
         >
             <span aria-hidden="true">!</span>
-            {{ errorMessage }}
+            <span>{{ errorMessage }}</span>
+            <button type="button" class="toastClose" aria-label="Close notification" @click="closeError">×</button>
         </div>
 
         <!-- search and subject filter on the left, create button on the right -->
@@ -269,6 +286,7 @@ onBeforeUnmount(() => {
                 :loading="saving"
                 @save="saveQuestion"
                 @cancel="closeQuestionForm"
+                @error="showError"
             />
         </PopupDialog>
 
@@ -308,7 +326,7 @@ onBeforeUnmount(() => {
 .toastMessage {
     position: fixed;
     z-index: 1100;
-    top: var(--spaceLg);
+    top: calc(var(--navHeight) + var(--spaceLg));
     right: var(--spaceLg);
     display: flex;
     align-items: center;
@@ -323,6 +341,16 @@ onBeforeUnmount(() => {
     font-weight: 600;
 }
 
+.toastClose {
+    margin-left: auto;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font-size: var(--fontSizeH3);
+    line-height: 1;
+    cursor: pointer;
+}
+
 .successMessage {
     border-color: var(--colorPrimary);
 }
@@ -331,13 +359,17 @@ onBeforeUnmount(() => {
     border-color: var(--colorError);
     color: var(--colorError);
     margin: 0;
-    inset: var(--spaceLg) var(--spaceLg) auto auto;
+    inset: calc(var(--navHeight) + var(--spaceLg)) var(--spaceLg) auto auto;
 }
 
 @media (max-width: 639px) {
     .toastMessage {
-        top: var(--spaceMd);
+        top: calc(var(--navHeight) + var(--spaceMd));
         right: var(--spaceMd);
+    }
+
+    .errorMessage:popover-open {
+        inset: calc(var(--navHeight) + var(--spaceMd)) var(--spaceMd) auto auto;
     }
 }
 </style>

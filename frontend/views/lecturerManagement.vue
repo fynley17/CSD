@@ -22,12 +22,10 @@ export default {
             searchText: '',
             statusFilter: 'all',
             statusOptions: lecturerStatusOptions,
-            message: '',
+            successMessage: '',
             errorMessage: '',
-            // the row that was just disabled or enabled, so Undo knows who to put back
-            undoLecturer: null,
-            isUndoing: false,
-            undoTimer: null,
+            errorToast: null,
+            notificationTimeout: null,
             // who the confirm box is asking about, and whether its a toggle or a delete
             confirmLecturer: null,
             confirmAction: '',
@@ -54,12 +52,52 @@ export default {
         },
     },
 
-    // stops the undo timer if you leave the page early
     beforeUnmount() {
-        clearTimeout(this.undoTimer);
+        clearTimeout(this.notificationTimeout);
     },
 
     methods: {
+        showSuccess(message) {
+            this.errorMessage = '';
+            if (typeof this.$refs.errorToast?.hidePopover === 'function') {
+                this.$refs.errorToast.hidePopover();
+            }
+            this.successMessage = message;
+            if (this.notificationTimeout) clearTimeout(this.notificationTimeout);
+            this.notificationTimeout = setTimeout(() => {
+                this.successMessage = '';
+                this.notificationTimeout = null;
+            }, 15000);
+        },
+
+        async showError(message) {
+            this.errorMessage = message;
+            if (this.notificationTimeout) clearTimeout(this.notificationTimeout);
+            await this.$nextTick();
+            if (
+                typeof this.$refs.errorToast?.showPopover === 'function' &&
+                !this.$refs.errorToast.matches(':popover-open')
+            ) {
+                this.$refs.errorToast.showPopover();
+            }
+            this.notificationTimeout = setTimeout(() => {
+                if (typeof this.$refs.errorToast?.hidePopover === 'function') {
+                    this.$refs.errorToast.hidePopover();
+                }
+                this.errorMessage = '';
+                this.notificationTimeout = null;
+            }, 15000);
+        },
+
+        closeError() {
+            this.errorMessage = '';
+            if (this.notificationTimeout) clearTimeout(this.notificationTimeout);
+            this.notificationTimeout = null;
+            if (typeof this.$refs.errorToast?.hidePopover === 'function') {
+                this.$refs.errorToast.hidePopover();
+            }
+        },
+
         // Add lecturer button, empty form with the Role dropdown
         addLecturer() {
             this.$refs.form.open();
@@ -75,14 +113,13 @@ export default {
          */
         async resendLink(lecturer) {
             this.errorMessage = '';
-            this.undoLecturer = null;
 
             try {
                 await resendSetupLink(lecturer.userID);
-                this.message = 'A new link has been sent to ' + lecturer.name;
+                this.showSuccess(`Setup link sent to ${lecturer.name} successfully.`);
             } catch (error) {
-                this.message = '';
-                this.errorMessage = error.response?.data?.error || 'Unable to send a new link';
+                this.successMessage = '';
+                this.showError(error.response?.data?.error || 'Unable to resend the setup link.');
             }
         },
 
@@ -92,15 +129,14 @@ export default {
          * so the search box gets their staff ID to show them straight away
          */
         async saved(message, staffID, emailSent) {
-            this.undoLecturer = null;
             // only Add sends emailSent, false = account is made but the email didn't go
             // green would say success on something the admin still has to fix, so its the red box
             if (emailSent === false) {
-                this.message = '';
-                this.errorMessage = message;
+                this.successMessage = '';
+                this.showError(message);
             } else {
                 this.errorMessage = '';
-                this.message = message;
+                this.showSuccess(message);
             }
             await this.$refs.table.loadLecturers();
             if (staffID) {
@@ -126,59 +162,40 @@ export default {
             if (this.confirmAction === 'delete') {
                 await this.removeLecturer(this.confirmLecturer);
             } else {
-                await this.setStatus(this.confirmLecturer, !this.confirmLecturer.isEnabled, true);
+                await this.setStatus(this.confirmLecturer, !this.confirmLecturer.isEnabled);
             }
         },
 
         /**
-         * Undo in the green box, spinner till php answers
+         * Turns the account off or on.
          */
-        async undo() {
-            this.isUndoing = true;
-            await this.setStatus(this.undoLecturer, this.undoLecturer.isEnabled, false);
-            this.isUndoing = false;
-        },
-
-        /**
-         * Turns the account off or on. canUndo is false for an undo so you cant undo the undo
-         */
-        async setStatus(lecturer, isEnabled, canUndo) {
+        async setStatus(lecturer, isEnabled) {
             this.errorMessage = '';
 
             try {
                 await setLecturerEnabled(lecturer.userID, isEnabled);
-                this.message = 'Status updated';
-                this.undoLecturer = canUndo ? lecturer : null;
+                this.showSuccess(isEnabled ? 'Lecturer enabled successfully.' : 'Lecturer disabled successfully.');
                 this.$refs.table.loadLecturers();
-
-                // undo goes after 30 secs, the message itself stays
-                clearTimeout(this.undoTimer);
-                if (canUndo) {
-                    this.undoTimer = setTimeout(() => {
-                        this.undoLecturer = null;
-                    }, 30000);
-                }
             } catch (error) {
-                this.message = '';
-                this.undoLecturer = null;
-                this.errorMessage = error.response?.data?.error || 'Unable to update the lecturer';
+                this.successMessage = '';
+                const message = `Unable to ${isEnabled ? 'enable' : 'disable'} the lecturer.`;
+                this.showError(error.response?.data?.error || message);
             }
         },
 
         /**
-         * Delete for real, no undo for this one as the account is gone
+         * Delete for real.
          */
         async removeLecturer(lecturer) {
             this.errorMessage = '';
-            this.undoLecturer = null;
 
             try {
                 await deleteLecturer(lecturer.userID);
-                this.message = 'Lecturer deleted';
+                this.showSuccess('Lecturer deleted successfully.');
                 this.$refs.table.loadLecturers();
             } catch (error) {
-                this.message = '';
-                this.errorMessage = error.response?.data?.error || 'Unable to delete the lecturer';
+                this.successMessage = '';
+                this.showError(error.response?.data?.error || 'Unable to delete the lecturer.');
             }
         },
     },
@@ -191,25 +208,27 @@ export default {
         <p>Add, edit, disable and delete lecturer accounts</p>
 
         <div
-            v-if="message"
-            class="alert alert-success d-flex flex-wrap align-items-center justify-content-between gap-2"
+            v-if="successMessage"
+            class="toastMessage successMessage d-flex flex-wrap align-items-center gap-2"
             role="status"
         >
-            <span><strong>Success:</strong> {{ message }}</span>
-            <button
-                v-if="undoLecturer"
-                type="button"
-                class="btn btn-sm btn-outline-primary"
-                :aria-label="isUndoing ? 'Undoing' : 'Undo for ' + undoLecturer.name"
-                :disabled="isUndoing"
-                @click="undo"
-            >
-                <span v-if="isUndoing" class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>
-                {{ isUndoing ? 'Undoing' : 'Undo' }}
+            <span aria-hidden="true">✓</span>
+            <span>{{ successMessage }}</span>
+            <button type="button" class="toastClose" aria-label="Close notification" @click="successMessage = ''">
+                ×
             </button>
         </div>
-        <div v-if="errorMessage" class="alert alert-danger" role="alert">
-            <strong>There is a problem:</strong> {{ errorMessage }}
+        <div
+            v-if="errorMessage"
+            ref="errorToast"
+            popover="manual"
+            class="toastMessage errorMessage"
+            role="alert"
+            aria-live="assertive"
+        >
+            <span aria-hidden="true">!</span>
+            <span>{{ errorMessage }}</span>
+            <button type="button" class="toastClose" aria-label="Close notification" @click="closeError">×</button>
         </div>
 
         <div class="tableToolbar">
@@ -263,6 +282,58 @@ export default {
                 </div>
             </template>
         </PopupDialog>
-        <LecturerForm ref="form" @saved="saved" />
+        <LecturerForm ref="form" @saved="saved" @error="showError" />
     </section>
 </template>
+
+<style scoped>
+.toastMessage {
+    position: fixed;
+    z-index: 1100;
+    top: calc(var(--navHeight) + var(--spaceLg));
+    right: var(--spaceLg);
+    width: max-content;
+    max-width: min(450px, calc(100vw - 2 * var(--spaceLg)));
+    padding: var(--spaceMd) var(--spaceLg);
+    border: 2px solid var(--colorPrimary);
+    border-radius: var(--radiusSm);
+    background: var(--colorSurface);
+    color: var(--colorText);
+    font-weight: 600;
+}
+
+.toastClose {
+    margin-left: auto;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font-size: var(--fontSizeH3);
+    line-height: 1;
+    cursor: pointer;
+}
+
+.successMessage {
+    border-color: var(--colorPrimary);
+}
+
+.errorMessage {
+    border-color: var(--colorError);
+    color: var(--colorError);
+}
+
+@media (max-width: 639px) {
+    .toastMessage {
+        top: calc(var(--navHeight) + var(--spaceMd));
+        right: var(--spaceMd);
+    }
+
+    .errorMessage:popover-open {
+        inset: calc(var(--navHeight) + var(--spaceMd)) var(--spaceMd) auto auto;
+    }
+}
+
+.errorMessage:popover-open {
+    position: fixed;
+    inset: calc(var(--navHeight) + var(--spaceLg)) var(--spaceLg) auto auto;
+}
+</style>

@@ -9,6 +9,14 @@ namespace App\Models;
 class Lecturer extends User
 {
     /**
+     * Lecturers and admins keep their names in the Lecturer table.
+     */
+    protected static function nameTable(): string
+    {
+        return 'Lecturer';
+    }
+
+    /**
      * Gets the summary counts shown on the lecturer dashboard.
      *
      * @return array<string, int>

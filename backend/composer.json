@@ -38,6 +38,10 @@
             "app/controllers/leaderboardController.php",
             "app/models/subject.php",
             "app/controllers/subjectController.php",
+            "app/controllers/profileController.php",
+            "app/helpers/loginCode.php",
+            "app/models/backupCode.php",
+            "app/controllers/loginCodeController.php",
             "app/controllers/passwordResetController.php",
             "app/models/passwordReset.php"
         ],

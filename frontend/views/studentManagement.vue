@@ -47,17 +47,48 @@ function showWarning(message) {
     messageTimeout = setTimeout(() => {
         warningMessage.value = '';
         messageTimeout = null;
-    }, 10000);
+    }, 15000);
 }
 
 // Display a success toast after a completed action.
 async function showSuccess(message) {
+    errorMessage.value = '';
+    if (typeof errorToast.value?.hidePopover === 'function') {
+        errorToast.value.hidePopover();
+    }
     successMessage.value = message;
     if (notificationTimeout) clearTimeout(notificationTimeout);
     notificationTimeout = setTimeout(() => {
         successMessage.value = '';
         notificationTimeout = null;
-    }, 5000);
+    }, 15000);
+}
+
+function closeSuccess() {
+    successMessage.value = '';
+    if (notificationTimeout) {
+        clearTimeout(notificationTimeout);
+        notificationTimeout = null;
+    }
+}
+
+async function closeError() {
+    errorMessage.value = '';
+    if (notificationTimeout) {
+        clearTimeout(notificationTimeout);
+        notificationTimeout = null;
+    }
+    if (typeof errorToast.value?.hidePopover === 'function') {
+        errorToast.value.hidePopover();
+    }
+}
+
+function closeWarning() {
+    warningMessage.value = '';
+    if (messageTimeout) {
+        clearTimeout(messageTimeout);
+        messageTimeout = null;
+    }
 }
 
 // Display errors in the browser top layer so they remain visible above native dialogs.
@@ -65,14 +96,20 @@ async function showError(message) {
     errorMessage.value = message;
     if (notificationTimeout) clearTimeout(notificationTimeout);
     await nextTick();
-    if (errorToast.value && !errorToast.value.matches(':popover-open')) {
+    if (
+        errorToast.value &&
+        typeof errorToast.value.showPopover === 'function' &&
+        !errorToast.value.matches(':popover-open')
+    ) {
         errorToast.value.showPopover();
     }
     notificationTimeout = setTimeout(() => {
-        errorToast.value?.hidePopover();
+        if (typeof errorToast.value?.hidePopover === 'function') {
+            errorToast.value.hidePopover();
+        }
         errorMessage.value = '';
         notificationTimeout = null;
-    }, 8000);
+    }, 15000);
 }
 
 // Handle successful student form saves.
@@ -95,18 +132,12 @@ onUnmounted(() => {
 
 // Show only students whose applications are awaiting approval.
 const showPendingApplications = () => {
-    statusFilter.value = 'Pending';
-    filterByStatus();
+    statusFilter.value = statusFilter.value === 'Pending' ? '' : 'Pending';
 };
 
 // Pass the selected cohort to the student table filter.
 const filterByCohort = () => {
     studentManagementTable.value?.filterByCohort(cohortFilter.value);
-};
-
-// Pass the selected account status to the student table filter.
-const filterByStatus = () => {
-    studentManagementTable.value?.filterByStatus(statusFilter.value);
 };
 
 // Open the form in Add mode.
@@ -136,16 +167,21 @@ const selectedStudent = ref(null);
     <!-- laid out like lecturer and subject management so every table page matches -->
     <section class="container py-4 adminPage">
         <div v-if="successMessage" class="toastMessage successMessage" role="status" aria-live="polite">
-            {{ successMessage }}
+            <span aria-hidden="true">✓</span>
+            <span>{{ successMessage }}</span>
+            <button type="button" class="toastClose" aria-label="Close notification" @click="closeSuccess">×</button>
         </div>
         <div ref="errorToast" popover="manual" class="toastMessage errorMessage" role="alert" aria-live="assertive">
-            {{ errorMessage }}
+            <span aria-hidden="true">!</span>
+            <span>{{ errorMessage }}</span>
+            <button type="button" class="toastClose" aria-label="Close notification" @click="closeError">×</button>
         </div>
 
         <!-- Warn the lecturer when student login details could not be emailed. -->
         <div v-if="warningMessage" class="toastMessage warningMessage" role="status" aria-live="polite">
             <span aria-hidden="true">!</span>
-            {{ warningMessage }}
+            <span>{{ warningMessage }}</span>
+            <button type="button" class="toastClose" aria-label="Close notification" @click="closeWarning">×</button>
         </div>
 
         <h1>Student Management</h1>
@@ -167,12 +203,17 @@ const selectedStudent = ref(null);
                     v-model="statusFilter"
                     label="Status"
                     :options="studentStatusOptions"
-                    @change="filterByStatus"
                 />
             </div>
 
             <div class="tableToolbarActions">
-                <button type="button" class="btn btn-outline-primary" @click="showPendingApplications">
+                <button
+                    type="button"
+                    class="btn btn-outline-primary"
+                    :class="{ active: statusFilter === 'Pending' }"
+                    :aria-pressed="statusFilter === 'Pending'"
+                    @click="showPendingApplications"
+                >
                     Student Applications ({{ pendingCount }})
                 </button>
                 <button v-if="canCreateStudent" type="button" class="btn btn-primary" @click="openStudentForm">
@@ -184,6 +225,7 @@ const selectedStudent = ref(null);
         <StudentManagementTable
             ref="studentManagementTable"
             :search="searchText"
+            :status="statusFilter"
             @edit="openEditStudentForm"
             @success="showSuccess"
             @error="showError"
@@ -206,7 +248,7 @@ const selectedStudent = ref(null);
 .toastMessage {
     position: fixed;
     z-index: 1100;
-    top: var(--spaceLg);
+    top: calc(var(--navHeight) + var(--spaceLg));
     right: var(--spaceLg);
     display: flex;
     align-items: center;
@@ -221,6 +263,16 @@ const selectedStudent = ref(null);
     font-weight: 600;
 }
 
+.toastClose {
+    margin-left: auto;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font-size: var(--fontSizeH3);
+    line-height: 1;
+    cursor: pointer;
+}
+
 .successMessage {
     border-color: var(--colorPrimary);
 }
@@ -233,7 +285,7 @@ const selectedStudent = ref(null);
 
 .errorMessage:popover-open {
     position: fixed;
-    inset: var(--spaceLg) var(--spaceLg) auto auto;
+    inset: calc(var(--navHeight) + var(--spaceLg)) var(--spaceLg) auto auto;
 }
 
 /* Keep the email-delivery notice visible below the success notification. */
@@ -243,8 +295,12 @@ const selectedStudent = ref(null);
 
 @media (max-width: 639px) {
     .toastMessage {
-        top: var(--spaceMd);
+        top: calc(var(--navHeight) + var(--spaceMd));
         right: var(--spaceMd);
+    }
+
+    .errorMessage:popover-open {
+        inset: calc(var(--navHeight) + var(--spaceMd)) var(--spaceMd) auto auto;
     }
 
     .warningMessage {

@@ -1,4 +1,4 @@
-# yamllint settings (CTS-155), checks .yml and .yaml files are written correctly
+# yamllint settings, checks .yml and .yaml files are written correctly
 # same job as pre-commit's check-yaml, plus the house style layout (section 8)
 # rule list: https://yamllint.readthedocs.io/en/stable/rules.html
 

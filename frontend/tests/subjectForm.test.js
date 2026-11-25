@@ -86,7 +86,7 @@ describe('SubjectForm', () => {
     /**
      * php refuses (duplicate name) so the red box shows its message and nothing saves (error)
      */
-    it('shows the message from PHP when the save fails', async () => {
+    it('emits the PHP message as a toast error when the save fails', async () => {
         // Arrange
         const message = 'This cohort already has a subject with that name';
         vi.mocked(createSubject).mockRejectedValue({ response: { data: { error: message } } });
@@ -99,7 +99,8 @@ describe('SubjectForm', () => {
         await flushPromises();
 
         // Assert
-        expect(wrapper.get('[role="alert"]').text()).toBe('There is a problem: ' + message);
+        expect(wrapper.find('[role="alert"]').exists()).toBe(false);
+        expect(wrapper.emitted('error')).toEqual([[message]]);
         expect(wrapper.emitted('saved')).toBeUndefined();
     });
 

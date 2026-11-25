@@ -3,10 +3,16 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { mount, flushPromises } from '@vue/test-utils';
 import StudentManagementTable from '../components/tables/studentManagementTable.vue';
-import { getLecturerStudents } from '../services/studentService';
+import { getLecturerStudents, updateStudentStatus } from '../services/studentService';
+
+const { tableSearch, tableDraw } = vi.hoisted(() => ({
+    tableSearch: vi.fn(),
+    tableDraw: vi.fn(),
+}));
 
 vi.mock('../services/studentService', () => ({
     getLecturerStudents: vi.fn(),
+    updateStudentStatus: vi.fn(),
 }));
 
 // draws each row with the #status and #actions slots, like DataTables does in the browser
@@ -18,6 +24,20 @@ vi.mock('datatables.net-vue3', async () => {
             defineComponent({
                 name: 'DataTable',
                 props: ['data', 'columns', 'options'],
+                setup(_props, { expose }) {
+                    expose({
+                        dt: {
+                            column(index) {
+                                return {
+                                    search(value, regex, smart) {
+                                        tableSearch(index, value, regex, smart);
+                                        return { draw: tableDraw };
+                                    },
+                                };
+                            },
+                        },
+                    });
+                },
                 template: `
                     <div>
                         <div
@@ -48,6 +68,34 @@ vi.mock('datatables.net-bs5', () => ({
 describe('studentManagementTable.vue', () => {
     beforeEach(() => {
         vi.clearAllMocks();
+        HTMLDialogElement.prototype.showModal = vi.fn(function showModal() {
+            this.setAttribute('open', '');
+        });
+        HTMLDialogElement.prototype.close = vi.fn(function close() {
+            this.removeAttribute('open');
+            this.dispatchEvent(new Event('close'));
+        });
+    });
+
+    it('applies and clears the status search when the status prop changes', async () => {
+        getLecturerStudents.mockResolvedValue([]);
+        const wrapper = mount(StudentManagementTable);
+        await flushPromises();
+        tableSearch.mockClear();
+        tableDraw.mockClear();
+
+        await wrapper.setProps({ status: 'Pending' });
+        await flushPromises();
+        await wrapper.setProps({ status: '' });
+        await flushPromises();
+
+        expect(tableSearch.mock.calls).toEqual([
+            [3, '^Pending$', true, false],
+            [3, '', true, false],
+        ]);
+        expect(tableDraw).toHaveBeenCalledTimes(2);
+
+        wrapper.unmount();
     });
 
     it('loads and displays students successfully', async () => {
@@ -189,6 +237,48 @@ describe('studentManagementTable.vue', () => {
 
         // Assert
         expect(wrapper.emitted('edit')).toEqual([[student]]);
+
+        wrapper.unmount();
+    });
+
+    it('does not disable a student until the confirmation is accepted', async () => {
+        const student = { userID: 1, name: 'Alex Morgan', status: 'Active' };
+        getLecturerStudents.mockResolvedValue([student]);
+        const wrapper = mount(StudentManagementTable);
+        await flushPromises();
+
+        await wrapper.get('[aria-label="Disable Alex Morgan"]').trigger('click');
+        await flushPromises();
+
+        const dialog = wrapper.get('dialog[aria-label="Confirm Disable"]');
+        expect(dialog.attributes('open')).toBeDefined();
+        expect(dialog.text()).toContain('Alex Morgan');
+        expect(updateStudentStatus).not.toHaveBeenCalled();
+
+        await dialog.get('.btn.btn-outline-primary').trigger('click');
+        await flushPromises();
+
+        expect(dialog.attributes('open')).toBeUndefined();
+        expect(updateStudentStatus).not.toHaveBeenCalled();
+
+        wrapper.unmount();
+    });
+
+    it('disables a student after the confirmation is accepted', async () => {
+        const student = { userID: 1, name: 'Alex Morgan', status: 'Active' };
+        getLecturerStudents.mockResolvedValue([student]);
+        updateStudentStatus.mockResolvedValue({});
+        const wrapper = mount(StudentManagementTable);
+        await flushPromises();
+
+        await wrapper.get('[aria-label="Disable Alex Morgan"]').trigger('click');
+        await flushPromises();
+        await wrapper.get('dialog[aria-label="Confirm Disable"] .studentCreateButton').trigger('click');
+        await flushPromises();
+
+        expect(updateStudentStatus).toHaveBeenCalledWith(1, false);
+        expect(getLecturerStudents).toHaveBeenCalledTimes(2);
+        expect(wrapper.get('dialog[aria-label="Confirm Disable"]').attributes('open')).toBeUndefined();
 
         wrapper.unmount();
     });

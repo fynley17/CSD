@@ -25,7 +25,7 @@ const props = defineProps({
 });
 
 // Define events sent back to the parent component.
-const emit = defineEmits(['save', 'cancel']);
+const emit = defineEmits(['save', 'cancel', 'error']);
 
 // Store the selected subject ID.
 const subjectID = ref('');
@@ -113,18 +113,21 @@ const submitForm = () => {
     // Ensure a subject has been selected.
     if (!subjectID.value) {
         errorMessage.value = 'Please select a subject.';
+        emit('error', errorMessage.value);
         return;
     }
 
     // Ensure the question contains text.
     if (!questionText.value.trim()) {
         errorMessage.value = 'Please enter a question.';
+        emit('error', errorMessage.value);
         return;
     }
 
     // Ensure exactly four answers have been provided.
     if (answers.value.length !== 4 || answers.value.some((answer) => !answer.answerText.trim())) {
         errorMessage.value = 'Please complete all four answer options.';
+        emit('error', errorMessage.value);
         return;
     }
 
@@ -133,6 +136,7 @@ const submitForm = () => {
 
     if (correctAnswers !== 1) {
         errorMessage.value = 'Please select exactly one correct answer.';
+        emit('error', errorMessage.value);
         return;
     }
 
@@ -168,11 +172,6 @@ const cancelForm = () => {
                         : 'Complete the details below to create a new question.'
                 }}
             </p>
-        </div>
-
-        <!-- Display validation errors accessibly. -->
-        <div v-if="errorMessage" class="formError" role="alert">
-            {{ errorMessage }}
         </div>
 
         <!-- Question creation and editing form. -->
@@ -246,7 +245,9 @@ const cancelForm = () => {
 
             <!-- Form action buttons. -->
             <div class="formActions">
-                <button type="button" class="cancelButton" :disabled="loading" @click="cancelForm">Cancel</button>
+                <button type="button" class="btn btn-outline-primary" :disabled="loading" @click="cancelForm">
+                    Cancel
+                </button>
 
                 <button type="submit" class="submitButton" :disabled="loading">
                     {{ loading ? 'Saving...' : isEditing ? 'Save Changes' : 'Create Question' }}
@@ -383,9 +384,10 @@ const cancelForm = () => {
 
 /* Align the Cancel and Save buttons. */
 .formActions {
-    display: flex;
-    justify-content: flex-end;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: var(--spaceSm);
+    width: 100%;
     margin-top: var(--spaceMd);
 }
 

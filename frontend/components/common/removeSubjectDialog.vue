@@ -17,7 +17,7 @@
 
         <template #buttons>
             <div class="cohortDialogButtons">
-                <button type="button" class="cohortSecondaryButton" :disabled="isSaving" @click="dialog.close()">
+                <button type="button" class="btn btn-outline-primary" :disabled="isSaving" @click="dialog.close()">
                     Cancel
                 </button>
                 <button type="button" class="cohortPrimaryButton" :disabled="isSaving" @click="remove">

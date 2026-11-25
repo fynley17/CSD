@@ -12,7 +12,7 @@ const props = defineProps({
 });
 
 // Notify the parent when a test has been saved or the dialog has been closed.
-const emit = defineEmits(['saved', 'close']);
+const emit = defineEmits(['saved', 'close', 'error']);
 
 // References and state used to control the dialog, subject loading and form submission.
 const dialog = ref(null);
@@ -90,6 +90,7 @@ async function loadSubjects() {
         }
     } catch {
         errorMessage.value = 'Unable to load subjects. Please try again.';
+        emit('error', errorMessage.value);
     } finally {
         loadingSubjects.value = false;
     }
@@ -141,6 +142,7 @@ async function submitTest() {
     errorMessage.value = '';
 
     if (!validateForm()) {
+        emit('error', errorMessage.value);
         return;
     }
 
@@ -172,6 +174,7 @@ async function submitTest() {
             error.response?.data?.error ??
             error.response?.data?.message ??
             'Unable to save the test. Please check your details and try again.';
+        emit('error', errorMessage.value);
     } finally {
         submitting.value = false;
     }
@@ -190,10 +193,6 @@ onMounted(async () => {
     <PopupDialog ref="dialog" :title="dialogTitle" @close="emit('close')">
         <form id="test-form" class="testForm" @submit.prevent="submitTest">
             <!-- Show validation and API errors to the user. -->
-            <div v-if="errorMessage" class="formError" role="alert">
-                {{ errorMessage }}
-            </div>
-
             <!-- Test name is required and limited to 30 characters. -->
             <div class="formGroup">
                 <label for="testName"> Test name <span aria-hidden="true">*</span> </label>
@@ -236,7 +235,6 @@ onMounted(async () => {
             <div v-if="form.subjectID && selectedSubject" class="formGroup cohortDisplay">
                 <label for="cohortName">Cohort</label>
                 <input id="cohortName" :value="selectedCohortName" type="text" readonly aria-readonly="true" />
-                <small>The cohort is determined automatically by the selected subject.</small>
             </div>
 
             <!-- Optional description with a maximum length of 100 characters. -->
@@ -255,7 +253,7 @@ onMounted(async () => {
             <!-- Configure how many questions are included and the optional time limit. -->
             <div class="formRow">
                 <div class="formGroup">
-                    <label for="questionCount"> Questions per attempt <span aria-hidden="true">*</span> </label>
+                    <label for="questionCount">Questions per attempt <span aria-hidden="true">*</span></label>
                     <input
                         id="questionCount"
                         v-model="form.questionCount"
@@ -290,13 +288,15 @@ onMounted(async () => {
 
         <!-- Keep the dialog actions separate from the form fields. -->
         <template #buttons>
-            <button type="button" class="secondaryButton" :disabled="submitting" @click="dialog?.close()">
-                Cancel
-            </button>
+            <div class="testFormActions">
+                <button type="button" class="btn btn-outline-primary" :disabled="submitting" @click="dialog?.close()">
+                    Cancel
+                </button>
 
-            <button type="submit" form="test-form" class="primaryButton" :disabled="submitting || loadingSubjects">
-                {{ submitting ? 'Saving...' : isEditing ? 'Save Changes' : 'Create Test' }}
-            </button>
+                <button type="submit" form="test-form" class="primaryButton" :disabled="submitting || loadingSubjects">
+                    {{ submitting ? 'Saving...' : isEditing ? 'Save Changes' : 'Create Test' }}
+                </button>
+            </div>
         </template>
     </PopupDialog>
 </template>
@@ -377,6 +377,16 @@ onMounted(async () => {
     border-radius: var(--radiusSm);
     background-color: var(--colorWarningLight);
     color: var(--colorText);
+}
+
+/* Align the form actions at the bottom right of the dialog. */
+.testFormActions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    justify-content: flex-end;
+    align-items: center;
+    gap: var(--spaceSm);
+    width: 100%;
 }
 
 /* Shared styling for the dialog action buttons. */
