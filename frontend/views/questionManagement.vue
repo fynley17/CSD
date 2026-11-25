@@ -359,13 +359,17 @@ onBeforeUnmount(() => {
     border-color: var(--colorError);
     color: var(--colorError);
     margin: 0;
-    inset: var(--spaceLg) var(--spaceLg) auto auto;
+    inset: calc(var(--navHeight) + var(--spaceLg)) var(--spaceLg) auto auto;
 }
 
 @media (max-width: 639px) {
     .toastMessage {
         top: calc(var(--navHeight) + var(--spaceMd));
         right: var(--spaceMd);
+    }
+
+    .errorMessage:popover-open {
+        inset: calc(var(--navHeight) + var(--spaceMd)) var(--spaceMd) auto auto;
     }
 }
 </style>

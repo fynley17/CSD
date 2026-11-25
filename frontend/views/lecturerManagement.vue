@@ -24,6 +24,7 @@ export default {
             statusOptions: lecturerStatusOptions,
             successMessage: '',
             errorMessage: '',
+            errorToast: null,
             notificationTimeout: null,
             // who the confirm box is asking about, and whether its a toggle or a delete
             confirmLecturer: null,
@@ -57,6 +58,10 @@ export default {
 
     methods: {
         showSuccess(message) {
+            this.errorMessage = '';
+            if (typeof this.$refs.errorToast?.hidePopover === 'function') {
+                this.$refs.errorToast.hidePopover();
+            }
             this.successMessage = message;
             if (this.notificationTimeout) clearTimeout(this.notificationTimeout);
             this.notificationTimeout = setTimeout(() => {
@@ -65,13 +70,32 @@ export default {
             }, 15000);
         },
 
-        showError(message) {
+        async showError(message) {
             this.errorMessage = message;
             if (this.notificationTimeout) clearTimeout(this.notificationTimeout);
+            await this.$nextTick();
+            if (
+                typeof this.$refs.errorToast?.showPopover === 'function' &&
+                !this.$refs.errorToast.matches(':popover-open')
+            ) {
+                this.$refs.errorToast.showPopover();
+            }
             this.notificationTimeout = setTimeout(() => {
+                if (typeof this.$refs.errorToast?.hidePopover === 'function') {
+                    this.$refs.errorToast.hidePopover();
+                }
                 this.errorMessage = '';
                 this.notificationTimeout = null;
             }, 15000);
+        },
+
+        closeError() {
+            this.errorMessage = '';
+            if (this.notificationTimeout) clearTimeout(this.notificationTimeout);
+            this.notificationTimeout = null;
+            if (typeof this.$refs.errorToast?.hidePopover === 'function') {
+                this.$refs.errorToast.hidePopover();
+            }
         },
 
         // Add lecturer button, empty form with the Role dropdown
@@ -194,12 +218,17 @@ export default {
                 ×
             </button>
         </div>
-        <div v-if="errorMessage" class="toastMessage errorMessage" role="alert" aria-live="assertive">
+        <div
+            v-if="errorMessage"
+            ref="errorToast"
+            popover="manual"
+            class="toastMessage errorMessage"
+            role="alert"
+            aria-live="assertive"
+        >
             <span aria-hidden="true">!</span>
             <span>{{ errorMessage }}</span>
-            <button type="button" class="toastClose" aria-label="Close notification" @click="errorMessage = ''">
-                ×
-            </button>
+            <button type="button" class="toastClose" aria-label="Close notification" @click="closeError">×</button>
         </div>
 
         <div class="tableToolbar">
@@ -294,5 +323,14 @@ export default {
         top: calc(var(--navHeight) + var(--spaceMd));
         right: var(--spaceMd);
     }
+
+    .errorMessage:popover-open {
+        inset: calc(var(--navHeight) + var(--spaceMd)) var(--spaceMd) auto auto;
+    }
+}
+
+.errorMessage:popover-open {
+    position: fixed;
+    inset: calc(var(--navHeight) + var(--spaceLg)) var(--spaceLg) auto auto;
 }
 </style>

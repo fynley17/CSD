@@ -40,6 +40,7 @@ const deletingTest = ref(false);
 // Store success and error messages displayed to the lecturer.
 const successMessage = ref('');
 const errorMessage = ref('');
+const errorToast = ref(null);
 
 // Store the notification timeout so it can be cleared when necessary.
 let messageTimeout = null;
@@ -71,11 +72,19 @@ function showSuccess(message) {
 }
 
 // Display a temporary error notification.
-function showError(message) {
+async function showError(message) {
     clearMessages();
     errorMessage.value = message;
 
+    await nextTick();
+    if (typeof errorToast.value?.showPopover === 'function' && !errorToast.value.matches(':popover-open')) {
+        errorToast.value.showPopover();
+    }
+
     messageTimeout = setTimeout(() => {
+        if (typeof errorToast.value?.hidePopover === 'function') {
+            errorToast.value.hidePopover();
+        }
         errorMessage.value = '';
         messageTimeout = null;
     }, 15000);
@@ -87,6 +96,9 @@ function closeSuccess() {
 
 function closeError() {
     clearMessages();
+    if (typeof errorToast.value?.hidePopover === 'function') {
+        errorToast.value.hidePopover();
+    }
 }
 
 // Pass the selected subject filter to the table component.
@@ -205,7 +217,14 @@ onBeforeUnmount(() => {
         </div>
 
         <!-- Display a temporary error notification if an operation fails. -->
-        <div v-if="errorMessage" class="toastMessage errorMessage" role="alert" aria-live="assertive">
+        <div
+            v-if="errorMessage"
+            ref="errorToast"
+            popover="manual"
+            class="toastMessage errorMessage"
+            role="alert"
+            aria-live="assertive"
+        >
             <span aria-hidden="true">!</span>
             <span>{{ errorMessage }}</span>
             <button type="button" class="toastClose" aria-label="Close notification" @click="closeError">×</button>
@@ -321,10 +340,17 @@ onBeforeUnmount(() => {
     color: var(--colorError);
 }
 
-@media (max-width: 639px) {
+.errorMessage:popover-open {
+    position: fixed;
+    inset: calc(var(--navHeight) + var(--spaceLg)) var(--spaceLg) auto auto;
+}
     .toastMessage {
         top: calc(var(--navHeight) + var(--spaceMd));
         right: var(--spaceMd);
+    }
+
+    .errorMessage:popover-open {
+        inset: calc(var(--navHeight) + var(--spaceMd)) var(--spaceMd) auto auto;
     }
 }
 </style>
