@@ -3,10 +3,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { mount, flushPromises } from '@vue/test-utils';
 import StudentManagementTable from '../components/tables/studentManagementTable.vue';
-import { getLecturerStudents } from '../services/studentService';
+import { getLecturerStudents, updateStudentStatus } from '../services/studentService';
 
 vi.mock('../services/studentService', () => ({
     getLecturerStudents: vi.fn(),
+    updateStudentStatus: vi.fn(),
 }));
 
 // draws each row with the #status and #actions slots, like DataTables does in the browser
@@ -48,6 +49,13 @@ vi.mock('datatables.net-bs5', () => ({
 describe('studentManagementTable.vue', () => {
     beforeEach(() => {
         vi.clearAllMocks();
+        HTMLDialogElement.prototype.showModal = vi.fn(function showModal() {
+            this.setAttribute('open', '');
+        });
+        HTMLDialogElement.prototype.close = vi.fn(function close() {
+            this.removeAttribute('open');
+            this.dispatchEvent(new Event('close'));
+        });
     });
 
     it('loads and displays students successfully', async () => {
@@ -189,6 +197,48 @@ describe('studentManagementTable.vue', () => {
 
         // Assert
         expect(wrapper.emitted('edit')).toEqual([[student]]);
+
+        wrapper.unmount();
+    });
+
+    it('does not disable a student until the confirmation is accepted', async () => {
+        const student = { userID: 1, name: 'Alex Morgan', status: 'Active' };
+        getLecturerStudents.mockResolvedValue([student]);
+        const wrapper = mount(StudentManagementTable);
+        await flushPromises();
+
+        await wrapper.get('[aria-label="Disable Alex Morgan"]').trigger('click');
+        await flushPromises();
+
+        const dialog = wrapper.get('dialog[aria-label="Confirm Disable"]');
+        expect(dialog.attributes('open')).toBeDefined();
+        expect(dialog.text()).toContain('Alex Morgan');
+        expect(updateStudentStatus).not.toHaveBeenCalled();
+
+        await dialog.get('.studentCancelButton').trigger('click');
+        await flushPromises();
+
+        expect(dialog.attributes('open')).toBeUndefined();
+        expect(updateStudentStatus).not.toHaveBeenCalled();
+
+        wrapper.unmount();
+    });
+
+    it('disables a student after the confirmation is accepted', async () => {
+        const student = { userID: 1, name: 'Alex Morgan', status: 'Active' };
+        getLecturerStudents.mockResolvedValue([student]);
+        updateStudentStatus.mockResolvedValue({});
+        const wrapper = mount(StudentManagementTable);
+        await flushPromises();
+
+        await wrapper.get('[aria-label="Disable Alex Morgan"]').trigger('click');
+        await flushPromises();
+        await wrapper.get('dialog[aria-label="Confirm Disable"] .studentCreateButton').trigger('click');
+        await flushPromises();
+
+        expect(updateStudentStatus).toHaveBeenCalledWith(1, false);
+        expect(getLecturerStudents).toHaveBeenCalledTimes(2);
+        expect(wrapper.get('dialog[aria-label="Confirm Disable"]').attributes('open')).toBeUndefined();
 
         wrapper.unmount();
     });
