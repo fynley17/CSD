@@ -10,6 +10,51 @@ use App\Helpers\Validation;
  */
 class Administrator extends Lecturer
 {
+    private const STAFF_ID_RULES = 'Staff ID must be 3 to 8 letters or numbers, like L1001';
+
+    /**
+     * My profile, an admin can also change their own staff ID, nobody above them in the app could do it for them
+     *
+     * @return array<string, string> firstName, lastName, email and staffID, all checked
+     * @throws \InvalidArgumentException with the message to show if something is missing or wrong
+     */
+    public function readProfileDetails(mixed $data): array
+    {
+        $details = parent::readProfileDetails($data);
+        $staffID = self::readField(is_array($data) ? $data : [], 'staffID');
+
+        if (!Validation::isValidStaffId($staffID)) {
+            throw new \InvalidArgumentException(self::STAFF_ID_RULES);
+        }
+
+        return $details + ['staffID' => $staffID];
+    }
+
+    /**
+     * Saves the admin's own names and email like any account, then their staff ID if it changed
+     * a staff ID someone else has is turned away before anything is saved
+     *
+     * @param array<string, string> $details from readProfileDetails()
+     * @return string|null the code for the confirm link if the email changed, see User::updateProfile()
+     * @throws \InvalidArgumentException if the staff ID or email belongs to another account
+     */
+    public function updateProfile(array $details): ?string
+    {
+        $staffID = $details['staffID'] ?? $this->getUsername();
+
+        if (self::isTaken('username', $staffID, $this->getUserID())) {
+            throw new \InvalidArgumentException('Another account is already using this staff ID');
+        }
+
+        $token = parent::updateProfile($details);
+
+        if ($staffID !== $this->getUsername()) {
+            $this->saveUsername($staffID);
+        }
+
+        return $token;
+    }
+
     /**
      * Counts what the four admin dashboard cards show
      *
@@ -306,7 +351,7 @@ class Administrator extends Lecturer
             throw new \InvalidArgumentException('Enter a last name using letters, spaces, hyphens or apostrophes');
         }
         if (!Validation::isValidStaffId($staffID)) {
-            throw new \InvalidArgumentException('Staff ID must be 3 to 8 letters or numbers, like L1001');
+            throw new \InvalidArgumentException(self::STAFF_ID_RULES);
         }
         if (!Validation::isValidEmail($email)) {
             throw new \InvalidArgumentException('Enter an email address in the correct format, like name@example.com');

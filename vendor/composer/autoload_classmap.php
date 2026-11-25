@@ -15,6 +15,7 @@ return array(
     'App\\Controllers\\LoginCodeController' => $baseDir . '/app/controllers/loginCodeController.php',
     'App\\Controllers\\PasswordResetController' => $baseDir . '/app/controllers/passwordResetController.php',
     'App\\Controllers\\PasswordSetupController' => $baseDir . '/app/controllers/passwordSetupController.php',
+    'App\\Controllers\\ProfileController' => $baseDir . '/app/controllers/profileController.php',
     'App\\Controllers\\QuestionController' => $baseDir . '/app/controllers/questionController.php',
     'App\\Controllers\\ResultController' => $baseDir . '/app/controllers/resultController.php',
     'App\\Controllers\\StudentController' => $baseDir . '/app/controllers/studentController.php',

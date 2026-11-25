@@ -348,9 +348,9 @@ class Mailer
     /**
      * Tells the account owner their password was changed, so they know if it wasn't them.
      */
-    public static function sendPasswordChangedEmail(string $toEmail): bool
+    public static function sendPasswordChangedEmail(string $toEmail, bool $fromProfile = false): bool
     {
-        $email = self::buildPasswordChangedEmail();
+        $email = self::buildPasswordChangedEmail($fromProfile);
 
         return self::sendEmail($toEmail, '', $email['subject'], $email['html'], $email['text']);
     }
@@ -360,9 +360,13 @@ class Mailer
      *
      * @return array{subject: string, html: string, text: string}
      */
-    public static function buildPasswordChangedEmail(): array
+    public static function buildPasswordChangedEmail(bool $fromProfile = false): array
     {
         $subject = 'Your RevisionHub password has been changed';
+        // says how it was changed, so the owner can tell whether it was them
+        $how = $fromProfile
+            ? 'was just changed from the My profile page while signed in.'
+            : 'was just reset using a forgot password link.';
 
         $content = <<<HTML
             <h1 style="margin:0 0 16px;font-size:22px;color:#0f1b33;">
@@ -370,7 +374,7 @@ class Mailer
             </h1>
 
             <p style="margin:0 0 16px;">
-                The password for your RevisionHub account was just reset using a forgot password link.
+                The password for your RevisionHub account {$how}
             </p>
 
             <p style="margin:0 0 16px;">
@@ -385,9 +389,91 @@ class Mailer
         HTML;
 
         $text = "Your password has been changed\n\n"
-            . "The password for your RevisionHub account was just reset using a forgot password link.\n\n"
+            . "The password for your RevisionHub account {$how}\n\n"
             . "If this was you, there is nothing else to do. "
             . "If it was not you, contact your lecturer or an administrator straight away.\n\n"
+            . "Kind regards,\nThe RevisionHub Team\n\n"
+            . "This is an automated message, please do not reply to this email.";
+
+        return [
+            'subject' => $subject,
+            'html' => self::wrapLayout($subject, $content),
+            'text' => $text,
+        ];
+    }
+
+    /**
+     * Sends the link that confirms a new address typed on the profile page.
+     * It goes to the new address, so only someone who can read that inbox can confirm it.
+     */
+    public static function sendEmailChangeEmail(string $toEmail, string $token): bool
+    {
+        $email = self::buildEmailChangeEmail(self::verificationLink($token));
+
+        return self::sendEmail($toEmail, '', $email['subject'], $email['html'], $email['text']);
+    }
+
+    /**
+     * Builds the confirm your new email address email.
+     *
+     * @return array{subject: string, html: string, text: string}
+     */
+    public static function buildEmailChangeEmail(string $link): array
+    {
+        $safeLink = htmlspecialchars($link, ENT_QUOTES, 'UTF-8');
+        $hours = EmailVerification::LINK_LIFETIME_HOURS;
+        $subject = 'Confirm your new email address for RevisionHub';
+
+        $content = <<<HTML
+            <h1 style="margin:0 0 16px;font-size:22px;color:#0f1b33;">
+                Confirm your new email address
+            </h1>
+
+            <p style="margin:0 0 16px;">
+                Someone asked to use this email address for their RevisionHub account.
+                If this was you, select the button below to confirm it.
+                Until then, we will keep using your old email address.
+            </p>
+
+            <table role="presentation" cellpadding="0" cellspacing="0"
+                style="margin:8px 0 24px;">
+                <tr>
+                    <td style="border-radius:6px;background-color:#0a66c2;">
+                        <a href="{$safeLink}"
+                            style="display:inline-block;padding:14px 28px;font-size:16px;
+                            font-weight:bold;color:#ffffff;text-decoration:none;border-radius:6px;">
+                            Confirm my new email
+                        </a>
+                    </td>
+                </tr>
+            </table>
+
+            <p style="margin:0 0 16px;">
+                This link will expire in {$hours} hours.
+                If the button does not work, copy this link into your browser:
+            </p>
+
+            <p style="margin:0 0 16px;font-size:14px;word-break:break-all;">
+                <a href="{$safeLink}" style="color:#0a66c2;">{$safeLink}</a>
+            </p>
+
+            <p style="margin:0 0 16px;">
+                If you did not ask for this, you can ignore this email and nothing will change.
+            </p>
+
+            <p style="margin:24px 0 0;">
+                Kind regards,<br>
+                <strong>The RevisionHub Team</strong>
+            </p>
+        HTML;
+
+        $text = "Confirm your new email address\n\n"
+            . "Someone asked to use this email address for their RevisionHub account. "
+            . "If this was you, open the link below to confirm it. "
+            . "Until then, we will keep using your old email address.\n\n"
+            . "{$link}\n\n"
+            . "This link will expire in {$hours} hours.\n\n"
+            . "If you did not ask for this, you can ignore this email and nothing will change.\n\n"
             . "Kind regards,\nThe RevisionHub Team\n\n"
             . "This is an automated message, please do not reply to this email.";
 

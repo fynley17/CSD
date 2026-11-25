@@ -4,6 +4,32 @@ namespace App\Models;
 
 class Student extends User
 {
+    /**
+     * Students keep their names in the Students table.
+     */
+    protected static function nameTable(): string
+    {
+        return 'Students';
+    }
+
+    /**
+     * The My profile details, plus the student's cohort, which only a lecturer or admin can change.
+     */
+    public function getProfile(): array
+    {
+        $profile = parent::getProfile();
+
+        $stmt = self::getDB()->prepare(
+            'SELECT Cohorts.cohortName FROM Students '
+            . 'JOIN Cohorts ON Cohorts.cohortID = Students.cohortID WHERE Students.userID = ?'
+        );
+        $stmt->execute([$this->getUserID()]);
+        $cohortName = $stmt->fetchColumn();
+        $profile['cohortName'] = $cohortName === false ? null : $cohortName;
+
+        return $profile;
+    }
+
     public static function getAll(): array
     {
         $db = self::getDB();
@@ -676,16 +702,6 @@ class Student extends User
     {
         return is_string($studentNumber)
             && preg_match('/^ws[0-9]{6}$/D', $studentNumber) === 1;
-    }
-
-    public static function validPassword($password)
-    {
-        return is_string($password)
-            && strlen($password) >= 8
-            && preg_match('/[A-Z]/', $password) === 1
-            && preg_match('/[a-z]/', $password) === 1
-            && preg_match('/[0-9]/', $password) === 1
-            && preg_match('/[^a-zA-Z0-9\s]/', $password) === 1;
     }
 
     public static function getRecentActivity(): array

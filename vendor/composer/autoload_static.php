@@ -83,6 +83,7 @@ class ComposerStaticInit4177079d30bfeb244a424e62b57c06ff
         'App\\Controllers\\LoginCodeController' => __DIR__ . '/../..' . '/app/controllers/loginCodeController.php',
         'App\\Controllers\\PasswordResetController' => __DIR__ . '/../..' . '/app/controllers/passwordResetController.php',
         'App\\Controllers\\PasswordSetupController' => __DIR__ . '/../..' . '/app/controllers/passwordSetupController.php',
+        'App\\Controllers\\ProfileController' => __DIR__ . '/../..' . '/app/controllers/profileController.php',
         'App\\Controllers\\QuestionController' => __DIR__ . '/../..' . '/app/controllers/questionController.php',
         'App\\Controllers\\ResultController' => __DIR__ . '/../..' . '/app/controllers/resultController.php',
         'App\\Controllers\\StudentController' => __DIR__ . '/../..' . '/app/controllers/studentController.php',
