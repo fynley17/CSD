@@ -236,7 +236,7 @@ const selectedStudent = ref(null);
 .toastMessage {
     position: fixed;
     z-index: 1100;
-    top: var(--spaceLg);
+    top: calc(var(--navHeight) + var(--spaceLg));
     right: var(--spaceLg);
     display: flex;
     align-items: center;
@@ -283,7 +283,7 @@ const selectedStudent = ref(null);
 
 @media (max-width: 639px) {
     .toastMessage {
-        top: var(--spaceMd);
+        top: calc(var(--navHeight) + var(--spaceMd));
         right: var(--spaceMd);
     }
 

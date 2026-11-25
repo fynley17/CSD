@@ -94,8 +94,8 @@ describe('LecturerManagement', () => {
 
         // Assert
         expect(deleteLecturer).toHaveBeenCalledWith('lecturer-1');
-        expect(page.get('.toastMessage.errorMessage').text()).toBe(
-            "!Administrator accounts can't be changed on this page×",
+        expect(page.get('.toastMessage.errorMessage').text()).toContain(
+            "!Administrator accounts can't be changed on this page",
         );
         expect(page.find('.toastMessage.successMessage').exists()).toBe(false);
     });

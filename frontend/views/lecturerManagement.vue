@@ -257,7 +257,7 @@ export default {
 .toastMessage {
     position: fixed;
     z-index: 1100;
-    top: var(--spaceLg);
+    top: calc(var(--navHeight) + var(--spaceLg));
     right: var(--spaceLg);
     width: max-content;
     max-width: min(450px, calc(100vw - 2 * var(--spaceLg)));
@@ -290,7 +290,7 @@ export default {
 
 @media (max-width: 639px) {
     .toastMessage {
-        top: var(--spaceMd);
+        top: calc(var(--navHeight) + var(--spaceMd));
         right: var(--spaceMd);
     }
 }
