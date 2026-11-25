@@ -28,7 +28,7 @@ export default {
             notificationTimeout: null,
             // the row the confirm box is asking about
             confirmSubject: null,
-            // the subject just archived or restored, Undo shows in the green box while this is set
+            // subject that was just archived or restored so Undo knows which one
             undoSubject: null,
         };
     },
@@ -137,7 +137,7 @@ export default {
             }
         },
 
-        // Undo in the green box, false at the end so the undo doesnt get its own Undo
+        // puts it back, false so theres no Undo on the undo
         undo() {
             const subject = this.undoSubject;
             this.undoSubject = null;
@@ -176,7 +176,7 @@ export default {
             role="alert"
             aria-live="assertive"
         >
-            <span aria-hidden="true">!</span>
+            <i class="bi bi-exclamation-triangle-fill" aria-hidden="true"></i>
             <span>{{ errorMessage }}</span>
             <button type="button" class="toastClose" aria-label="Close notification" @click="closeError">×</button>
         </div>
@@ -271,6 +271,9 @@ export default {
 
 .errorMessage:popover-open {
     position: fixed;
+    display: flex;
+    align-items: center;
+    gap: var(--spaceSm);
     inset: calc(var(--navHeight) + var(--spaceLg)) var(--spaceLg) auto auto;
 }
 </style>

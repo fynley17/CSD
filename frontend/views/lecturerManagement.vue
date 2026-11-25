@@ -29,7 +29,7 @@ export default {
             // who the confirm box is asking about, and whether its a toggle or a delete
             confirmLecturer: null,
             confirmAction: '',
-            // the lecturer just disabled or enabled, Undo shows in the green box while this is set
+            // last lecturer turned on/off, null = no Undo button
             undoLecturer: null,
         };
     },
@@ -170,7 +170,7 @@ export default {
         },
 
         /**
-         * Turns the account off or on. canUndo is false for an undo so you cant undo the undo
+         * Turns the account off or on, canUndo is false when its the undo itself
          */
         async setStatus(lecturer, isEnabled, canUndo = true) {
             this.errorMessage = '';
@@ -189,7 +189,7 @@ export default {
             }
         },
 
-        // Undo in the green box, puts the account back how it was
+        // Undo button, flips them back to how they were before
         undo() {
             const lecturer = this.undoLecturer;
             this.undoLecturer = null;
@@ -244,7 +244,7 @@ export default {
             role="alert"
             aria-live="assertive"
         >
-            <span aria-hidden="true">!</span>
+            <i class="bi bi-exclamation-triangle-fill" aria-hidden="true"></i>
             <span>{{ errorMessage }}</span>
             <button type="button" class="toastClose" aria-label="Close notification" @click="closeError">×</button>
         </div>
@@ -352,6 +352,9 @@ export default {
 
 .errorMessage:popover-open {
     position: fixed;
+    display: flex;
+    align-items: center;
+    gap: var(--spaceSm);
     inset: calc(var(--navHeight) + var(--spaceLg)) var(--spaceLg) auto auto;
 }
 </style>

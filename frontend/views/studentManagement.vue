@@ -28,7 +28,7 @@ const statusFilter = ref('');
 // Store the warning displayed when student login emails fail.
 const warningMessage = ref('');
 const successMessage = ref('');
-// the student just disabled or enabled, Undo shows in the green box while this is set
+// student from the last disable/enable, null hides Undo
 const undoStudent = ref(null);
 const errorMessage = ref('');
 const errorToast = ref(null);
@@ -116,7 +116,7 @@ async function showError(message) {
     }, 20000);
 }
 
-// Undo in the green box, the row still has the old status so put that back
+// the row still has its old status at this point so just set it back to that
 async function undo() {
     const student = undoStudent.value;
     const turnOn = student.status !== 'Disabled';
@@ -199,15 +199,22 @@ const selectedStudent = ref(null);
             </button>
             <button type="button" class="toastClose" aria-label="Close notification" @click="closeSuccess">×</button>
         </div>
-        <div ref="errorToast" popover="manual" class="toastMessage errorMessage" role="alert" aria-live="assertive">
-            <span aria-hidden="true">!</span>
+        <div
+            v-if="errorMessage"
+            ref="errorToast"
+            popover="manual"
+            class="toastMessage errorMessage"
+            role="alert"
+            aria-live="assertive"
+        >
+            <i class="bi bi-exclamation-triangle-fill" aria-hidden="true"></i>
             <span>{{ errorMessage }}</span>
             <button type="button" class="toastClose" aria-label="Close notification" @click="closeError">×</button>
         </div>
 
         <!-- Warn the lecturer when student login details could not be emailed. -->
         <div v-if="warningMessage" class="toastMessage warningMessage" role="status" aria-live="polite">
-            <span aria-hidden="true">!</span>
+            <i class="bi bi-exclamation-triangle-fill" aria-hidden="true"></i>
             <span>{{ warningMessage }}</span>
             <button type="button" class="toastClose" aria-label="Close notification" @click="closeWarning">×</button>
         </div>

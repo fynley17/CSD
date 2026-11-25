@@ -364,7 +364,7 @@ describe('CohortManagement', () => {
     });
 
     /**
-     * Undo in the green box turns the cohort back on, then Undo goes (normal)
+     * Undo after a disable makes the cohort active again (normal)
      */
     it('turns the cohort back on when Undo is pressed', async () => {
         // Arrange

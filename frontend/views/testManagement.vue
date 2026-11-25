@@ -225,7 +225,7 @@ onBeforeUnmount(() => {
             role="alert"
             aria-live="assertive"
         >
-            <span aria-hidden="true">!</span>
+            <i class="bi bi-exclamation-triangle-fill" aria-hidden="true"></i>
             <span>{{ errorMessage }}</span>
             <button type="button" class="toastClose" aria-label="Close notification" @click="closeError">×</button>
         </div>

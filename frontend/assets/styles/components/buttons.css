@@ -108,7 +108,8 @@
     --bs-btn-disabled-opacity: 1;
 }
 
-/* Undo in the green toast on lecturers, subjects and cohorts, table button size so the toast stays slim */
+/* Undo button in the success toasts (lecturers, subjects, cohorts, students)
+   same height as table buttons so the toast doesnt get too tall */
 .toastUndo[class~='btn'] {
     min-height: 36px;
     border-radius: var(--radiusSm);

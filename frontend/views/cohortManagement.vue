@@ -50,7 +50,7 @@
             role="alert"
             aria-live="assertive"
         >
-            <span aria-hidden="true">!</span>
+            <i class="bi bi-exclamation-triangle-fill" aria-hidden="true"></i>
             <span>{{ errorMessage }}</span>
             <button type="button" class="toastClose" aria-label="Close notification" @click="closeError">×</button>
         </div>
@@ -169,7 +169,7 @@ import CohortSubjectsTable from '../components/tables/cohortSubjectsTable.vue';
 import { getCohorts, setCohortActive } from '../services/cohortService';
 
 const successMessage = ref('');
-// the cohort that was just disabled, Undo shows in the green box while this is set
+// cohort just disabled, kept so Undo can turn it back on
 const undoCohort = ref(null);
 const errorMessage = ref('');
 const errorToast = ref(null);
@@ -365,7 +365,7 @@ function cohortDisabled(savedCohort) {
     showSuccess('Cohort disabled successfully.', disablingCohort.value);
 }
 
-// turns it back on, toggleStatus shows its own message with no Undo so you cant undo the undo
+// Undo button, toggleStatus does the enable and shows its own message
 function undo() {
     const cohort = undoCohort.value;
     undoCohort.value = null;

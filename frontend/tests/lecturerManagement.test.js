@@ -80,7 +80,7 @@ describe('LecturerManagement', () => {
     });
 
     /**
-     * Undo turns the account back on and the new message has no Undo of its own (normal)
+     * pressing Undo puts the account back on, no second Undo after (normal)
      */
     it('turns the account back on when Undo is pressed', async () => {
         // Arrange
@@ -114,7 +114,7 @@ describe('LecturerManagement', () => {
         // Assert
         expect(deleteLecturer).toHaveBeenCalledWith('lecturer-1');
         expect(page.get('.toastMessage.errorMessage').text()).toContain(
-            "!Administrator accounts can't be changed on this page",
+            "Administrator accounts can't be changed on this page",
         );
         expect(page.find('.toastMessage.successMessage').exists()).toBe(false);
     });
@@ -172,7 +172,8 @@ describe('LecturerManagement', () => {
 
         // Assert
         expect(page.find('.toastMessage.successMessage').exists()).toBe(false);
-        expect(page.get('.toastMessage.errorMessage').text()).toContain('!');
+        // icon instead of a ! so the message text doesnt start with one
+        expect(page.find('.toastMessage.errorMessage .bi-exclamation-triangle-fill').exists()).toBe(true);
         expect(page.get('.toastMessage.errorMessage').text()).toContain('Wait a minute then use Resend link');
     });
 });

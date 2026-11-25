@@ -226,7 +226,7 @@ const handleAction = async (action, student, event) => {
             disable: 'Student disabled successfully.',
             approve: 'Student application approved successfully.',
         };
-        // enable and disable send the student too so the page can offer Undo
+        // send the student with enable/disable so the page can show Undo
         emit('success', messages[action], action === 'approve' ? null : student);
         await refreshStudents();
     } catch (error) {

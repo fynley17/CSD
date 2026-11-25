@@ -90,7 +90,7 @@ describe('StudentManagement', () => {
     });
 
     /**
-     * Disabling a student offers Undo, pressing it turns them back on and Undo goes (normal)
+     * undo on a disabled student enables them again and the button goes (normal)
      */
     it('turns the student back on when Undo is pressed', async () => {
         // Arrange
