@@ -36,16 +36,22 @@
             </p>
         </form>
 
-        <div v-if="errorMessage" id="cohortNameError" class="alert alert-danger mt-3 mb-0" role="alert">
-            <strong>There is a problem:</strong> {{ errorMessage }}
-        </div>
-
         <template #buttons>
             <div class="cohortDialogButtons">
-                <button type="button" class="cohortSecondaryButton" :disabled="isSaving" @click="dialog.close()">
+                <button
+                    type="button"
+                    class="cohortSecondaryButton btn btn-outline-primary"
+                    :disabled="isSaving"
+                    @click="dialog.close()"
+                >
                     Cancel
                 </button>
-                <button type="submit" form="cohortForm" class="cohortPrimaryButton" :disabled="isSaving">
+                <button
+                    type="submit"
+                    form="cohortForm"
+                    class="cohortPrimaryButton btn btn-primary"
+                    :disabled="isSaving"
+                >
                     {{ cohort ? 'Save Changes' : 'Create Cohort' }}
                 </button>
             </div>
@@ -66,7 +72,7 @@ const props = defineProps({
     },
 });
 
-const emit = defineEmits(['close', 'saved']);
+const emit = defineEmits(['close', 'saved', 'error']);
 
 const dialog = ref(null);
 const nameInput = ref(null);
@@ -90,6 +96,7 @@ async function save() {
     if (cohortName.value.trim() === '') {
         errorMessage.value = 'Enter a cohort name';
         isNameInvalid.value = true;
+        emit('error', errorMessage.value);
         return;
     }
 
@@ -105,6 +112,7 @@ async function save() {
     } catch (error) {
         errorMessage.value = error.response?.data?.error || 'Unable to save the cohort';
         isNameInvalid.value = error.response?.data?.field === 'cohortName';
+        emit('error', errorMessage.value);
     } finally {
         isSaving.value = false;
     }

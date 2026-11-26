@@ -122,7 +122,7 @@ export default {
             this.detailErrors.staffID =
                 !this.accountType.canChangeUsername || STAFF_ID_PATTERN.test(this.details.staffID.trim())
                     ? ''
-                    : 'Staff ID must be 3 to 8 letters or numbers, like L1001';
+                    : 'Staff ID must be 3 to 8 letters or numbers, like JKimmins';
             this.detailErrors.firstName = NAME_PATTERN.test(firstName) ? '' : `Enter a first name ${NAME_RULES}`;
             this.detailErrors.lastName = NAME_PATTERN.test(lastName) ? '' : `Enter a last name ${NAME_RULES}`;
 

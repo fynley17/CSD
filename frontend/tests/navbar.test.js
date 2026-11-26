@@ -113,29 +113,44 @@ describe('Navbar', () => {
         expect(header.find('.accountBadge').exists()).toBe(false);
     });
 
-    /**
-     * Nobody logged in, so no page links, no Sign out button and the logo goes to the landing page (boundary)
-     */
+    /** A student sees confirmation before signing out (normal) */
     it('opens confirmation instead of signing out immediately', async () => {
+        // Arrange
         vi.mocked(getCurrentUser).mockResolvedValue({ username: 'ws000001', accountType: 'student' });
         vi.mocked(logout).mockReset();
 
         const header = await loadHeader();
-
         const signOutButton = header
             .findAll('.desktopActions button')
             .find((button) => button.text().includes('Sign out'));
 
+        // Act
         await signOutButton.trigger('click');
         await flushPromises();
 
+        // Assert
         expect(header.find('dialog[aria-label="Confirm Sign Out"]').exists()).toBe(true);
         expect(header.find('dialog[aria-label="Confirm Sign Out"]').text()).toContain('Sign out of RevisionHub?');
         expect(logout).not.toHaveBeenCalled();
+    });
 
+    it('closes the confirmation without signing out when cancelled', async () => {
+        // Arrange
+        vi.mocked(getCurrentUser).mockResolvedValue({ username: 'ws000001', accountType: 'student' });
+        vi.mocked(logout).mockReset();
+
+        const header = await loadHeader();
+        const signOutButton = header
+            .findAll('.desktopActions button')
+            .find((button) => button.text().includes('Sign out'));
+        await signOutButton.trigger('click');
+        await flushPromises();
+
+        // Act
         await header.get('dialog[aria-label="Confirm Sign Out"] .signOutCancelButton').trigger('click');
         await flushPromises();
 
+        // Assert
         expect(header.find('dialog[aria-label="Confirm Sign Out"]').exists()).toBe(false);
         expect(logout).not.toHaveBeenCalled();
     });

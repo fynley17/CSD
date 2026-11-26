@@ -7,7 +7,7 @@ export default {
     components: {
         PopupDialog,
     },
-    emits: ['saved'],
+    emits: ['saved', 'error'],
 
     data() {
         return {
@@ -87,17 +87,21 @@ export default {
                     this.$refs.dialog.close();
                     // php says whether the email went, the page needs that to pick a green or red box
                     // the staff ID goes too so the page can find the new row for the admin
-                    this.$emit('saved', result.message, this.form.staffID.trim(), result.emailSent);
+                    const message = result.emailSent
+                        ? 'Lecturer created successfully.'
+                        : 'Lecturer created, but the login email failed.';
+                    this.$emit('saved', message, this.form.staffID.trim(), result.emailSent);
                 } else {
                     // edit doesn't change the role, so only the four boxes go
                     const { firstName, lastName, staffID, email } = this.form;
                     await updateLecturer(this.userID, { firstName, lastName, staffID, email });
                     this.$refs.dialog.close();
-                    this.$emit('saved', 'Changes saved');
+                    this.$emit('saved', 'Lecturer updated successfully.');
                 }
             } catch (error) {
                 // PHP's message if it sent one i.e. staff ID taken, otherwise a plain one
                 this.errorMessage = error.response?.data?.error || 'Unable to save the lecturer';
+                this.$emit('error', this.errorMessage);
                 this.confirmingAdmin = false;
             } finally {
                 this.isSaving = false;
@@ -110,10 +114,6 @@ export default {
 <template>
     <PopupDialog ref="dialog" :title="title">
         <form id="lecturerForm" novalidate @submit.prevent="save">
-            <div v-if="errorMessage" class="alert alert-danger" role="alert">
-                <strong>There is a problem:</strong> {{ errorMessage }}
-            </div>
-
             <div class="mb-3">
                 <label for="lecturerFirstName" class="form-label">First name</label>
                 <input
@@ -149,7 +149,7 @@ export default {
                     autocomplete="off"
                     aria-describedby="lecturerStaffIDHint"
                 />
-                <div id="lecturerStaffIDHint" class="form-text">They log in with this, for example L1001</div>
+                <div id="lecturerStaffIDHint" class="form-text">They log in with this, for example JKimmins</div>
             </div>
 
             <div class="mb-3">
@@ -197,7 +197,7 @@ export default {
         <!-- buttons sit on the right with Cancel first, like the student and cohort pop-ups -->
         <!-- form="lecturerForm" links the footer button back up to the form -->
         <template #buttons>
-            <div class="d-flex justify-content-end gap-2 w-100">
+            <div class="twoActionGrid">
                 <button type="button" class="btn btn-outline-primary" @click="$refs.dialog.close()">Cancel</button>
                 <button type="submit" form="lecturerForm" class="btn btn-primary" :disabled="isSaving">
                     {{ saveText }}
@@ -206,3 +206,16 @@ export default {
         </template>
     </PopupDialog>
 </template>
+
+<style scoped>
+.twoActionGrid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--spaceSm);
+    width: 100%;
+}
+
+.twoActionGrid > button {
+    width: 100%;
+}
+</style>

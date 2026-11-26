@@ -13,6 +13,7 @@ import { getActiveSubjects, createQuestion, updateQuestion, deleteQuestion } fro
 const questionTable = ref(null);
 const questionDialog = ref(null);
 const deleteDialog = ref(null);
+const errorToast = ref(null);
 
 const availableSubjects = ref([]);
 
@@ -58,23 +59,42 @@ const clearMessages = () => {
 // Display a temporary success notification.
 const showSuccess = (message) => {
     clearMessages();
+    errorToast.value?.hidePopover();
+    errorMessage.value = '';
     successMessage.value = message;
 
     messageTimeout = setTimeout(() => {
         successMessage.value = '';
         messageTimeout = null;
-    }, 10000);
+    }, 20000);
 };
 
 // Display a temporary error notification.
-const showError = (message) => {
+const showError = async (message) => {
     clearMessages();
     errorMessage.value = message;
 
+    await nextTick();
+    errorToast.value?.showPopover();
+
     messageTimeout = setTimeout(() => {
+        errorToast.value?.hidePopover();
         errorMessage.value = '';
         messageTimeout = null;
-    }, 10000);
+    }, 20000);
+};
+
+const closeSuccess = () => {
+    clearTimeout(messageTimeout);
+    messageTimeout = null;
+    successMessage.value = '';
+};
+
+const closeError = () => {
+    clearTimeout(messageTimeout);
+    messageTimeout = null;
+    errorToast.value?.hidePopover();
+    errorMessage.value = '';
 };
 
 // Apply the selected subject filter.
@@ -103,8 +123,9 @@ const openEditForm = async (question) => {
 };
 
 // Close the create/edit dialog.
-const closeQuestionForm = () => {
+const closeQuestionForm = async () => {
     questionDialog.value?.close();
+    await nextTick();
 };
 
 // Handle the dialog closing, including when Escape is pressed.
@@ -127,14 +148,14 @@ const saveQuestion = async (questionData) => {
         if (selectedQuestion.value) {
             await updateQuestion(selectedQuestion.value.questionID, questionData);
 
-            closeQuestionForm();
+            await closeQuestionForm();
             await refreshQuestions();
 
             showSuccess('Question updated successfully.');
         } else {
             await createQuestion(questionData);
 
-            closeQuestionForm();
+            await closeQuestionForm();
             await refreshQuestions();
 
             showSuccess('Question created successfully.');
@@ -157,8 +178,9 @@ const openDeleteConfirmation = async (question) => {
 };
 
 // Close the delete confirmation dialog.
-const closeDeleteConfirmation = () => {
+const closeDeleteConfirmation = async () => {
     deleteDialog.value?.close();
+    await nextTick();
 };
 
 // Handle the delete dialog closing, including Escape.
@@ -179,7 +201,7 @@ const confirmDelete = async () => {
     try {
         await deleteQuestion(questionToDelete.value.questionID);
 
-        closeDeleteConfirmation();
+        await closeDeleteConfirmation();
         await refreshQuestions();
 
         showSuccess('Question deleted successfully.');
@@ -207,13 +229,22 @@ onBeforeUnmount(() => {
         <!-- Temporary success notification. -->
         <div v-if="successMessage" class="toastMessage successMessage" role="status" aria-live="polite">
             <span aria-hidden="true">✓</span>
-            {{ successMessage }}
+            <span>{{ successMessage }}</span>
+            <button type="button" class="toastClose" aria-label="Close notification" @click="closeSuccess">×</button>
         </div>
 
         <!-- Temporary error notification. -->
-        <div v-if="errorMessage" class="toastMessage errorMessage" role="alert" aria-live="assertive">
-            <span aria-hidden="true">!</span>
-            {{ errorMessage }}
+        <div
+            v-if="errorMessage"
+            ref="errorToast"
+            popover="manual"
+            class="toastMessage errorMessage"
+            role="alert"
+            aria-live="assertive"
+        >
+            <i class="bi bi-exclamation-triangle-fill" aria-hidden="true"></i>
+            <span>{{ errorMessage }}</span>
+            <button type="button" class="toastClose" aria-label="Close notification" @click="closeError">×</button>
         </div>
 
         <!-- search and subject filter on the left, create button on the right -->
@@ -255,6 +286,7 @@ onBeforeUnmount(() => {
                 :loading="saving"
                 @save="saveQuestion"
                 @cancel="closeQuestionForm"
+                @error="showError"
             />
         </PopupDialog>
 
@@ -288,40 +320,3 @@ onBeforeUnmount(() => {
         </PopupDialog>
     </section>
 </template>
-
-<style scoped>
-/* Position temporary notifications in the top-right corner. */
-.toastMessage {
-    position: fixed;
-    z-index: 1100;
-    top: var(--spaceLg);
-    right: var(--spaceLg);
-    display: flex;
-    align-items: center;
-    gap: var(--spaceSm);
-    width: max-content;
-    max-width: min(450px, calc(100vw - 2 * var(--spaceLg)));
-    padding: var(--spaceMd) var(--spaceLg);
-    border: 2px solid var(--colorPrimary);
-    border-radius: var(--radiusSm);
-    background: var(--colorSurface);
-    color: var(--colorText);
-    font-weight: 600;
-}
-
-.successMessage {
-    border-color: var(--colorPrimary);
-}
-
-.errorMessage {
-    border-color: var(--colorError);
-    color: var(--colorError);
-}
-
-@media (max-width: 639px) {
-    .toastMessage {
-        top: var(--spaceMd);
-        right: var(--spaceMd);
-    }
-}
-</style>

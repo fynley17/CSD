@@ -28,19 +28,20 @@
             <p v-else class="mt-3 mb-0">There are no other cohorts to move this student to. Create one first.</p>
         </form>
 
-        <div v-if="errorMessage" id="moveStudentError" class="alert alert-danger mt-3 mb-0" role="alert">
-            <strong>There is a problem:</strong> {{ errorMessage }}
-        </div>
-
         <template #buttons>
             <div class="cohortDialogButtons">
-                <button type="button" class="cohortSecondaryButton" :disabled="isSaving" @click="dialog.close()">
+                <button
+                    type="button"
+                    class="cohortSecondaryButton btn btn-outline-primary"
+                    :disabled="isSaving"
+                    @click="dialog.close()"
+                >
                     Cancel
                 </button>
                 <button
                     type="submit"
                     form="moveStudentForm"
-                    class="cohortPrimaryButton"
+                    class="cohortPrimaryButton btn btn-primary"
                     :disabled="otherCohorts.length === 0 || isSaving"
                 >
                     Remove and Move
@@ -71,7 +72,7 @@ const props = defineProps({
     },
 });
 
-const emit = defineEmits(['close', 'saved']);
+const emit = defineEmits(['close', 'saved', 'error']);
 
 const dialog = ref(null);
 const newCohortID = ref('');
@@ -96,6 +97,7 @@ async function move() {
     if (newCohortID.value === '') {
         errorMessage.value = 'Select a cohort to move this student to';
         isCohortInvalid.value = true;
+        emit('error', errorMessage.value);
         return;
     }
 
@@ -107,6 +109,7 @@ async function move() {
     } catch (error) {
         errorMessage.value = error.response?.data?.error || `Unable to move ${props.student.name}`;
         isCohortInvalid.value = error.response?.data?.field === 'cohortID';
+        emit('error', errorMessage.value);
     } finally {
         isSaving.value = false;
     }

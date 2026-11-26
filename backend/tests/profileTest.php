@@ -273,7 +273,7 @@ final class ProfileTest extends TestCase
     {
         // Assert
         $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('Staff ID must be 3 to 8 letters or numbers, like L1001');
+        $this->expectExceptionMessage('Staff ID must be 3 to 8 letters or numbers, like JKimmins');
 
         // Act
         $this->account('admin-1')->readProfileDetails(

@@ -75,8 +75,27 @@ describe('LecturerManagement', () => {
 
         // Assert
         expect(setLecturerEnabled).toHaveBeenCalledWith('lecturer-1', false);
-        expect(page.get('[role="status"]').text()).toContain('Success: Status updated');
+        expect(page.get('.toastMessage.successMessage').text()).toContain('Lecturer disabled successfully.');
         expect(page.find('[aria-label="Undo for Test Lecturer"]').exists()).toBe(true);
+    });
+
+    /**
+     * pressing Undo puts the account back on, no second Undo after (normal)
+     */
+    it('turns the account back on when Undo is pressed', async () => {
+        // Arrange
+        vi.mocked(setLecturerEnabled).mockResolvedValue({ message: 'Status updated' });
+        const page = await openPage();
+        await pressAndConfirm(page, 'Disable Test Lecturer');
+
+        // Act
+        await page.get('[aria-label="Undo for Test Lecturer"]').trigger('click');
+        await flushPromises();
+
+        // Assert
+        expect(setLecturerEnabled).toHaveBeenLastCalledWith('lecturer-1', true);
+        expect(page.get('.toastMessage.successMessage').text()).toContain('Lecturer enabled successfully.');
+        expect(page.find('[aria-label="Undo for Test Lecturer"]').exists()).toBe(false);
     });
 
     /**
@@ -94,10 +113,10 @@ describe('LecturerManagement', () => {
 
         // Assert
         expect(deleteLecturer).toHaveBeenCalledWith('lecturer-1');
-        expect(page.get('[role="alert"]').text()).toBe(
-            "There is a problem: Administrator accounts can't be changed on this page",
+        expect(page.get('.toastMessage.errorMessage').text()).toContain(
+            "Administrator accounts can't be changed on this page",
         );
-        expect(page.find('.alert-success').exists()).toBe(false);
+        expect(page.find('.toastMessage.successMessage').exists()).toBe(false);
     });
 
     /**
@@ -116,7 +135,9 @@ describe('LecturerManagement', () => {
 
         // Assert
         expect(resendSetupLink).toHaveBeenCalledWith('lecturer-2');
-        expect(page.get('[role="status"]').text()).toContain('A new link has been sent to New Lecturer');
+        expect(page.get('.toastMessage.successMessage').text()).toContain(
+            'Setup link sent to New Lecturer successfully.',
+        );
     });
 
     /**
@@ -133,7 +154,7 @@ describe('LecturerManagement', () => {
 
         // Assert
         expect(page.get('#lecturerSearch').element.value).toBe('L2001');
-        expect(page.get('.alert-success').text()).toContain('Lecturer added');
+        expect(page.get('.toastMessage.successMessage').text()).toContain('Lecturer added');
     });
 
     /**
@@ -150,8 +171,9 @@ describe('LecturerManagement', () => {
         await flushPromises();
 
         // Assert
-        expect(page.find('.alert-success').exists()).toBe(false);
-        expect(page.get('.alert-danger').text()).toContain('There is a problem:');
-        expect(page.get('.alert-danger').text()).toContain('Wait a minute then use Resend link');
+        expect(page.find('.toastMessage.successMessage').exists()).toBe(false);
+        // the red toast should have the warning triangle
+        expect(page.find('.toastMessage.errorMessage .bi-exclamation-triangle-fill').exists()).toBe(true);
+        expect(page.get('.toastMessage.errorMessage').text()).toContain('Wait a minute then use Resend link');
     });
 });

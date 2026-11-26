@@ -11,7 +11,7 @@ const props = defineProps({
     },
 });
 
-const emit = defineEmits(['saved', 'close']);
+const emit = defineEmits(['saved', 'close', 'error']);
 
 const isEditing = computed(() => Boolean(props.student?.userID));
 
@@ -53,6 +53,7 @@ async function loadCohorts() {
         cohorts.value = availableCohorts;
     } catch {
         errorMessage.value = 'Unable to load cohorts. Please try again.';
+        emit('error', errorMessage.value);
     } finally {
         loadingCohorts.value = false;
     }
@@ -93,6 +94,7 @@ async function submitStudent() {
     errorMessage.value = '';
 
     if (!validateForm()) {
+        emit('error', errorMessage.value);
         return;
     }
 
@@ -124,6 +126,7 @@ async function submitStudent() {
             error.response?.data?.error ??
             error.response?.data?.message ??
             `Unable to ${action} the student account. Please try again.`;
+        emit('error', errorMessage.value);
     } finally {
         submitting.value = false;
     }
@@ -140,10 +143,6 @@ onMounted(async () => {
 <template>
     <PopupDialog ref="dialog" :title="isEditing ? 'Edit Student' : 'Add New Student'" @close="emit('close')">
         <form id="student-form" class="studentForm" @submit.prevent="submitStudent">
-            <div v-if="errorMessage" class="formError" role="alert">
-                {{ errorMessage }}
-            </div>
-
             <div class="formGroup">
                 <label for="firstName">First name <span aria-hidden="true">*</span></label>
                 <input
@@ -224,7 +223,7 @@ onMounted(async () => {
 
         <template #buttons>
             <div class="studentFormActions">
-                <button type="button" class="studentCancelButton" :disabled="submitting" @click="dialog?.close()">
+                <button type="button" class="btn btn-outline-primary" :disabled="submitting" @click="dialog?.close()">
                     Cancel
                 </button>
 
@@ -298,8 +297,8 @@ onMounted(async () => {
 
 /* Align the form actions neatly at the bottom of the dialog. */
 .studentFormActions {
-    display: flex;
-    justify-content: flex-end;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     align-items: center;
     gap: var(--spaceSm);
     width: 100%;

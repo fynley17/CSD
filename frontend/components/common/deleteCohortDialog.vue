@@ -30,19 +30,20 @@
             </template>
         </div>
 
-        <div v-if="errorMessage" class="alert alert-danger mt-3 mb-0" role="alert">
-            <strong>There is a problem:</strong> {{ errorMessage }}
-        </div>
-
         <template #buttons>
             <div class="cohortDialogButtons">
-                <button type="button" class="cohortSecondaryButton" :disabled="isSaving" @click="dialog.close()">
+                <button
+                    type="button"
+                    class="cohortSecondaryButton btn btn-outline-primary"
+                    :disabled="isSaving"
+                    @click="dialog.close()"
+                >
                     {{ canDelete || canDisable ? 'Cancel' : 'Close' }}
                 </button>
                 <button
                     v-if="canDelete"
                     type="button"
-                    class="cohortPrimaryButton cohortDangerButton"
+                    class="cohortDeleteButton"
                     :disabled="isSaving"
                     @click="deleteTheCohort"
                 >
@@ -51,7 +52,7 @@
                 <button
                     v-if="canDisable"
                     type="button"
-                    class="cohortPrimaryButton"
+                    class="cohortPrimaryButton btn btn-primary"
                     :disabled="isSaving"
                     @click="disableTheCohort"
                 >
@@ -79,7 +80,7 @@ const props = defineProps({
     },
 });
 
-const emit = defineEmits(['close', 'deleted', 'disabled']);
+const emit = defineEmits(['close', 'deleted', 'disabled', 'error']);
 
 const dialog = ref(null);
 const isSaving = ref(false);
@@ -119,6 +120,7 @@ async function save(saving, fallbackError) {
         dialog.value.close();
     } catch (error) {
         errorMessage.value = error.response?.data?.error || fallbackError;
+        emit('error', errorMessage.value);
     } finally {
         isSaving.value = false;
     }

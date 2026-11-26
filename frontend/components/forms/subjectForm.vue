@@ -9,7 +9,7 @@ export default {
         PopupDialog,
         TableSearch,
     },
-    emits: ['saved'],
+    emits: ['saved', 'error'],
 
     data() {
         return {
@@ -75,6 +75,7 @@ export default {
                 }
             } catch (error) {
                 this.errorMessage = error.response?.data?.error || 'Unable to load the cohorts and lecturers';
+                this.$emit('error', this.errorMessage);
             }
         },
 
@@ -85,6 +86,7 @@ export default {
             this.errorMessage = '';
             if (this.form.cohortID === '') {
                 this.errorMessage = 'Choose a cohort';
+                this.$emit('error', this.errorMessage);
                 return;
             }
 
@@ -97,10 +99,13 @@ export default {
                     await updateSubject(this.subjectID, this.form);
                 }
                 this.$refs.dialog.close();
-                this.$emit('saved', this.subjectID === null ? 'Subject added' : 'Changes saved');
+                const message =
+                    this.subjectID === null ? 'Subject created successfully.' : 'Subject updated successfully.';
+                this.$emit('saved', message);
             } catch (error) {
                 // message from PHP if there is one (like name already used in that cohort) or a generic one
                 this.errorMessage = error.response?.data?.error || 'Unable to save the subject';
+                this.$emit('error', this.errorMessage);
             } finally {
                 this.isSaving = false;
             }
@@ -112,10 +117,6 @@ export default {
 <template>
     <PopupDialog ref="dialog" :title="title">
         <form id="subjectForm" novalidate @submit.prevent="save">
-            <div v-if="errorMessage" class="alert alert-danger" role="alert">
-                <strong>There is a problem:</strong> {{ errorMessage }}
-            </div>
-
             <div class="mb-3">
                 <label for="subjectName" class="form-label">Subject name</label>
                 <input id="subjectName" v-model="form.subjectName" type="text" class="form-control" maxlength="100" />
@@ -168,7 +169,7 @@ export default {
         <!-- buttons sit on the right with Cancel first, like the student and cohort pop-ups -->
         <!-- form="subjectForm" links the footer button back up to the form -->
         <template #buttons>
-            <div class="d-flex justify-content-end gap-2 w-100">
+            <div class="twoActionGrid">
                 <button type="button" class="btn btn-outline-primary" @click="$refs.dialog.close()">Cancel</button>
                 <button type="submit" form="subjectForm" class="btn btn-primary" :disabled="isSaving">
                     Save subject
@@ -179,6 +180,17 @@ export default {
 </template>
 
 <style scoped>
+.twoActionGrid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--spaceSm);
+    width: 100%;
+}
+
+.twoActionGrid > button {
+    width: 100%;
+}
+
 /* lecturer tick boxes on the subject form, a long list scrolls inside */
 .lecturerPickList {
     max-height: 16rem;

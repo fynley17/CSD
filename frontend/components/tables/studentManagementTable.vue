@@ -20,7 +20,6 @@ DataTable.use(DataTablesCore);
 const students = ref([]);
 const loading = ref(true);
 const errorMessage = ref('');
-const actionError = ref('');
 
 const deletePopup = ref(null);
 const declinePopup = ref(null);
@@ -37,7 +36,7 @@ const disablingStudent = ref(false);
 // Count the student applications that are awaiting approval.
 const pendingCount = computed(() => students.value.filter((student) => student.status === 'Pending').length);
 
-const emit = defineEmits(['edit']);
+const emit = defineEmits(['edit', 'success', 'error']);
 
 const dataTable = ref(null);
 
@@ -170,8 +169,6 @@ const toggleText = (student) => (student.status === 'Disabled' ? 'Enable' : 'Dis
 
 // Handle the action buttons in the #actions slot.
 const handleAction = async (action, student, event) => {
-    actionError.value = '';
-
     if (action === 'edit') {
         emit('edit', student);
         return;
@@ -224,10 +221,21 @@ const handleAction = async (action, student, event) => {
                 return;
         }
 
-        // Refresh the table after a successful action.
+        const messages = {
+            enable: 'Student enabled successfully.',
+            disable: 'Student disabled successfully.',
+            approve: 'Student application approved successfully.',
+        };
+        // send the student with enable/disable so the page can show Undo
+        emit('success', messages[action], action === 'approve' ? null : student);
         await refreshStudents();
     } catch (error) {
-        actionError.value = error.response?.data?.error || 'Unable to complete this action. Please try again.';
+        emit(
+            'error',
+            error.response?.data?.error ||
+                error.response?.data?.message ||
+                'Unable to complete this action. Please try again.',
+        );
     } finally {
         if (button) {
             button.disabled = false;
@@ -241,15 +249,19 @@ const confirmDisableStudent = async () => {
     }
 
     disablingStudent.value = true;
-    actionError.value = '';
 
     try {
         await updateStudentStatus(studentToDisable.value.userID, false);
-
         disablePopup.value?.close();
+        emit('success', 'Student disabled successfully.', studentToDisable.value);
         await refreshStudents();
     } catch (error) {
-        actionError.value = error.response?.data?.error || 'Unable to disable the student account. Please try again.';
+        emit(
+            'error',
+            error.response?.data?.error ||
+                error.response?.data?.message ||
+                'Unable to disable the student account. Please try again.',
+        );
     } finally {
         disablingStudent.value = false;
     }
@@ -262,16 +274,19 @@ const confirmDeclineStudent = async () => {
     }
 
     decliningStudent.value = true;
-    actionError.value = '';
 
     try {
         await declineStudent(studentToDecline.value.userID);
-
         declinePopup.value?.close();
+        emit('success', 'Student application declined successfully.');
         await refreshStudents();
     } catch (error) {
-        actionError.value =
-            error.response?.data?.error || 'Unable to decline the student application. Please try again.';
+        emit(
+            'error',
+            error.response?.data?.error ||
+                error.response?.data?.message ||
+                'Unable to decline the student application. Please try again.',
+        );
     } finally {
         decliningStudent.value = false;
     }
@@ -284,15 +299,19 @@ const confirmDeleteStudent = async () => {
     }
 
     deletingStudent.value = true;
-    actionError.value = '';
 
     try {
         await deleteStudent(studentToDelete.value.userID);
-
         deletePopup.value?.close();
+        emit('success', 'Student deleted successfully.');
         await refreshStudents();
     } catch (error) {
-        actionError.value = error.response?.data?.error || 'Unable to delete the student account. Please try again.';
+        emit(
+            'error',
+            error.response?.data?.error ||
+                error.response?.data?.message ||
+                'Unable to delete the student account. Please try again.',
+        );
     } finally {
         deletingStudent.value = false;
     }
@@ -322,15 +341,15 @@ const closeDeleteModal = () => {
     deletePopup.value?.close();
 };
 
-const handleDeclinePopupClose = () => {
-    if (!decliningStudent.value) {
-        studentToDecline.value = null;
-    }
-};
-
 const handleDisablePopupClose = () => {
     if (!disablingStudent.value) {
         studentToDisable.value = null;
+    }
+};
+
+const handleDeclinePopupClose = () => {
+    if (!decliningStudent.value) {
+        studentToDecline.value = null;
     }
 };
 
@@ -356,11 +375,6 @@ onMounted(async () => {
     <!-- same white card as the lecturer and subject tables -->
     <div class="card border-0 rounded-0 h-100">
         <div class="px-3 px-md-4 pb-4">
-            <!-- Show errors returned by student account actions. -->
-            <div v-if="actionError" class="alert alert-danger mt-3" role="alert">
-                {{ actionError }}
-            </div>
-
             <!-- Show a loading message while student records are being retrieved. -->
             <p v-if="loading" class="text-center py-4 mb-0" role="status">Loading students...</p>
 
@@ -442,20 +456,19 @@ onMounted(async () => {
                 </DataTable>
             </div>
 
+            <!-- Disable confirmation popup. -->
             <Popup ref="disablePopup" title="Confirm Disable" @close="handleDisablePopupClose">
                 <h3>Disable this student?</h3>
 
                 <p>They will no longer be able to log in until their account is enabled again.</p>
 
-                <p class="studentDeleteName">
-                    {{ studentToDisable?.name }}
-                </p>
+                <p class="studentDeleteName">{{ studentToDisable?.name }}</p>
 
                 <template #buttons>
                     <div class="studentFormActions">
                         <button
                             type="button"
-                            class="studentCancelButton"
+                            class="btn btn-outline-primary"
                             :disabled="disablingStudent"
                             @click="closeDisableModal"
                         >
@@ -541,7 +554,8 @@ onMounted(async () => {
 
 <style>
 .studentFormActions {
-    display: flex;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     justify-content: flex-end;
     align-items: center;
     gap: var(--spaceSm);

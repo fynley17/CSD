@@ -52,7 +52,7 @@ describe('LecturerForm', () => {
      */
     it('fills in the row and saves the changes', async () => {
         // Arrange
-        vi.mocked(updateLecturer).mockResolvedValue({ message: 'Changes saved' });
+        vi.mocked(updateLecturer).mockResolvedValue({ message: 'Lecturer updated successfully.' });
         const wrapper = mount(LecturerForm);
         wrapper.vm.open(row);
         await wrapper.get('#lecturerFirstName').setValue('Edited');
@@ -69,13 +69,13 @@ describe('LecturerForm', () => {
             staffID: 'L1001',
             email: 'test.lecturer@example.test',
         });
-        expect(wrapper.emitted('saved')[0]).toEqual(['Changes saved']);
+        expect(wrapper.emitted('saved')[0]).toEqual(['Lecturer updated successfully.']);
     });
 
     /**
      * php says no (staff ID already used), the red box shows why and the page isnt told it saved (error)
      */
-    it('shows the message from PHP when the save is refused', async () => {
+    it('emits the PHP message as a toast error when the save is refused', async () => {
         // Arrange
         vi.mocked(updateLecturer).mockRejectedValue({
             response: { status: 400, data: { error: 'An account with this staff ID already exists' } },
@@ -88,9 +88,8 @@ describe('LecturerForm', () => {
         await flushPromises();
 
         // Assert
-        expect(wrapper.get('[role="alert"]').text()).toBe(
-            'There is a problem: An account with this staff ID already exists',
-        );
+        expect(wrapper.find('[role="alert"]').exists()).toBe(false);
+        expect(wrapper.emitted('error')).toEqual([['An account with this staff ID already exists']]);
         expect(wrapper.emitted('saved')).toBeUndefined();
     });
 
@@ -99,7 +98,7 @@ describe('LecturerForm', () => {
      */
     it('adds a lecturer and passes the message on', async () => {
         // Arrange
-        const message = 'Lecturer added. They have been emailed a link to set their password';
+        const message = 'Lecturer created successfully.';
         vi.mocked(createLecturer).mockResolvedValue({ message, emailSent: true, userID: 'new-id' });
         const wrapper = mount(LecturerForm);
         wrapper.vm.open();
@@ -119,7 +118,7 @@ describe('LecturerForm', () => {
             email: 'new.lecturer@example.test',
             role: 'lecturer',
         });
-        expect(wrapper.emitted('saved')[0]).toEqual([message, 'L2001', true]);
+        expect(wrapper.emitted('saved')[0]).toEqual(['Lecturer created successfully.', 'L2001', true]);
     });
 
     /**
@@ -127,7 +126,7 @@ describe('LecturerForm', () => {
      */
     it('passes on that the email did not send', async () => {
         // Arrange
-        const message = "Lecturer added, but the email couldn't be sent. Wait a minute then use Resend link";
+        const message = 'Lecturer created, but the login email failed.';
         vi.mocked(createLecturer).mockResolvedValue({ message, emailSent: false, userID: 'new-id' });
         const wrapper = mount(LecturerForm);
         wrapper.vm.open();
@@ -139,7 +138,7 @@ describe('LecturerForm', () => {
         await flushPromises();
 
         // Assert
-        expect(wrapper.emitted('saved')[0]).toEqual([message, 'L2001', false]);
+        expect(wrapper.emitted('saved')[0]).toEqual(['Lecturer created, but the login email failed.', 'L2001', false]);
     });
 
     /**
