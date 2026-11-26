@@ -250,9 +250,10 @@ describe('studentManagementTable.vue', () => {
         await wrapper.get('[aria-label="Disable Alex Morgan"]').trigger('click');
         await flushPromises();
 
-        const dialog = wrapper.get('dialog[aria-label="Confirm Disable"]');
+        const dialog = wrapper.get('dialog[aria-label="Disable Student?"]');
         expect(dialog.attributes('open')).toBeDefined();
         expect(dialog.text()).toContain('Alex Morgan');
+        expect(dialog.get('.studentCreateButton').text()).toBe('Disable Student');
         expect(updateStudentStatus).not.toHaveBeenCalled();
 
         await dialog.get('.btn.btn-outline-primary').trigger('click');
@@ -273,12 +274,12 @@ describe('studentManagementTable.vue', () => {
 
         await wrapper.get('[aria-label="Disable Alex Morgan"]').trigger('click');
         await flushPromises();
-        await wrapper.get('dialog[aria-label="Confirm Disable"] .studentCreateButton').trigger('click');
+        await wrapper.get('dialog[aria-label="Disable Student?"] .studentCreateButton').trigger('click');
         await flushPromises();
 
         expect(updateStudentStatus).toHaveBeenCalledWith(1, false);
         expect(getLecturerStudents).toHaveBeenCalledTimes(2);
-        expect(wrapper.get('dialog[aria-label="Confirm Disable"]').attributes('open')).toBeUndefined();
+        expect(wrapper.get('dialog[aria-label="Disable Student?"]').attributes('open')).toBeUndefined();
 
         wrapper.unmount();
     });

@@ -845,7 +845,7 @@ describe('CohortManagement', () => {
         // Assert
         expect(page.get('.popupTitle').text()).toBe('Delete Cohort?');
         expect(page.get('.cohortDialogConfirm h3').text()).toBe('Data Science 2026');
-        expect(page.get('.cohortDialogButtons .cohortDeleteButton').exists()).toBe(true);
+        expect(page.get('.cohortDialogButtons .cohortDeleteButton').text()).toBe('Delete Cohort');
         expect(page.find('.cohortDialogButtons .cohortPrimaryButton').exists()).toBe(false);
         expect(deleteCohort).not.toHaveBeenCalled();
     });

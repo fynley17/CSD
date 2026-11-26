@@ -294,7 +294,7 @@ onBeforeUnmount(() => {
                 </button>
 
                 <button type="button" class="btn btn-danger flex-fill" :disabled="deletingTest" @click="confirmDelete">
-                    {{ deletingTest ? 'Processing...' : 'Confirm' }}
+                    {{ deletingTest ? 'Processing...' : 'Delete Test' }}
                 </button>
             </template>
         </PopupDialog>

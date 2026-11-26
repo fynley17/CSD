@@ -40,7 +40,7 @@
                         type="button"
                         class="headerButton loginButton"
                         :disabled="isSigningOut"
-                        @click="signOut"
+                        @click="openSignOutDialog"
                     >
                         {{ isSigningOut ? 'Signing out...' : 'Sign out' }}
                     </button>
@@ -94,7 +94,7 @@
                         type="button"
                         class="headerButton loginButton"
                         :disabled="isSigningOut"
-                        @click="signOut"
+                        @click="openSignOutDialog"
                     >
                         {{ isSigningOut ? 'Signing out...' : 'Sign out' }}
                     </button>
@@ -110,11 +110,35 @@
             </div>
         </nav>
     </header>
+
+    <PopupDialog
+        v-if="isSignOutDialogOpen"
+        ref="signOutDialog"
+        title="Confirm Sign Out"
+        @close="isSignOutDialogOpen = false"
+    >
+        <h3 class="text-center">Sign out of RevisionHub?</h3>
+        <p class="text-center mb-0">You will need to sign in again to access your account.</p>
+        <template #buttons>
+            <button
+                type="button"
+                class="btn btn-outline-primary flex-fill"
+                :disabled="isSigningOut"
+                @click="closeSignOutDialog"
+            >
+                Cancel
+            </button>
+            <button type="button" class="btn btn-primary flex-fill" :disabled="isSigningOut" @click="confirmSignOut">
+                {{ isSigningOut ? 'Signing out...' : 'Sign out' }}
+            </button>
+        </template>
+    </PopupDialog>
 </template>
 
 <script setup>
-import { computed, ref, watch } from 'vue';
+import { computed, nextTick, ref, watch } from 'vue';
 import { RouterLink, useRoute, useRouter } from 'vue-router';
+import PopupDialog from './popupDialog.vue';
 import { getCurrentUser, logout } from '../../services/authService';
 
 const menuOpen = ref(false);
@@ -122,6 +146,8 @@ const currentUser = ref(null);
 const authChecked = ref(false);
 const authError = ref('');
 const isSigningOut = ref(false);
+const isSignOutDialogOpen = ref(false);
+const signOutDialog = ref(null);
 const route = useRoute();
 const router = useRouter();
 const isStudent = computed(() => currentUser.value?.accountType === 'student');
@@ -214,6 +240,17 @@ watch(
     { immediate: true },
 );
 
+async function openSignOutDialog() {
+    isSignOutDialogOpen.value = true;
+    await nextTick();
+    signOutDialog.value?.open();
+}
+
+function closeSignOutDialog() {
+    signOutDialog.value?.close();
+    isSignOutDialogOpen.value = false;
+}
+
 async function signOut() {
     if (isSigningOut.value) {
         return;
@@ -232,6 +269,11 @@ async function signOut() {
     } finally {
         isSigningOut.value = false;
     }
+}
+
+async function confirmSignOut() {
+    signOutDialog.value?.close();
+    await signOut();
 }
 </script>
 

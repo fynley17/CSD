@@ -294,7 +294,7 @@ onBeforeUnmount(() => {
         <PopupDialog
             v-if="showDeleteConfirmation"
             ref="deleteDialog"
-            title="Confirm Delete"
+            title="Delete Question?"
             @close="handleDeleteDialogClose"
         >
             <div class="text-center">
@@ -314,7 +314,7 @@ onBeforeUnmount(() => {
                 </button>
 
                 <button type="button" class="btn btn-danger flex-fill" :disabled="saving" @click="confirmDelete">
-                    {{ saving ? 'Deleting...' : 'Delete' }}
+                    {{ saving ? 'Deleting...' : 'Delete Question' }}
                 </button>
             </template>
         </PopupDialog>
