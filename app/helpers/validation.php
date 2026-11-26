@@ -29,7 +29,7 @@ class Validation
     }
 
     /**
-     * Staff ID, 3 to 8 letters or numbers like L1001
+     * Staff ID, 3 to 8 letters or numbers like JKimmins
      */
     public static function isValidStaffId(mixed $staffId): bool
     {
