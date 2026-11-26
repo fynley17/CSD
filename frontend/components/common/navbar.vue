@@ -120,14 +120,17 @@
         <h3 class="text-center">Sign out of RevisionHub?</h3>
         <p class="text-center mb-0">You will need to sign in again to access your account.</p>
         <template #buttons>
-            <div class="signOutDialogActions">
-                <button type="button" class="signOutCancelButton" :disabled="isSigningOut" @click="closeSignOutDialog">
-                    Cancel
-                </button>
-                <button type="button" class="signOutConfirmButton" :disabled="isSigningOut" @click="confirmSignOut">
-                    {{ isSigningOut ? 'Signing out...' : 'Sign out' }}
-                </button>
-            </div>
+            <button
+                type="button"
+                class="btn btn-outline-primary flex-fill"
+                :disabled="isSigningOut"
+                @click="closeSignOutDialog"
+            >
+                Cancel
+            </button>
+            <button type="button" class="btn btn-primary flex-fill" :disabled="isSigningOut" @click="confirmSignOut">
+                {{ isSigningOut ? 'Signing out...' : 'Sign out' }}
+            </button>
         </template>
     </PopupDialog>
 </template>
@@ -602,53 +605,6 @@ async function confirmSignOut() {
     .adminHeader .mobileLecturerNavigation a.routerLinkExactActive {
         padding-left: var(--spaceSm);
     }
-}
-
-/* Sign out popup actions, equal halves like every create/edit confirmation. */
-.signOutDialogActions {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: var(--spaceSm);
-    width: 100%;
-}
-
-.signOutCancelButton,
-.signOutConfirmButton {
-    min-height: 42px;
-    padding: var(--spaceSm) var(--spaceLg);
-    border: 1px solid transparent;
-    border-radius: var(--radiusSm);
-    font: inherit;
-    font-weight: 600;
-}
-
-.signOutCancelButton {
-    border-color: var(--colorBorderInput);
-    background: var(--colorSurface);
-    color: var(--colorText);
-}
-
-.signOutConfirmButton {
-    border-color: var(--colorPrimary);
-    background: var(--colorPrimary);
-    color: var(--colorSurface);
-}
-
-.signOutCancelButton:disabled,
-.signOutConfirmButton:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-}
-
-.signOutCancelButton:hover:not(:disabled) {
-    border-color: var(--colorPrimary);
-    background: var(--colorPrimary);
-    color: var(--colorSurface);
-}
-
-.signOutConfirmButton:hover:not(:disabled) {
-    border-color: var(--colorPrimaryHover);
-    background: var(--colorPrimaryHover);
 }
 
 /* account icon and type next to Sign out, Royal Blue which matches nav links */

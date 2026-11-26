@@ -134,6 +134,7 @@ describe('Navbar', () => {
         expect(logout).not.toHaveBeenCalled();
     });
 
+    /** A student can cancel signing out and stay logged in (normal) */
     it('closes the confirmation without signing out when cancelled', async () => {
         // Arrange
         vi.mocked(getCurrentUser).mockResolvedValue({ username: 'ws000001', accountType: 'student' });
@@ -147,7 +148,7 @@ describe('Navbar', () => {
         await flushPromises();
 
         // Act
-        await header.get('dialog[aria-label="Confirm Sign Out"] .signOutCancelButton').trigger('click');
+        await header.get('dialog[aria-label="Confirm Sign Out"] .btn-outline-primary').trigger('click');
         await flushPromises();
 
         // Assert
@@ -155,6 +156,7 @@ describe('Navbar', () => {
         expect(logout).not.toHaveBeenCalled();
     });
 
+    /** Nobody logged in, so no page links or Sign out button appear (boundary) */
     it('shows no page links to a visitor', async () => {
         // Arrange
         // null is what getCurrentUser() gives back when nobody's logged in

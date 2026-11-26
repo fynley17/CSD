@@ -42,7 +42,7 @@ export default {
             if (this.confirmAction === 'delete') {
                 return 'Delete Lecturer?';
             }
-            return this.confirmLecturer?.isEnabled ? 'Disable Lecturer?' : 'Enable account?';
+            return this.confirmLecturer?.isEnabled ? 'Disable Lecturer?' : 'Enable Lecturer?';
         },
 
         // text on the button that goes ahead, the title without the question mark
@@ -50,7 +50,7 @@ export default {
             if (this.confirmAction === 'delete') {
                 return 'Delete Lecturer';
             }
-            return this.confirmLecturer?.isEnabled ? 'Disable Lecturer' : 'Enable account';
+            return this.confirmLecturer?.isEnabled ? 'Disable Lecturer' : 'Enable Lecturer';
         },
     },
 
