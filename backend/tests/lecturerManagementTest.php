@@ -247,7 +247,7 @@ final class LecturerManagementTest extends TestCase
         return [
             'no first name' => ['firstName', '', 'Enter a first name using letters, spaces, hyphens or apostrophes'],
             'bad surname' => ['lastName', 'On3', 'Enter a last name using letters, spaces, hyphens or apostrophes'],
-            'short staff ID' => ['staffID', 'ab', 'Staff ID must be 3 to 8 letters or numbers, like L1001'],
+            'short staff ID' => ['staffID', 'ab', 'Staff ID must be 3 to 8 letters or numbers, like JKimmins'],
             'bad email' => ['email', 'nope', 'Enter an email address in the correct format, like name@example.com'],
             'email taken' => ['email', 'LEC02@example.test', 'An account with this email address already exists'],
         ];
