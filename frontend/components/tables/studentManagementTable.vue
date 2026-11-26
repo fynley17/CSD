@@ -457,7 +457,7 @@ onMounted(async () => {
             </div>
 
             <!-- Disable confirmation popup. -->
-            <Popup ref="disablePopup" title="Confirm Disable" @close="handleDisablePopupClose">
+            <Popup ref="disablePopup" title="Disable Student?" @close="handleDisablePopupClose">
                 <h3>Disable this student?</h3>
 
                 <p>They will no longer be able to log in until their account is enabled again.</p>
@@ -481,7 +481,7 @@ onMounted(async () => {
                             :disabled="disablingStudent"
                             @click="confirmDisableStudent"
                         >
-                            {{ disablingStudent ? 'Disabling...' : 'Confirm Disable' }}
+                            {{ disablingStudent ? 'Disabling...' : 'Disable Student' }}
                         </button>
                     </div>
                 </template>
@@ -519,7 +519,7 @@ onMounted(async () => {
             </Popup>
 
             <!-- Delete confirmation popup. -->
-            <Popup ref="deletePopup" title="Confirm Delete" @close="handleDeletePopupClose">
+            <Popup ref="deletePopup" title="Delete Student?" @close="handleDeletePopupClose">
                 <h3>Are you sure?</h3>
 
                 <p>Are you sure you want to delete this student? This action cannot be undone.</p>
@@ -544,7 +544,7 @@ onMounted(async () => {
                         :disabled="deletingStudent"
                         @click="confirmDeleteStudent"
                     >
-                        {{ deletingStudent ? 'Deleting...' : 'Confirm Delete' }}
+                        {{ deletingStudent ? 'Deleting...' : 'Delete Student' }}
                     </button>
                 </template>
             </Popup>

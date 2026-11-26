@@ -47,7 +47,7 @@
                     :disabled="isSaving"
                     @click="deleteTheCohort"
                 >
-                    Confirm Delete
+                    Delete Cohort
                 </button>
                 <button
                     v-if="canDisable"
@@ -56,7 +56,7 @@
                     :disabled="isSaving"
                     @click="disableTheCohort"
                 >
-                    Confirm Disable
+                    Disable Cohort
                 </button>
             </div>
         </template>

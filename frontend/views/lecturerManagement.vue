@@ -42,15 +42,15 @@ export default {
             if (this.confirmAction === 'delete') {
                 return 'Delete Lecturer?';
             }
-            return this.confirmLecturer?.isEnabled ? 'Disable account?' : 'Enable account?';
+            return this.confirmLecturer?.isEnabled ? 'Disable Lecturer?' : 'Enable account?';
         },
 
         // text on the button that goes ahead, the title without the question mark
         confirmButtonText() {
             if (this.confirmAction === 'delete') {
-                return 'Confirm Delete';
+                return 'Delete Lecturer';
             }
-            return this.confirmLecturer?.isEnabled ? 'Confirm Disable' : 'Enable account';
+            return this.confirmLecturer?.isEnabled ? 'Disable Lecturer' : 'Enable account';
         },
     },
 
